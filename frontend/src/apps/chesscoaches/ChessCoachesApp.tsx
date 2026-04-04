@@ -7,12 +7,12 @@ import { ScoresheetPanel } from './panels/ScoresheetPanel';
 import { ScoresheetReadPage } from './panels/ScoresheetReadPage';
 import { StudentsPanel } from './panels/StudentsPanel';
 import { CalendarPanel } from './panels/CalendarPanel';
-import { PaymentsPanel } from './panels/PaymentsPanel';
 import { MistakeFinderPanel } from './panels/MistakeFinderPanel';
 import { DiagramToFenPanel } from './panels/DiagramToFenPanel';
 import { AboutPanel } from './panels/AboutPanel';
 import { AdminPanel } from './panels/AdminPanel';
 import { StudentDetailPage } from './panels/StudentDetailPage';
+import { PaymentsPanel } from './panels/PaymentsPanel';
 
 export function ChessCoachesApp() {
   useEffect(() => {

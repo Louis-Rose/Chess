@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Clock, Pencil, Trash2, Calendar, X, Check,
+  ArrowLeft, Clock, Pencil, Trash2, Calendar, X,
   AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -32,7 +32,23 @@ interface Lesson {
   duration_minutes: number;
   status: string;
   paid: number;
+  pack_id: number | null;
   created_at: string;
+}
+
+interface Pack {
+  id: number;
+  student_id: number;
+  total_lessons: number;
+  price: number | null;
+  currency: string | null;
+  source: string | null;
+  note: string | null;
+  status: string;
+  created_at: string;
+  student_name: string;
+  student_currency: string | null;
+  consumed: number;
 }
 
 // ── Constants ──
@@ -385,6 +401,7 @@ export function StudentDetailPage() {
 
   const [student, setStudent] = useState<Student | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [showLessonForm, setShowLessonForm] = useState(false);
@@ -401,9 +418,17 @@ export function StudentDetailPage() {
     } catch { navigate('/students'); }
   }, [studentId, navigate]);
 
+  const fetchPacks = useCallback(async () => {
+    try {
+      const res = await authFetch(`/api/coaches/packs?student_id=${studentId}`);
+      const json = await res.json();
+      setPacks(json.packs || []);
+    } catch { /* ignore */ }
+  }, [studentId]);
+
   useEffect(() => {
-    fetchData().then(() => setLoading(false));
-  }, [fetchData]);
+    Promise.all([fetchData(), fetchPacks()]).then(() => setLoading(false));
+  }, [fetchData, fetchPacks]);
 
   const handleUpdate = async (form: StudentFormData) => {
     await authFetch(`/api/coaches/students/${studentId}`, {
@@ -421,21 +446,25 @@ export function StudentDetailPage() {
   };
 
   const handleStatusChange = async (lessonId: number, newStatus: string) => {
-    await authFetch(`/api/coaches/lessons/${lessonId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    });
-    fetchData();
-  };
+    const body: Record<string, unknown> = { status: newStatus };
 
-  const handleMarkPaid = async (lessonId: number) => {
+    // Auto-link to active pack when completing a lesson
+    if (newStatus === 'completed') {
+      const activePack = packs.find(p => p.status === 'active' && p.consumed < p.total_lessons);
+      if (activePack) body.pack_id = activePack.id;
+    } else {
+      // Un-link from pack when changing away from completed
+      const lesson = lessons.find(l => l.id === lessonId);
+      if (lesson?.pack_id) body.pack_id = null;
+    }
+
     await authFetch(`/api/coaches/lessons/${lessonId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paid: 1 }),
+      body: JSON.stringify(body),
     });
     fetchData();
+    fetchPacks();
   };
 
   const getDefaultLessonTime = (): string => {
@@ -575,6 +604,40 @@ export function StudentDetailPage() {
           </>
         )}
 
+        {/* Active pack credit meter */}
+        {packs.filter(p => p.status === 'active').map(p => {
+          const remaining = p.total_lessons - p.consumed;
+          const pct = p.total_lessons > 0 ? Math.min((p.consumed / p.total_lessons) * 100, 100) : 0;
+          return (
+            <div key={p.id} className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-200">
+                    {p.total_lessons} {t('coaches.packs.lessons')}
+                  </span>
+                  {p.source && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded border bg-emerald-500/15 text-emerald-400 border-emerald-500/30 font-medium">
+                      {p.source}
+                    </span>
+                  )}
+                </div>
+                <span className={`text-sm font-bold ${remaining > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {remaining} {t('coaches.packs.remaining')}
+                </span>
+              </div>
+              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${remaining <= 0 ? 'bg-slate-500' : 'bg-emerald-500'}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                {p.consumed} {t('coaches.packs.used')} {t('coaches.packs.of')} {p.total_lessons}
+              </div>
+            </div>
+          );
+        })}
+
         {/* Upcoming lessons */}
         {upcoming.length > 0 && (
           <div>
@@ -638,20 +701,6 @@ export function StudentDetailPage() {
                       <option key={val} value={val}>{label}</option>
                     ))}
                   </select>
-                  {l.status === 'completed' && !l.paid && (
-                    <button
-                      onClick={() => handleMarkPaid(l.id)}
-                      className="flex items-center gap-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded text-xs font-medium transition-colors"
-                    >
-                      <Check className="w-3 h-3" />
-                      {t('coaches.payments.markPaid')}
-                    </button>
-                  )}
-                  {l.paid === 1 && (
-                    <span className="text-xs text-emerald-500/60">
-                      <Check className="w-3.5 h-3.5" />
-                    </span>
-                  )}
                 </div>
               ))}
             </div>

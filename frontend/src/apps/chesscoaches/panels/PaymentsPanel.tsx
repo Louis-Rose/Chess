@@ -1,116 +1,535 @@
-// Payments panel — unpaid lessons tracker
+// Packs panel — lesson credit tracking dashboard
 
 import { useState, useEffect, useCallback } from 'react';
-import { Check, DollarSign } from 'lucide-react';
+import { Plus, Package, ChevronDown, ChevronUp, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
-
-interface UnpaidLesson {
-  id: number;
-  student_id: number;
-  student_name: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  status: string;
-  paid: number;
-}
-
 import { authFetch } from '../utils/authFetch';
 
-function formatDate(iso: string, lang: string): string {
-  try {
-    const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
-    return new Date(iso).toLocaleDateString(locale, {
-      weekday: 'short', month: 'short', day: 'numeric',
-    });
-  } catch { return iso; }
+// ── Types ──
+
+interface Pack {
+  id: number;
+  student_id: number;
+  total_lessons: number;
+  price: number | null;
+  currency: string | null;
+  source: string | null;
+  note: string | null;
+  status: string;           // 'active' | 'completed'
+  created_at: string;
+  student_name: string;
+  student_currency: string | null;
+  consumed: number;
 }
 
-function formatDuration(minutes: number): string {
-  if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60}h`;
-  if (minutes >= 60) return `${(minutes / 60).toFixed(1)}h`;
-  return `${minutes}min`;
+interface Student {
+  id: number;
+  student_name: string;
+  currency: string | null;
 }
+
+interface PackFormData {
+  student_id: number | null;
+  total_lessons: string;
+  price: string;
+  currency: string;
+  source: string;
+  note: string;
+}
+
+const SOURCES = ['superprof', 'website', 'direct', 'other'] as const;
+
+const EMPTY_FORM: PackFormData = {
+  student_id: null,
+  total_lessons: '',
+  price: '',
+  currency: '',
+  source: '',
+  note: '',
+};
+
+// ── Pack Form ──
+
+function PackForm({ students, initial, onSave, onCancel, t }: {
+  students: Student[];
+  initial: PackFormData;
+  onSave: (data: PackFormData) => void;
+  onCancel: () => void;
+  t: (key: string) => string;
+}) {
+  const [form, setForm] = useState<PackFormData>(initial);
+
+  const sourceKey = (s: string) => `coaches.packs.${s}` as const;
+
+  return (
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-3">
+      {/* Student selector (only for new packs) */}
+      {initial.student_id === null && (
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.student')}</label>
+          <select
+            value={form.student_id ?? ''}
+            onChange={e => setForm({ ...form, student_id: Number(e.target.value) || null })}
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
+          >
+            <option value="">—</option>
+            {students.map(s => (
+              <option key={s.id} value={s.id}>{s.student_name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.totalLessons')}</label>
+          <input
+            type="number"
+            min="1"
+            value={form.total_lessons}
+            onChange={e => setForm({ ...form, total_lessons: e.target.value })}
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
+            placeholder="10"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.price')}</label>
+          <div className="flex gap-1.5">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.price}
+              onChange={e => setForm({ ...form, price: e.target.value })}
+              className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
+              placeholder="300"
+            />
+            <input
+              type="text"
+              value={form.currency}
+              onChange={e => setForm({ ...form, currency: e.target.value })}
+              className="w-16 bg-slate-900 border border-slate-600 rounded-lg px-2 py-2 text-sm text-slate-200 text-center"
+              placeholder="EUR"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.source')}</label>
+        <div className="flex flex-wrap gap-1.5">
+          {SOURCES.map(s => (
+            <button
+              key={s}
+              onClick={() => setForm({ ...form, source: form.source === s ? '' : s })}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
+                form.source === s
+                  ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/40'
+                  : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-500'
+              }`}
+            >
+              {t(sourceKey(s))}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.note')}</label>
+        <input
+          type="text"
+          value={form.note}
+          onChange={e => setForm({ ...form, note: e.target.value })}
+          className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-1">
+        <button
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          {t('coaches.packs.cancel')}
+        </button>
+        <button
+          onClick={() => onSave(form)}
+          disabled={!form.total_lessons || Number(form.total_lessons) < 1 || (initial.student_id === null && !form.student_id)}
+          className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-xs font-medium transition-colors"
+        >
+          {t('coaches.packs.save')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Source Badge ──
+
+function SourceBadge({ source, t }: { source: string | null; t: (key: string) => string }) {
+  if (!source) return null;
+  const colors: Record<string, string> = {
+    superprof: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    website: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    direct: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+    other: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+  };
+  const key = SOURCES.includes(source as typeof SOURCES[number]) ? source : 'other';
+  return (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${colors[key]}`}>
+      {SOURCES.includes(source as typeof SOURCES[number])
+        ? t(`coaches.packs.${source}`)
+        : source}
+    </span>
+  );
+}
+
+// ── Progress Bar ──
+
+function CreditBar({ consumed, total }: { consumed: number; total: number }) {
+  const pct = total > 0 ? Math.min((consumed / total) * 100, 100) : 0;
+  const remaining = total - consumed;
+  const full = remaining <= 0;
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${full ? 'bg-slate-500' : 'bg-emerald-500'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={`text-xs font-medium tabular-nums ${full ? 'text-slate-500' : 'text-emerald-400'}`}>
+        {consumed}/{total}
+      </span>
+    </div>
+  );
+}
+
+// ── Student Pack Group ──
+
+function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, t }: {
+  studentName: string;
+  packs: Pack[];
+  onEdit: (pack: Pack) => void;
+  onDelete: (pack: Pack) => void;
+  onToggleStatus: (pack: Pack) => void;
+  t: (key: string) => string;
+}) {
+  const [showHistory, setShowHistory] = useState(false);
+
+  const activePacks = packs.filter(p => p.status === 'active');
+  const completedPacks = packs.filter(p => p.status === 'completed');
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+        {studentName}
+      </div>
+
+      {activePacks.map(p => (
+        <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} onToggleStatus={onToggleStatus} t={t} />
+      ))}
+
+      {activePacks.length === 0 && completedPacks.length > 0 && (
+        <div className="text-xs text-slate-500 italic px-1">
+          {t('coaches.packs.completed')}
+        </div>
+      )}
+
+      {completedPacks.length > 0 && (
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors px-1"
+        >
+          {showHistory ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          {t('coaches.packs.history')} ({completedPacks.length})
+        </button>
+      )}
+
+      {showHistory && completedPacks.map(p => (
+        <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} onToggleStatus={onToggleStatus} t={t} />
+      ))}
+    </div>
+  );
+}
+
+// ── Pack Card ──
+
+function PackCard({ pack, onEdit, onDelete, onToggleStatus, t }: {
+  pack: Pack;
+  onEdit: (pack: Pack) => void;
+  onDelete: (pack: Pack) => void;
+  onToggleStatus: (pack: Pack) => void;
+  t: (key: string) => string;
+}) {
+  const remaining = pack.total_lessons - pack.consumed;
+  const isCompleted = pack.status === 'completed';
+  const currency = pack.currency || pack.student_currency || '';
+
+  return (
+    <div className={`bg-slate-800 border rounded-xl p-3 ${isCompleted ? 'border-slate-700/50 opacity-60' : 'border-slate-700'}`}>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-slate-200">
+            {pack.total_lessons} {t('coaches.packs.lessons')}
+          </span>
+          {pack.price != null && (
+            <span className="text-xs text-slate-400">
+              {pack.price}{currency ? ` ${currency}` : ''}
+            </span>
+          )}
+          <SourceBadge source={pack.source} t={t} />
+          {isCompleted && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-600/20 text-slate-500 border-slate-600/30 font-medium">
+              {t('coaches.packs.completed')}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => onToggleStatus(pack)}
+            title={isCompleted ? t('coaches.packs.reactivate') : t('coaches.packs.markCompleted')}
+            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => onEdit(pack)}
+            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => onDelete(pack)}
+            className="p-1 text-slate-500 hover:text-red-400 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <CreditBar consumed={pack.consumed} total={pack.total_lessons} />
+
+      <div className="flex items-center justify-between mt-1.5">
+        <span className="text-xs text-slate-500">
+          {remaining > 0
+            ? `${remaining} ${t('coaches.packs.remaining')}`
+            : `${pack.consumed} ${t('coaches.packs.used')}`}
+        </span>
+        {pack.note && (
+          <span className="text-xs text-slate-600 truncate max-w-[200px]">{pack.note}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Panel ──
 
 export function PaymentsPanel() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
-  const [lessons, setLessons] = useState<UnpaidLesson[]>([]);
+  const [packs, setPacks] = useState<Pack[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingPack, setEditingPack] = useState<Pack | null>(null);
 
-  const fetchUnpaid = useCallback(async () => {
+  const fetchPacks = useCallback(async () => {
     try {
-      const res = await authFetch('/api/coaches/lessons/unpaid');
+      const res = await authFetch('/api/coaches/packs');
       const json = await res.json();
-      setLessons(json.lessons || []);
+      setPacks(json.packs || []);
+    } catch { /* ignore */ }
+  }, []);
+
+  const fetchStudents = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/coaches/students');
+      const json = await res.json();
+      setStudents((json.students || []).map((s: Student & Record<string, unknown>) => ({
+        id: s.id,
+        student_name: s.student_name,
+        currency: s.currency,
+      })));
     } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
-    fetchUnpaid().then(() => setLoading(false));
-  }, [fetchUnpaid]);
+    Promise.all([fetchPacks(), fetchStudents()]).then(() => setLoading(false));
+  }, [fetchPacks, fetchStudents]);
 
-  const markPaid = async (lessonId: number) => {
-    await authFetch(`/api/coaches/lessons/${lessonId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paid: 1 }),
-    });
-    fetchUnpaid();
+  const handleSave = async (form: PackFormData) => {
+    if (editingPack) {
+      await authFetch(`/api/coaches/packs/${editingPack.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          total_lessons: Number(form.total_lessons),
+          price: form.price ? Number(form.price) : null,
+          currency: form.currency || null,
+          source: form.source || null,
+          note: form.note || null,
+        }),
+      });
+    } else {
+      await authFetch(`/api/coaches/students/${form.student_id}/packs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          total_lessons: Number(form.total_lessons),
+          price: form.price ? Number(form.price) : null,
+          currency: form.currency || null,
+          source: form.source || null,
+          note: form.note || null,
+        }),
+      });
+    }
+    setShowForm(false);
+    setEditingPack(null);
+    fetchPacks();
   };
 
-  // Group by student
-  const grouped = new Map<string, UnpaidLesson[]>();
-  for (const l of lessons) {
-    if (!grouped.has(l.student_name)) grouped.set(l.student_name, []);
-    grouped.get(l.student_name)!.push(l);
-  }
+  const handleEdit = (pack: Pack) => {
+    setEditingPack(pack);
+    setShowForm(true);
+  };
 
+  const handleDelete = async (pack: Pack) => {
+    await authFetch(`/api/coaches/packs/${pack.id}`, { method: 'DELETE' });
+    fetchPacks();
+  };
+
+  const handleToggleStatus = async (pack: Pack) => {
+    const newStatus = pack.status === 'active' ? 'completed' : 'active';
+    await authFetch(`/api/coaches/packs/${pack.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    fetchPacks();
+  };
+
+  // Filter packs by source
+  const filtered = sourceFilter
+    ? packs.filter(p => (p.source || 'other') === sourceFilter)
+    : packs;
+
+  // Group by student
+  const grouped = new Map<string, Pack[]>();
+  for (const p of filtered) {
+    if (!grouped.has(p.student_name)) grouped.set(p.student_name, []);
+    grouped.get(p.student_name)!.push(p);
+  }
   const sortedGroups = Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b));
 
+  // Collect unique sources for filter
+  const allSources = [...new Set(packs.map(p => p.source).filter(Boolean))] as string[];
+
+  // Summary stats
+  const activePacks = packs.filter(p => p.status === 'active');
+  const totalRemaining = activePacks.reduce((sum, p) => sum + (p.total_lessons - p.consumed), 0);
+
   return (
-    <PanelShell title={t('coaches.payments.title')}>
+    <PanelShell title={t('coaches.packs.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-slate-400">
+            {activePacks.length > 0 && (
+              <span>{activePacks.length} {activePacks.length === 1 ? 'pack' : 'packs'} &middot; {totalRemaining} {t('coaches.packs.credits')} {t('coaches.packs.remaining')}</span>
+            )}
+          </div>
+          <button
+            onClick={() => { setEditingPack(null); setShowForm(!showForm); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors"
+          >
+            {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            {showForm ? t('coaches.packs.cancel') : t('coaches.packs.newPack')}
+          </button>
+        </div>
+
+        {/* Source filter chips */}
+        {allSources.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setSourceFilter(null)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
+                !sourceFilter
+                  ? 'bg-slate-600/30 text-slate-200 border-slate-500'
+                  : 'bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-500'
+              }`}
+            >
+              {t('coaches.packs.allSources')}
+            </button>
+            {allSources.map(s => (
+              <button
+                key={s}
+                onClick={() => setSourceFilter(sourceFilter === s ? null : s)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
+                  sourceFilter === s
+                    ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/40'
+                    : 'bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                {SOURCES.includes(s as typeof SOURCES[number])
+                  ? t(`coaches.packs.${s}`)
+                  : s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* New/Edit Pack Form */}
+        {showForm && (
+          <PackForm
+            students={students}
+            initial={editingPack ? {
+              student_id: editingPack.student_id,
+              total_lessons: String(editingPack.total_lessons),
+              price: editingPack.price != null ? String(editingPack.price) : '',
+              currency: editingPack.currency || editingPack.student_currency || '',
+              source: editingPack.source || '',
+              note: editingPack.note || '',
+            } : EMPTY_FORM}
+            onSave={handleSave}
+            onCancel={() => { setShowForm(false); setEditingPack(null); }}
+            t={t}
+          />
+        )}
+
+        {/* Content */}
         {loading ? (
           <div className="space-y-2">
-            {[1, 2, 3].map(i => <div key={i} className="h-12 bg-slate-800 rounded-lg animate-pulse" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-20 bg-slate-800 rounded-xl animate-pulse" />)}
           </div>
-        ) : lessons.length === 0 ? (
+        ) : packs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-600/10 flex items-center justify-center mb-4">
-              <DollarSign className="w-8 h-8 text-emerald-400" />
+              <Package className="w-8 h-8 text-emerald-400" />
             </div>
-            <p className="text-slate-400 text-sm">{t('coaches.payments.allPaid')}</p>
+            <p className="text-slate-400 text-sm">{t('coaches.packs.empty')}</p>
+          </div>
+        ) : sortedGroups.length === 0 ? (
+          <div className="text-center py-8 text-sm text-slate-500">
+            {t('coaches.packs.empty')}
           </div>
         ) : (
-          <>
-            <p className="text-sm text-slate-400">
-              {lessons.length} {lessons.length === 1 ? t('coaches.payments.lessonUnpaid') : t('coaches.payments.lessonsUnpaid')}
-            </p>
-            {sortedGroups.map(([studentName, studentLessons]) => (
-              <div key={studentName} className="space-y-1.5">
-                <div className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  {studentName} ({studentLessons.length})
-                </div>
-                {studentLessons.map(l => (
-                  <div key={l.id} className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5">
-                    <span className="text-sm text-slate-200 flex-shrink-0">
-                      {formatDate(l.scheduled_at, language)}
-                    </span>
-                    <span className="text-xs text-slate-200">{formatDuration(l.duration_minutes)}</span>
-                    <div className="flex-1" />
-                    <button
-                      onClick={() => markPaid(l.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg text-xs font-medium transition-colors"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      {t('coaches.payments.markPaid')}
-                    </button>
-                  </div>
-                ))}
-              </div>
+          <div className="space-y-5">
+            {sortedGroups.map(([studentName, studentPacks]) => (
+              <StudentGroup
+                key={studentName}
+                studentName={studentName}
+                packs={studentPacks}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onToggleStatus={handleToggleStatus}
+                t={t}
+              />
             ))}
-          </>
+          </div>
         )}
       </div>
     </PanelShell>

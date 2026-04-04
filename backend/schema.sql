@@ -401,6 +401,20 @@ CREATE TABLE IF NOT EXISTS coach_students (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Lesson packs (prepaid bundles of N lessons)
+CREATE TABLE IF NOT EXISTS coach_packs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL,
+    total_lessons INTEGER NOT NULL,
+    price REAL,                              -- optional total pack price
+    currency TEXT,                           -- e.g. 'EUR', inherited from student if null
+    source TEXT,                             -- 'superprof', 'website', 'direct', or freeform
+    note TEXT,
+    status TEXT DEFAULT 'active',            -- 'active' | 'completed'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES coach_students(id) ON DELETE CASCADE
+);
+
 -- Individual lessons
 CREATE TABLE IF NOT EXISTS coach_lessons (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -409,8 +423,10 @@ CREATE TABLE IF NOT EXISTS coach_lessons (
     duration_minutes INTEGER DEFAULT 60,
     status TEXT DEFAULT 'scheduled',          -- 'scheduled', 'completed', 'cancelled', 'rescheduled'
     paid INTEGER DEFAULT 0,                   -- 0=unpaid, 1=paid
+    pack_id INTEGER,                          -- links lesson to a pack (credit consumed)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES coach_students(id) ON DELETE CASCADE
+    FOREIGN KEY (student_id) REFERENCES coach_students(id) ON DELETE CASCADE,
+    FOREIGN KEY (pack_id) REFERENCES coach_packs(id) ON DELETE SET NULL
 );
 
 -- Indexes for faster lookups
@@ -468,5 +484,7 @@ CREATE INDEX IF NOT EXISTS idx_api_usage_feature ON api_usage(feature);
 -- Coach students indexes
 CREATE INDEX IF NOT EXISTS idx_coach_students_coach ON coach_students(coach_user_id);
 CREATE INDEX IF NOT EXISTS idx_coach_students_active ON coach_students(coach_user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_coach_packs_student ON coach_packs(student_id);
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_student ON coach_lessons(student_id);
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_scheduled ON coach_lessons(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_coach_lessons_pack ON coach_lessons(pack_id);

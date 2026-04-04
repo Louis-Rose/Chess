@@ -29,7 +29,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { path: '/calendar', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
       { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600' },
-      { path: '/payments', labelKey: 'coaches.navPayments', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
+      { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
     ],
   },
   {
@@ -141,7 +141,7 @@ function CoachesNavSidebar() {
           </NavLink>
 
           {NAV_SECTIONS.map(({ titleKey, items }) => {
-            const enabledItems = items.filter(({ path }) => path === '/scoresheets');
+            const enabledItems = items;
             if (enabledItems.length === 0) return null;
             return (
               <div key={titleKey}>

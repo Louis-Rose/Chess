@@ -552,6 +552,38 @@ def init_db():
                 conn.execute("ALTER TABLE coach_lessons ADD COLUMN paid INTEGER DEFAULT 0")
                 print("[Database] Added paid column to coach_lessons")
 
+            # Migration: Create coach_packs table if not exists
+            conn.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_name = 'coach_packs'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE coach_packs (
+                        id SERIAL PRIMARY KEY,
+                        student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+                        total_lessons INTEGER NOT NULL,
+                        price REAL,
+                        currency TEXT,
+                        source TEXT,
+                        note TEXT,
+                        status TEXT DEFAULT 'active',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.execute("CREATE INDEX idx_coach_packs_student ON coach_packs(student_id)")
+                print("[Database] Created coach_packs table")
+
+            # Migration: Add pack_id column to coach_lessons if missing
+            conn.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'coach_lessons' AND column_name = 'pack_id'
+            """)
+            if not conn._cursor.fetchone():
+                conn.execute("ALTER TABLE coach_lessons ADD COLUMN pack_id INTEGER REFERENCES coach_packs(id) ON DELETE SET NULL")
+                conn.execute("CREATE INDEX idx_coach_lessons_pack ON coach_lessons(pack_id)")
+                print("[Database] Added pack_id column to coach_lessons")
+
             # Migration: Add registered_app column to users if not exists
             conn.execute("""
                 SELECT column_name FROM information_schema.columns
@@ -754,6 +786,15 @@ def init_db():
                 if 'currency' not in columns:
                     conn.execute('ALTER TABLE coach_students ADD COLUMN currency TEXT')
                     print("[Database] Added currency column to coach_students")
+
+            # Migration: Add pack_id column to coach_lessons if missing (SQLite)
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='coach_lessons'")
+            if cursor.fetchone():
+                cursor = conn.execute("PRAGMA table_info(coach_lessons)")
+                columns = [row['name'] for row in cursor.fetchall()]
+                if 'pack_id' not in columns:
+                    conn.execute('ALTER TABLE coach_lessons ADD COLUMN pack_id INTEGER REFERENCES coach_packs(id)')
+                    print("[Database] Added pack_id column to coach_lessons")
 
             # Migration: Add registered_app column to users if not exists
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")

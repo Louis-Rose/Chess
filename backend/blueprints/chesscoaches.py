@@ -1339,7 +1339,7 @@ def get_week_lessons():
 def update_coach_lesson(lesson_id):
     """Update a lesson's status or time."""
     data = request.get_json()
-    allowed = ['scheduled_at', 'duration_minutes', 'status', 'paid']
+    allowed = ['scheduled_at', 'duration_minutes', 'status', 'pack_id']
     sets = []
     vals = []
     for field in allowed:
@@ -1365,21 +1365,112 @@ def update_coach_lesson(lesson_id):
     return jsonify({'message': 'Lesson updated'})
 
 
-@coaches_bp.route('/api/coaches/lessons/unpaid', methods=['GET'])
+# ── Coach Packs Management ──
+
+@coaches_bp.route('/api/coaches/packs', methods=['GET'])
 @login_required
-def get_unpaid_lessons():
-    """Get all completed but unpaid lessons for the coach."""
+def get_coach_packs():
+    """List all packs for the coach, with consumed lesson count per pack.
+    Optional query param ?student_id=X to filter by student."""
+    student_filter = request.args.get('student_id', type=int)
     with get_db() as conn:
-        rows = conn.execute(
-            '''SELECT l.id, l.student_id, l.scheduled_at, l.duration_minutes, l.status, l.paid,
-                      s.student_name
-               FROM coach_lessons l
-               JOIN coach_students s ON l.student_id = s.id
-               WHERE s.coach_user_id = ? AND l.status = 'completed' AND (l.paid = 0 OR l.paid IS NULL)
-               ORDER BY l.scheduled_at DESC''',
-            (request.user_id,)
-        ).fetchall()
-    return jsonify({'lessons': [dict(r) for r in rows]})
+        query = '''
+            SELECT p.id, p.student_id, p.total_lessons, p.price, p.currency, p.source, p.note,
+                   p.status, p.created_at,
+                   s.student_name, s.currency AS student_currency,
+                   COUNT(CASE WHEN l.status = 'completed' THEN 1 END) AS consumed
+            FROM coach_packs p
+            JOIN coach_students s ON p.student_id = s.id
+            LEFT JOIN coach_lessons l ON l.pack_id = p.id
+            WHERE s.coach_user_id = ?
+        '''
+        params = [request.user_id]
+        if student_filter:
+            query += ' AND p.student_id = ?'
+            params.append(student_filter)
+        query += ' GROUP BY p.id, p.student_id, p.total_lessons, p.price, p.currency, p.source, p.note, p.status, p.created_at, s.student_name, s.currency ORDER BY s.student_name ASC, p.created_at DESC'
+        rows = conn.execute(query, tuple(params)).fetchall()
+    return jsonify({'packs': [dict(r) for r in rows]})
+
+
+@coaches_bp.route('/api/coaches/students/<int:student_id>/packs', methods=['POST'])
+@login_required
+def create_coach_pack(student_id):
+    """Create a new pack for a student."""
+    data = request.get_json()
+    total = data.get('total_lessons')
+    if not total or not isinstance(total, int) or total < 1:
+        return jsonify({'error': 'total_lessons must be a positive integer'}), 400
+
+    with get_db() as conn:
+        # Verify ownership
+        owner = conn.execute(
+            'SELECT id FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            (student_id, request.user_id)
+        ).fetchone()
+        if not owner:
+            return jsonify({'error': 'Student not found'}), 404
+
+        cursor = conn.execute(
+            '''INSERT INTO coach_packs (student_id, total_lessons, price, currency, source, note)
+               VALUES (?, ?, ?, ?, ?, ?)''',
+            (student_id, total,
+             data.get('price'),
+             (data.get('currency') or '').strip() or None,
+             (data.get('source') or '').strip() or None,
+             (data.get('note') or '').strip() or None)
+        )
+        if USE_POSTGRES:
+            pack_id = conn.execute('SELECT lastval() AS id').fetchone()['id']
+        else:
+            pack_id = cursor.lastrowid
+
+    return jsonify({'id': pack_id, 'message': 'Pack created'}), 201
+
+
+@coaches_bp.route('/api/coaches/packs/<int:pack_id>', methods=['PUT'])
+@login_required
+def update_coach_pack(pack_id):
+    """Update a pack's details."""
+    data = request.get_json()
+    allowed = ['total_lessons', 'price', 'currency', 'source', 'note', 'status']
+    sets = []
+    vals = []
+    for field in allowed:
+        if field in data:
+            val = data[field]
+            if isinstance(val, str):
+                val = val.strip() or None
+            sets.append(f'{field} = ?')
+            vals.append(val)
+
+    if not sets:
+        return jsonify({'error': 'No fields to update'}), 400
+
+    vals.append(pack_id)
+    vals.append(request.user_id)
+
+    with get_db() as conn:
+        conn.execute(
+            f'''UPDATE coach_packs SET {", ".join(sets)}
+                WHERE id = ? AND student_id IN (SELECT id FROM coach_students WHERE coach_user_id = ?)''',
+            tuple(vals)
+        )
+    return jsonify({'message': 'Pack updated'})
+
+
+@coaches_bp.route('/api/coaches/packs/<int:pack_id>', methods=['DELETE'])
+@login_required
+def delete_coach_pack(pack_id):
+    """Delete a pack. Linked lessons get pack_id set to NULL via ON DELETE SET NULL."""
+    with get_db() as conn:
+        conn.execute(
+            '''DELETE FROM coach_packs
+               WHERE id = ? AND student_id IN (SELECT id FROM coach_students WHERE coach_user_id = ?)''',
+            (pack_id, request.user_id)
+        )
+    return jsonify({'message': 'Pack deleted'})
+
 
 
 @coaches_bp.route('/api/coaches/lichess/studies', methods=['GET'])
