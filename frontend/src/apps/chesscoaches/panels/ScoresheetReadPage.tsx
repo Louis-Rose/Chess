@@ -1380,21 +1380,21 @@ export function ScoresheetReadPage() {
           className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-zoom-out overflow-auto ${imageZoomLevel >= 2 ? 'p-4' : 'flex items-center justify-center'}`}
         >
           <div className="flex flex-col items-center gap-2">
-            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 bg-slate-800/90 rounded-xl px-4 py-2 border border-slate-600/50" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setImageZoomLevel(prev => Math.max(prev - 1, 0))}
-                className="p-1.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-300 transition-colors"
+                className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors disabled:opacity-30"
                 disabled={imageZoomLevel <= 1}
               >
-                <ZoomOut className="w-4 h-4" />
+                <ZoomOut className="w-5 h-5" />
               </button>
-              <span className="text-xs text-slate-400 w-8 text-center">{imageZoomLevel}/3</span>
+              <span className="text-sm text-slate-200 font-medium w-8 text-center">{imageZoomLevel}/3</span>
               <button
                 onClick={() => setImageZoomLevel(prev => Math.min(prev + 1, 3))}
-                className="p-1.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-300 transition-colors"
+                className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors disabled:opacity-30"
                 disabled={imageZoomLevel >= 3}
               >
-                <ZoomIn className="w-4 h-4" />
+                <ZoomIn className="w-5 h-5" />
               </button>
             </div>
             <img
