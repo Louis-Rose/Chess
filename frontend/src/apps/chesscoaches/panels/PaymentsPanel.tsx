@@ -1,7 +1,7 @@
 // Packs panel — lesson credit tracking dashboard
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Package, ChevronDown, ChevronUp, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Plus, Package, ChevronDown, ChevronUp, Pencil, Trash2, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell, btnPrimary } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
@@ -171,21 +171,20 @@ function CreditBar({ consumed, total }: { consumed: number; total: number }) {
 
 // ── Student Pack Group ──
 
-function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, editForm, t }: {
+function StudentGroup({ studentName, packs, onEdit, onDelete, editForm, t }: {
   studentName: string;
   packs: Pack[];
   onEdit: (pack: Pack) => void;
   onDelete: (pack: Pack) => void;
-  onToggleStatus: (pack: Pack) => void;
   editForm: React.ReactNode;
   t: (key: string) => string;
 }) {
   const [showHistory, setShowHistory] = useState(false);
 
-  const activePacks = packs.filter(p => p.status === 'active');
-  const completedPacks = packs.filter(p => p.status === 'completed');
+  const activePacks = packs.filter(p => p.lessons_done < p.total_lessons);
+  const completedPacks = packs.filter(p => p.lessons_done >= p.total_lessons);
 
-  const studentRemaining = activePacks.reduce((sum, p) => sum + (p.total_lessons - p.consumed), 0);
+  const studentRemaining = activePacks.reduce((sum, p) => sum + (p.total_lessons - p.lessons_done), 0);
 
   return (
     <div className="space-y-2">
@@ -199,7 +198,7 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, ed
       {editForm}
 
       {activePacks.map(p => (
-        <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} onToggleStatus={onToggleStatus} t={t} />
+        <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} t={t} />
       ))}
 
       {activePacks.length === 0 && completedPacks.length > 0 && (
@@ -219,7 +218,7 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, ed
       )}
 
       {showHistory && completedPacks.map(p => (
-        <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} onToggleStatus={onToggleStatus} t={t} />
+        <PackCard key={p.id} pack={p} onEdit={onEdit} onDelete={onDelete} t={t} />
       ))}
     </div>
   );
@@ -227,15 +226,14 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, ed
 
 // ── Pack Card ──
 
-function PackCard({ pack, onEdit, onDelete, onToggleStatus, t }: {
+function PackCard({ pack, onEdit, onDelete, t }: {
   pack: Pack;
   onEdit: (pack: Pack) => void;
   onDelete: (pack: Pack) => void;
-  onToggleStatus: (pack: Pack) => void;
   t: (key: string) => string;
 }) {
-  const remaining = pack.total_lessons - pack.consumed;
-  const isCompleted = pack.status === 'completed';
+  const remaining = pack.total_lessons - pack.lessons_done;
+  const isCompleted = pack.lessons_done >= pack.total_lessons;
   const currency = pack.currency || pack.student_currency || '';
 
   return (
@@ -260,13 +258,6 @@ function PackCard({ pack, onEdit, onDelete, onToggleStatus, t }: {
 
         <div className="flex items-center gap-1 flex-shrink-0">
           <button
-            onClick={() => onToggleStatus(pack)}
-            title={isCompleted ? t('coaches.packs.reactivate') : t('coaches.packs.markCompleted')}
-            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            <Check className="w-3.5 h-3.5" />
-          </button>
-          <button
             onClick={() => onEdit(pack)}
             className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
           >
@@ -281,7 +272,7 @@ function PackCard({ pack, onEdit, onDelete, onToggleStatus, t }: {
         </div>
       </div>
 
-      <CreditBar consumed={pack.consumed} total={pack.total_lessons} />
+      <CreditBar consumed={pack.lessons_done} total={pack.total_lessons} />
 
       <div className="flex items-center justify-between mt-1.5">
         <span className="text-xs text-slate-500">
@@ -369,15 +360,6 @@ export function PaymentsPanel() {
     fetchPacks();
   };
 
-  const handleToggleStatus = async (pack: Pack) => {
-    const newStatus = pack.status === 'active' ? 'completed' : 'active';
-    await authFetch(`/api/coaches/packs/${pack.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    });
-    fetchPacks();
-  };
 
   // Filter packs by source
   const filtered = sourceFilter
@@ -481,7 +463,7 @@ export function PaymentsPanel() {
                 packs={studentPacks}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                onToggleStatus={handleToggleStatus}
+
                 editForm={editingPack && editingPack.student_name === studentName ? (
                   <PackForm
                     students={students}
