@@ -292,7 +292,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
   const label = 'text-xs font-medium text-slate-400 mb-1';
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-3">
+    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-3 max-w-sm mx-auto">
       <div>
         <div className={label}>{t('coaches.students.name')} *</div>
         <input className={input} value={form.student_name} onChange={e => setForm({ ...form, student_name: e.target.value })} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
