@@ -191,7 +191,7 @@ function StudentGroup({ studentName, packs, onEdit, onDelete, onToggleStatus, t 
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+      <div className="text-xs font-medium text-slate-200 uppercase tracking-wider">
         {studentName}
         {activePacks.length > 0 && (
           <span> ({studentRemaining} {t('coaches.packs.lessons')} {t('coaches.packs.remaining')})</span>
