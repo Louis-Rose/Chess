@@ -300,7 +300,7 @@ function StudentForm({ initial, onSave, onCancel, saving, lang }: {
       <div>
         <div className={label}>{t('coaches.packs.source')}</div>
         <select className={input} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
-          <option value="">—</option>
+          <option value=""></option>
           {SOURCES.map(s => (
             <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
