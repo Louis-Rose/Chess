@@ -1443,18 +1443,60 @@ export function ScoresheetReadPage() {
                 <ZoomIn className="w-5 h-5" />
               </button>
             </div>
-            <img
-              src={preview}
-              alt="Scoresheet"
-              onClick={(e) => { e.stopPropagation(); if (imageZoomLevel < 3) setImageZoomLevel(prev => prev + 1); }}
-              className={
-                imageZoomLevel === 3
-                  ? "max-w-none rounded-xl object-contain cursor-default"
-                  : imageZoomLevel === 2
-                  ? "max-w-[150vw] max-h-[150vh] rounded-xl object-contain cursor-zoom-in"
-                  : "max-w-[90vw] max-h-[90vh] rounded-xl object-contain cursor-zoom-in"
-              }
-            />
+            {(() => {
+              // Compute highlight for zoomed image
+              const activePly = modelBoardPlys['__consensus__']?.ply;
+              const gd = azureGrid?.cells && Object.keys(azureGrid.cells).length > 0 ? azureGrid : null;
+              const zoomHighlight = activePly && activePly > 0 && gd?.cells ? (() => {
+                const azureColCount = gd.col_count || 0;
+                const sc = azureColCount >= 4 ? 2 : 1;
+                const totalMvs = Math.max(...models.map(m => modelResults[m.id]?.result?.moves?.length || 0));
+                const rows = gd.row_count ? Math.ceil((gd.row_count - (gd.first_move_row || 0)) / 1) : Math.ceil(totalMvs / Math.max(sc, 1));
+                const moveIdx = Math.floor((activePly - 1) / 2);
+                const isBlack = activePly % 2 === 0;
+                const sheetCol = Math.floor(moveIdx / rows);
+                const rowInCol = moveIdx % rows;
+                const colsPerSection = Math.round(azureColCount / Math.max(sc, 1));
+                const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
+                const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
+                const rowOffset = gd.first_move_row ?? (gd.row_count && gd.row_count > rows ? 1 : 0);
+                const cell = gd.cells![`${rowInCol + rowOffset}-${azureCol}`];
+                if (!cell) return null;
+                const padX = (cell.x2 - cell.x1) * 0.2, padY = (cell.y2 - cell.y1) * 0.2;
+                return {
+                  left: `${(cell.x1 - padX) * 100}%`, top: `${(cell.y1 - padY) * 100}%`,
+                  width: `${(cell.x2 - cell.x1 + padX * 2) * 100}%`, height: `${(cell.y2 - cell.y1 + padY * 2) * 100}%`,
+                  tilt: gd.tilt || 0,
+                };
+              })() : null;
+              return (
+                <div className="relative inline-block">
+                  <img
+                    src={preview}
+                    alt="Scoresheet"
+                    onClick={(e) => { e.stopPropagation(); if (imageZoomLevel < 3) setImageZoomLevel(prev => prev + 1); }}
+                    className={
+                      imageZoomLevel === 3
+                        ? "max-w-none rounded-xl object-contain cursor-default"
+                        : imageZoomLevel === 2
+                        ? "max-w-[150vw] max-h-[150vh] rounded-xl object-contain cursor-zoom-in"
+                        : "max-w-[90vw] max-h-[90vh] rounded-xl object-contain cursor-zoom-in"
+                    }
+                  />
+                  {zoomHighlight && (
+                    <div
+                      className="absolute pointer-events-none rounded-sm"
+                      style={{
+                        left: zoomHighlight.left, top: zoomHighlight.top,
+                        width: zoomHighlight.width, height: zoomHighlight.height,
+                        backgroundColor: 'rgba(59, 130, 246, 0.3)', border: '2px solid rgba(59, 130, 246, 0.7)',
+                        transform: zoomHighlight.tilt ? `rotate(${zoomHighlight.tilt}deg)` : undefined, transformOrigin: 'left center',
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
