@@ -130,23 +130,6 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
   );
 }
 
-// ── Source Badge ──
-
-function SourceBadge({ source }: { source: string | null }) {
-  if (!source) return null;
-  const colors: Record<string, string> = {
-    'chess.com': 'bg-green-500/15 text-green-400 border-green-500/30',
-    lichess: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-    superprof: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-    'my website': 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  };
-  const style = colors[source] || 'bg-slate-500/15 text-slate-400 border-slate-500/30';
-  return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${style}`}>
-      {capitalize(source)}
-    </span>
-  );
-}
 
 // ── Progress Bar ──
 
