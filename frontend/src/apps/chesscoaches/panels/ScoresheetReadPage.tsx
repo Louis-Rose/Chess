@@ -1331,11 +1331,13 @@ export function ScoresheetReadPage() {
                           {finishedModels.map(m => {
                             const mr = modelResults[m.id]!;
                             const moves = mr.result!.moves;
+                            const modelNotation = mr.result!.notation;
                             return (
                               <div key={m.id} className="bg-slate-700/50 rounded-xl overflow-hidden">
                                 <div className="px-3 py-2 border-b border-slate-600 text-center">
                                   <span className="text-slate-100 font-medium text-sm">{m.name}</span>
                                   <span className="text-slate-500 text-xs ml-2">{mr.elapsed}s{mr.tier ? ` · ${mr.tier}` : ''}</span>
+                                  <div className="text-slate-400 text-xs capitalize">{modelNotation || '?'} notation</div>
                                 </div>
                                 <table className="w-full text-sm">
                                   <thead className="bg-slate-700">
@@ -1350,10 +1352,10 @@ export function ScoresheetReadPage() {
                                       <tr key={i} className="border-b border-slate-600/20">
                                         <td className="px-2 py-0.5 text-slate-500 text-center font-mono text-xs">{move.number || i + 1}</td>
                                         <td className={`px-2 py-0.5 font-mono text-center ${move.white_legal === false ? 'text-red-400' : 'text-slate-200'}`}>
-                                          {move.white}{move.white_time != null ? ` (${move.white_time})` : ''}
+                                          {toNotation(move.white, modelNotation)}{move.white_time != null ? ` (${move.white_time})` : ''}
                                         </td>
                                         <td className={`px-2 py-0.5 font-mono text-center ${move.black_legal === false ? 'text-red-400' : 'text-slate-200'}`}>
-                                          {move.black || ''}{move.black_time != null ? ` (${move.black_time})` : ''}
+                                          {toNotation(move.black || '', modelNotation)}{move.black_time != null ? ` (${move.black_time})` : ''}
                                         </td>
                                       </tr>
                                     ))}
