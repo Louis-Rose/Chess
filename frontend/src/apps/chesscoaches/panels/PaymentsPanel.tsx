@@ -36,8 +36,6 @@ interface PackFormData {
   total_lessons: string;
   price: string;
   currency: string;
-  source: string;
-  note: string;
 }
 
 const SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
@@ -47,8 +45,6 @@ const EMPTY_FORM: PackFormData = {
   total_lessons: '',
   price: '',
   currency: '',
-  source: '',
-  note: '',
 };
 
 // ── Pack Form ──
@@ -115,35 +111,6 @@ function PackForm({ students, initial, onSave, onCancel, t }: {
             />
           </div>
         </div>
-      </div>
-
-      <div>
-        <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.source')}</label>
-        <div className="flex flex-wrap gap-1.5">
-          {SOURCES.map(s => (
-            <button
-              key={s}
-              onClick={() => setForm({ ...form, source: form.source === s ? '' : s })}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors border ${
-                form.source === s
-                  ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/40'
-                  : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-500'
-              }`}
-            >
-              {capitalize(s)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs text-slate-400 block mb-1">{t('coaches.packs.note')}</label>
-        <input
-          type="text"
-          value={form.note}
-          onChange={e => setForm({ ...form, note: e.target.value })}
-          className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200"
-        />
       </div>
 
       <div className="flex justify-end gap-2 pt-1">
@@ -369,8 +336,6 @@ export function PaymentsPanel() {
           total_lessons: Number(form.total_lessons),
           price: form.price ? Number(form.price) : null,
           currency: form.currency || null,
-          source: form.source || null,
-          note: form.note || null,
         }),
       });
     } else {
@@ -381,8 +346,6 @@ export function PaymentsPanel() {
           total_lessons: Number(form.total_lessons),
           price: form.price ? Number(form.price) : null,
           currency: form.currency || null,
-          source: form.source || null,
-          note: form.note || null,
         }),
       });
     }
@@ -488,8 +451,6 @@ export function PaymentsPanel() {
               total_lessons: String(editingPack.total_lessons),
               price: editingPack.price != null ? String(editingPack.price) : '',
               currency: editingPack.currency || editingPack.student_currency || '',
-              source: editingPack.source || '',
-              note: editingPack.note || '',
             } : EMPTY_FORM}
             onSave={handleSave}
             onCancel={() => { setShowForm(false); setEditingPack(null); }}
