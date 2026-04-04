@@ -426,10 +426,8 @@ export function ScoresheetReadPage() {
                           {liveGlobalElapsed}s{!allDone && maxAvg > 0 ? <> / ~{maxAvg}s <span className="inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}
                         </span>
                       </div>
-                      {!allDone ? (
+                      {!allDone && (
                         <p className="text-center text-blue-400 text-sm mt-2">{t('coaches.waitProcessing')}</p>
-                      ) : (
-                        <p className="text-center text-emerald-500 text-sm mt-2">{t('coaches.processingDone')}</p>
                       )}
                     </div>
                   </div>
@@ -969,6 +967,16 @@ export function ScoresheetReadPage() {
                     });
 
                     return (<>
+                        {allModelsFinished && !allVerified && unresolvedPlies.length > 0 && (
+                          <p className="text-center text-emerald-500 text-sm mb-3">
+                            {t('coaches.processingDone').replace('{count}', String(unresolvedPlies.length))}
+                          </p>
+                        )}
+                        {allModelsFinished && allVerified && (
+                          <p className="text-center text-emerald-500 text-sm mb-3">
+                            {t('coaches.allMovesVerified')}
+                          </p>
+                        )}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
@@ -2305,11 +2313,6 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
             <RotateCcw className="w-3.5 h-3.5" />
             {t('coaches.rereadFromEdit')}
           </button>
-        )}
-        {unresolvedMoves && unresolvedMoves.length > 0 && (
-          <div className="px-3 py-2 border-t border-yellow-500/20 bg-yellow-500/10 text-center">
-            <p className="text-sm text-slate-100">{t('coaches.movesToReview')} : {unresolvedMoves.length}</p>
-          </div>
         )}
       </>)}
       </div>
