@@ -1377,10 +1377,10 @@ export function ScoresheetReadPage() {
       {imageZoomLevel > 0 && preview && (
         <div
           onClick={() => setImageZoomLevel(prev => prev - 1)}
-          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-pointer overflow-auto ${imageZoomLevel >= 2 ? 'p-4' : 'flex items-center justify-center'}`}
+          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-zoom-out overflow-auto ${imageZoomLevel >= 2 ? 'p-4' : 'flex items-center justify-center'}`}
         >
-          <div className={`flex flex-col items-center gap-2 ${imageZoomLevel >= 2 ? '' : ''}`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setImageZoomLevel(prev => Math.max(prev - 1, 0))}
                 className="p-1.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-300 transition-colors"
@@ -1400,7 +1400,7 @@ export function ScoresheetReadPage() {
             <img
               src={preview}
               alt="Scoresheet"
-              onClick={() => setImageZoomLevel(prev => prev < 3 ? prev + 1 : prev - 1)}
+              onClick={(e) => { e.stopPropagation(); setImageZoomLevel(prev => prev < 3 ? prev + 1 : prev - 1); }}
               className={
                 imageZoomLevel === 3
                   ? "max-w-none rounded-xl object-contain cursor-zoom-out"
