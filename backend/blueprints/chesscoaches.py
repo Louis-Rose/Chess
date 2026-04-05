@@ -421,6 +421,7 @@ IMPORTANT: crop values must be percentages (0-100), NOT pixels."""
         # Clamp rotation to multiples of 5
         rotation = result.get('rotation', 0)
         rotation = round(rotation / 5) * 5
+        rotation = -rotation  # Gemini reports tilt direction; we need the correction (opposite)
         crop = result.get('crop', {'x': 0, 'y': 0, 'width': 100, 'height': 100})
         # Convert pixel values to percentages if Gemini returned pixels
         if img_w and img_h:
