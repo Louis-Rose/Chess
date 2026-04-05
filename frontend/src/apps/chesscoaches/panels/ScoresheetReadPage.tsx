@@ -363,7 +363,7 @@ export function ScoresheetReadPage() {
                   onChange={e => setSelectedNotation(e.target.value)}
                   className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-blue-500"
                 >
-                  <option value="" disabled>Notation...</option>
+                  <option value="" disabled>Pick a Notation</option>
                   <option value="english">English</option>
                   <option value="french">French</option>
                   <option value="armenian">Armenian</option>
