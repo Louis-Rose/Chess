@@ -1029,40 +1029,33 @@ export function ScoresheetReadPage() {
                       return (
                         <div className="flex flex-col items-center gap-2">
                           <div className="flex justify-center">
-                          {userPickedMove ? (
-                            userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
-                              <button
-                                onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); advanceToNextMove(); }}
-                                className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
-                              >
-                                {t('coaches.confirmMove')} {displayMove}
-                              </button>
-                            ) : (
+                          {(() => {
+                            const confirmSan = userPickedMove || moveObj[colorStr] || '';
+                            const confirmDisplay = toNotation(confirmSan, consensusMeta.notation);
+                            const isOverride = userPickedMove && userPickedMove.replace(/[+#]/g, '') !== displayMove.replace(/[+#]/g, '');
+                            return (
                               <button
                                 onClick={() => {
-                                  const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                  if (current[moveIdx]) {
-                                    current[moveIdx][colorStr] = userPickedMove;
-                                    (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
-                                    delete (current[moveIdx] as any)[`${colorStr}_reason`];
+                                  if (isOverride) {
+                                    const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                    if (current[moveIdx]) {
+                                      current[moveIdx][colorStr] = userPickedMove!;
+                                      (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
+                                      delete (current[moveIdx] as any)[`${colorStr}_reason`];
+                                    }
+                                    rerunConsensusAfterEdit(current);
+                                  } else {
+                                    handleConfirmMove(moveIdx + 1, colorStr);
                                   }
-                                  rerunConsensusAfterEdit(current);
                                   setUserPickedMove(null);
                                   advanceToNextMove();
                                 }}
-                                className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
+                                className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
                               >
-                                {t('coaches.pickMove')} {userPickedMove}
+                                {t('coaches.confirmMove')} {confirmDisplay}
                               </button>
-                            )
-                          ) : (
-                            <button
-                              onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); advanceToNextMove(); }}
-                              className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
-                            >
-                              {t('coaches.confirmMove')} {displayMove}
-                            </button>
-                          )}
+                            );
+                          })()}
                           </div>
                           {renderRevertButton()}
                         </div>
