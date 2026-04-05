@@ -67,6 +67,7 @@ export interface ScoresheetResult {
   date: string;
   result: string;
   notation: string;
+  notation_reason?: string;
   moves: ScoresheetMove[];
 }
 
