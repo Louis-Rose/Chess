@@ -973,6 +973,12 @@ export function ScoresheetReadPage() {
                       rerunConsensusAfterEdit(current);
                     };
                     const handleConsensusBoardPly = (ply: number) => {
+                      // The board shows an arrow at targetPly (position at targetPly-1 + arrow).
+                      // When the board emits targetPly, it's just catching up to the arrow — ignore it.
+                      const currentTargetPly = voteState
+                        ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2)
+                        : 0;
+                      if (ply === currentTargetPly) return;
                       const clampedPly = Math.max(ply, 1);
                       setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply: clampedPly, source: 'nav' as const } }));
                       setConsensusPreviewFen(null);
