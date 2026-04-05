@@ -398,7 +398,7 @@ export function ScoresheetReadPage() {
                 // 0-25% = preparing image, 25-100% = model results (each model = 25%)
                 const modelPct = models.length > 0 ? Math.round((finishedCount / models.length) * 75) : 0;
                 const pct = preparingImage ? 0 : 25 + modelPct;
-                const maxAvg = Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3);
+                const maxAvg = Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3) + 5; // +5s for auto-crop phase
                 return (
                   <div className="flex justify-center">
                     <div className="relative bg-slate-700/40 rounded-xl p-4 min-w-[300px] max-w-[400px] w-full">
