@@ -1,7 +1,7 @@
 // Lightweight chessboard — renders a FEN position with optional drag-and-drop
 // Used as a companion to move tables
 
-import { useMemo, useState, useCallback, useRef } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { pieceImageUrl, BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
 
 function fenToBoard(fen: string): (string | null)[][] {
@@ -53,35 +53,61 @@ export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquare
     return set;
   }, [highlightSquares]);
 
+  const draggingRef = useRef(dragging);
+  draggingRef.current = dragging;
+
   const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
     if (!onUserMove) return;
     e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
   }, [onUserMove]);
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+  // Document-level listeners for drag move/up/cancel — avoids stale closures and DOM removal issues
+  useEffect(() => {
     if (!dragging) return;
-    setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
-  }, [dragging]);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (!dragging || !boardRef.current || !onUserMove) { setDragging(null); return; }
-    const rect = boardRef.current.getBoundingClientRect();
-    const sqSize = rect.width / 8;
-    const dj = Math.floor((e.clientX - rect.left) / sqSize);
-    const di = Math.floor((e.clientY - rect.top) / sqSize);
-    if (di < 0 || di > 7 || dj < 0 || dj > 7) { setDragging(null); return; }
-    const toR = di;
-    const toC = dj;
-    const fromFile = String.fromCharCode(97 + dragging.fromC);
-    const fromRank = String(8 - dragging.fromR);
-    const toFile = String.fromCharCode(97 + toC);
-    const toRank = String(8 - toR);
-    const from = `${fromFile}${fromRank}`;
-    const to = `${toFile}${toRank}`;
-    if (from !== to) onUserMove(from, to);
-    setDragging(null);
+    const onMove = (e: PointerEvent) => {
+      if (!boardRef.current) return;
+      const rect = boardRef.current.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+        setDragging(null);
+        return;
+      }
+      setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      const d = draggingRef.current;
+      if (!d || !boardRef.current || !onUserMove) { setDragging(null); return; }
+      const rect = boardRef.current.getBoundingClientRect();
+      const sqSize = rect.width / 8;
+      const dj = Math.floor((e.clientX - rect.left) / sqSize);
+      const di = Math.floor((e.clientY - rect.top) / sqSize);
+      if (di < 0 || di > 7 || dj < 0 || dj > 7) { setDragging(null); return; }
+      const fromFile = String.fromCharCode(97 + d.fromC);
+      const fromRank = String(8 - d.fromR);
+      const toFile = String.fromCharCode(97 + dj);
+      const toRank = String(8 - di);
+      const from = `${fromFile}${fromRank}`;
+      const to = `${toFile}${toRank}`;
+      if (from !== to) onUserMove(from, to);
+      setDragging(null);
+    };
+
+    const onCancel = () => setDragging(null);
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel);
+    document.addEventListener('touchend', onCancel);
+    document.addEventListener('touchcancel', onCancel);
+    return () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onCancel);
+      document.removeEventListener('touchend', onCancel);
+      document.removeEventListener('touchcancel', onCancel);
+    };
   }, [dragging, onUserMove]);
 
   return (
@@ -89,8 +115,6 @@ export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquare
       <div
         ref={boardRef}
         className="grid grid-cols-8 grid-rows-8 w-full h-full"
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
       >
         {Array.from({ length: 64 }, (_, idx) => {
           const r = Math.floor(idx / 8);
@@ -99,7 +123,8 @@ export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquare
           const isHL = (r === highlight.fromR && c === highlight.fromC) || (r === highlight.toR && c === highlight.toC);
           const isHLSquare = hlSquareSet?.has(`${r}-${c}`) ?? false;
           const bg = (isHL || isHLSquare) ? (isLight ? '#f7ec5a' : '#dac934') : (isLight ? LIGHT : DARK);
-          const piece = (dragging && dragging.fromR === r && dragging.fromC === c) ? null : board[r]?.[c];
+          const piece = board[r]?.[c];
+          const isDragSource = !!(dragging && dragging.fromR === r && dragging.fromC === c);
 
           return (
             <div key={idx} className="relative select-none" style={{ backgroundColor: bg }}>
@@ -117,7 +142,7 @@ export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquare
                 <img
                   src={pieceImageUrl(piece)}
                   alt=""
-                  className={`absolute inset-[5%] w-[90%] h-[90%] ${onUserMove ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none'}`}
+                  className={`absolute inset-[5%] w-[90%] h-[90%] ${onUserMove ? 'cursor-grab active:cursor-grabbing' : 'pointer-events-none'}${isDragSource ? ' opacity-0' : ''}`}
                   draggable={false}
                   onPointerDown={onUserMove ? (e) => handlePointerDown(e, piece, r, c) : undefined}
                 />
