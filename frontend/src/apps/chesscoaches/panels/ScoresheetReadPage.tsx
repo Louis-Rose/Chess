@@ -360,16 +360,6 @@ export function ScoresheetReadPage() {
                     />
                   </ReactCrop>
                 </div>
-                {/* Example — positioned to the right of the centered image */}
-                <div className="hidden lg:block w-64 flex-shrink-0 absolute left-[calc(50%+14rem)] top-1/2 -translate-y-1/2">
-                  <p className="text-slate-200 text-sm font-medium text-center mb-2 -mt-6">{t('coaches.example')}</p>
-                  <img
-                    src="/cropping_example.jpeg"
-                    alt="Cropping example"
-                    className="rounded-lg opacity-90 w-full cursor-pointer hover:opacity-100 transition-opacity"
-                    onClick={() => setShowExampleModal(true)}
-                  />
-                </div>
               </div>
               <p className="text-slate-200 text-base font-medium text-center">
                 {t('coaches.cropHint')}
@@ -377,13 +367,6 @@ export function ScoresheetReadPage() {
               </p>
               {/* Rotation controls */}
               <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={() => setCropRotation(r => r - 90)}
-                  className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-                  title="-90°"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
                 <button
                   onClick={() => setCropRotation(r => r - 5)}
                   className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs transition-colors"
@@ -396,13 +379,6 @@ export function ScoresheetReadPage() {
                   className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs transition-colors"
                 >
                   +5°
-                </button>
-                <button
-                  onClick={() => setCropRotation(r => r + 90)}
-                  className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors scale-x-[-1]"
-                  title="+90°"
-                >
-                  <RotateCcw className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex items-center justify-center gap-3">
