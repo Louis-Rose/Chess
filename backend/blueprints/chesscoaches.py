@@ -534,13 +534,25 @@ def _enrich_models_with_avg(user_id=None):
     avgs = _get_model_avg_elapsed(user_id)
     return [{**m, "avg_elapsed": avgs.get(m["id"])} for m in SCORESHEET_MODELS]
 
-SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
-
-First, identify the notation language. Focus on the first 10 half-moves of the game — knights and bishops are frequently moved in the opening, making it the best place to identify the piece letters. Look at the uppercase letters that start piece moves (not pawn moves) and match them against these three sets:
+_NOTATION_DETECT_PARAGRAPH = """First, identify the notation language. Focus on the first 10 half-moves of the game — knights and bishops are frequently moved in the opening, making it the best place to identify the piece letters. Look at the uppercase letters that start piece moves (not pawn moves) and match them against these three sets:
 - English: K (King), Q (Queen), R (Rook), B (Bishop), N (Knight)
 - French: R (Roi/King), D (Dame/Queen), T (Tour/Rook), F (Fou/Bishop), C (Cavalier/Knight)
 - Armenian: Ա (King), Թ (Queen), Ն (Rook), Փ/փ (Bishop), Ձ/ձ (Knight)
-Even a single Armenian letter (Ձ, ձ, Փ, փ) confirms Armenian notation. Do not default to French or English based on other clues — only the piece letters in the moves matter.
+Even a single Armenian letter (Ձ, ձ, Փ, փ) confirms Armenian notation. Do not default to French or English based on other clues — only the piece letters in the moves matter."""
+
+_NOTATION_PIECES = {
+    'english': 'English piece letters (K, Q, R, B, N)',
+    'french': 'French piece letters (T, F, D, C, R)',
+    'armenian': 'Armenian piece letters (Ձ/ձ, Փ/փ, Թ, Ն, Ա)',
+}
+
+def _notation_given_paragraph(notation):
+    pieces = _NOTATION_PIECES.get(notation, notation)
+    return f'This scoresheet uses {notation} notation. Set "notation" to "{notation}" and use {pieces}. Do not try to detect the notation — it has been confirmed by the user.'
+
+SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
+
+""" + _NOTATION_DETECT_PARAGRAPH + """
 
 Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
@@ -1039,9 +1051,10 @@ def read_scoresheet():
                 result_queue.put({"type": "retry", "model_id": model_id, "name": model_name,
                                   "free_error": retry_info['free_error'], "free_elapsed": retry_info['free_elapsed']})
 
-            prompt = SCORESHEET_READ_PROMPT
             if user_notation:
-                prompt = prompt + f"\n\nIMPORTANT: The user has confirmed that this scoresheet uses {user_notation} notation. Set \"notation\" to \"{user_notation}\" and use the corresponding piece letters."
+                prompt = SCORESHEET_READ_PROMPT.replace(_NOTATION_DETECT_PARAGRAPH, _notation_given_paragraph(user_notation))
+            else:
+                prompt = SCORESHEET_READ_PROMPT
             response, tier, retry_info = _gemini_generate(
                 client_free, client_paid, model_id,
                 contents=[
