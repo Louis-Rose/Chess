@@ -1504,6 +1504,22 @@ export function ScoresheetReadPage() {
                       }}
                     />
                   )}
+                  {/* Debug: grid cells on zoomed image — admin only */}
+                  {user?.is_admin && gd?.cells && Object.entries(gd.cells).map(([key, cell]) => (
+                    <div
+                      key={key}
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: `${cell.x1 * 100}%`, top: `${cell.y1 * 100}%`,
+                        width: `${(cell.x2 - cell.x1) * 100}%`, height: `${(cell.y2 - cell.y1) * 100}%`,
+                        border: '1px solid rgba(255, 100, 100, 0.5)',
+                        transform: gd.tilt ? `rotate(${gd.tilt}deg)` : undefined,
+                        transformOrigin: 'left center',
+                      }}
+                    >
+                      <span className="text-[8px] text-red-300 leading-none">{key}</span>
+                    </div>
+                  ))}
                 </div>
               );
             })()}
