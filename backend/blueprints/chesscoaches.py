@@ -356,6 +356,66 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None, 
         return client_paid.models.generate_content(**kwargs), 'paid', retry_info
 
 
+@coaches_bp.route('/api/coaches/auto-crop', methods=['POST'])
+@login_required
+def auto_crop():
+    """Use Gemini Flash Lite to detect rotation angle and crop coordinates for a scoresheet image."""
+    import time as time_module
+    from google import genai
+    from google.genai import types
+
+    image_file = request.files.get('image')
+    if not image_file:
+        return jsonify({'error': 'No image provided'}), 400
+    image_bytes = image_file.read()
+    mime_type = image_file.content_type or 'image/jpeg'
+
+    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
+    free_key = os.environ.get('GEMINI_FREE_API_KEY')
+    if not paid_key:
+        return jsonify({'error': 'GEMINI_PAID_API_KEY not configured'}), 500
+
+    client_paid = genai.Client(api_key=paid_key)
+    client_free = genai.Client(api_key=free_key) if free_key else None
+
+    prompt = """This photo contains a chess scoresheet (paper form with handwritten moves).
+
+Analyze the image and return JSON with:
+1. "rotation": the rotation angle in degrees (multiple of 5, between -180 and 180) to apply so that the paper sheet is perfectly upright (grid lines vertical and horizontal). Positive = clockwise. If already straight, return 0.
+2. "crop": the bounding box of the ENTIRE paper sheet (not just the moves table — include the header with player names, competition info, etc.) as percentages of the image dimensions: {"x": number, "y": number, "width": number, "height": number} where x,y is the top-left corner. Values 0-100.
+
+Return ONLY the JSON object, nothing else."""
+
+    model_id = 'gemini-3.1-flash-lite-preview'
+    try:
+        start = time_module.time()
+        response, tier, retry_info = _gemini_generate(
+            client_free, client_paid, model_id,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                prompt,
+            ],
+            config={"response_mime_type": "application/json"},
+        )
+        elapsed = round(time_module.time() - start)
+        usage = getattr(response, 'usage_metadata', None)
+        in_tok = getattr(usage, 'prompt_token_count', 0) or 0
+        out_tok = getattr(usage, 'candidates_token_count', 0) or 0
+        _log_api_usage('auto_crop', model_id, in_tok, out_tok, elapsed,
+                       request_id='autocrop', billing_tier=tier, user_id=get_current_user(),
+                       retry_free_error=retry_info.get('free_error') if retry_info else None,
+                       retry_free_elapsed=retry_info.get('free_elapsed') if retry_info else None)
+        result, _ = _scoresheet_parse_response(response.text)
+        # Clamp rotation to multiples of 5
+        rotation = result.get('rotation', 0)
+        rotation = round(rotation / 5) * 5
+        crop = result.get('crop', {'x': 0, 'y': 0, 'width': 100, 'height': 100})
+        return jsonify({'rotation': rotation, 'crop': crop})
+    except Exception as e:
+        logger.error(f"[Auto-crop] Failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 SCORESHEET_MODELS = [
     {"id": "gemini-3-flash-preview", "name": "Reader 1"},
     {"id": "gemini-3.1-pro-preview", "name": "Reader 2"},

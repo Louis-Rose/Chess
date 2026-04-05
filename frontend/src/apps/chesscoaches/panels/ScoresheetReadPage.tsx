@@ -184,10 +184,12 @@ export function ScoresheetReadPage() {
   const cropImgRef = useRef<HTMLImageElement>(null);
   const [cropRotation, setCropRotation] = useState(0);
 
+  const [autoCropping, setAutoCropping] = useState(false);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const { preview: dataUrl } = await compressImage(file);
+    const { file: compressed, preview: dataUrl } = await compressImage(file);
     setCropSrc(dataUrl);
     setCropFileName(file.name);
     setCropRotation(0);
@@ -195,6 +197,23 @@ export function ScoresheetReadPage() {
     const defaultCrop: CropType = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
     setCrop(defaultCrop);
     setCompletedCrop(undefined);
+
+    // Auto-detect rotation and crop in background
+    setAutoCropping(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', compressed);
+      const res = await fetch('/api/coaches/auto-crop', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.rotation != null) setCropRotation(data.rotation);
+        if (data.crop) {
+          const autoCrop: CropType = { unit: '%', x: data.crop.x, y: data.crop.y, width: data.crop.width, height: data.crop.height };
+          setCrop(autoCrop);
+        }
+      }
+    } catch { /* auto-crop failed silently — user can still crop manually */ }
+    setAutoCropping(false);
   };
 
   const handleCropConfirm = async () => {
@@ -352,7 +371,10 @@ export function ScoresheetReadPage() {
                   />
                 </div>
               </div>
-              <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
+              <p className="text-slate-200 text-base font-medium text-center">
+                {t('coaches.cropHint')}
+                {autoCropping && <span className="ml-2 text-blue-400 text-sm animate-pulse">Auto-adjusting...</span>}
+              </p>
               {/* Rotation controls */}
               <div className="flex items-center justify-center gap-2">
                 <button
