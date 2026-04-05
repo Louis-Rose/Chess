@@ -459,7 +459,6 @@ export function ScoresheetReadPage() {
                       ) : !allDone ? (
                         <div className="text-center mt-2">
                           <p className="text-blue-400 text-sm">{t('coaches.waitProcessing')}</p>
-                          {selectedNotation && <p className="text-slate-400 text-xs mt-1">Notation : <span className="text-slate-200 capitalize">{selectedNotation}</span></p>}
                         </div>
                       ) : unresolvedCountRef.current > 0 ? (
                         <div className="text-center text-emerald-500 text-sm mt-2">
