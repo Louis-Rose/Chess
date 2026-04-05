@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
@@ -187,6 +187,48 @@ export function ScoresheetReadPage() {
 
   const [autoCropping, setAutoCropping] = useState(false);
   const [autoCropDebug, setAutoCropDebug] = useState<{ prompt: string; raw_response: string; image_size: string; elapsed: number; tier: string } | null>(null);
+
+  // Load image from URL param (e.g. from admin panel "Process" link)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const imageParamHandled = useRef(false);
+  useEffect(() => {
+    if (imageParamHandled.current) return;
+    const imageUrl = searchParams.get('image');
+    if (!imageUrl || cropSrc || preview) return;
+    imageParamHandled.current = true;
+    setSearchParams({}, { replace: true }); // clear param from URL
+    (async () => {
+      try {
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+        setCropSrc(dataUrl);
+        setCropFileName(imageUrl.split('/').pop() || 'image.jpg');
+        setCropRotation(0);
+        setAutoCropDebug(null);
+        setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
+        setCompletedCrop(undefined);
+        // Trigger auto-crop
+        setAutoCropping(true);
+        try {
+          const formData = new FormData();
+          formData.append('image', blob, 'image.jpg');
+          const cropRes = await fetch('/api/coaches/auto-crop', { method: 'POST', body: formData });
+          if (cropRes.ok) {
+            const data = await cropRes.json();
+            if (data.rotation != null) setCropRotation(data.rotation);
+            if (data.crop) setCrop({ unit: '%', x: data.crop.x, y: data.crop.y, width: data.crop.width, height: data.crop.height });
+            if (data.debug) setAutoCropDebug(data.debug);
+          }
+        } catch {}
+        setAutoCropping(false);
+      } catch { /* failed to fetch image */ }
+    })();
+  }, [searchParams, setSearchParams, cropSrc, preview]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
