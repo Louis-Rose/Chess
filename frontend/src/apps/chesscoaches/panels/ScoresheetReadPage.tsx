@@ -1055,9 +1055,15 @@ export function ScoresheetReadPage() {
                       const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
                       const advanceToNextMove = () => {
                         if (colorStr === 'white' && moveObj.black) {
-                          voteState.goToMove(moveIdx + 1, 'black', moveIdx * 2 + 2);
+                          const nextColor = 'black' as const;
+                          const nextPly = moveIdx * 2 + 2;
+                          voteState.goToMove(moveIdx + 1, nextColor, nextPly);
+                          setVoteState(prev => prev ? { ...prev, moveIdx, color: nextColor } : prev);
                         } else if (moveIdx + 1 < displayConsensusMoves.length) {
-                          voteState.goToMove(moveIdx + 2, 'white', (moveIdx + 1) * 2 + 1);
+                          const nextIdx = moveIdx + 1;
+                          const nextPly = nextIdx * 2 + 1;
+                          voteState.goToMove(nextIdx + 1, 'white', nextPly);
+                          setVoteState(prev => prev ? { ...prev, moveIdx: nextIdx, color: 'white' } : prev);
                         } else {
                           voteState.clearSelection();
                         }
