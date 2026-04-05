@@ -176,6 +176,8 @@ export function ScoresheetReadPage() {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropFileName, setCropFileName] = useState('');
   const [preparingImage, setPreparingImage] = useState(false);
+  // Clear preparingImage once preview is set (same render cycle, no flicker)
+  useEffect(() => { if (preview && preparingImage) setPreparingImage(false); }, [preview, preparingImage]);
 
   // Auto-crop+rotate an image using Azure DI, then go straight to processing
   const processImage = useCallback(async (imageBlob: Blob, fileName: string) => {
@@ -248,7 +250,7 @@ export function ScoresheetReadPage() {
 
     console.log(`[Scoresheet] Processed image: ${(finalFile.size / 1024).toFixed(0)} KB, rotation=${rotation}°`);
     scoresheetSetImage(finalFile, finalPreview, fileName);
-    setPreparingImage(false);
+    // Don't clear preparingImage here — let the useEffect below clear it when preview is set
     setAutoRun(true);
   }, [scoresheetSetImage]);
 
