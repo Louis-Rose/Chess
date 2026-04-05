@@ -15,6 +15,32 @@ UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 's
 MIME_TO_EXT = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/heic': '.heic'}
 
 
+def _get_user_surname(user_id):
+    """Get the user's surname (last word of name) for upload filenames."""
+    try:
+        with get_db() as conn:
+            row = conn.execute('SELECT name FROM users WHERE id = ?', (user_id,)).fetchone()
+            if row and row['name']:
+                parts = row['name'].strip().split()
+                return parts[-1] if len(parts) > 1 else parts[0]
+    except Exception:
+        pass
+    return str(user_id)
+
+
+def _next_upload_number(user_dir, feature, surname):
+    """Find the next available number for {feature}_{surname}_{N} naming."""
+    import re
+    prefix = f"{feature}_{surname}_"
+    max_n = 0
+    if os.path.isdir(user_dir):
+        for fname in os.listdir(user_dir):
+            m = re.match(rf'^{re.escape(prefix)}(\d+)\.\w+$', fname)
+            if m:
+                max_n = max(max_n, int(m.group(1)))
+    return max_n + 1
+
+
 def _save_upload(user_id, request_id, image_bytes, mime_type, feature='scoresheet'):
     """Persist an uploaded image to disk under data/scoresheet_uploads/<user_id>/. Skips duplicates by content hash."""
     import hashlib
@@ -31,7 +57,9 @@ def _save_upload(user_id, request_id, image_bytes, mime_type, feature='scoreshee
                         logger.info(f"[Upload] Duplicate skipped (matches {existing})")
                         return
         ext = MIME_TO_EXT.get(mime_type, '.jpg')
-        filename = f"{feature}_{request_id}{ext}"
+        surname = _get_user_surname(user_id)
+        n = _next_upload_number(user_dir, feature, surname)
+        filename = f"{feature}_{surname}_{n}{ext}"
         path = os.path.join(user_dir, filename)
         with open(path, 'wb') as f:
             f.write(image_bytes)
