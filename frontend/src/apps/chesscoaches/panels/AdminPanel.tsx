@@ -10,6 +10,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { PanelShell } from '../components/PanelShell';
+import { ImageZoomModal } from '../components/ImageZoomModal';
 import { NAV_SECTIONS } from '../ChessCoachesLayout';
 
 interface AdminUser {
@@ -194,6 +195,7 @@ export function AdminPanel() {
   const [featuresCollapsed, setFeaturesCollapsed] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(() => new Set(COACH_FEATURES.map(f => f.id)));
   const [usersInitialized, setUsersInitialized] = useState(false);
+  const [zoomedImageSrc, setZoomedImageSrc] = useState<string | null>(null);
 
   const toggleFeature = (feature: string) => {
     setSelectedFeatures(prev => {
@@ -840,17 +842,17 @@ export function AdminPanel() {
                                   ) : invUploads.length ? (
                                     <div className="mt-2 flex gap-2 flex-wrap">
                                       {invUploads.map(file => (
-                                        <a
+                                        <button
                                           key={file.filename}
-                                          href={`/api/admin/user-uploads/${inv.user_id}/${file.filename}`}
-                                          className="block w-16 h-16 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors"
+                                          onClick={() => setZoomedImageSrc(`/api/admin/user-uploads/${inv.user_id}/${file.filename}`)}
+                                          className="block w-16 h-16 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors cursor-zoom-in"
                                         >
                                           <img
                                             src={`/api/admin/user-uploads/${inv.user_id}/${file.filename}`}
                                             alt={file.filename}
                                             className="w-full h-full object-cover"
                                           />
-                                        </a>
+                                        </button>
                                       ))}
                                     </div>
                                   ) : null;
@@ -880,6 +882,13 @@ export function AdminPanel() {
         </div>
 
       </div>
+      {zoomedImageSrc && (
+        <ImageZoomModal
+          src={zoomedImageSrc}
+          alt="Scoresheet upload"
+          onClose={() => setZoomedImageSrc(null)}
+        />
+      )}
     </PanelShell>
   );
 }

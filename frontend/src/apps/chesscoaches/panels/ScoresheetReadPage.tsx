@@ -8,6 +8,7 @@ import ReactCrop from 'react-image-crop';
 import type { Crop as CropType, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { PanelShell } from '../components/PanelShell';
+import { ImageZoomModal } from '../components/ImageZoomModal';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -1611,16 +1612,11 @@ export function ScoresheetReadPage() {
 
       {/* Example image modal */}
       {showExampleModal && (
-        <div
-          onClick={closeModal}
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] cursor-pointer"
-        >
-          <img
-            src="/cropping_example.jpeg"
-            alt="Cropping example"
-            className="max-w-[85vw] max-h-[95vh] rounded-xl object-contain"
-          />
-        </div>
+        <ImageZoomModal
+          src="/cropping_example.jpeg"
+          alt="Cropping example"
+          onClose={() => setShowExampleModal(false)}
+        />
       )}
     </PanelShell>
   );
