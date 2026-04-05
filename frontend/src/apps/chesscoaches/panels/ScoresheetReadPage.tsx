@@ -928,7 +928,7 @@ export function ScoresheetReadPage() {
                             // Non-confirmed move — re-pick from model votes using current position
                             const modelVals = allModelMoves.map(mv => mv[cm.number - 1]?.[col]).filter(Boolean) as string[];
                             if (modelVals.length > 0) {
-                              // Group by normalized form, pick best original
+                              // Group by normalized form, count votes
                               const votes: Record<string, { count: number; originals: Record<string, number> }> = {};
                               for (const v of modelVals) {
                                 const norm = v.replace(/[+#x]/g, '');
@@ -936,32 +936,28 @@ export function ScoresheetReadPage() {
                                 votes[norm].count++;
                                 votes[norm].originals[v] = (votes[norm].originals[v] || 0) + 1;
                               }
-                              const sorted = Object.entries(votes).sort((a, b) => b[1].count - a[1].count);
-                              let bestOrig = Object.entries(sorted[0][1].originals).sort((a, b) => b[1] - a[1])[0][0];
-                              if (sorted.length > 1) {
-                                // Test each candidate from current position
-                                let bestIll = Infinity;
-                                let bestVotes = 0;
-                                for (const [, { count, originals }] of sorted) {
-                                  const orig = Object.entries(originals).sort((a, b) => b[1] - a[1])[0][0];
-                                  const sim = new Chess(ch.fen());
-                                  let ill = 0;
-                                  const epOrig = resolveEnPassant(sim, orig);
-                                  try { sim.move(epOrig || orig); } catch {
-                                    // Check ambiguity
-                                    const pm = orig.match(/^([KQRBN])/);
-                                    const dm = orig.match(/([a-h][1-8])$/);
-                                    const ambig = pm && dm ? sim.moves().filter(m => m.startsWith(pm[1]) && m.includes(dm[1])) : [];
-                                    if (ambig.length > 0) { try { sim.move(ambig[0]); } catch { ill += 100; } }
-                                    else { ill += 100; }
-                                  }
-                                  const illDelta = bestIll - ill;
-                                  if ((illDelta >= 3) || (illDelta > -3 && count > bestVotes)) {
-                                    bestIll = ill; bestOrig = orig; bestVotes = count;
+                              // Filter to only legal candidates, then pick by vote count
+                              const candidates = Object.entries(votes).map(([, { count, originals }]) => {
+                                const orig = Object.entries(originals).sort((a, b) => b[1] - a[1])[0][0];
+                                const sim = new Chess(ch.fen());
+                                const ep = resolveEnPassant(sim, orig);
+                                let legal = false;
+                                let resolved = ep || orig;
+                                try { sim.move(resolved); legal = true; } catch {
+                                  // Try disambiguation
+                                  const pm = orig.match(/^([KQRBN])/);
+                                  const dm = orig.match(/([a-h][1-8])$/);
+                                  if (pm && dm) {
+                                    const ambig = sim.moves().find(m => m.startsWith(pm[1]) && m.includes(dm[1]));
+                                    if (ambig) { try { sim.move(ambig); legal = true; resolved = ambig; } catch {} }
                                   }
                                 }
-                              }
-                              cm[col] = bestOrig;
+                                return { orig, resolved, count, legal };
+                              });
+                              const legalCandidates = candidates.filter(c => c.legal);
+                              const best = (legalCandidates.length > 0 ? legalCandidates : candidates)
+                                .sort((a, b) => b.count - a.count)[0];
+                              if (best) cm[col] = best.resolved;
                             }
                             // Resolve shorthand en passant (e.g. 'ef' → 'exf6')
                             const epResolved = resolveEnPassant(ch, cm[col]!);
