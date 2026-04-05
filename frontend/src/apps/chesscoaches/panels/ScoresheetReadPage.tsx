@@ -979,8 +979,9 @@ export function ScoresheetReadPage() {
                       // Update edit panel to match current ply
                       if (ply > 0 && voteState) {
                         const moveIdx = Math.floor((ply - 1) / 2);
-                        const color = ply % 2 === 1 ? 'white' : 'black';
-                        voteState.goToMove(moveIdx + 1, color as 'white' | 'black', ply);
+                        const color = (ply % 2 === 1 ? 'white' : 'black') as 'white' | 'black';
+                        voteState.goToMove(moveIdx + 1, color, ply);
+                        setVoteState(prev => prev ? { ...prev, moveIdx, color } : prev);
                       }
                     };
                     const deselectConsensus = () => {
