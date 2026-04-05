@@ -1118,7 +1118,7 @@ export function ScoresheetReadPage() {
                       const minH = 'min-h-[140px]';
                       if (allModelsFinished && allVerified) {
                         return (
-                          <div className={`flex flex-col items-center justify-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out] ${minH} ${className || 'w-full'}`}>
+                          <div className={`flex flex-col items-center justify-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out] ${className || 'w-full'}`}>
                             {renderVerifiedBanner()}
                           </div>
                         );
