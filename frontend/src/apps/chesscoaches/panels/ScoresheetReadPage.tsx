@@ -300,6 +300,7 @@ export function ScoresheetReadPage() {
   // Consensus overrides: user edits on top of the computed consensus
   const consensusOverrides = scoresheet.consensusOverrides;
   const [consensusPreviewFen, setConsensusPreviewFen] = useState<string | null>(null);
+  const [metaOverrides, setMetaOverrides] = useState<Record<string, string>>({});
 
   const navigate = useNavigate();
   const handleBack = useCallback(() => {
@@ -857,10 +858,26 @@ export function ScoresheetReadPage() {
                       consensusMeta.white = pick(results.map(r => r!.white_player));
                       consensusMeta.black = pick(results.map(r => r!.black_player));
                       consensusMeta.result = pick(results.map(r => r!.result));
-                      consensusMeta.date = pick(results.map(r => r!.date));
+                      const rawDate = pick(results.map(r => r!.date));
+                      if (rawDate) {
+                        // Try to parse and format as DD/MM/YYYY
+                        const m = rawDate.match(/(\d{1,2})[./\-](\d{1,2})[./\-](\d{2,4})/);
+                        if (m) {
+                          const y = m[3].length === 2 ? '20' + m[3] : m[3];
+                          consensusMeta.date = `${m[1].padStart(2, '0')}/${m[2].padStart(2, '0')}/${y}`;
+                        } else {
+                          consensusMeta.date = rawDate;
+                        }
+                      }
                       consensusMeta.event = pick(results.map(r => r!.event));
                       consensusMeta.notation = pick(results.map(r => r!.notation));
                     }
+                    // Apply user meta edits
+                    if (metaOverrides.white !== undefined) consensusMeta.white = metaOverrides.white;
+                    if (metaOverrides.black !== undefined) consensusMeta.black = metaOverrides.black;
+                    if (metaOverrides.result !== undefined) consensusMeta.result = metaOverrides.result;
+                    if (metaOverrides.date !== undefined) consensusMeta.date = metaOverrides.date;
+                    if (metaOverrides.event !== undefined) consensusMeta.event = metaOverrides.event;
 
                     // Apply overrides on top of computed consensus, then normalize +/# annotations
                     const rawConsensusMoves = consensusOverrides || consensusMoves;
@@ -1133,6 +1150,7 @@ export function ScoresheetReadPage() {
 
                               loading={!allModelsFinished || analyzing}
                               meta={consensusMeta}
+                              onMetaChange={(field, value) => setMetaOverrides(prev => ({ ...prev, [field]: value }))}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               originalMoves={consensusOverrides ? consensusMoves : undefined}
                               onMoveClick={(movesArr, ply) => {
@@ -1217,6 +1235,7 @@ export function ScoresheetReadPage() {
 
                               loading={!allModelsFinished || analyzing}
                               meta={consensusMeta}
+                              onMetaChange={(field, value) => setMetaOverrides(prev => ({ ...prev, [field]: value }))}
                               onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
                               onMoveClick={(movesArr, ply) => {
                                 setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
@@ -1835,12 +1854,13 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, 
 
 
 
-function MovesPanel({ label, moves, disagreements, error, meta, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange }: {
+function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
   error?: string;
   meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string };
+  onMetaChange?: (field: string, value: string) => void;
   rereading?: boolean;
   corrections?: Set<string>;
   onEditSave?: (confirmed: Move[], correctionKey: string) => void;
@@ -1958,23 +1978,28 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
       {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
 
       {/* Game metadata */}
-      {(meta?.white || meta?.black || (meta?.result && meta.result !== '*') || meta?.date || meta?.event) && (
-        <div className="px-3 py-2 border-b border-slate-600/30 text-sm text-slate-300 space-y-0.5 text-center">
-          {(meta?.white || meta?.black) && (
-            <div>Players : <span className="text-slate-100">{meta.white || '?'}</span> (White) vs <span className="text-slate-100">{meta.black || '?'}</span> (Black)</div>
-          )}
-          {meta?.result && meta.result !== '*' && (
-            <div>Result : <span className="font-semibold text-slate-100">{meta.result}</span></div>
-          )}
-          {meta?.date && (
-            <div>Date : <span className="text-slate-100">{meta.date}</span></div>
-          )}
-          {meta?.event && (
-            <div>Event : <span className="text-slate-100">{meta.event}</span></div>
-          )}
-          {meta?.notation && (
-            <div>Notation : <span className="text-slate-100 capitalize">{meta.notation}</span></div>
-          )}
+      {meta && (
+        <div className="px-3 py-2 border-b border-slate-600/30 text-sm text-slate-300 space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 w-28 text-right shrink-0">Player (White) :</span>
+            <input value={meta.white || ''} onChange={e => onMetaChange?.('white', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 w-28 text-right shrink-0">Player (Black) :</span>
+            <input value={meta.black || ''} onChange={e => onMetaChange?.('black', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 w-28 text-right shrink-0">Result :</span>
+            <input value={meta.result || ''} onChange={e => onMetaChange?.('result', e.target.value)} className="flex-1 bg-transparent text-slate-100 font-semibold border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 w-28 text-right shrink-0">Date :</span>
+            <input value={meta.date || ''} onChange={e => onMetaChange?.('date', e.target.value)} placeholder="DD/MM/YYYY" className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 w-28 text-right shrink-0">Event :</span>
+            <input value={meta.event || ''} onChange={e => onMetaChange?.('event', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>
         </div>
       )}
 
