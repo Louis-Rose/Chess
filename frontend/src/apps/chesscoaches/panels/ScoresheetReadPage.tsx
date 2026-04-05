@@ -348,11 +348,18 @@ export function ScoresheetReadPage() {
   const [consensusPreviewFen, setConsensusPreviewFen] = useState<string | null>(null);
 
   const navigate = useNavigate();
+  const cameFromParam = useRef(imageParamHandled.current);
   const handleBack = useCallback(() => {
     if (cropSrc) {
-      // Crop screen → back to upload
-      setCropSrc(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameFromParam.current) {
+        // Came from admin "Process" link → go back in history
+        cameFromParam.current = false;
+        navigate(-1);
+      } else {
+        // Crop screen → back to upload
+        setCropSrc(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
     } else if (preview) {
       // Processing/results → back to upload
       scoresheetClear();
