@@ -462,7 +462,7 @@ def auto_crop():
             edge_angles.sort()
             mid = len(edge_angles) // 2
             table_angle = edge_angles[mid] if len(edge_angles) % 2 == 1 else (edge_angles[mid - 1] + edge_angles[mid]) / 2
-            table_angle = round(table_angle, 1)
+            table_angle = round(-table_angle, 1)  # negate so it matches page_angle convention (tilt, not correction)
 
     # Convert to percentages with small padding
     pad = 0.5  # 0.5% padding
