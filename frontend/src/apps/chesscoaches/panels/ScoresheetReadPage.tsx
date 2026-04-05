@@ -4,10 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
-import ReactCrop from 'react-image-crop';
-import type { Crop as CropType, PixelCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import { ImageIcon, FileText, Clock, Check, ExternalLink, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { UploadBox } from '../components/UploadBox';
@@ -92,7 +89,6 @@ export function ScoresheetReadPage() {
   const initialSuccess = useRef(getCoachesPrefs().scoresheet_success);
   const [hasHadSuccess, setHasHadSuccess] = useState(initialSuccess.current);
   const autoSampleTriggered = useRef(false);
-  const [isFirstTimeDemo, setIsFirstTimeDemo] = useState(false);
   useEffect(() => {
     if (initialSuccess.current || autoSampleTriggered.current || preview) return;
     autoSampleTriggered.current = true;
@@ -102,7 +98,6 @@ export function ScoresheetReadPage() {
         const dataUrl = URL.createObjectURL(blob);
         setCropSrc(dataUrl);
         setCropFileName('sample_scoresheet.jpeg');
-        setIsFirstTimeDemo(true);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -177,128 +172,62 @@ export function ScoresheetReadPage() {
     img.src = preview;
   }, [preview]);
 
-  // ── Crop state ──
+  // ── Crop state (only used for first-time demo) ──
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropFileName, setCropFileName] = useState('');
-  const [crop, setCrop] = useState<CropType>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const cropImgRef = useRef<HTMLImageElement>(null);
-  const [cropRotation, setCropRotation] = useState(0);
 
-  const [autoCropping, setAutoCropping] = useState(false);
-  const [autoCropDebug, setAutoCropDebug] = useState<{ prompt: string; raw_response: string; image_size: string; elapsed: number; tier: string } | null>(null);
+  // Auto-crop+rotate an image using Azure DI, then go straight to processing
+  const processImage = useCallback(async (imageBlob: Blob, fileName: string) => {
+    // Load image into an HTMLImageElement for canvas operations
+    const dataUrl = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(imageBlob);
+    });
+    const img = await new Promise<HTMLImageElement>((resolve) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.src = dataUrl;
+    });
 
-  // Load image from URL param (e.g. from admin panel "Process" link)
-  const [searchParams, setSearchParams] = useSearchParams();
-  const imageParamHandled = useRef(false);
-  useEffect(() => {
-    if (imageParamHandled.current) return;
-    const imageUrl = searchParams.get('image');
-    if (!imageUrl || cropSrc || preview) return;
-    imageParamHandled.current = true;
-    setSearchParams({}, { replace: true }); // clear param from URL
-    (async () => {
-      try {
-        const res = await fetch(imageUrl);
-        const blob = await res.blob();
-        const dataUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-        setCropSrc(dataUrl);
-        setCropFileName(imageUrl.split('/').pop() || 'image.jpg');
-        setCropRotation(0);
-        setAutoCropDebug(null);
-        setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
-        setCompletedCrop(undefined);
-        // Trigger auto-crop
-        setAutoCropping(true);
-        try {
-          const formData = new FormData();
-          formData.append('image', blob, 'image.jpg');
-          const cropRes = await fetch('/api/coaches/auto-crop', { method: 'POST', body: formData });
-          if (cropRes.ok) {
-            const data = await cropRes.json();
-            if (data.rotation != null) setCropRotation(data.rotation);
-            if (data.crop) setCrop({ unit: '%', x: data.crop.x, y: data.crop.y, width: data.crop.width, height: data.crop.height });
-            if (data.debug) setAutoCropDebug(data.debug);
-          }
-        } catch {}
-        setAutoCropping(false);
-      } catch { /* failed to fetch image */ }
-    })();
-  }, [searchParams, setSearchParams, cropSrc, preview]);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const { file: compressed, preview: dataUrl } = await compressImage(file);
-    setCropSrc(dataUrl);
-    setCropFileName(file.name);
-    setCropRotation(0);
-    setAutoCropDebug(null);
-    // Default crop: full image so the user sees the handles immediately
-    const defaultCrop: CropType = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
-    setCrop(defaultCrop);
-    setCompletedCrop(undefined);
-
-    // Auto-detect rotation and crop in background
-    setAutoCropping(true);
+    // Call auto-crop API for rotation + crop
+    let rotation = 0;
+    let cropPct: { x: number; y: number; width: number; height: number } | null = null;
     try {
       const formData = new FormData();
-      formData.append('image', compressed);
+      formData.append('image', imageBlob, fileName);
       const res = await fetch('/api/coaches/auto-crop', { method: 'POST', body: formData });
       if (res.ok) {
         const data = await res.json();
-        if (data.rotation != null) setCropRotation(data.rotation);
-        if (data.crop) {
-          const autoCrop: CropType = { unit: '%', x: data.crop.x, y: data.crop.y, width: data.crop.width, height: data.crop.height };
-          setCrop(autoCrop);
-        }
-        if (data.debug) setAutoCropDebug(data.debug);
+        rotation = data.rotation || 0;
+        if (data.crop) cropPct = data.crop;
       }
-    } catch { /* auto-crop failed silently — user can still crop manually */ }
-    setAutoCropping(false);
-  };
+    } catch {}
 
-  const handleCropConfirm = async () => {
-    const img = cropImgRef.current;
-    if (!img || !cropSrc) return;
-
+    // Apply rotation + crop on canvas
+    const rad = (rotation * Math.PI) / 180;
+    const nw = img.naturalWidth, nh = img.naturalHeight;
     let finalFile: File;
     let finalPreview: string;
 
-    const scaleX = img.naturalWidth / img.width;
-    const scaleY = img.naturalHeight / img.height;
-    const rad = (cropRotation * Math.PI) / 180;
-
-    if (completedCrop && completedCrop.width > 0 && completedCrop.height > 0) {
-      const cw = completedCrop.width * scaleX;
-      const ch = completedCrop.height * scaleY;
+    if (cropPct && (cropPct.x > 0 || cropPct.y > 0 || cropPct.width < 100 || cropPct.height < 100)) {
+      // Crop + optional rotation
+      const cx = cropPct.x / 100 * nw, cy = cropPct.y / 100 * nh;
+      const cw = cropPct.width / 100 * nw, ch = cropPct.height / 100 * nh;
       const canvas = document.createElement('canvas');
       canvas.width = cw;
       canvas.height = ch;
       const ctx = canvas.getContext('2d')!;
-      // Translate to crop center, rotate, then draw the full image offset so the crop region lands at (0,0)
       ctx.translate(cw / 2, ch / 2);
       ctx.rotate(rad);
-      ctx.drawImage(
-        img,
-        -(completedCrop.x * scaleX + cw / 2),
-        -(completedCrop.y * scaleY + ch / 2),
-      );
-      const blob = await new Promise<Blob>((resolve) =>
-        canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.90)
-      );
-      finalFile = new File([blob], cropFileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+      ctx.drawImage(img, -(cx + cw / 2), -(cy + ch / 2));
+      const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.90));
+      finalFile = new File([blob], fileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
       finalPreview = canvas.toDataURL('image/jpeg', 0.90);
-    } else if (cropRotation !== 0) {
-      // No crop but rotated — render rotated full image
-      const nw = img.naturalWidth, nh = img.naturalHeight;
+    } else if (rotation !== 0) {
+      // Rotation only
       const sin = Math.abs(Math.sin(rad)), cos = Math.abs(Math.cos(rad));
-      const rw = Math.ceil(nw * cos + nh * sin);
-      const rh = Math.ceil(nw * sin + nh * cos);
+      const rw = Math.ceil(nw * cos + nh * sin), rh = Math.ceil(nw * sin + nh * cos);
       const canvas = document.createElement('canvas');
       canvas.width = rw;
       canvas.height = rh;
@@ -306,24 +235,44 @@ export function ScoresheetReadPage() {
       ctx.translate(rw / 2, rh / 2);
       ctx.rotate(rad);
       ctx.drawImage(img, -nw / 2, -nh / 2);
-      const blob = await new Promise<Blob>((resolve) =>
-        canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.90)
-      );
-      finalFile = new File([blob], cropFileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+      const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.90));
+      finalFile = new File([blob], fileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
       finalPreview = canvas.toDataURL('image/jpeg', 0.90);
     } else {
-      // No crop, no rotation — use full image
-      const res = await fetch(cropSrc);
-      const blob = await res.blob();
-      finalFile = new File([blob], cropFileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
-      finalPreview = cropSrc;
+      // No changes needed
+      finalFile = new File([imageBlob], fileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+      finalPreview = dataUrl;
     }
 
-    console.log(`[Scoresheet] Cropped image: ${(finalFile.size / 1024).toFixed(0)} KB`);
-    scoresheetSetImage(finalFile, finalPreview, cropFileName);
-    setCropSrc(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    console.log(`[Scoresheet] Processed image: ${(finalFile.size / 1024).toFixed(0)} KB, rotation=${rotation}°`);
+    scoresheetSetImage(finalFile, finalPreview, fileName);
     setAutoRun(true);
+  }, [scoresheetSetImage]);
+
+  // Load image from URL param (e.g. from admin panel "Process" link)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const imageParamHandled = useRef(false);
+  useEffect(() => {
+    if (imageParamHandled.current) return;
+    const imageUrl = searchParams.get('image');
+    if (!imageUrl || preview) return;
+    imageParamHandled.current = true;
+    setSearchParams({}, { replace: true });
+    (async () => {
+      try {
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        await processImage(blob, imageUrl.split('/').pop() || 'image.jpg');
+      } catch {}
+    })();
+  }, [searchParams, setSearchParams, preview, processImage]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const { file: compressed } = await compressImage(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    await processImage(compressed, file.name);
   };
 
 
@@ -348,18 +297,10 @@ export function ScoresheetReadPage() {
   const [consensusPreviewFen, setConsensusPreviewFen] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const cameFromParam = useRef(imageParamHandled.current);
   const handleBack = useCallback(() => {
     if (cropSrc) {
-      if (cameFromParam.current) {
-        // Came from admin "Process" link → go back in history
-        cameFromParam.current = false;
-        navigate(-1);
-      } else {
-        // Crop screen → back to upload
-        setCropSrc(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
+      // Demo screen → back to upload
+      setCropSrc(null);
     } else if (preview) {
       // Processing/results → back to upload
       scoresheetClear();
@@ -380,7 +321,6 @@ export function ScoresheetReadPage() {
           />
 
           {cropSrc ? (
-            isFirstTimeDemo ? (
             /* ── First-time demo: simple preview + confirm ── */
             <div className="space-y-4">
               <p className="text-slate-200 text-lg text-center">
@@ -388,7 +328,6 @@ export function ScoresheetReadPage() {
               </p>
               <div className="flex justify-center">
                 <img
-                  ref={cropImgRef}
                   src={cropSrc}
                   alt={t('coaches.sampleDemoAlt')}
                   className="rounded-lg max-h-[50vh] max-w-sm"
@@ -396,7 +335,13 @@ export function ScoresheetReadPage() {
               </div>
               <div className="flex justify-center">
                 <button
-                  onClick={() => { setIsFirstTimeDemo(false); handleCropConfirm(); }}
+                  onClick={async () => {
+
+                    const res = await fetch(cropSrc!);
+                    const blob = await res.blob();
+                    setCropSrc(null);
+                    await processImage(blob, cropFileName || 'sample_scoresheet.jpeg');
+                  }}
                   className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   <Check className="w-4 h-4" />
@@ -404,79 +349,6 @@ export function ScoresheetReadPage() {
                 </button>
               </div>
             </div>
-            ) : (
-            /* ── Crop step ── */
-            <div className="space-y-4">
-              <p className="text-slate-200 text-base font-medium text-center">
-                {autoCropping
-                  ? <span className="text-blue-400 animate-pulse">{t('coaches.autoCropping')}</span>
-                  : t('coaches.cropHint')}
-              </p>
-              <div className="relative flex justify-center">
-                {/* User's photo — centered */}
-                <div className="max-w-sm">
-                  <ReactCrop
-                    crop={crop}
-                    onChange={setCrop}
-                    onComplete={setCompletedCrop}
-                  >
-                    <img
-                      ref={cropImgRef}
-                      src={cropSrc}
-                      alt="Crop"
-                      className="rounded-lg max-h-[50vh]"
-                      style={cropRotation ? { transform: `rotate(${cropRotation}deg)` } : undefined}
-                    />
-                  </ReactCrop>
-                </div>
-                {/* Auto-crop debug — admin only */}
-                {user?.is_admin && autoCropDebug && (
-                  <div className="hidden lg:block w-80 flex-shrink-0 absolute left-[calc(50%+14rem)] top-0 max-h-[80vh] overflow-y-auto">
-                    <div className="bg-slate-800/90 rounded-lg border border-slate-600/50 p-3 text-xs font-mono space-y-2">
-                      <p className="text-slate-400 uppercase tracking-wider text-[10px]">Auto-crop debug ({autoCropDebug.elapsed}s, {autoCropDebug.tier})</p>
-                      <div>
-                        <p className="text-slate-500 mb-1">Prompt:</p>
-                        <pre className="text-slate-300 whitespace-pre-wrap text-[10px] leading-tight">{autoCropDebug.prompt}</pre>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 mb-1">Response:</p>
-                        <pre className="text-emerald-400 whitespace-pre-wrap text-[10px] leading-tight">{autoCropDebug.raw_response}</pre>
-                      </div>
-                      <p className="text-slate-500">Image: {autoCropDebug.image_size}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {/* Rotation controls */}
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  disabled={autoCropping}
-                  onClick={() => setCropRotation(r => r - 1)}
-                  className={`px-2 py-1 rounded-lg text-xs transition-colors ${autoCropping ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
-                >
-                  -1°
-                </button>
-                <span className="text-slate-400 text-xs w-10 text-center">{cropRotation}°</span>
-                <button
-                  disabled={autoCropping}
-                  onClick={() => setCropRotation(r => r + 1)}
-                  className={`px-2 py-1 rounded-lg text-xs transition-colors ${autoCropping ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
-                >
-                  +1°
-                </button>
-              </div>
-              <div className="flex items-center justify-center">
-                <button
-                  disabled={autoCropping}
-                  onClick={handleCropConfirm}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors ${autoCropping ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
-                >
-                  <Crop className="w-3.5 h-3.5" />
-                  {t('coaches.cropConfirm')}
-                </button>
-              </div>
-            </div>
-            )
           ) : !preview && !loadingSample ? (
             <div className="space-y-3">
               <UploadBox
