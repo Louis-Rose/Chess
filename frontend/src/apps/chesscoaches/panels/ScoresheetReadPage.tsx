@@ -594,9 +594,10 @@ export function ScoresheetReadPage() {
                       const passChess = new Chess();
                       let stopped = false;
 
-                      for (let i = 0; i < maxLen; i++) {
+                      outer: for (let i = 0; i < maxLen; i++) {
                         const move: Move = { number: i + 1, white: '' };
                         for (const color of ['white', 'black'] as const) {
+                          if (stopped) break outer;
                           const modelVals: string[] = [];
                           const votersByCandidate: Record<string, string[]> = {};
                           const confidenceByModel: Record<string, string> = {};
@@ -615,17 +616,6 @@ export function ScoresheetReadPage() {
                           if (modelVals.length === 0) continue;
 
                           const detailKey = `${i + 1}-${color}`;
-
-                          if (stopped) {
-                            // After a stop, just record the highest-voted candidate without legality
-                            const votes: Record<string, number> = {};
-                            for (const v of modelVals) { const n = v.replace(/[+#x]/g, ''); votes[n] = (votes[n] || 0) + 1; }
-                            const sorted = Object.entries(votes).sort((a, b) => b[1] - a[1]);
-                            (move as any)[color] = sorted[0][0];
-                            (move as any)[`${color}_legal`] = false;
-                            details[detailKey] = sorted.map(([c, v]) => ({ candidate: c, votes: v, downstreamIllegals: 0, chosen: c === sorted[0][0], models: votersByCandidate[c] || [], confidenceByModel }));
-                            continue;
-                          }
 
                           const picked = pickBestMove(passChess, modelVals);
                           if (!picked) { console.warn(`[Consensus] Move ${i+1} ${color}: pickBestMove returned null — skipping without stopping!`); continue; }
@@ -826,7 +816,9 @@ export function ScoresheetReadPage() {
                           if (!san) continue;
 
                           if (stopped) {
-                            (cm as any)[`${col}_legal`] = false;
+                            delete cm[col];
+                            delete (cm as any)[`${col}_legal`];
+                            delete (cm as any)[`${col}_reason`];
                             continue;
                           }
 
