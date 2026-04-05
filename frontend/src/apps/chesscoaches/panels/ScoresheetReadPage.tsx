@@ -1316,7 +1316,7 @@ export function ScoresheetReadPage() {
                                         </td>
                                         <td className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-500">
                                           {details && details.length > 1 && details.map((d: VoteDetail) => (
-                                            <span key={d.candidate} className={`${d.chosen ? 'text-slate-200 font-semibold' : 'text-slate-500'} mr-1`}>
+                                            <span key={d.candidate} className={`${d.candidate === cMove?.replace(/[+#x]/g, '') ? 'text-slate-200 font-semibold' : 'text-slate-500'} mr-1`}>
                                               {toNotation(d.candidate, notation)}:{d.votes}{d.downstreamIllegals > 0 ? `(${d.downstreamIllegals}⚠)` : ''}
                                             </span>
                                           ))}
