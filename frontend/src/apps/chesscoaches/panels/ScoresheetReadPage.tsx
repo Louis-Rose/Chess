@@ -1162,9 +1162,9 @@ export function ScoresheetReadPage() {
                           </div>
                           {/* Right: board */}
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState || !allModelsFinished} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState || !allModelsFinished || !!userPickedMove} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
-                              setUserPickedMove(prev => prev ?? san);
+                              setUserPickedMove(san);
                               voteState.setEditValue(san);
                             } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
@@ -1225,9 +1225,9 @@ export function ScoresheetReadPage() {
                             />
                             {/* Mobile board */}
                             <div className="w-full max-w-[400px]">
-                              <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState || !allModelsFinished} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                              <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState || !allModelsFinished || !!userPickedMove} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                                 if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
-                                setUserPickedMove(prev => prev ?? san);
+                                setUserPickedMove(san);
                                 voteState.setEditValue(san);
                               } : undefined} />
                             </div>
