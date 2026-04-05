@@ -32,7 +32,7 @@ function resolveEnPassant(chess: InstanceType<typeof Chess>, san: string): strin
 
 const NOTATION_MAPS: Record<string, Record<string, string>> = {
   french: { R: 'T', B: 'F', Q: 'D', N: 'C', K: 'R' },
-  armenian: { R: 'ն', B: 'փ', Q: 'թ', N: 'Ձ', K: 'ա' },
+  armenian: { R: 'ն', B: 'փ', Q: 'թ', N: 'Ձ', K: 'Ա' },
 };
 function toNotation(san: string, notation?: string): string {
   if (!san || !notation || notation === 'english') return san;
