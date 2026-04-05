@@ -1581,7 +1581,9 @@ interface PlyEntry {
   reason?: string;
 }
 
-function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData, showGridDebug }: { preview: string; onImageClick: () => void; fileName?: string; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number }; showGridDebug?: boolean }) {
+function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData, showGridDebug: canShowGrid }: { preview: string; onImageClick: () => void; fileName?: string; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number }; showGridDebug?: boolean }) {
+  const [gridVisible, setGridVisible] = useState(false);
+  const showGridDebug = canShowGrid && gridVisible;
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
 
@@ -1608,6 +1610,14 @@ function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColu
 
   return (
     <div className="flex flex-col items-center">
+      {canShowGrid && gridData?.cells && (
+        <button
+          onClick={() => setGridVisible(v => !v)}
+          className={`text-[10px] mb-1 px-2 py-0.5 rounded transition-colors ${gridVisible ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-700 text-slate-500 border border-slate-600'}`}
+        >
+          {gridVisible ? 'Hide grid' : 'Show grid'}
+        </button>
+      )}
       <div className="relative overflow-hidden rounded-xl">
         <img
           ref={imgRef}
