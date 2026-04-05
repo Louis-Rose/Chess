@@ -687,7 +687,7 @@ export function ScoresheetReadPage() {
                               const fen = passChess.fen().split(' ');
                               fen[1] = fen[1] === 'w' ? 'b' : 'w';
                               fen[3] = '-'; // clear en-passant square to keep FEN valid
-                              passChess.load(fen.join(' '));
+                              try { passChess.load(fen.join(' ')); } catch {}
                             } else {
                               for (const d of dets) { if (d.candidate === bestCandidate) d.chosen = true; }
                               details[detailKey] = dets;
@@ -707,7 +707,7 @@ export function ScoresheetReadPage() {
                                   const fen = passChess.fen().split(' ');
                                   fen[1] = fen[1] === 'w' ? 'b' : 'w';
                                   fen[3] = '-';
-                                  passChess.load(fen.join(' '));
+                                  try { passChess.load(fen.join(' ')); } catch {}
                                 }
                               }
                             }
@@ -818,7 +818,7 @@ export function ScoresheetReadPage() {
                           const fen = valChess.fen().split(' ');
                           fen[1] = fen[1] === 'w' ? 'b' : 'w';
                           fen[3] = '-'; // clear en-passant square to keep FEN valid
-                          valChess.load(fen.join(' '));
+                          try { valChess.load(fen.join(' ')); } catch {}
                         }
                       }
                     }
@@ -921,7 +921,7 @@ export function ScoresheetReadPage() {
                                 (cm as any)[`${col}_legal`] = false;
                               }
                               if ((cm as any)[`${col}_legal`] === false) {
-                                const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; ch.load(f.join(' '));
+                                const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; try { ch.load(f.join(' ')); } catch {}
                               }
                             }
                           } else {
@@ -966,7 +966,7 @@ export function ScoresheetReadPage() {
                             try { ch.move(cm[col]!); (cm as any)[`${col}_legal`] = true; }
                             catch {
                               (cm as any)[`${col}_legal`] = false;
-                              const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; ch.load(f.join(' '));
+                              const f = ch.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; try { ch.load(f.join(' ')); } catch {}
                             }
                           }
                         }
@@ -1332,7 +1332,7 @@ export function ScoresheetReadPage() {
                             const san = cm[col];
                             if (!san) continue;
                             try { debugChess.move(san); } catch {
-                              const f = debugChess.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; debugChess.load(f.join(' '));
+                              const f = debugChess.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; try { debugChess.load(f.join(' ')); } catch {}
                             }
                           }
                         }
@@ -1564,7 +1564,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, 
           const fen = chess.fen().split(' ');
           fen[1] = fen[1] === 'w' ? 'b' : 'w';
           fen[3] = '-'; // clear en-passant square to keep FEN valid
-          chess.load(fen.join(' '));
+          try { chess.load(fen.join(' ')); } catch {}
         }
       }
     }
