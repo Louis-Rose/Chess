@@ -540,18 +540,11 @@ _NOTATION_PIECES = {
     'armenian': 'Armenian piece letters (Ձ/ձ, Փ/փ, Թ, Ն, Ա)',
 }
 
-_NOTATION_PLACEHOLDER = '{{NOTATION_PARAGRAPH}}'
-
 def _build_scoresheet_prompt(notation):
     pieces = _NOTATION_PIECES.get(notation, notation)
-    paragraph = f'This scoresheet uses {notation} notation. Set "notation" to "{notation}" and use {pieces}.'
-    return SCORESHEET_READ_PROMPT.replace(_NOTATION_PLACEHOLDER, paragraph)
+    return f'This scoresheet uses {notation} notation. Set "notation" to "{notation}" and use {pieces}.\n\n' + _SCORESHEET_READ_PROMPT_BODY
 
-SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
-
-""" + _NOTATION_PLACEHOLDER + """
-
-Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
+_SCORESHEET_READ_PROMPT_BODY = """Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
   "white_player": "Name or empty string if unreadable",
   "black_player": "Name or empty string if unreadable",
