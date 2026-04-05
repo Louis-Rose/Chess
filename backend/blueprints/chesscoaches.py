@@ -550,8 +550,7 @@ _SCORESHEET_READ_PROMPT_BODY = """Extract ALL moves from the scoresheet and retu
   "black_player": "Name or empty string if unreadable",
   "event": "Tournament name or empty string if unreadable",
   "date": "Date or empty string if unreadable",
-  "result": "1-0, 0-1, 1/2-1/2, or * if unreadable/ongoing",
-  "notation": "english", "french", or "armenian",
+  "result": "1-0, 0-1, 1/2-1/2, or empty if unreadable",
   "moves": [
     {"number": 1, "white": "e4", "white_confidence": "high", "black": "e5", "black_confidence": "high"},
     {"number": 2, "white": "Nf3", "white_confidence": "high", "white_time": 88, "black": "Nc6", "black_confidence": "medium", "black_time": 85}
@@ -563,14 +562,14 @@ Rules:
 - Use the notation the player used. If French, output French piece letters (T, F, D, C). If English, output English piece letters (K, Q, R, B, N). If Armenian, output Armenian piece letters (Ն, Փ, Թ, Ձ, Ա). Pawn moves have no piece letter in any notation.
 - Always use correct casing: piece letters must be uppercase (e.g. Cf3, not cf3; Nf3, not nf3). Armenian letters are always uppercase. Pawn moves start with a lowercase file letter (a-h, e.g. e4, not E4). Normalize casing even if the player wrote it differently.
 - Some players write captures with "x" (e.g. Nxd4 / Cxd4) and some without (e.g. Nd4 / Cd4). Read what is actually written.
-- If a move is unreadable, use "?" as the move
+- If a move is unreadable, leave the move empty
 - If black's last move is missing (white won or game ended), omit the "black" field for that move
 - Include ALL moves you can read, even partially
 - Be careful with similar-looking pieces in English: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
 - Be careful with similar-looking pieces in French: R (Roi), C (Cavalier), F (Fou), T (Tour), D (Dame)
 - Be careful with Armenian piece letters: Ա (King), Թ (Queen), Ն (Rook), Փ (Bishop), Ձ (Knight)
 - Chess moves always end with a rank digit (1-8), optionally followed by + or #. If you see a letter "l" or "I" at the end, it is the digit "1". Do not output moves ending in letters like "Reel" — that should be "Re1".
-- Castling: O-O (kingside), O-O-O (queenside) — same in both notations
+- Castling: O-O (kingside), O-O-O (queenside) — same in all notations
 - For each move, include a confidence level: "high" (clearly readable), "medium" (somewhat ambiguous), or "low" (hard to read/guessing)
 - Some players write the remaining minutes on their clock next to their moves (before or after the move). If you see a number that looks like a clock time (typically decreasing over the game), include it as "white_time" or "black_time" (integer, in minutes). Only include time fields if the scoresheet actually has clock times written — do not guess or fabricate them.
 Return ONLY the JSON object, no other text."""
@@ -656,7 +655,6 @@ Rules:
 
 Return ONLY a JSON object:
 {{
-  "notation": "english", "french", or "armenian",
   "moves": [
     {{"number": {resume_num}, {'"white": "...", "black": "..."' if resume_color == 'white' else '"black": "..."'}}},
     ...
@@ -1040,7 +1038,7 @@ def read_scoresheet():
                 result_queue.put({"type": "retry", "model_id": model_id, "name": model_name,
                                   "free_error": retry_info['free_error'], "free_elapsed": retry_info['free_elapsed']})
 
-            prompt = _build_scoresheet_prompt(user_notation or 'english')
+            prompt = _build_scoresheet_prompt(user_notation)
             response, tier, retry_info = _gemini_generate(
                 client_free, client_paid, model_id,
                 contents=[
@@ -1058,7 +1056,8 @@ def read_scoresheet():
             logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
 
             result, warnings = _scoresheet_parse_response(response.text)
-            notation = result.get("notation")
+            notation = user_notation or result.get("notation") or "english"
+            result["notation"] = notation
             result["moves"] = _scoresheet_validate_moves(result.get("moves", []), notation=notation)
 
             move_count = len(result.get("moves", []))
