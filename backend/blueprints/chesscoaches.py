@@ -539,7 +539,7 @@ SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament sco
 First, identify the notation language by looking at the piece letters used in the moves themselves:
 - English: K (King), Q (Queen), R (Rook), B (Bishop), N (Knight)
 - French: R (Roi/King), D (Dame/Queen), T (Tour/Rook), F (Fou/Bishop), C (Cavalier/Knight)
-- Armenian: Ա (King), Թ (Queen), Ն (Rook), Փ (Bishop), Ձ (Knight)
+- Armenian: Ա (King), Թ (Queen), Ն (Rook), Փ/փ (Bishop), Ձ/ձ (Knight)
 Look at the uppercase letters that start piece moves (not pawn moves). Match them against the three sets above to determine the notation.
 
 Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
@@ -641,7 +641,7 @@ Read ALL remaining moves from the scoresheet starting from move {resume_num} ({'
 
 Rules:
 - Transcribe EXACTLY what is written on the sheet — do not add or remove symbols
-- The scoresheet may use English (K, Q, R, B, N), French (R, D, T, F, C), or Armenian (Ա, Թ, Ն, Փ, Ձ) notation. Use whichever notation the player used.
+- The scoresheet may use English (K, Q, R, B, N), French (R, D, T, F, C), or Armenian (Ա, Թ, Ն, Փ/փ, Ձ/ձ) notation. Use whichever notation the player used.
 - Always use correct casing: piece letters must be uppercase (e.g. Cf3, not cf3; Nf3, not nf3). Armenian letters are always uppercase. Pawn moves start with a lowercase file letter (a-h, e.g. e4, not E4). Normalize casing even if the player wrote it differently.
 - Some players write captures with "x" (e.g. Nxd4 / Cxd4) and some without. Read what is actually written.
 - If a move is unreadable, use "?"
