@@ -385,13 +385,23 @@ export function AdminPanel() {
     return inv?.user_id ?? null;
   }, [expandedInvocation, filteredApiUsage]);
 
-  const { data: uploadsData, isLoading: uploadsLoading } = useQuery({
-    queryKey: ['admin-user-uploads', expandedInvocationUserId],
-    queryFn: async (): Promise<{ uploads: UserUpload[] }> => {
-      const response = await axios.get(`/api/admin/user-uploads/${expandedInvocationUserId}`);
-      return response.data;
+  // Fetch uploads for all users who have invocations
+  const invocationUserIds = useMemo(() => {
+    if (!filteredApiUsage?.invocations) return [];
+    return [...new Set(filteredApiUsage.invocations.map(i => i.user_id))];
+  }, [filteredApiUsage]);
+
+  const { data: allUploadsData } = useQuery({
+    queryKey: ['admin-all-user-uploads', invocationUserIds],
+    queryFn: async (): Promise<Map<number, UserUpload[]>> => {
+      const results = new Map<number, UserUpload[]>();
+      await Promise.all(invocationUserIds.map(async uid => {
+        const response = await axios.get(`/api/admin/user-uploads/${uid}`);
+        results.set(uid, response.data.uploads || []);
+      }));
+      return results;
     },
-    enabled: expandedInvocationUserId !== null,
+    enabled: invocationUserIds.length > 0,
   });
 
   if (!authLoading && (!user || !user.is_admin)) {
@@ -753,6 +763,8 @@ export function AdminPanel() {
                     <tbody className="divide-y divide-slate-700/30">
                       {filteredApiUsage.invocations.map(inv => {
                         const expanded = expandedInvocation === inv.request_id;
+                        const userUploads = allUploadsData?.get(inv.user_id);
+                        const matchedUpload = userUploads?.find(f => f.filename.includes(inv.request_id));
                         return (
                           <React.Fragment key={inv.request_id}>
                             <tr
@@ -777,8 +789,18 @@ export function AdminPanel() {
                                 </div>
                               </td>
                               <td className="px-2 py-1 text-slate-300">
-                                {FEATURE_LABELS[inv.feature] || inv.feature}
-                                {inv.free_count > 0 && <span className="ml-1.5 text-[10px] text-emerald-400 bg-emerald-400/10 px-1 rounded">{inv.free_count} free</span>}
+                                <div className="flex items-center gap-1.5">
+                                  <span>{FEATURE_LABELS[inv.feature] || inv.feature}</span>
+                                  {inv.free_count > 0 && <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-1 rounded">{inv.free_count} free</span>}
+                                  {matchedUpload && (
+                                    <span
+                                      className="text-[10px] text-blue-400 hover:text-blue-300 cursor-zoom-in"
+                                      onClick={(e) => { e.stopPropagation(); setZoomedImageSrc(`/api/admin/user-uploads/${inv.user_id}/${matchedUpload.filename}`); }}
+                                    >
+                                      {matchedUpload.filename.replace(/(_[a-f0-9]{12})(\.\w+)$/, '$2')}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-2 py-1 text-slate-400 text-center">{inv.model_count}</td>
                               <td className="px-2 py-1 text-slate-400 text-center">{formatTokens((inv.total_input || 0) + (inv.total_output || 0))}</td>
@@ -843,33 +865,6 @@ export function AdminPanel() {
                 </div>
               </div>
             )}
-
-            {/* User uploads */}
-            {expandedInvocationUserId && (uploadsLoading ? (
-              <div className="flex justify-center py-2">
-                <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
-              </div>
-            ) : uploadsData?.uploads?.length ? (
-              <div>
-                <h4 className="text-xs text-slate-500 mb-2">Uploads ({uploadsData.uploads.length})</h4>
-                <div className="flex gap-2 flex-wrap">
-                  {uploadsData.uploads.map(file => (
-                    <button
-                      key={file.filename}
-                      onClick={() => setZoomedImageSrc(`/api/admin/user-uploads/${expandedInvocationUserId}/${file.filename}`)}
-                      className="flex items-center gap-1.5 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors cursor-zoom-in pr-2"
-                    >
-                      <img
-                        src={`/api/admin/user-uploads/${expandedInvocationUserId}/${file.filename}`}
-                        alt={file.filename}
-                        className="w-16 h-16 object-cover flex-shrink-0"
-                      />
-                      <span className="text-[10px] text-slate-400 break-all">{file.filename}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null)}
 
             {filteredApiUsage.by_model.length === 0 && (
               <p className="text-slate-500 text-sm text-center py-4">No API calls recorded yet</p>

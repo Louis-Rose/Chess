@@ -1479,10 +1479,12 @@ def delete_user_upload(user_id, filename):
 @admin_bp.route('/api/admin/rename-uploads', methods=['POST'])
 @admin_required
 def rename_uploads():
-    """Retroactively rename all uploads to {feature}_{surname}_{N} format."""
+    """Retroactively rename all uploads to {feature}_{surname}_{N}_{request_id} format."""
     import re
     if not os.path.isdir(UPLOAD_DIR):
         return jsonify({'renamed': 0})
+
+    KNOWN_FEATURES = ['scoresheet_azure', 'scoresheet', 'reread', 'diagram']
 
     total = 0
     for user_id_str in os.listdir(UPLOAD_DIR):
@@ -1499,32 +1501,39 @@ def rename_uploads():
         else:
             surname = user_id_str
 
-        # Group files by feature, sorted by creation time
+        # Parse files: extract feature and request_id from each filename
         files_by_feature = {}
         for fname in os.listdir(user_dir):
             fpath = os.path.join(user_dir, fname)
             if not os.path.isfile(fpath):
                 continue
-            # Extract feature prefix (everything before the first _uuid/id part)
-            # Current format: {feature}_{request_id}.ext or already renamed {feature}_{surname}_{N}.ext
             parts_f = fname.rsplit('.', 1)
             ext = '.' + parts_f[1] if len(parts_f) > 1 else ''
             base = parts_f[0]
-            # Find the feature: take everything up to the last underscore segment that looks like a hex id or number
-            # Features: scoresheet, reread, diagram, scoresheet_azure
-            for known in ['scoresheet_azure', 'scoresheet', 'reread', 'diagram']:
+
+            feature = None
+            for known in KNOWN_FEATURES:
                 if base.startswith(known + '_'):
                     feature = known
                     break
-            else:
+            if not feature:
                 feature = base.split('_')[0]
-            files_by_feature.setdefault(feature, []).append((fname, os.stat(fpath).st_mtime, ext))
+
+            # Extract request_id: the last hex segment (12 chars)
+            remainder = base[len(feature) + 1:]  # after "{feature}_"
+            # Old format: {request_id} -> remainder is just the hex id
+            # Current format: {surname}_{N}_{request_id} or {surname}_{N}
+            hex_match = re.search(r'([a-f0-9]{12})$', remainder)
+            req_id = hex_match.group(1) if hex_match else ''
+
+            files_by_feature.setdefault(feature, []).append((fname, os.stat(fpath).st_mtime, ext, req_id))
 
         # Rename each group
         for feature, file_list in files_by_feature.items():
             file_list.sort(key=lambda x: x[1])  # oldest first
-            for i, (old_name, _, ext) in enumerate(file_list, 1):
-                new_name = f"{feature}_{surname}_{i}{ext}"
+            for i, (old_name, _, ext, req_id) in enumerate(file_list, 1):
+                suffix = f"_{req_id}" if req_id else ''
+                new_name = f"{feature}_{surname}_{i}{suffix}{ext}"
                 if old_name != new_name:
                     old_path = os.path.join(user_dir, old_name)
                     new_path = os.path.join(user_dir, new_name)
