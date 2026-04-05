@@ -294,7 +294,10 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!draggingRef.current || !boardRef.current) return;
     const rect = boardRef.current.getBoundingClientRect();
-    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+    const outside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
+    console.log('[DRAG]', { x: e.clientX, y: e.clientY, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, outside, pointerType: e.pointerType, pointerId: e.pointerId });
+    if (outside) {
+      console.log('[DRAG] OUTSIDE — cancelling drag');
       setDragging(null);
       return;
     }
