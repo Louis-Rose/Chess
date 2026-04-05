@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { ImageIcon, FileText, Clock, Check, ExternalLink, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { ImageIcon, FileText, Clock, Check, ExternalLink, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { UploadBox } from '../components/UploadBox';
@@ -741,7 +741,7 @@ export function ScoresheetReadPage() {
                         {/* Desktop skeleton: image + processing placeholder + board */}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4">
                           <div className="flex justify-end items-center">
-                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(1)} fileName={fileName || undefined} />
+                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} />
                           </div>
                           <div className="self-start">
                             <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[540px]">
@@ -757,7 +757,7 @@ export function ScoresheetReadPage() {
                         </div>
                         {/* Mobile skeleton: image + processing placeholder + board */}
                         <div className="md:hidden flex flex-col items-center gap-3 px-2">
-                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setImageZoomLevel(1)} />
+                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} />
                           <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[320px]">
                             <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
                               <Clock className="w-4 h-4 animate-spin" />
@@ -1080,7 +1080,7 @@ export function ScoresheetReadPage() {
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
-                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(1)} fileName={fileName || undefined} />
+                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} />
                           </div>
                           {/* Center: moves table */}
                           <div className="self-start" onClick={e => e.stopPropagation()}>
@@ -1168,7 +1168,7 @@ export function ScoresheetReadPage() {
                         {/* Mobile: image above table */}
                         {/* Mobile layout: image → table → board → edit panel */}
                         <div className="md:hidden flex flex-col items-center gap-3 px-2">
-                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setImageZoomLevel(1)} />
+                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} />
                           {!hasResults || consensusMoves.length === 0 ? (
                             <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[320px]">
                               <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
@@ -1349,38 +1349,15 @@ export function ScoresheetReadPage() {
       {/* Fullscreen image modal */}
       {imageZoomLevel > 0 && preview && (
         <div
-          onClick={() => setImageZoomLevel(prev => prev - 1)}
-          className={`fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-zoom-out overflow-auto ${imageZoomLevel >= 2 ? 'p-4' : 'flex items-center justify-center'}`}
+          onClick={() => setImageZoomLevel(0)}
+          className="fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-zoom-out overflow-auto p-4"
         >
           <div className="flex flex-col items-center gap-2">
-            <div className="hidden md:flex items-center gap-3 bg-slate-800/90 rounded-xl px-4 py-2 border border-slate-600/50" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => setImageZoomLevel(prev => Math.max(prev - 1, 0))}
-                className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors disabled:opacity-30"
-                disabled={imageZoomLevel <= 1}
-              >
-                <ZoomOut className="w-5 h-5" />
-              </button>
-              <span className="text-sm text-slate-200 font-medium w-8 text-center">{imageZoomLevel}/3</span>
-              <button
-                onClick={() => setImageZoomLevel(prev => Math.min(prev + 1, 3))}
-                className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors disabled:opacity-30"
-                disabled={imageZoomLevel >= 3}
-              >
-                <ZoomIn className="w-5 h-5" />
-              </button>
-            </div>
             <img
               src={preview}
               alt="Scoresheet"
-              onClick={(e) => { e.stopPropagation(); const max = window.innerWidth < 768 ? 1 : 3; if (imageZoomLevel < max) setImageZoomLevel(prev => prev + 1); }}
-              className={
-                imageZoomLevel === 3
-                  ? "max-w-none rounded-xl object-contain cursor-default"
-                  : imageZoomLevel === 2
-                  ? "max-w-[150vw] max-h-[150vh] rounded-xl object-contain cursor-zoom-in"
-                  : `max-w-[90vw] max-h-[90vh] rounded-xl object-contain ${window.innerWidth < 768 ? 'cursor-default' : 'cursor-zoom-in'}`
-              }
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-none rounded-xl object-contain cursor-default"
             />
           </div>
         </div>
