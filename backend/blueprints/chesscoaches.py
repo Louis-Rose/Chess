@@ -575,7 +575,7 @@ _SCORESHEET_READ_PROMPT_BODY = """Extract ALL moves from the scoresheet and retu
 Rules:
 - Transcribe EXACTLY what is written on the sheet — do not add or remove symbols
 - Use the notation the player used. If French, output French piece letters (T, F, D, C). If English, output English piece letters (K, Q, R, B, N). If Armenian, output Armenian piece letters (Ն, Փ, Թ, Ձ, Ա). Pawn moves have no piece letter in any notation.
-- Always use correct casing: piece letters must be uppercase (e.g. Cf3, not cf3; Nf3, not nf3). Armenian letters are always uppercase. Pawn moves start with a lowercase file letter (a-h, e.g. e4, not E4). Normalize casing even if the player wrote it differently.
+- Always use correct casing: piece letters must be uppercase (e.g. Cf3, not cf3; Nf3, not nf3). Armenian letters can be uppercase or lowercase. Pawn moves start with a lowercase file letter (a-h, e.g. e4, not E4). Normalize casing even if the player wrote it differently.
 - Some players write captures with "x" (e.g. Nxd4 / Cxd4) and some without (e.g. Nd4 / Cd4). Read what is actually written.
 - If a move is unreadable, leave the move empty
 - If black's last move is missing (white won or game ended), omit the "black" field for that move
@@ -658,7 +658,7 @@ Read ALL remaining moves from the scoresheet starting from move {resume_num} ({'
 Rules:
 - Transcribe EXACTLY what is written on the sheet — do not add or remove symbols
 - The scoresheet may use English (K, Q, R, B, N), French (R, D, T, F, C), or Armenian (Ա, Թ, Ն, Փ/փ, Ձ/ձ) notation. Use whichever notation the player used.
-- Always use correct casing: piece letters must be uppercase (e.g. Cf3, not cf3; Nf3, not nf3). Armenian letters are always uppercase. Pawn moves start with a lowercase file letter (a-h, e.g. e4, not E4). Normalize casing even if the player wrote it differently.
+- Always use correct casing: piece letters must be uppercase (e.g. Cf3, not cf3; Nf3, not nf3). Armenian letters can be uppercase or lowercase. Pawn moves start with a lowercase file letter (a-h, e.g. e4, not E4). Normalize casing even if the player wrote it differently.
 - Some players write captures with "x" (e.g. Nxd4 / Cxd4) and some without. Read what is actually written.
 - If a move is unreadable, use "?"
 - Be careful with similar-looking pieces in English: K (King), N (Knight), B (Bishop), R (Rook), Q (Queen)
