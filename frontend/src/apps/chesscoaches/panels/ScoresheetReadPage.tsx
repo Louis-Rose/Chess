@@ -1164,8 +1164,8 @@ export function ScoresheetReadPage() {
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
+                              setUserPickedMove(prev => prev ?? san);
                               voteState.setEditValue(san);
-                              setUserPickedMove(san);
                             } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
@@ -1227,8 +1227,8 @@ export function ScoresheetReadPage() {
                             <div className="w-full max-w-[400px]">
                               <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                                 if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
+                                setUserPickedMove(prev => prev ?? san);
                                 voteState.setEditValue(san);
-                                setUserPickedMove(san);
                               } : undefined} />
                             </div>
                             {/* Mobile confirm/revert buttons */}
