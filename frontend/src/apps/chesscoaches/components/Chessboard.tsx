@@ -3,24 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
-import { pieceImageUrl, BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
-
-/* ── FEN parsing ── */
-
-function fenToBoard(fen: string): (string | null)[][] {
-  const rows = fen.split(' ')[0].split('/');
-  return rows.map(row => {
-    const squares: (string | null)[] = [];
-    for (const ch of row) {
-      if (ch >= '1' && ch <= '8') {
-        for (let i = 0; i < parseInt(ch); i++) squares.push(null);
-      } else {
-        squares.push(ch);
-      }
-    }
-    return squares;
-  });
-}
+import { BoardPreview } from './BoardPreview';
 
 /* ── Extract SANs from raw PGN text ── */
 
@@ -177,10 +160,6 @@ export function playMoveSound(isCapture: boolean) {
   }
 }
 
-/* ── Board colors ── */
-
-/* Board colors imported from utils/pieces */
-
 /* ── Component ── */
 
 interface ChessboardProps {
@@ -279,67 +258,23 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     }
   }, [currentFen, inBranch, branch, branchPly, ply, maxPly, sans, fens]);
 
-  // Drag & drop state
-  const boardRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
-  const draggingRef = useRef(dragging);
-  draggingRef.current = dragging;
-
-  const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
-    e.preventDefault();
-    setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
-  }, []);
-
-  // Native document-level listeners for drag — bypasses React synthetic events entirely
-  useEffect(() => {
-    if (!dragging) return;
-
-    const onMove = (e: PointerEvent) => {
-      if (!boardRef.current) return;
-      const rect = boardRef.current.getBoundingClientRect();
-      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-        setDragging(null);
-        return;
-      }
-      setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
-    };
-
-    const onUp = (e: PointerEvent) => {
-      const d = draggingRef.current;
-      if (!d || !boardRef.current) { setDragging(null); return; }
-      const rect = boardRef.current.getBoundingClientRect();
-      const sqSize = rect.width / 8;
-      const dj = Math.floor((e.clientX - rect.left) / sqSize);
-      const di = Math.floor((e.clientY - rect.top) / sqSize);
-      if (di < 0 || di > 7 || dj < 0 || dj > 7) { setDragging(null); return; }
-      const toR = flipped ? 7 - di : di;
-      const toC = flipped ? 7 - dj : dj;
-      const fromFile = String.fromCharCode(97 + d.fromC);
-      const fromRank = String(8 - d.fromR);
-      const toFile = String.fromCharCode(97 + toC);
-      const toRank = String(8 - toR);
-      const from = `${fromFile}${fromRank}`;
-      const to = `${toFile}${toRank}`;
-      if (from !== to) handleUserMove(from, to);
-      setDragging(null);
-    };
-
-    const onCancel = () => setDragging(null);
-
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onCancel);
-    // Touch fallback for mobile scroll takeover
-    document.addEventListener('touchend', onCancel);
-    document.addEventListener('touchcancel', onCancel);
-    return () => {
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onCancel);
-      document.removeEventListener('touchend', onCancel);
-      document.removeEventListener('touchcancel', onCancel);
-    };
-  }, [dragging, flipped, handleUserMove]);
+  // Compute last move for board highlighting
+  const currentLastMove = useMemo(() => {
+    if (inBranch && branch && branchPly > 0) {
+      try {
+        const chess = new Chess(branch.fens[branchPly - 1]);
+        const move = chess.move(branch.sans[branchPly - 1]);
+        if (move) return { from: move.from, to: move.to };
+      } catch {}
+    } else if (ply > 0) {
+      try {
+        const chess = new Chess(fens[ply - 1]);
+        const move = chess.move(sans[ply - 1]);
+        if (move) return { from: move.from, to: move.to };
+      } catch {}
+    }
+    return null;
+  }, [inBranch, branch, branchPly, ply, fens, sans]);
 
   // Play sound on ply change (skip initial render)
   const isInitialRender = useRef(true);
@@ -364,8 +299,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [goFirst, goPrev, goNext, goLast]);
-
-  const board = fenToBoard(currentFen);
 
   // Current clocks for each side — fall back to starting time
   const currentClocks = useMemo(() => {
@@ -438,102 +371,12 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       >
         <ArrowUpDown className="w-5 h-5" />
       </button>
-      <div className="w-full aspect-square relative rounded-lg overflow-hidden shadow-lg touch-none">
-        {/* HTML grid board */}
-        <div
-          ref={boardRef}
-          className="grid grid-cols-8 grid-rows-8 w-full h-full"
-        >
-          {(() => {
-            // Compute highlight squares from the last move (main line or branch)
-            let fromR = -1, fromC = -1, toR = -1, toC = -1;
-            if (inBranch && branch && branchPly > 0) {
-              try {
-                const chess = new Chess(branch.fens[branchPly - 1]);
-                const move = chess.move(branch.sans[branchPly - 1]);
-                if (move) {
-                  fromC = move.from.charCodeAt(0) - 97;
-                  fromR = 7 - (parseInt(move.from[1]) - 1);
-                  toC = move.to.charCodeAt(0) - 97;
-                  toR = 7 - (parseInt(move.to[1]) - 1);
-                }
-              } catch {}
-            } else if (ply > 0) {
-              try {
-                const chess = new Chess(fens[ply - 1]);
-                const move = chess.move(sans[ply - 1]);
-                if (move) {
-                  fromC = move.from.charCodeAt(0) - 97;
-                  fromR = 7 - (parseInt(move.from[1]) - 1);
-                  toC = move.to.charCodeAt(0) - 97;
-                  toR = 7 - (parseInt(move.to[1]) - 1);
-                }
-              } catch {}
-            }
-
-            const squares = [];
-            for (let di = 0; di < 8; di++) {
-              for (let dj = 0; dj < 8; dj++) {
-                const r = flipped ? 7 - di : di;
-                const c = flipped ? 7 - dj : dj;
-                const isLight = (r + c) % 2 === 0;
-                const isHighlight = (r === fromR && c === fromC) || (r === toR && c === toC);
-                const bg = isHighlight
-                  ? (isLight ? '#f7ec5a' : '#dac934')
-                  : (isLight ? LIGHT : DARK);
-                const piece = board[r]?.[c];
-                const isDragSource = !!(dragging && dragging.fromR === r && dragging.fromC === c);
-
-                squares.push(
-                  <div
-                    key={`${r}-${c}`}
-                    className="relative select-none"
-                    style={{ backgroundColor: bg }}
-                  >
-                    {/* Coordinate labels */}
-                    {dj === 0 && (
-                      <span
-                        className="absolute top-[3px] left-[3px] text-[0.75rem] font-extrabold leading-none pointer-events-none opacity-80"
-                        style={{ color: isLight ? DARK : LIGHT }}
-                      >
-                        {flipped ? di + 1 : 8 - di}
-                      </span>
-                    )}
-                    {di === 7 && (
-                      <span
-                        className="absolute bottom-[2px] right-[4px] text-[0.75rem] font-extrabold leading-none pointer-events-none opacity-80"
-                        style={{ color: isLight ? DARK : LIGHT }}
-                      >
-                        {'abcdefgh'[c]}
-                      </span>
-                    )}
-                    {piece && (
-                      <img
-                        src={pieceImageUrl(piece)}
-                        alt=""
-                        className={`absolute inset-[5%] w-[90%] h-[90%] cursor-grab active:cursor-grabbing${isDragSource ? ' opacity-0' : ''}`}
-                        draggable={false}
-                        onPointerDown={(e) => handlePointerDown(e, piece, r, c)}
-                      />
-                    )}
-                  </div>
-                );
-              }
-            }
-            return squares;
-          })()}
-        </div>
-        {/* Dragging ghost piece */}
-        {dragging && (
-          <img
-            src={pieceImageUrl(dragging.piece)}
-            alt=""
-            className="fixed pointer-events-none z-50 w-16 h-16 -translate-x-1/2 -translate-y-1/2"
-            style={{ left: dragging.x, top: dragging.y }}
-            draggable={false}
-          />
-        )}
-      </div>
+      <BoardPreview
+        fen={currentFen}
+        lastMove={currentLastMove}
+        onUserMove={handleUserMove}
+        flipped={flipped}
+      />
       </div>
 
       {/* Bottom clock */}

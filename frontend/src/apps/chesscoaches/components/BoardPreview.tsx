@@ -25,9 +25,10 @@ interface BoardPreviewProps {
   arrow?: { from: string; to: string } | { from: string; to: string }[] | null;
   onUserMove?: (from: string, to: string) => void;
   highlightSquares?: string[];
+  flipped?: boolean;
 }
 
-export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquares }: BoardPreviewProps) {
+export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquares, flipped = false }: BoardPreviewProps) {
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
@@ -84,10 +85,12 @@ export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquare
       const dj = Math.floor((e.clientX - rect.left) / sqSize);
       const di = Math.floor((e.clientY - rect.top) / sqSize);
       if (di < 0 || di > 7 || dj < 0 || dj > 7) { setDragging(null); return; }
+      const toR = flipped ? 7 - di : di;
+      const toC = flipped ? 7 - dj : dj;
       const fromFile = String.fromCharCode(97 + d.fromC);
       const fromRank = String(8 - d.fromR);
-      const toFile = String.fromCharCode(97 + dj);
-      const toRank = String(8 - di);
+      const toFile = String.fromCharCode(97 + toC);
+      const toRank = String(8 - toR);
       const from = `${fromFile}${fromRank}`;
       const to = `${toFile}${toRank}`;
       if (from !== to) onUserMove(from, to);
@@ -108,7 +111,7 @@ export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquare
       document.removeEventListener('touchend', onCancel);
       document.removeEventListener('touchcancel', onCancel);
     };
-  }, [dragging, onUserMove]);
+  }, [dragging, onUserMove, flipped]);
 
   return (
     <div className="w-full aspect-square relative rounded-lg overflow-hidden shadow-lg touch-none">
@@ -117,8 +120,10 @@ export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquare
         className="grid grid-cols-8 grid-rows-8 w-full h-full"
       >
         {Array.from({ length: 64 }, (_, idx) => {
-          const r = Math.floor(idx / 8);
-          const c = idx % 8;
+          const di = Math.floor(idx / 8);
+          const dj = idx % 8;
+          const r = flipped ? 7 - di : di;
+          const c = flipped ? 7 - dj : dj;
           const isLight = (r + c) % 2 === 0;
           const isHL = (r === highlight.fromR && c === highlight.fromC) || (r === highlight.toR && c === highlight.toC);
           const isHLSquare = hlSquareSet?.has(`${r}-${c}`) ?? false;
@@ -127,13 +132,13 @@ export function BoardPreview({ fen, lastMove, arrow, onUserMove, highlightSquare
           const isDragSource = !!(dragging && dragging.fromR === r && dragging.fromC === c);
 
           return (
-            <div key={idx} className="relative select-none" style={{ backgroundColor: bg }}>
-              {c === 0 && (
+            <div key={`${r}-${c}`} className="relative select-none" style={{ backgroundColor: bg }}>
+              {dj === 0 && (
                 <span className="absolute top-[3px] left-[3px] text-[0.75rem] font-extrabold leading-none pointer-events-none opacity-80" style={{ color: isLight ? DARK : LIGHT }}>
-                  {8 - r}
+                  {flipped ? di + 1 : 8 - di}
                 </span>
               )}
-              {r === 7 && (
+              {di === 7 && (
                 <span className="absolute bottom-[2px] right-[4px] text-[0.75rem] font-extrabold leading-none pointer-events-none opacity-80" style={{ color: isLight ? DARK : LIGHT }}>
                   {'abcdefgh'[c]}
                 </span>
