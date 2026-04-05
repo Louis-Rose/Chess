@@ -18,16 +18,18 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
-/** Try to resolve shorthand en passant like 'ef' to 'exf6' */
-function resolveEnPassant(chess: InstanceType<typeof Chess>, san: string): string | null {
+/** Try to resolve shorthand pawn capture like 'ef' to 'exf6' (en passant or regular) */
+function resolvePawnCapture(chess: InstanceType<typeof Chess>, san: string): string | null {
   if (san.length !== 2 || !('abcdefgh'.includes(san[0])) || !('abcdefgh'.includes(san[1]))) return null;
   if (Math.abs(san.charCodeAt(0) - san.charCodeAt(1)) !== 1) return null;
-  for (const move of chess.moves({ verbose: true })) {
-    if (move.flags.includes('e') && move.san[0] === san[0] && move.to[0] === san[1]) {
-      return move.san;
-    }
-  }
-  return null;
+  // Find any pawn capture from san[0]-file to san[1]-file
+  const matches = chess.moves({ verbose: true }).filter(m =>
+    !m.san[0].match(/[A-Z]/) && m.san[0] === san[0] && m.to[0] === san[1] && m.flags.includes('c')
+  );
+  if (matches.length === 1) return matches[0].san;
+  // Multiple matches (rare) — prefer en passant
+  const ep = matches.find(m => m.flags.includes('e'));
+  return ep ? ep.san : matches[0]?.san || null;
 }
 
 const NOTATION_MAPS: Record<string, Record<string, string>> = {
@@ -539,7 +541,7 @@ export function ScoresheetReadPage() {
                     /** Test a candidate move for legality, handling en passant shorthand and disambiguation.
                      *  Returns the resolved SAN if legal, or null if illegal. */
                     const tryMove = (chess: InstanceType<typeof Chess>, candidate: string): string | null => {
-                      const ep = resolveEnPassant(chess, candidate);
+                      const ep = resolvePawnCapture(chess, candidate);
                       if (ep) return ep;
                       try { chess.move(candidate); chess.undo(); return candidate; } catch {}
                       // Try disambiguation
@@ -794,7 +796,7 @@ export function ScoresheetReadPage() {
                           try {
                             const testCh = new Chess(filterFens[idx]);
                             if (colorStr === 'black' && displayConsensusMoves[idx]?.white) { try { testCh.move(displayConsensusMoves[idx].white); } catch {} }
-                            const ep = resolveEnPassant(testCh, mv);
+                            const ep = resolvePawnCapture(testCh, mv);
                             testCh.move(ep || mv);
                             return false;
                           } catch { return true; }
@@ -1288,7 +1290,7 @@ export function ScoresheetReadPage() {
                                               const testCh = new Chess(debugFens[i]);
                                               // Advance to the right color if testing black — play white's consensus move first
                                               if (color === 'black' && consensusMove?.white) { try { testCh.move(consensusMove.white); } catch {} }
-                                              const epSan = resolveEnPassant(testCh, mv);
+                                              const epSan = resolvePawnCapture(testCh, mv);
                                               testCh.move(epSan || mv);
                                               mvLegal = true;
                                             } catch { mvLegal = false; }

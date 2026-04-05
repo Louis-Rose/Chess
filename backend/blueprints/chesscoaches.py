@@ -280,19 +280,16 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False, notation=None):
             if normalized != san:
                 move[color] = normalized
                 san = normalized
-            # Handle shorthand pawn captures like "ef" → "exf6" (en passant only)
+            # Handle shorthand pawn captures like "ef" → "exf6" (en passant or regular)
             if len(san) == 2 and san[0] in 'abcdefgh' and san[1] in 'abcdefgh' and abs(ord(san[0]) - ord(san[1])) == 1:
-                ep_match = None
+                capture_match = None
                 for legal_move in board.legal_moves:
-                    if board.is_en_passant(legal_move):
-                        legal_san = board.san(legal_move)
-                        from_file = san[0]
-                        to_file = san[1]
-                        if legal_san[0] == from_file and 'x' in legal_san and legal_san.split('x')[1][0] == to_file:
-                            ep_match = legal_san
-                            break
-                if ep_match:
-                    san = ep_match
+                    legal_san = board.san(legal_move)
+                    if legal_san[0] == san[0] and 'x' in legal_san and legal_san.split('x')[1][0] == san[1]:
+                        capture_match = legal_san
+                        break
+                if capture_match:
+                    san = capture_match
                     move[color] = san
             if _scoresheet_push_san(board, san):
                 move[f"{color}_legal"] = True
