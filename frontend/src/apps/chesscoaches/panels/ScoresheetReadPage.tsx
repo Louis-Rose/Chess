@@ -126,17 +126,14 @@ export function ScoresheetReadPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [imageZoomLevel, setImageZoomLevel] = useState(0); // 0=closed, 1=fit, 2=extra zoom
-  const [gridDebugVisible, setGridDebugVisible] = useState(false);
   const [showExampleModal, setShowExampleModal] = useState(false);
-  const [zoomedCell, setZoomedCell] = useState<{ cx1: number; cy1: number; cropW: number; cropH: number; cW: number; cH: number } | null>(null);
-  const [cellZoomLevel, setCellZoomLevel] = useState(1); // 1=3x, 2=6x
-  const closeModal = useCallback(() => { setImageZoomLevel(0); setShowExampleModal(false); setZoomedCell(null); setCellZoomLevel(1); }, []);
+  const closeModal = useCallback(() => { setImageZoomLevel(0); setShowExampleModal(false); }, []);
   useEffect(() => {
-    if (!imageZoomLevel && !showExampleModal && !zoomedCell) return;
+    if (!imageZoomLevel && !showExampleModal) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [imageZoomLevel, showExampleModal, zoomedCell, closeModal]);
+  }, [imageZoomLevel, showExampleModal, closeModal]);
 
 
   const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null>(null);
@@ -1085,53 +1082,7 @@ export function ScoresheetReadPage() {
                       </div>
                     );
 
-                    const renderMoveInfo = () => {
-                      if (!voteState) return null;
-                      const moveIdx = voteState.moveIdx;
-                      const colorStr = voteState.color;
-                      const moveObj = displayConsensusMoves[moveIdx];
-                      if (!moveObj) return null;
-                      const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
-                      const cellCrop = preview && gridData?.cells ? (() => {
-                        const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
-                        const sheetCol = Math.floor(moveIdx / rows);
-                        const rowInCol = moveIdx % rows;
-                        const azureCols = gridData.col_count || 4;
-                        const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
-                        const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
-                        const azureCol = sheetCol * colsPerSection + moveNumOffset + (colorStr === 'black' ? 1 : 0);
-                        const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
-                        const azureRow = rowInCol + rowOffset;
-                        const cell = gridData.cells![`${azureRow}-${azureCol}`];
-                        if (!cell) return null;
-                        const padX = (cell.x2 - cell.x1) * 0.2, padY = (cell.y2 - cell.y1) * 0.2;
-                        const cx1 = Math.max(0, cell.x1 - padX), cy1 = Math.max(0, cell.y1 - padY);
-                        const cx2 = Math.min(1, cell.x2 + padX), cy2 = Math.min(1, cell.y2 + padY);
-                        const cropW = cx2 - cx1, cropH = cy2 - cy1;
-                        const cW = 180, cH = cW * cropH / (cropW * imageAspect);
-                        return { cx1, cy1, cropW, cropH, cW, cH };
-                      })() : null;
-                      return (
-                        <>
-                          <p className="text-base text-slate-100 font-medium text-center">
-                            {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.moveBlack') : t('coaches.moveWhite')}
-                          </p>
-                          <div className="flex items-center justify-center gap-3 py-1 h-[72px]">
-                            {cellCrop && (
-                              <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden flex items-center" style={{ width: cellCrop.cW, height: 64 }} onClick={() => setZoomedCell(cellCrop)}>
-                                <div className="rounded-lg overflow-hidden border border-slate-600" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
-                                  <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
-                                </div>
-                              </div>
-                            )}
-                            <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
-                          </div>
-                        </>
-                      );
-                    };
-
                     const renderEditPanel = (className?: string) => {
-                      const minH = 'min-h-[140px]';
                       if (allModelsFinished && allVerified) {
                         return (
                           <div className={`flex flex-col items-center justify-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out] ${className || 'w-full'}`}>
@@ -1139,24 +1090,7 @@ export function ScoresheetReadPage() {
                           </div>
                         );
                       }
-                      if (!allModelsFinished || analyzing || !voteState) {
-                        return (
-                          <div className={`space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 ${minH} ${className || 'w-full'}`}>
-                            <p className="text-base text-slate-500 font-medium text-center">Move — - —</p>
-                            <div className="text-center py-1">
-                              <p className="text-sm text-slate-500">{t('coaches.readAs')} <span className="font-mono">———</span></p>
-                            </div>
-                            <div className="flex justify-center">
-                              <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className={`space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3] ${minH} ${className || 'w-full'}`}>
-                          {renderMoveInfo()}
-                        </div>
-                      );
+                      return null;
                     };
                     // --- End shared helpers ---
 
@@ -1164,7 +1098,7 @@ export function ScoresheetReadPage() {
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
-                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(1)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} showGridDebug={!!user?.is_admin && gridDebugVisible} onToggleGrid={user?.is_admin ? () => setGridDebugVisible(v => !v) : undefined} />
+                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(1)} fileName={fileName || undefined} />
                           </div>
                           {/* Center: moves table */}
                           <div className="self-start" onClick={e => e.stopPropagation()}>
@@ -1582,82 +1516,16 @@ interface PlyEntry {
   reason?: string;
 }
 
-function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData, showGridDebug, onToggleGrid }: { preview: string; onImageClick: () => void; fileName?: string; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number }; showGridDebug?: boolean; onToggleGrid?: () => void }) {
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
-
-  const highlight = activePly != null && activePly > 0 && totalMoves && imgSize && gridData?.cells ? (() => {
-    const rows = rowsPerColumn || Math.ceil(totalMoves / Math.max(sheetColumns, 1));
-    const moveIdx = Math.floor((activePly - 1) / 2);
-    const isBlack = activePly % 2 === 0;
-    const sheetCol = Math.floor(moveIdx / rows);
-    const rowInCol = moveIdx % rows;
-    const scale = imgSize.w / imgSize.nw;
-    const azureCols = gridData.col_count || 4;
-    const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
-    const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
-    const azureCol = sheetCol * colsPerSection + moveNumOffset + (isBlack ? 1 : 0);
-    const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
-    const cell = gridData.cells![`${rowInCol + rowOffset}-${azureCol}`];
-    if (!cell) return null;
-    const scaledNH = imgSize.nh * scale;
-    const x = cell.x1 * imgSize.w, y = cell.y1 * scaledNH;
-    const w = (cell.x2 - cell.x1) * imgSize.w, h = (cell.y2 - cell.y1) * scaledNH;
-    const pad = { x: w * 0.2, y: h * 0.2 };
-    return { left: x - pad.x, top: y - pad.y, width: w + pad.x * 2, height: h + pad.y * 2, tilt: gridData.tilt || 0 };
-  })() : null;
-
+function ScoreSheetImage({ preview, onImageClick, fileName }: { preview: string; onImageClick: () => void; fileName?: string }) {
   return (
     <div className="flex flex-col items-center">
-      {onToggleGrid && gridData?.cells && (
-        <button
-          onClick={onToggleGrid}
-          className={`text-[10px] mb-1 px-2 py-0.5 rounded transition-colors ${showGridDebug ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-700 text-slate-500 border border-slate-600'}`}
-        >
-          {showGridDebug ? 'Hide grid' : 'Show grid'}
-        </button>
-      )}
       <div className="relative overflow-hidden rounded-xl">
         <img
-          ref={imgRef}
           src={preview}
           alt="Scoresheet"
           className="object-cover object-top cursor-pointer hover:opacity-90 transition-opacity max-w-[320px] max-h-[600px]"
           onClick={onImageClick}
-          onLoad={() => { if (imgRef.current) setImgSize({ w: imgRef.current.clientWidth, h: imgRef.current.clientHeight, nw: imgRef.current.naturalWidth, nh: imgRef.current.naturalHeight }); }}
         />
-        {highlight && (
-          <div
-            className="absolute pointer-events-none rounded-sm"
-            style={{
-              left: highlight.left, top: highlight.top, width: highlight.width, height: highlight.height,
-              backgroundColor: 'rgba(59, 130, 246, 0.3)', border: '2px solid rgba(59, 130, 246, 0.7)',
-              transform: highlight.tilt ? `rotate(${highlight.tilt}deg)` : undefined, transformOrigin: 'left center',
-            }}
-          />
-        )}
-        {/* Debug: show all detected grid cells — admin only */}
-        {gridData?.cells && imgSize && showGridDebug && Object.entries(gridData.cells).map(([key, cell]) => {
-          const scale = imgSize.w / imgSize.nw;
-          const scaledNH = imgSize.nh * scale;
-          return (
-            <div
-              key={key}
-              className="absolute pointer-events-none"
-              style={{
-                left: cell.x1 * imgSize.w,
-                top: cell.y1 * scaledNH,
-                width: (cell.x2 - cell.x1) * imgSize.w,
-                height: (cell.y2 - cell.y1) * scaledNH,
-                border: '2px solid rgba(255, 80, 80, 0.7)',
-                transform: gridData.tilt ? `rotate(${gridData.tilt}deg)` : undefined,
-                transformOrigin: 'left center',
-              }}
-            >
-              <span className="text-[9px] font-bold text-red-400 bg-slate-900/60 px-0.5 leading-tight">{key}</span>
-            </div>
-          );
-        })}
       </div>
       {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-full">{fileName}</span>}
     </div>
