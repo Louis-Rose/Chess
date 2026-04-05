@@ -388,16 +388,10 @@ def auto_crop():
     client_paid = genai.Client(api_key=paid_key)
     client_free = genai.Client(api_key=free_key) if free_key else None
 
-    prompt = f"""This photo ({img_w}x{img_h} pixels) contains a chess scoresheet (paper form with handwritten moves). The paper may be photographed at an angle or tilted.
+    prompt = f"""Photo of a chess scoresheet ({img_w}x{img_h}px). Return JSON:
 
-Look at the vertical lines of the grid on the scoresheet. If the top of those lines leans to the RIGHT, the rotation value must be NEGATIVE. If the top leans to the LEFT, it must be POSITIVE.
-
-Return a JSON object with:
-1. "rotation": the CSS rotation in degrees to apply to straighten the image. Negative = counter-clockwise, positive = clockwise. Must be a multiple of 5. Range: -45 to 45. If already straight, return 0.
-   Example: if the paper's top-right corner is higher than the top-left, the paper leans counter-clockwise, so return a positive value like 5 or 10 to rotate it clockwise back to straight.
-2. "crop": bounding box of the ENTIRE paper sheet as PERCENTAGES (0-100) of image dimensions: {{"x": number, "y": number, "width": number, "height": number}}. x,y = top-left corner. Include the full sheet with header/player names, not just the moves table.
-
-IMPORTANT: crop values must be percentages (0-100), NOT pixels."""
+1. "rotation": degrees to rotate the image clockwise to make the scoresheet straight. Multiple of 5, range -45 to 45. 0 if already straight.
+2. "crop": bounding box of the entire paper sheet as percentages (0-100) of image size: {{"x": number, "y": number, "width": number, "height": number}}."""
 
     model_id = 'gemini-3-flash-preview'
     try:
