@@ -287,42 +287,59 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
     e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
   }, []);
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!draggingRef.current || !boardRef.current) return;
-    const rect = boardRef.current.getBoundingClientRect();
-    const outside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
-    console.log('[DRAG]', { x: e.clientX, y: e.clientY, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, outside, pointerType: e.pointerType, pointerId: e.pointerId });
-    if (outside) {
-      console.log('[DRAG] OUTSIDE — cancelling drag');
-      setDragging(null);
-      return;
-    }
-    setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
-  }, []);
+  // Native document-level listeners for drag — bypasses React synthetic events entirely
+  useEffect(() => {
+    if (!dragging) return;
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    const d = draggingRef.current;
-    if (!d || !boardRef.current) { setDragging(null); return; }
-    const rect = boardRef.current.getBoundingClientRect();
-    const sqSize = rect.width / 8;
-    const dj = Math.floor((e.clientX - rect.left) / sqSize);
-    const di = Math.floor((e.clientY - rect.top) / sqSize);
-    if (di < 0 || di > 7 || dj < 0 || dj > 7) { setDragging(null); return; }
-    const toR = flipped ? 7 - di : di;
-    const toC = flipped ? 7 - dj : dj;
-    const fromFile = String.fromCharCode(97 + d.fromC);
-    const fromRank = String(8 - d.fromR);
-    const toFile = String.fromCharCode(97 + toC);
-    const toRank = String(8 - toR);
-    const from = `${fromFile}${fromRank}`;
-    const to = `${toFile}${toRank}`;
-    if (from !== to) handleUserMove(from, to);
-    setDragging(null);
-  }, [flipped, handleUserMove]);
+    const onMove = (e: PointerEvent) => {
+      if (!boardRef.current) return;
+      const rect = boardRef.current.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+        setDragging(null);
+        return;
+      }
+      setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      const d = draggingRef.current;
+      if (!d || !boardRef.current) { setDragging(null); return; }
+      const rect = boardRef.current.getBoundingClientRect();
+      const sqSize = rect.width / 8;
+      const dj = Math.floor((e.clientX - rect.left) / sqSize);
+      const di = Math.floor((e.clientY - rect.top) / sqSize);
+      if (di < 0 || di > 7 || dj < 0 || dj > 7) { setDragging(null); return; }
+      const toR = flipped ? 7 - di : di;
+      const toC = flipped ? 7 - dj : dj;
+      const fromFile = String.fromCharCode(97 + d.fromC);
+      const fromRank = String(8 - d.fromR);
+      const toFile = String.fromCharCode(97 + toC);
+      const toRank = String(8 - toR);
+      const from = `${fromFile}${fromRank}`;
+      const to = `${toFile}${toRank}`;
+      if (from !== to) handleUserMove(from, to);
+      setDragging(null);
+    };
+
+    const onCancel = () => setDragging(null);
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel);
+    // Touch fallback for mobile scroll takeover
+    document.addEventListener('touchend', onCancel);
+    document.addEventListener('touchcancel', onCancel);
+    return () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onCancel);
+      document.removeEventListener('touchend', onCancel);
+      document.removeEventListener('touchcancel', onCancel);
+    };
+  }, [dragging, flipped, handleUserMove]);
 
   // Play sound on ply change (skip initial render)
   const isInitialRender = useRef(true);
@@ -426,8 +443,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
         <div
           ref={boardRef}
           className="grid grid-cols-8 grid-rows-8 w-full h-full"
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
         >
           {(() => {
             // Compute highlight squares from the last move (main line or branch)
