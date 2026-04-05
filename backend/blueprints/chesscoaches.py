@@ -394,7 +394,7 @@ Look at the vertical lines of the grid on the scoresheet. If the top of those li
 
 Return a JSON object with:
 1. "rotation": the CSS rotation in degrees to apply to straighten the image. Negative = counter-clockwise, positive = clockwise. Must be a multiple of 5. Range: -45 to 45. If already straight, return 0.
-   Example: if the paper's top-right corner is higher than the top-left, the lines lean right, so return a negative value like -5 or -10.
+   Example: if the paper's top-right corner is higher than the top-left, the paper leans counter-clockwise, so return a positive value like 5 or 10 to rotate it clockwise back to straight.
 2. "crop": bounding box of the ENTIRE paper sheet as PERCENTAGES (0-100) of image dimensions: {{"x": number, "y": number, "width": number, "height": number}}. x,y = top-left corner. Include the full sheet with header/player names, not just the moves table.
 
 IMPORTANT: crop values must be percentages (0-100), NOT pixels."""
