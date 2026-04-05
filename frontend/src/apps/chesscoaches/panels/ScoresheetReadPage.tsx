@@ -860,7 +860,7 @@ export function ScoresheetReadPage() {
 
                     // Apply overrides on top of computed consensus, then normalize +/# annotations
                     const rawConsensusMoves = consensusOverrides || consensusMoves;
-                    const displayConsensusMoves = normalizeMoves(rawConsensusMoves);
+                    const displayConsensusMoves = rawConsensusMoves;
 
                     // Remove disagreements where all dissenters are illegal at the current consensus board position
                     {
