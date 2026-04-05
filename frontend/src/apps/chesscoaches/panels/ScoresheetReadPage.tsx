@@ -1042,7 +1042,12 @@ export function ScoresheetReadPage() {
                               </button>
                             )
                           ) : (
-                            <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
+                            <button
+                              onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
+                              className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                            >
+                              {t('coaches.confirmMove')} {displayMove}
+                            </button>
                           )}
                           </div>
                           {renderRevertButton()}
