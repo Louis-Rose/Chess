@@ -1153,7 +1153,7 @@ export function ScoresheetReadPage() {
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
-                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(1)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} />
+                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(1)} fileName={fileName || undefined} activePly={modelBoardPlys[consensusId]?.ply} sheetColumns={sheetColumns} rowsPerColumn={rowsPerColumn} totalMoves={displayConsensusMoves.length} gridData={gridData} showGridDebug={!!user?.is_admin} />
                           </div>
                           {/* Center: moves table */}
                           <div className="self-start" onClick={e => e.stopPropagation()}>
@@ -1555,7 +1555,7 @@ interface PlyEntry {
   reason?: string;
 }
 
-function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData }: { preview: string; onImageClick: () => void; fileName?: string; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number } }) {
+function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColumns = 1, rowsPerColumn, totalMoves, gridData, showGridDebug }: { preview: string; onImageClick: () => void; fileName?: string; activePly?: number; sheetColumns?: number; rowsPerColumn?: number | null; totalMoves?: number; gridData?: { top: number; bottom: number; tilt: number; col_dividers: number[]; cells?: Record<string, { x1: number; y1: number; x2: number; y2: number }>; col_count?: number; row_count?: number; first_move_row?: number }; showGridDebug?: boolean }) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [imgSize, setImgSize] = useState<{ w: number; h: number; nw: number; nh: number } | null>(null);
 
@@ -1601,6 +1601,28 @@ function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColu
             }}
           />
         )}
+        {/* Debug: show all detected grid cells — admin only */}
+        {gridData?.cells && imgSize && showGridDebug && Object.entries(gridData.cells).map(([key, cell]) => {
+          const scale = imgSize.w / imgSize.nw;
+          const scaledNH = imgSize.nh * scale;
+          return (
+            <div
+              key={key}
+              className="absolute pointer-events-none"
+              style={{
+                left: cell.x1 * imgSize.w,
+                top: cell.y1 * scaledNH,
+                width: (cell.x2 - cell.x1) * imgSize.w,
+                height: (cell.y2 - cell.y1) * scaledNH,
+                border: '1px solid rgba(255, 100, 100, 0.5)',
+                transform: gridData.tilt ? `rotate(${gridData.tilt}deg)` : undefined,
+                transformOrigin: 'left center',
+              }}
+            >
+              <span className="text-[7px] text-red-300 leading-none">{key}</span>
+            </div>
+          );
+        })}
       </div>
       {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-full">{fileName}</span>}
     </div>
