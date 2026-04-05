@@ -282,23 +282,28 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   // Drag & drop state
   const boardRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
+  const draggingRef = useRef(dragging);
+  draggingRef.current = dragging;
 
   const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
     e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging) return;
+    if (!draggingRef.current || !boardRef.current) return;
+    const rect = boardRef.current.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+      setDragging(null);
+      return;
+    }
     setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
-  }, [dragging]);
-
-  const handlePointerLeave = useCallback(() => {
-    if (dragging) setDragging(null);
-  }, [dragging]);
+  }, []);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (!dragging || !boardRef.current) { setDragging(null); return; }
+    const d = draggingRef.current;
+    if (!d || !boardRef.current) { setDragging(null); return; }
     const rect = boardRef.current.getBoundingClientRect();
     const sqSize = rect.width / 8;
     const dj = Math.floor((e.clientX - rect.left) / sqSize);
@@ -306,15 +311,15 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     if (di < 0 || di > 7 || dj < 0 || dj > 7) { setDragging(null); return; }
     const toR = flipped ? 7 - di : di;
     const toC = flipped ? 7 - dj : dj;
-    const fromFile = String.fromCharCode(97 + dragging.fromC);
-    const fromRank = String(8 - dragging.fromR);
+    const fromFile = String.fromCharCode(97 + d.fromC);
+    const fromRank = String(8 - d.fromR);
     const toFile = String.fromCharCode(97 + toC);
     const toRank = String(8 - toR);
     const from = `${fromFile}${fromRank}`;
     const to = `${toFile}${toRank}`;
     if (from !== to) handleUserMove(from, to);
     setDragging(null);
-  }, [dragging, flipped, handleUserMove]);
+  }, [flipped, handleUserMove]);
 
   // Play sound on ply change (skip initial render)
   const isInitialRender = useRef(true);
@@ -420,7 +425,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
           className="grid grid-cols-8 grid-rows-8 w-full h-full"
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerLeave}
         >
           {(() => {
             // Compute highlight squares from the last move (main line or branch)
