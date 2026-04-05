@@ -764,7 +764,7 @@ export function ScoresheetReadPage() {
                         {/* Desktop skeleton: image + processing placeholder + board */}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4">
                           <div className="flex justify-end items-center">
-                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} />
+                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} zoomed />
                           </div>
                           <div className="self-start">
                             <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[540px]">
@@ -1120,7 +1120,7 @@ export function ScoresheetReadPage() {
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
-                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} />
+                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} zoomed />
                           </div>
                           {/* Center: moves table */}
                           <div className="self-start" onClick={e => e.stopPropagation()}>
@@ -1443,7 +1443,22 @@ interface PlyEntry {
   reason?: string;
 }
 
-function ScoreSheetImage({ preview, onImageClick, fileName }: { preview: string; onImageClick: () => void; fileName?: string }) {
+function ScoreSheetImage({ preview, onImageClick, fileName, zoomed }: { preview: string; onImageClick: () => void; fileName?: string; zoomed?: boolean }) {
+  if (zoomed) {
+    return (
+      <div className="flex flex-col items-center">
+        <div className="overflow-auto rounded-xl max-h-[80vh] max-w-[400px] border border-slate-600/30">
+          <img
+            src={preview}
+            alt="Scoresheet"
+            className="w-full cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={onImageClick}
+          />
+        </div>
+        {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-full">{fileName}</span>}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col items-center">
       <div className="relative overflow-hidden rounded-xl">
