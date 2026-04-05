@@ -1115,9 +1115,10 @@ export function ScoresheetReadPage() {
                     };
 
                     const renderEditPanel = (className?: string) => {
+                      const minH = 'min-h-[140px]';
                       if (allModelsFinished && allVerified) {
                         return (
-                          <div className={`flex flex-col items-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out] ${className || 'w-full'}`}>
+                          <div className={`flex flex-col items-center justify-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out] ${minH} ${className || 'w-full'}`}>
                             {renderVerifiedBanner()}
                             {renderRevertButton()}
                           </div>
@@ -1125,7 +1126,7 @@ export function ScoresheetReadPage() {
                       }
                       if (!allModelsFinished || analyzing || !voteState) {
                         return (
-                          <div className={`space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 ${className || 'w-full'}`}>
+                          <div className={`space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 ${minH} ${className || 'w-full'}`}>
                             <p className="text-base text-slate-500 font-medium text-center">Move — - —</p>
                             <div className="text-center py-1">
                               <p className="text-sm text-slate-500">{t('coaches.readAs')} <span className="font-mono">———</span></p>
@@ -1137,7 +1138,7 @@ export function ScoresheetReadPage() {
                         );
                       }
                       return (
-                        <div className={`space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3] ${className || 'w-full'}`}>
+                        <div className={`space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3] ${minH} ${className || 'w-full'}`}>
                           {renderMoveInfo()}
                         </div>
                       );
@@ -1215,7 +1216,7 @@ export function ScoresheetReadPage() {
                             )}
                           </div>
                           {/* Right: board */}
-                          <div className="flex flex-col items-center justify-start gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
+                          <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
                             <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
                               voteState.setEditValue(san);
