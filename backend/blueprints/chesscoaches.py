@@ -434,6 +434,36 @@ def auto_crop():
                 max_x = max(max_x, x)
                 max_y = max(max_y, y)
 
+    # Compute angle from table cell polygons (vertical edges)
+    import math
+    tables = analyze_result.get('tables', [])
+    table_angle = None
+    if tables:
+        # Use the largest table
+        table = max(tables, key=lambda t: t.get('rowCount', 0) * t.get('columnCount', 0))
+        # Collect left edges of cells (top-left to bottom-left of each cell polygon)
+        edge_angles = []
+        for cell in table.get('cells', []):
+            regions = cell.get('boundingRegions', [])
+            if not regions:
+                continue
+            polygon = regions[0].get('polygon', [])
+            if len(polygon) < 8:
+                continue
+            # Polygon: [x0,y0, x1,y1, x2,y2, x3,y3] = top-left, top-right, bottom-right, bottom-left
+            # Left edge: top-left (0,1) to bottom-left (6,7)
+            dx = polygon[6] - polygon[0]
+            dy = polygon[7] - polygon[1]
+            if abs(dy) > 10:  # Only use edges with significant vertical span
+                angle_rad = math.atan2(dx, dy)  # angle of left edge from vertical
+                edge_angles.append(math.degrees(angle_rad))
+        if edge_angles:
+            # Median angle is more robust than mean against outliers
+            edge_angles.sort()
+            mid = len(edge_angles) // 2
+            table_angle = edge_angles[mid] if len(edge_angles) % 2 == 1 else (edge_angles[mid - 1] + edge_angles[mid]) / 2
+            table_angle = round(table_angle, 1)
+
     # Convert to percentages with small padding
     pad = 0.5  # 0.5% padding
     crop = {
@@ -443,9 +473,10 @@ def auto_crop():
         'height': min(100, (max_y - min_y) / page_h * 100 + pad * 2),
     }
 
+    raw_angle = pages[0].get('angle', 0) if pages else 0
     debug = {
         'prompt': 'Azure Document Intelligence prebuilt-layout',
-        'raw_response': f'angle={pages[0].get("angle", 0) if pages else "N/A"}, page={page_w}x{page_h}, words={sum(len(p.get("words", [])) for p in pages)}',
+        'raw_response': f'page_angle={raw_angle}, table_angle={table_angle}, page={page_w}x{page_h}, words={sum(len(p.get("words", [])) for p in pages)}, table_edges={len(edge_angles) if tables else 0}',
         'image_size': f'{page_w}x{page_h}',
         'elapsed': elapsed,
         'tier': 'azure',
