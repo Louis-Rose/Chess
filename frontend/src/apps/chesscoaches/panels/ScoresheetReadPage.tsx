@@ -1864,13 +1864,13 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
     }
   }, [voteInfoKey, onVoteStateChange]);
 
-  // Auto-select first move of the game when results are ready
+  // Auto-select first move of the game when all models are done
   useEffect(() => {
-    if (moves && moves.length > 0 && !voteInfoKey) {
+    if (moves && moves.length > 0 && !loading && !voteInfoKey) {
       setVoteInfoKey('1-white');
       onMoveClick?.(moves, 1);
     }
-  }, [moves]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [moves, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
