@@ -1479,8 +1479,7 @@ def delete_user_upload(user_id, filename):
 @admin_bp.route('/api/admin/rename-uploads', methods=['POST'])
 @admin_required
 def rename_uploads():
-    """Retroactively rename all uploads to {feature}_{surname}_{N}_{request_id} format."""
-    import re
+    """Retroactively rename all uploads to {feature}_{surname}_{N} format."""
     if not os.path.isdir(UPLOAD_DIR):
         return jsonify({'renamed': 0})
 
@@ -1501,7 +1500,7 @@ def rename_uploads():
         else:
             surname = user_id_str
 
-        # Parse files: extract feature and request_id from each filename
+        # Group files by feature, sorted by creation time
         files_by_feature = {}
         for fname in os.listdir(user_dir):
             fpath = os.path.join(user_dir, fname)
@@ -1519,21 +1518,13 @@ def rename_uploads():
             if not feature:
                 feature = base.split('_')[0]
 
-            # Extract request_id: the last hex segment (12 chars)
-            remainder = base[len(feature) + 1:]  # after "{feature}_"
-            # Old format: {request_id} -> remainder is just the hex id
-            # Current format: {surname}_{N}_{request_id} or {surname}_{N}
-            hex_match = re.search(r'([a-f0-9]{12})$', remainder)
-            req_id = hex_match.group(1) if hex_match else ''
-
-            files_by_feature.setdefault(feature, []).append((fname, os.stat(fpath).st_mtime, ext, req_id))
+            files_by_feature.setdefault(feature, []).append((fname, os.stat(fpath).st_mtime, ext))
 
         # Rename each group
         for feature, file_list in files_by_feature.items():
             file_list.sort(key=lambda x: x[1])  # oldest first
-            for i, (old_name, _, ext, req_id) in enumerate(file_list, 1):
-                suffix = f"_{req_id}" if req_id else ''
-                new_name = f"{feature}_{surname}_{i}{suffix}{ext}"
+            for i, (old_name, _, ext) in enumerate(file_list, 1):
+                new_name = f"{feature}_{surname}_{i}{ext}"
                 if old_name != new_name:
                     old_path = os.path.join(user_dir, old_name)
                     new_path = os.path.join(user_dir, new_name)

@@ -29,13 +29,13 @@ def _get_user_surname(user_id):
 
 
 def _next_upload_number(user_dir, feature, surname):
-    """Find the next available number for {feature}_{surname}_{N}_{request_id} naming."""
+    """Find the next available number for {feature}_{surname}_{N} naming."""
     import re
     prefix = f"{feature}_{surname}_"
     max_n = 0
     if os.path.isdir(user_dir):
         for fname in os.listdir(user_dir):
-            m = re.match(rf'^{re.escape(prefix)}(\d+)(?:_[a-f0-9]+)?\.\w+$', fname)
+            m = re.match(rf'^{re.escape(prefix)}(\d+)\.\w+$', fname)
             if m:
                 max_n = max(max_n, int(m.group(1)))
     return max_n + 1
@@ -59,7 +59,7 @@ def _save_upload(user_id, request_id, image_bytes, mime_type, feature='scoreshee
         ext = MIME_TO_EXT.get(mime_type, '.jpg')
         surname = _get_user_surname(user_id)
         n = _next_upload_number(user_dir, feature, surname)
-        filename = f"{feature}_{surname}_{n}_{request_id}{ext}"
+        filename = f"{feature}_{surname}_{n}{ext}"
         path = os.path.join(user_dir, filename)
         with open(path, 'wb') as f:
             f.write(image_bytes)

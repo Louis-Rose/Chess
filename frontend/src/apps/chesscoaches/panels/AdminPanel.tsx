@@ -758,7 +758,8 @@ export function AdminPanel() {
                       {filteredApiUsage.invocations.map(inv => {
                         const expanded = expandedInvocation === inv.request_id;
                         const userUploads = inv.user_id != null ? allUploadsData?.get(inv.user_id) : undefined;
-                        const matchedUpload = userUploads?.find(f => f.filename.includes(inv.request_id));
+                        const invTime = new Date(inv.created_at).getTime() / 1000;
+                        const matchedUpload = userUploads?.find(f => Math.abs(f.created_at - invTime) < 120);
                         return (
                           <React.Fragment key={inv.request_id}>
                             <tr
@@ -791,7 +792,7 @@ export function AdminPanel() {
                                       className="text-[10px] text-blue-400 hover:text-blue-300 cursor-zoom-in"
                                       onClick={(e) => { e.stopPropagation(); setZoomedImageSrc(`/api/admin/user-uploads/${inv.user_id}/${matchedUpload.filename}`); }}
                                     >
-                                      {matchedUpload.filename.replace(/(_[a-f0-9]{12})(\.\w+)$/, '$2')}
+                                      {matchedUpload.filename}
                                     </span>
                                   )}
                                 </div>
