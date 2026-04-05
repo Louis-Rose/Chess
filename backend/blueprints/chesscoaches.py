@@ -562,7 +562,6 @@ Extract ALL moves from the scoresheet and return them as a JSON object with this
   "date": "Date or empty string if unreadable",
   "result": "1-0, 0-1, 1/2-1/2, or * if unreadable/ongoing",
   "notation": "english", "french", or "armenian",
-  "notation_reason": "Brief explanation: which piece letters you saw in the first 10 half-moves that led to your notation choice",
   "moves": [
     {"number": 1, "white": "e4", "white_confidence": "high", "black": "e5", "black_confidence": "high"},
     {"number": 2, "white": "Nf3", "white_confidence": "high", "white_time": 88, "black": "Nc6", "black_confidence": "medium", "black_time": 85}

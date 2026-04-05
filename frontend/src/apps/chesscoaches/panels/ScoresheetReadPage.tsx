@@ -1321,16 +1321,6 @@ export function ScoresheetReadPage() {
                                   })}
                                   <td colSpan={4} className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-200 font-semibold capitalize">{consensusMeta.notation || '?'}</td>
                                 </tr>
-                                {user?.is_admin && (
-                                  <tr className="border-b border-slate-600/50 bg-slate-700/30">
-                                    <td colSpan={2} className="px-1 py-0.5 text-slate-500 text-center text-[10px]">Why</td>
-                                    {finishedModels.map(m => {
-                                      const reason = modelResults[m.id]!.result!.notation_reason || '';
-                                      return <td key={m.id} className="px-1 py-0.5 text-center border-l border-slate-600/50 text-slate-500 text-[10px] max-w-[200px]">{reason}</td>;
-                                    })}
-                                    <td colSpan={4} className="px-1 py-0.5 border-l border-slate-500"></td>
-                                  </tr>
-                                )}
                                 {Array.from({ length: maxMoves }, (_, i) => {
                                   const consensusMove = displayConsensusMoves[i];
                                   const notation = consensusMeta.notation;
