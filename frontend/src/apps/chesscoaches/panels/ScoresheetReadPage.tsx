@@ -1261,7 +1261,8 @@ export function ScoresheetReadPage() {
                                     const legal = consensusMove?.[`${color}_legal` as const];
                                     const reason = consensusMove?.[`${color}_reason` as const];
                                     // Only highlight if there's disagreement among legal moves
-                                    const hasLegalDisagreement = legal !== false && finishedModels.some(m => {
+                                    const isConfirmed = !!(consensusMove as any)?.[`${color}_confirmed`];
+                                    const hasLegalDisagreement = !isConfirmed && legal !== false && finishedModels.some(m => {
                                       const mv = modelResults[m.id]!.result!.moves[i]?.[color];
                                       if (!mv || mv === cMove) return false;
                                       // Check if this dissenting move is legal
