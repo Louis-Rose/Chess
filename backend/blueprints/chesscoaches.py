@@ -1017,7 +1017,8 @@ def read_scoresheet():
 
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
-    logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}")
+    user_notation = request.form.get('notation')  # User-selected notation language
+    logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}, notation={user_notation or 'auto'}")
 
     THREAD_DONE = "THREAD_DONE"
     req_id = uuid.uuid4().hex[:12]
@@ -1038,11 +1039,14 @@ def read_scoresheet():
                 result_queue.put({"type": "retry", "model_id": model_id, "name": model_name,
                                   "free_error": retry_info['free_error'], "free_elapsed": retry_info['free_elapsed']})
 
+            prompt = SCORESHEET_READ_PROMPT
+            if user_notation:
+                prompt = prompt + f"\n\nIMPORTANT: The user has confirmed that this scoresheet uses {user_notation} notation. Set \"notation\" to \"{user_notation}\" and use the corresponding piece letters."
             response, tier, retry_info = _gemini_generate(
                 client_free, client_paid, model_id,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                    SCORESHEET_READ_PROMPT,
+                    prompt,
                 ],
                 config={"response_mime_type": "application/json"},
                 on_retry=on_retry,

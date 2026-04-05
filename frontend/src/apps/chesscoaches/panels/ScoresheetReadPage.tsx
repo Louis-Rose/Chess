@@ -130,6 +130,7 @@ export function ScoresheetReadPage() {
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [selectedNotation, setSelectedNotation] = useState('');
   const [imageZoomLevel, setImageZoomLevel] = useState(0); // 0=closed, 1=fit, 2=extra zoom
   const [showExampleModal, setShowExampleModal] = useState(false);
   const closeModal = useCallback(() => { setImageZoomLevel(0); setShowExampleModal(false); }, []);
@@ -289,9 +290,9 @@ export function ScoresheetReadPage() {
     if (autoRun && scoresheet.imageFile) {
       setAutoRun(false);
       activeModelBoardId = 0;
-      scoresheetStartOneRead();
+      scoresheetStartOneRead(selectedNotation || undefined);
     }
-  }, [autoRun, scoresheet.imageFile, scoresheetStartOneRead]);
+  }, [autoRun, scoresheet.imageFile, scoresheetStartOneRead, selectedNotation]);
 
 
   // Per-model board ply + source tracking
@@ -361,6 +362,18 @@ export function ScoresheetReadPage() {
                 icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
                 title={t('coaches.uploadPrompt')}
               />
+              <div className="flex justify-center">
+                <select
+                  value={selectedNotation}
+                  onChange={e => setSelectedNotation(e.target.value)}
+                  className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">Notation: Auto-detect</option>
+                  <option value="english">English (K, Q, R, B, N)</option>
+                  <option value="french">French (R, D, T, F, C)</option>
+                  <option value="armenian">Armenian (Ա, Թ, Ն, Փ, Ձ)</option>
+                </select>
+              </div>
               {!hasHadSuccess && (<>
                 <div className="flex items-center gap-3 max-w-lg mx-auto">
                   <div className="flex-1 h-px bg-slate-600" />

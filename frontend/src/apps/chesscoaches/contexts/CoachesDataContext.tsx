@@ -244,7 +244,7 @@ interface CoachesDataContextType {
   // Scoresheet panel
   scoresheet: ScoresheetState;
   scoresheetSetImage: (file: File, preview: string, fileName: string) => void;
-  scoresheetStartOneRead: () => void;
+  scoresheetStartOneRead: (notation?: string) => void;
   scoresheetHandleEditSave: (modelId: string, readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => void;
   scoresheetReread: (modelId: string) => void;
   scoresheetCancel: () => void;
@@ -517,12 +517,13 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     }
   }, [scoresheet.imageFile, scoresheet.modelResults, scoresheetDoReread]);
 
-  const scoresheetAnalyzeImage = useCallback(async (file: File, signal: AbortSignal) => {
+  const scoresheetAnalyzeImage = useCallback(async (file: File, signal: AbortSignal, notation?: string) => {
     setScoresheet(prev => ({ ...prev, error: '', modelResults: {}, reReads: {}, models: [], analyzing: true }));
     retryInfoRef.current = {};
     try {
       const formData = new FormData();
       formData.append('image', file);
+      if (notation) formData.append('notation', notation);
       console.log(`[Scoresheet] Uploading image: ${file.name} (${(file.size / 1024).toFixed(0)} KB, ${file.type})`);
       const res = await fetch('/api/coaches/read-scoresheet', { method: 'POST', body: formData, signal });
       console.log(`[Scoresheet] Upload complete, status: ${res.status}`);
@@ -602,14 +603,14 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const scoresheetStartOneRead = useCallback(() => {
+  const scoresheetStartOneRead = useCallback((notation?: string) => {
     const file = scoresheet.imageFile;
     if (!file) return;
     if (scoresheetAnalyzeAbortRef.current) scoresheetAnalyzeAbortRef.current.abort();
     const controller = new AbortController();
     scoresheetAnalyzeAbortRef.current = controller;
     setScoresheet(prev => ({ ...prev, modelResults: {}, reReads: {}, azureResult: null, azureGrid: null }));
-    scoresheetAnalyzeImage(file, controller.signal);
+    scoresheetAnalyzeImage(file, controller.signal, notation);
   }, [scoresheet.imageFile, scoresheetAnalyzeImage]);
 
 
