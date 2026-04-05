@@ -398,7 +398,7 @@ Return a JSON object with:
 
 IMPORTANT: crop values must be percentages (0-100), NOT pixels."""
 
-    model_id = 'gemini-3.1-flash-lite-preview'
+    model_id = 'gemini-3-flash-preview'
     try:
         start = time_module.time()
         response, tier, retry_info = _gemini_generate(
