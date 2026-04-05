@@ -561,8 +561,8 @@ def _build_scoresheet_prompt(notation):
 
 _SCORESHEET_READ_PROMPT_BODY = """Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
-  "white_player": "Name or empty string if unreadable",
-  "black_player": "Name or empty string if unreadable",
+  "white_player": "Name in Latin alphabet (transliterate if needed), or empty string if unreadable",
+  "black_player": "Name in Latin alphabet (transliterate if needed), or empty string if unreadable",
   "event": "Tournament name or empty string if unreadable",
   "date": "Date or empty string if unreadable",
   "result": "1-0, 0-1, 1/2-1/2, or empty if unreadable",
