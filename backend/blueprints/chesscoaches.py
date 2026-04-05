@@ -364,11 +364,21 @@ def auto_crop():
     from google import genai
     from google.genai import types
 
+    from PIL import Image as PILImage
+    import io
+
     image_file = request.files.get('image')
     if not image_file:
         return jsonify({'error': 'No image provided'}), 400
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
+
+    # Get image dimensions for pixel-to-percent conversion
+    try:
+        pil_img = PILImage.open(io.BytesIO(image_bytes))
+        img_w, img_h = pil_img.size
+    except Exception:
+        img_w, img_h = None, None
 
     paid_key = os.environ.get('GEMINI_PAID_API_KEY')
     free_key = os.environ.get('GEMINI_FREE_API_KEY')
@@ -378,13 +388,15 @@ def auto_crop():
     client_paid = genai.Client(api_key=paid_key)
     client_free = genai.Client(api_key=free_key) if free_key else None
 
-    prompt = """This photo contains a chess scoresheet (paper form with handwritten moves).
+    prompt = f"""This photo ({img_w}x{img_h} pixels) contains a chess scoresheet (paper form with handwritten moves). The paper may be photographed at an angle or tilted.
 
-Analyze the image and return JSON with:
-1. "rotation": the rotation angle in degrees (multiple of 5, between -180 and 180) to apply so that the paper sheet is perfectly upright (grid lines vertical and horizontal). Positive = clockwise. If already straight, return 0.
-2. "crop": the bounding box of the ENTIRE paper sheet (not just the moves table — include the header with player names, competition info, etc.) as percentages of the image dimensions: {"x": number, "y": number, "width": number, "height": number} where x,y is the top-left corner. Values 0-100.
+Look at the grid lines on the scoresheet. If they are not perfectly vertical and horizontal, determine the rotation needed to straighten them.
 
-Return ONLY the JSON object, nothing else."""
+Return a JSON object with:
+1. "rotation": degrees to rotate the image so the scoresheet grid lines become vertical/horizontal. Positive = clockwise. Must be a multiple of 5. Range: -45 to 45. If the sheet is already straight, return 0. Be precise — even a small tilt of 5-10 degrees matters.
+2. "crop": bounding box of the ENTIRE paper sheet as PERCENTAGES (0-100) of image dimensions: {{"x": number, "y": number, "width": number, "height": number}}. x,y = top-left corner. Include the full sheet with header/player names, not just the moves table.
+
+IMPORTANT: crop values must be percentages (0-100), NOT pixels."""
 
     model_id = 'gemini-3.1-flash-lite-preview'
     try:
@@ -410,6 +422,15 @@ Return ONLY the JSON object, nothing else."""
         rotation = result.get('rotation', 0)
         rotation = round(rotation / 5) * 5
         crop = result.get('crop', {'x': 0, 'y': 0, 'width': 100, 'height': 100})
+        # Convert pixel values to percentages if Gemini returned pixels
+        if img_w and img_h:
+            if crop.get('x', 0) > 100 or crop.get('y', 0) > 100 or crop.get('width', 0) > 100 or crop.get('height', 0) > 100:
+                crop = {
+                    'x': crop['x'] / img_w * 100,
+                    'y': crop['y'] / img_h * 100,
+                    'width': crop['width'] / img_w * 100,
+                    'height': crop['height'] / img_h * 100,
+                }
         return jsonify({'rotation': rotation, 'crop': crop})
     except Exception as e:
         logger.error(f"[Auto-crop] Failed: {e}")
