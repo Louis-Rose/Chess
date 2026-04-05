@@ -1167,27 +1167,8 @@ export function ScoresheetReadPage() {
                                 return last as { idx: number; color: 'white' | 'black' } | null;
                               })();
                               return (
-                                <div className="flex justify-center gap-2">
-                                  <button
-                                    disabled={!lastConfirmed}
-                                    onClick={() => {
-                                      if (!lastConfirmed) return;
-                                      const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                      if (current[lastConfirmed.idx]) {
-                                        delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
-                                      }
-                                      rerunConsensusAfterEdit(current);
-                                      setUserPickedMove(null);
-                                      if (voteState) {
-                                        voteState.setEditValue('');
-                                        const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
-                                        voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
-                                      }
-                                    }}
-                                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${lastConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
-                                  >
-                                    {t('coaches.revertChange')}
-                                  </button>
+                                <div className="flex flex-col items-center gap-2">
+                                  <div className="flex justify-center">
                                   {userPickedMove ? (
                                     userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                                       <button
@@ -1216,6 +1197,27 @@ export function ScoresheetReadPage() {
                                     )
                                   ) : (
                                     <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
+                                  )}
+                                  </div>
+                                  {lastConfirmed && (
+                                    <button
+                                      onClick={() => {
+                                        const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                        if (current[lastConfirmed.idx]) {
+                                          delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
+                                        }
+                                        rerunConsensusAfterEdit(current);
+                                        setUserPickedMove(null);
+                                        if (voteState) {
+                                          voteState.setEditValue('');
+                                          const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
+                                          voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
+                                        }
+                                      }}
+                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                    >
+                                      {t('coaches.revertChange')}
+                                    </button>
                                   )}
                                 </div>
                               );
@@ -1291,27 +1293,8 @@ export function ScoresheetReadPage() {
                                 return last as { idx: number; color: 'white' | 'black' } | null;
                               })();
                               return (
-                                <div className="flex justify-center gap-2 w-full max-w-[400px]">
-                                  <button
-                                    disabled={!lastConfirmed}
-                                    onClick={() => {
-                                      if (!lastConfirmed) return;
-                                      const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                      if (current[lastConfirmed.idx]) {
-                                        delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
-                                      }
-                                      rerunConsensusAfterEdit(current);
-                                      setUserPickedMove(null);
-                                      if (voteState) {
-                                        voteState.setEditValue('');
-                                        const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
-                                        voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
-                                      }
-                                    }}
-                                    className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${lastConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
-                                  >
-                                    {t('coaches.revertChange')}
-                                  </button>
+                                <div className="flex flex-col items-center gap-2 w-full max-w-[400px]">
+                                  <div className="flex justify-center">
                                   {userPickedMove ? (
                                     userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                                       <button
@@ -1340,6 +1323,27 @@ export function ScoresheetReadPage() {
                                     )
                                   ) : (
                                     <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
+                                  )}
+                                  </div>
+                                  {lastConfirmed && (
+                                    <button
+                                      onClick={() => {
+                                        const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                        if (current[lastConfirmed.idx]) {
+                                          delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
+                                        }
+                                        rerunConsensusAfterEdit(current);
+                                        setUserPickedMove(null);
+                                        if (voteState) {
+                                          voteState.setEditValue('');
+                                          const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
+                                          voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
+                                        }
+                                      }}
+                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                    >
+                                      {t('coaches.revertChange')}
+                                    </button>
                                   )}
                                 </div>
                               );
