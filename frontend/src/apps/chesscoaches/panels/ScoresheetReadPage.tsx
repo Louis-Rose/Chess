@@ -1017,13 +1017,22 @@ export function ScoresheetReadPage() {
                       const moveObj = displayConsensusMoves[moveIdx];
                       if (!moveObj) return null;
                       const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
+                      const advanceToNextMove = () => {
+                        if (colorStr === 'white' && moveObj.black) {
+                          voteState.goToMove(moveIdx + 1, 'black', moveIdx * 2 + 2);
+                        } else if (moveIdx + 1 < displayConsensusMoves.length) {
+                          voteState.goToMove(moveIdx + 2, 'white', (moveIdx + 1) * 2 + 1);
+                        } else {
+                          voteState.clearSelection();
+                        }
+                      };
                       return (
                         <div className="flex flex-col items-center gap-2">
                           <div className="flex justify-center">
                           {userPickedMove ? (
                             userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
                               <button
-                                onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
+                                onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); advanceToNextMove(); }}
                                 className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
                               >
                                 {t('coaches.confirmMove')} {displayMove}
@@ -1039,7 +1048,7 @@ export function ScoresheetReadPage() {
                                   }
                                   rerunConsensusAfterEdit(current);
                                   setUserPickedMove(null);
-                                  if (voteState) voteState.clearSelection();
+                                  advanceToNextMove();
                                 }}
                                 className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
                               >
@@ -1048,7 +1057,7 @@ export function ScoresheetReadPage() {
                             )
                           ) : (
                             <button
-                              onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
+                              onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); advanceToNextMove(); }}
                               className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
                             >
                               {t('coaches.confirmMove')} {displayMove}
@@ -1276,6 +1285,14 @@ export function ScoresheetReadPage() {
                                 </tr>
                               </thead>
                               <tbody>
+                                <tr className="border-b border-slate-600/50 bg-slate-700/30">
+                                  <td colSpan={2} className="px-1 py-0.5 text-slate-500 text-center text-[10px]">Notation</td>
+                                  {finishedModels.map(m => {
+                                    const n = modelResults[m.id]!.result!.notation || '?';
+                                    return <td key={m.id} className="px-1 py-0.5 text-center border-l border-slate-600/50 text-slate-300 capitalize">{n}</td>;
+                                  })}
+                                  <td colSpan={4} className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-200 font-semibold capitalize">{consensusMeta.notation || '?'}</td>
+                                </tr>
                                 {Array.from({ length: maxMoves }, (_, i) => {
                                   const consensusMove = displayConsensusMoves[i];
                                   const notation = consensusMeta.notation;
