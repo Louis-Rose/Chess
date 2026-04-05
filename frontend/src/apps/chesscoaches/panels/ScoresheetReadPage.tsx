@@ -1325,6 +1325,22 @@ export function ScoresheetReadPage() {
                       const finishedModels = models.filter(m => modelResults[m.id]?.result?.moves?.length);
                       if (finishedModels.length === 0) return null;
                       const maxMoves = Math.max(...finishedModels.map(m => modelResults[m.id]!.result!.moves.length), displayConsensusMoves.length);
+                      // Build board FENs from consensus for per-model legality checks
+                      const debugFens: string[] = [];
+                      const debugChess = new Chess();
+                      for (let di = 0; di < maxMoves; di++) {
+                        debugFens.push(debugChess.fen());
+                        const cm = displayConsensusMoves[di];
+                        if (cm) {
+                          for (const col of ['white', 'black'] as const) {
+                            const san = cm[col];
+                            if (!san) continue;
+                            try { debugChess.move(san); } catch {
+                              const f = debugChess.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; debugChess.load(f.join(' '));
+                            }
+                          }
+                        }
+                      }
                       type VoteDetail = { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string };
                       return (
                         <div className="mt-6 px-2">
@@ -1359,6 +1375,7 @@ export function ScoresheetReadPage() {
                                   })}
                                   <td colSpan={4} className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-200 font-semibold capitalize">{consensusMeta.notation || '?'}</td>
                                 </tr>
+                                {/* Compute board FENs for debug legality checks */}
                                 {Array.from({ length: maxMoves }, (_, i) => {
                                   const consensusMove = displayConsensusMoves[i];
                                   const notation = consensusMeta.notation;
@@ -1385,9 +1402,21 @@ export function ScoresheetReadPage() {
                                           const modelNotation = mr.result!.notation;
                                           const conf = mr.result!.moves[i]?.[`${color}_confidence` as 'white_confidence' | 'black_confidence'];
                                           const time = mr.result!.moves[i]?.[`${color}_time` as 'white_time' | 'black_time'];
+                                          // Test this model's move against current consensus board position
+                                          let mvLegal: boolean | null = null;
+                                          if (mv && debugFens[i]) {
+                                            try {
+                                              const testCh = new Chess(debugFens[i]);
+                                              // Advance to the right color if testing black
+                                              if (color === 'black' && cMove) { try { testCh.move(cMove); } catch {} }
+                                              const epSan = resolveEnPassant(testCh, mv);
+                                              testCh.move(epSan || mv);
+                                              mvLegal = true;
+                                            } catch { mvLegal = false; }
+                                          }
                                           const differs = mv && cMove && mv !== cMove;
                                           return (
-                                            <td key={m.id} className={`px-1 py-0.5 text-center border-l border-slate-600/50 ${differs ? 'text-yellow-400' : 'text-slate-300'}`}>
+                                            <td key={m.id} className={`px-1 py-0.5 text-center border-l border-slate-600/50 ${mvLegal === false ? 'text-red-400' : differs ? 'text-yellow-400' : 'text-slate-300'}`}>
                                               {toNotation(mv, modelNotation)}
                                               {time != null && <span className="text-slate-500"> ({time})</span>}
                                               {conf && conf !== 'high' && <span className={`ml-0.5 ${conf === 'low' ? 'text-red-400' : 'text-yellow-600'}`}>[{conf[0]}]</span>}
