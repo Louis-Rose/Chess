@@ -1403,8 +1403,8 @@ export function ScoresheetReadPage() {
                                           if (mv && debugFens[i]) {
                                             try {
                                               const testCh = new Chess(debugFens[i]);
-                                              // Advance to the right color if testing black
-                                              if (color === 'black' && cMove) { try { testCh.move(cMove); } catch {} }
+                                              // Advance to the right color if testing black — play white's consensus move first
+                                              if (color === 'black' && consensusMove?.white) { try { testCh.move(consensusMove.white); } catch {} }
                                               const epSan = resolveEnPassant(testCh, mv);
                                               testCh.move(epSan || mv);
                                               mvLegal = true;
