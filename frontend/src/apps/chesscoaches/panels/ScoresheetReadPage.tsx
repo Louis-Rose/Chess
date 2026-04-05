@@ -1384,12 +1384,22 @@ export function ScoresheetReadPage() {
                                     const cMove = consensusMove?.[color];
                                     const legal = consensusMove?.[`${color}_legal` as const];
                                     const reason = consensusMove?.[`${color}_reason` as const];
-                                    const allAgree = finishedModels.every(m => {
+                                    // Only highlight if there's disagreement among legal moves
+                                    const hasLegalDisagreement = legal !== false && finishedModels.some(m => {
                                       const mv = modelResults[m.id]!.result!.moves[i]?.[color];
-                                      return mv === cMove || (!mv && !cMove);
+                                      if (!mv || mv === cMove) return false;
+                                      // Check if this dissenting move is legal
+                                      if (!debugFens[i]) return true;
+                                      try {
+                                        const testCh = new Chess(debugFens[i]);
+                                        if (color === 'black' && consensusMove?.white) { try { testCh.move(consensusMove.white); } catch {} }
+                                        const ep = resolveEnPassant(testCh, mv);
+                                        testCh.move(ep || mv);
+                                        return true; // legal dissenter
+                                      } catch { return false; } // illegal dissenter — ignore
                                     });
                                     return (
-                                      <tr key={key} className={`border-b border-slate-600/20 ${color === 'black' ? 'border-b-slate-600/50' : ''} ${!allAgree ? 'bg-yellow-500/10' : ''}`}>
+                                      <tr key={key} className={`border-b border-slate-600/20 ${color === 'black' ? 'border-b-slate-600/50' : ''} ${hasLegalDisagreement ? 'bg-yellow-500/10' : ''}`}>
                                         {color === 'white' && <td className="px-1 py-0.5 text-slate-500 text-center" rowSpan={2}>{i + 1}</td>}
                                         <td className={`px-1 py-0.5 text-center ${color === 'white' ? 'text-slate-300' : 'text-slate-500'}`}>{color === 'white' ? 'W' : 'B'}</td>
                                         {finishedModels.map(m => {
