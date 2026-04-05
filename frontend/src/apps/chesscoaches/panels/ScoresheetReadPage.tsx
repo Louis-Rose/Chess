@@ -1474,13 +1474,13 @@ export function ScoresheetReadPage() {
                   <img
                     src={preview}
                     alt="Scoresheet"
-                    onClick={(e) => { e.stopPropagation(); if (imageZoomLevel < 3) setImageZoomLevel(prev => prev + 1); }}
+                    onClick={(e) => { e.stopPropagation(); const max = window.innerWidth < 768 ? 1 : 3; if (imageZoomLevel < max) setImageZoomLevel(prev => prev + 1); }}
                     className={
                       imageZoomLevel === 3
                         ? "max-w-none rounded-xl object-contain cursor-default"
                         : imageZoomLevel === 2
                         ? "max-w-[150vw] max-h-[150vh] rounded-xl object-contain cursor-zoom-in"
-                        : "max-w-[90vw] max-h-[90vh] rounded-xl object-contain cursor-zoom-in"
+                        : `max-w-[90vw] max-h-[90vh] rounded-xl object-contain ${window.innerWidth < 768 ? 'cursor-default' : 'cursor-zoom-in'}`
                     }
                   />
                   {zoomHighlight && (
@@ -1503,6 +1503,8 @@ export function ScoresheetReadPage() {
 
       {/* Zoomed cell modal */}
       {zoomedCell && preview && (() => {
+        const isMobile = window.innerWidth < 768;
+        const maxCellZoom = isMobile ? 1 : 2;
         const scale = cellZoomLevel === 2 ? 6 : 3;
         return (
         <div
@@ -1512,13 +1514,13 @@ export function ScoresheetReadPage() {
           <div
             className="rounded-xl overflow-hidden border border-slate-600 flex-shrink-0"
             style={{ width: zoomedCell.cW * scale, height: zoomedCell.cH * scale }}
-            onClick={(e) => { if (cellZoomLevel < 2) { e.stopPropagation(); setCellZoomLevel(2); } }}
+            onClick={(e) => { if (cellZoomLevel < maxCellZoom) { e.stopPropagation(); setCellZoomLevel(2); } }}
           >
             <img
               src={preview}
               alt="Zoomed cell"
               draggable={false}
-              className={cellZoomLevel === 2 ? 'cursor-zoom-out' : 'cursor-zoom-in'}
+              className={cellZoomLevel >= maxCellZoom ? 'cursor-zoom-out' : 'cursor-zoom-in'}
               style={{
                 display: 'block',
                 width: `${100 / zoomedCell.cropW}%`,
