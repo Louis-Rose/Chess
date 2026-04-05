@@ -20,7 +20,7 @@ import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
 const NOTATION_MAPS: Record<string, Record<string, string>> = {
   french: { R: 'T', B: 'F', Q: 'D', N: 'C', K: 'R' },
-  armenian: { R: 'Ն', B: 'Փ', Q: 'Թ', N: 'Ձ', K: 'Ա' },
+  armenian: { R: 'ն', B: 'փ', Q: 'թ', N: 'ձ', K: 'ա' },
 };
 function toNotation(san: string, notation?: string): string {
   if (!san || !notation || notation === 'english') return san;
