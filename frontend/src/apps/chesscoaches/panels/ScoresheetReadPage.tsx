@@ -175,9 +175,11 @@ export function ScoresheetReadPage() {
   // ── Crop state (only used for first-time demo) ──
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropFileName, setCropFileName] = useState('');
+  const [preparingImage, setPreparingImage] = useState(false);
 
   // Auto-crop+rotate an image using Azure DI, then go straight to processing
   const processImage = useCallback(async (imageBlob: Blob, fileName: string) => {
+    setPreparingImage(true);
     // Load image into an HTMLImageElement for canvas operations
     const dataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -245,6 +247,7 @@ export function ScoresheetReadPage() {
     }
 
     console.log(`[Scoresheet] Processed image: ${(finalFile.size / 1024).toFixed(0)} KB, rotation=${rotation}°`);
+    setPreparingImage(false);
     scoresheetSetImage(finalFile, finalPreview, fileName);
     setAutoRun(true);
   }, [scoresheetSetImage]);
@@ -301,14 +304,15 @@ export function ScoresheetReadPage() {
     if (cropSrc) {
       // Demo screen → back to upload
       setCropSrc(null);
-    } else if (preview) {
+    } else if (preparingImage || preview) {
       // Processing/results → back to upload
+      setPreparingImage(false);
       scoresheetClear();
     } else {
       // Upload screen → home
       navigate('/');
     }
-  }, [cropSrc, preview, scoresheetClear, navigate]);
+  }, [cropSrc, preparingImage, preview, scoresheetClear, navigate]);
 
   return (
     <PanelShell title={t('coaches.navScoresheets')} onBack={handleBack}>
@@ -347,6 +351,24 @@ export function ScoresheetReadPage() {
                   <Check className="w-4 h-4" />
                   {t('coaches.cropConfirm')}
                 </button>
+              </div>
+            </div>
+          ) : preparingImage ? (
+            <div className="flex justify-center">
+              <div className="relative bg-slate-700/40 rounded-xl p-4 min-w-[300px] max-w-[400px] w-full">
+                <div className="flex items-center mb-1.5">
+                  <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 animate-spin" />
+                    {t('coaches.processing')}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-blue-500 transition-all duration-1000 ease-out" style={{ width: '25%' }} />
+                </div>
+                <div className="text-center mt-1">
+                  <span className="text-sm font-medium text-blue-500">25%</span>
+                </div>
+                <p className="text-center text-blue-400 text-sm mt-2 animate-pulse">{t('coaches.autoCropping')}</p>
               </div>
             </div>
           ) : !preview && !loadingSample ? (
