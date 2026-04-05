@@ -1558,6 +1558,18 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, 
         }
       } catch { /* fall through */ }
     }
+    if (entry.lastMove && entry.san) {
+      // For castling, show both king and rook arrows
+      const castleSan = entry.san.replace(/[+#]/g, '');
+      if (castleSan === 'O-O' || castleSan === 'O-O-O') {
+        const rank = entry.lastMove.from[1]; // '1' for white, '8' for black
+        if (castleSan === 'O-O') {
+          return [entry.lastMove, { from: `h${rank}`, to: `f${rank}` }];
+        } else {
+          return [entry.lastMove, { from: `a${rank}`, to: `d${rank}` }];
+        }
+      }
+    }
     return entry.lastMove;
   })() : null;
   const currentIllegal = inBranch ? undefined : entries[displayPly].illegal;
