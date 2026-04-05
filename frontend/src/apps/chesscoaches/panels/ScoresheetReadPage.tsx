@@ -440,7 +440,8 @@ export function ScoresheetReadPage() {
                         <div className="text-center text-emerald-500 text-sm mt-2">
                           <p>{t('coaches.processingDone1')}</p>
                           <p>{unresolvedCountRef.current === 1 ? t('coaches.processingDone2_one') : t('coaches.processingDone2_other').replace('{count}', String(unresolvedCountRef.current))}</p>
-                          <p>{t('coaches.processingDone3')} {t('coaches.processingDone4')}</p>
+                          <p>{t('coaches.processingDone3')}</p>
+                          <p>{t('coaches.processingDone4')} {t('coaches.processingDone5')}</p>
                         </div>
                       ) : (
                         <p className="text-center text-emerald-500 text-sm mt-2">{t('coaches.allMovesVerified')}</p>
@@ -962,12 +963,6 @@ export function ScoresheetReadPage() {
                       if (!getCoachesPrefs().scoresheet_success) { saveCoachesPrefs({ scoresheet_success: true }); setHasHadSuccess(true); }
                     }
                     prevAllVerifiedRef.current = allVerified;
-                    const unresolvedMovesList = unresolvedPlies.map(ply => {
-                      const moveIdx = Math.floor((ply - 1) / 2);
-                      const color = ply % 2 === 1 ? 'white' : 'black';
-                      return { moveNumber: moveIdx + 1, color: color as 'white' | 'black', ply };
-                    });
-
                     // --- Shared helpers for desktop + mobile edit panels ---
                     const getLastConfirmed = () => {
                       let last: { idx: number; color: 'white' | 'black' } | null = null;
@@ -1125,7 +1120,7 @@ export function ScoresheetReadPage() {
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
 
                               onVoteStateChange={handleVoteStateChange}
-                              unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
+
                             />
                             )}
                             {/* Edit panel — under the moves table */}
@@ -1207,7 +1202,7 @@ export function ScoresheetReadPage() {
                               modelDisagreements={modelDisagreements}
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
                               onVoteStateChange={handleVoteStateChange}
-                              unresolvedMoves={hasIssues && !allVerified ? unresolvedMovesList : undefined}
+
                             />
                             {/* Mobile board */}
                             <div className="w-full max-w-[400px]">
@@ -1793,7 +1788,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, 
 
 
 
-function MovesPanel({ label, moves, disagreements, error, meta, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, unresolvedMoves }: {
+function MovesPanel({ label, moves, disagreements, error, meta, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1815,7 +1810,6 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
   showMoveInfo?: boolean;
   loading?: boolean;
   onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null) => void;
-  unresolvedMoves?: { moveNumber: number; color: 'white' | 'black'; ply: number }[];
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1843,14 +1837,13 @@ function MovesPanel({ label, moves, disagreements, error, meta, rereading, corre
     }
   }, [voteInfoKey, onVoteStateChange]);
 
-  // Auto-select first unresolved move when results are ready
+  // Auto-select first move of the game when results are ready
   useEffect(() => {
-    if (unresolvedMoves && unresolvedMoves.length > 0 && !voteInfoKey) {
-      const first = unresolvedMoves[0];
-      setVoteInfoKey(`${first.moveNumber}-${first.color}`);
-      onMoveClick?.(moves, first.ply);
+    if (moves && moves.length > 0 && !voteInfoKey) {
+      setVoteInfoKey('1-white');
+      onMoveClick?.(moves, 1);
     }
-  }, [unresolvedMoves]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [moves]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
