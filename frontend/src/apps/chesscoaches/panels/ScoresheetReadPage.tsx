@@ -810,11 +810,13 @@ export function ScoresheetReadPage() {
                     const rerunConsensusAfterEdit = (current: Move[]) => {
                       const ch = new Chess();
                       let stopped = false;
+                      const totalLen = Math.max(current.length, ...allModelMoves.map(mv => mv.length));
+                      // Extend current to cover all model moves
+                      while (current.length < totalLen) {
+                        current.push({ number: current.length + 1, white: '' } as Move);
+                      }
                       for (const cm of current) {
                         for (const col of ['white', 'black'] as const) {
-                          const san = cm[col];
-                          if (!san) continue;
-
                           if (stopped) {
                             delete cm[col];
                             delete (cm as any)[`${col}_legal`];
@@ -824,6 +826,8 @@ export function ScoresheetReadPage() {
 
                           if ((cm as any)[`${col}_confirmed`]) {
                             // Confirmed move — play it
+                            const san = cm[col];
+                            if (!san) continue;
                             const resolved = tryMove(ch, san);
                             if (resolved) {
                               cm[col] = resolved;
@@ -836,6 +840,7 @@ export function ScoresheetReadPage() {
                           } else {
                             // Non-confirmed move — re-pick using shared logic
                             const modelVals = allModelMoves.map(mv => mv[cm.number - 1]?.[col]).filter(Boolean) as string[];
+                            if (modelVals.length === 0) continue;
                             const picked = pickBestMove(ch, modelVals);
                             if (picked && picked.legal) {
                               cm[col] = picked.move;
@@ -850,6 +855,10 @@ export function ScoresheetReadPage() {
                             }
                           }
                         }
+                      }
+                      // Trim trailing empty moves
+                      while (current.length > 0 && !current[current.length - 1].white && !current[current.length - 1].black) {
+                        current.pop();
                       }
                       scoresheetSetOverrides([...current]);
                     };
