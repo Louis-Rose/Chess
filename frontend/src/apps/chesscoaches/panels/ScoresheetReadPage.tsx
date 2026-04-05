@@ -148,13 +148,8 @@ export function ScoresheetReadPage() {
   }, []);
 
 
-  // ── Image natural aspect ratio (natW / natH) for cell crop calculations ──
-  const [imageAspect, setImageAspect] = useState(1);
   useEffect(() => {
     if (!preview) return;
-    const img = new Image();
-    img.onload = () => setImageAspect(img.naturalWidth / img.naturalHeight);
-    img.src = preview;
   }, [preview]);
 
   // ── Crop state (only used for first-time demo) ──
@@ -461,19 +456,6 @@ export function ScoresheetReadPage() {
 
               {/* Results: consensus + individual reads */}
               {preview && models.length > 0 && (() => {
-                // Azure DI provides grid cell coordinates
-                const gridData = (() => {
-                  if (azureGrid && azureGrid.cells && Object.keys(azureGrid.cells).length > 0) {
-                    return azureGrid;
-                  }
-                  return undefined;
-                })();
-
-                // Derive sheet column layout from Azure grid data (for image highlight mapping)
-                const azureColCount = gridData?.col_count || 0;
-                const sheetColumns = azureColCount >= 4 ? 2 : 1;
-                const rowsPerColumn = gridData?.row_count ? Math.ceil((gridData.row_count - (gridData.first_move_row || 0)) / 1) : null;
-
                 // Compute cross-model disagreements
                 const allModelMovesForDisagreement = models
                   .map(m => modelResults[m.id]?.result?.moves)
@@ -1439,62 +1421,12 @@ export function ScoresheetReadPage() {
                       }}
                     />
                   )}
-                  {/* Debug: grid cells on zoomed image — admin only */}
-                  {user?.is_admin && gridDebugVisible && gd?.cells && Object.entries(gd.cells).map(([key, cell]) => (
-                    <div
-                      key={key}
-                      className="absolute pointer-events-none"
-                      style={{
-                        left: `${cell.x1 * 100}%`, top: `${cell.y1 * 100}%`,
-                        width: `${(cell.x2 - cell.x1) * 100}%`, height: `${(cell.y2 - cell.y1) * 100}%`,
-                        border: '2px solid rgba(255, 80, 80, 0.7)',
-                        transform: gd.tilt ? `rotate(${gd.tilt}deg)` : undefined,
-                        transformOrigin: 'left center',
-                      }}
-                    >
-                      <span className="text-[10px] font-bold text-red-400 bg-slate-900/60 px-0.5 leading-tight">{key}</span>
-                    </div>
-                  ))}
                 </div>
               );
             })()}
           </div>
         </div>
       )}
-
-      {/* Zoomed cell modal */}
-      {zoomedCell && preview && (() => {
-        const isMobile = window.innerWidth < 768;
-        const maxCellZoom = isMobile ? 1 : 2;
-        const scale = cellZoomLevel === 2 ? 6 : 3;
-        return (
-        <div
-          onClick={() => { if (cellZoomLevel > 1) { setCellZoomLevel(1); } else { closeModal(); } }}
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-pointer overflow-auto flex items-center justify-center"
-        >
-          <div
-            className="rounded-xl overflow-hidden border border-slate-600 flex-shrink-0"
-            style={{ width: zoomedCell.cW * scale, height: zoomedCell.cH * scale }}
-            onClick={(e) => { if (cellZoomLevel < maxCellZoom) { e.stopPropagation(); setCellZoomLevel(2); } }}
-          >
-            <img
-              src={preview}
-              alt="Zoomed cell"
-              draggable={false}
-              className={cellZoomLevel >= maxCellZoom ? 'cursor-zoom-out' : 'cursor-zoom-in'}
-              style={{
-                display: 'block',
-                width: `${100 / zoomedCell.cropW}%`,
-                height: 'auto',
-                marginLeft: `${-zoomedCell.cx1 / zoomedCell.cropW * 100}%`,
-                transform: `translateY(${-zoomedCell.cy1 * 100}%)`,
-                maxWidth: 'none',
-              }}
-            />
-          </div>
-        </div>
-        );
-      })()}
 
       {/* Example image modal */}
       {showExampleModal && (
