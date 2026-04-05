@@ -852,7 +852,7 @@ export function AdminPanel() {
                                             alt={file.filename}
                                             className="w-16 h-16 object-cover flex-shrink-0"
                                           />
-                                          <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{file.filename}</span>
+                                          <span className="text-[10px] text-slate-400 break-all">{file.filename}</span>
                                         </button>
                                       ))}
                                     </div>
