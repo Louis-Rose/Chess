@@ -293,16 +293,34 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     if (!dragging || !boardRef.current) return;
     const rect = boardRef.current.getBoundingClientRect();
     if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       setDragging(null);
       return;
     }
     setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
   }, [dragging]);
 
-  const handlePointerCancel = useCallback(() => {
-    setDragging(null);
-  }, []);
+  // Cancel drag if touch goes outside the board (document-level, catches mobile scroll takeover)
+  useEffect(() => {
+    if (!dragging) return;
+    const onTouch = (e: TouchEvent) => {
+      if (!boardRef.current) return;
+      const t = e.touches[0];
+      if (!t) { setDragging(null); return; }
+      const rect = boardRef.current.getBoundingClientRect();
+      if (t.clientX < rect.left || t.clientX > rect.right || t.clientY < rect.top || t.clientY > rect.bottom) {
+        setDragging(null);
+      }
+    };
+    const onTouchEnd = () => setDragging(null);
+    document.addEventListener('touchmove', onTouch, { passive: true });
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+    document.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchmove', onTouch);
+      document.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [dragging]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragging || !boardRef.current) { setDragging(null); return; }
@@ -427,8 +445,6 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
           className="grid grid-cols-8 grid-rows-8 w-full h-full"
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-          onLostPointerCapture={handlePointerCancel}
         >
           {(() => {
             // Compute highlight squares from the last move (main line or branch)
