@@ -1082,9 +1082,12 @@ export function ScoresheetReadPage() {
                             const confirmSan = userPickedMove || moveObj[colorStr] || '';
                             const confirmDisplay = toNotation(confirmSan, consensusMeta.notation);
                             const isOverride = userPickedMove && userPickedMove.replace(/[+#]/g, '') !== displayMove.replace(/[+#]/g, '');
+                            const isIllegal = !userPickedMove && moveObj[`${colorStr}_legal` as const] === false;
                             return (
                               <button
+                                disabled={isIllegal}
                                 onClick={() => {
+                                  if (isIllegal) return;
                                   if (isOverride) {
                                     const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
                                     if (current[moveIdx]) {
@@ -1099,7 +1102,10 @@ export function ScoresheetReadPage() {
                                   setUserPickedMove(null);
                                   advanceToNextMove();
                                 }}
-                                className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                className={isIllegal
+                                  ? "text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed"
+                                  : "bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors"
+                                }
                               >
                                 {t('coaches.confirmMove')} {confirmDisplay}
                               </button>
