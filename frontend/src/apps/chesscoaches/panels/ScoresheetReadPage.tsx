@@ -401,23 +401,26 @@ export function ScoresheetReadPage() {
               {/* Rotation controls */}
               <div className="flex items-center justify-center gap-2">
                 <button
+                  disabled={autoCropping}
                   onClick={() => setCropRotation(r => r - 5)}
-                  className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs transition-colors"
+                  className={`px-2 py-1 rounded-lg text-xs transition-colors ${autoCropping ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
                 >
                   -5°
                 </button>
                 <span className="text-slate-400 text-xs w-10 text-center">{cropRotation}°</span>
                 <button
+                  disabled={autoCropping}
                   onClick={() => setCropRotation(r => r + 5)}
-                  className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs transition-colors"
+                  className={`px-2 py-1 rounded-lg text-xs transition-colors ${autoCropping ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
                 >
                   +5°
                 </button>
               </div>
               <div className="flex items-center justify-center">
                 <button
+                  disabled={autoCropping}
                   onClick={handleCropConfirm}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors ${autoCropping ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}
                 >
                   <Crop className="w-3.5 h-3.5" />
                   {t('coaches.cropConfirm')}
