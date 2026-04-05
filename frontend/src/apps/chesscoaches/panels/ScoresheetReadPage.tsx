@@ -247,8 +247,8 @@ export function ScoresheetReadPage() {
     }
 
     console.log(`[Scoresheet] Processed image: ${(finalFile.size / 1024).toFixed(0)} KB, rotation=${rotation}°`);
-    setPreparingImage(false);
     scoresheetSetImage(finalFile, finalPreview, fileName);
+    setPreparingImage(false);
     setAutoRun(true);
   }, [scoresheetSetImage]);
 
