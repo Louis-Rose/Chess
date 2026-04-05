@@ -594,10 +594,10 @@ export function ScoresheetReadPage() {
                       const passChess = new Chess();
                       let stopped = false;
 
-                      outer: for (let i = 0; i < maxLen; i++) {
+                      for (let i = 0; i < maxLen && !stopped; i++) {
                         const move: Move = { number: i + 1, white: '' };
                         for (const color of ['white', 'black'] as const) {
-                          if (stopped) break outer;
+                          if (stopped) break;
                           const modelVals: string[] = [];
                           const votersByCandidate: Record<string, string[]> = {};
                           const confidenceByModel: Record<string, string> = {};
