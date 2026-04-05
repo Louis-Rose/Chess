@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { ImageIcon, FileText, Clock, Check, ExternalLink, Crop, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import ReactCrop from 'react-image-crop';
@@ -280,10 +281,6 @@ export function ScoresheetReadPage() {
     setAutoRun(true);
   };
 
-  const handleCropCancel = () => {
-    setCropSrc(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   // Sample loading state
   const [loadingSample, setLoadingSample] = useState(false);
@@ -305,8 +302,23 @@ export function ScoresheetReadPage() {
   const consensusOverrides = scoresheet.consensusOverrides;
   const [consensusPreviewFen, setConsensusPreviewFen] = useState<string | null>(null);
 
+  const navigate = useNavigate();
+  const handleBack = useCallback(() => {
+    if (cropSrc) {
+      // Crop screen → back to upload
+      setCropSrc(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } else if (preview) {
+      // Processing/results → back to upload
+      scoresheetClear();
+    } else {
+      // Upload screen → home
+      navigate('/');
+    }
+  }, [cropSrc, preview, scoresheetClear, navigate]);
+
   return (
-    <PanelShell title={t('coaches.navScoresheets')}>
+    <PanelShell title={t('coaches.navScoresheets')} onBack={handleBack}>
           <input
             ref={fileInputRef}
             type="file"
@@ -381,13 +393,7 @@ export function ScoresheetReadPage() {
                   +5°
                 </button>
               </div>
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  onClick={handleCropCancel}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
-                >
-                  {t('coaches.cancel')}
-                </button>
+              <div className="flex items-center justify-center">
                 <button
                   onClick={handleCropConfirm}
                   className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"

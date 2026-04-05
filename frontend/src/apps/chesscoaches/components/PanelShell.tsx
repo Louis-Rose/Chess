@@ -19,12 +19,13 @@ export const BTN_GHOST = 'px-4 py-2 text-slate-400 hover:text-slate-200 text-sm 
 interface PanelShellProps {
   title: string;
   children: ReactNode;
+  onBack?: () => void;
 }
 
-export function PanelShell({ title, children }: PanelShellProps) {
+export function PanelShell({ title, children, onBack }: PanelShellProps) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
-      <PanelHeader title={title} />
+      <PanelHeader title={title} onBack={onBack} />
       <div className="mx-[5%] md:mx-auto">
         {children}
       </div>
