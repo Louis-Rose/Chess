@@ -300,6 +300,10 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
   }, [dragging]);
 
+  const handlePointerCancel = useCallback(() => {
+    setDragging(null);
+  }, []);
+
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragging || !boardRef.current) { setDragging(null); return; }
     const rect = boardRef.current.getBoundingClientRect();
@@ -423,6 +427,8 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
           className="grid grid-cols-8 grid-rows-8 w-full h-full"
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onLostPointerCapture={handlePointerCancel}
         >
           {(() => {
             // Compute highlight squares from the last move (main line or branch)
