@@ -285,41 +285,16 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
     e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging || !boardRef.current) return;
-    const rect = boardRef.current.getBoundingClientRect();
-    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
-      setDragging(null);
-      return;
-    }
+    if (!dragging) return;
     setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
   }, [dragging]);
 
-  // Cancel drag if touch goes outside the board (document-level, catches mobile scroll takeover)
-  useEffect(() => {
-    if (!dragging) return;
-    const onTouch = (e: TouchEvent) => {
-      if (!boardRef.current) return;
-      const t = e.touches[0];
-      if (!t) { setDragging(null); return; }
-      const rect = boardRef.current.getBoundingClientRect();
-      if (t.clientX < rect.left || t.clientX > rect.right || t.clientY < rect.top || t.clientY > rect.bottom) {
-        setDragging(null);
-      }
-    };
-    const onTouchEnd = () => setDragging(null);
-    document.addEventListener('touchmove', onTouch, { passive: true });
-    document.addEventListener('touchend', onTouchEnd, { passive: true });
-    document.addEventListener('touchcancel', onTouchEnd, { passive: true });
-    return () => {
-      document.removeEventListener('touchmove', onTouch);
-      document.removeEventListener('touchend', onTouchEnd);
-      document.removeEventListener('touchcancel', onTouchEnd);
-    };
+  const handlePointerLeave = useCallback(() => {
+    if (dragging) setDragging(null);
   }, [dragging]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -445,6 +420,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
           className="grid grid-cols-8 grid-rows-8 w-full h-full"
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
         >
           {(() => {
             // Compute highlight squares from the last move (main line or branch)
