@@ -1607,8 +1607,12 @@ let nextModelBoardId = 0;
 function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies: _highlightedPlies, onDragSetMove, compact, targetPly }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void; compact?: boolean; targetPly?: number }) {
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
-  const [ply, setPly] = useState(0);
-  const lastEmittedPly = useRef<number | undefined>(undefined);
+  const [internalPly, setInternalPly] = useState(0);
+  // Use externalPly directly when provided (controlled mode), fall back to internal state
+  const ply = externalPly !== undefined ? externalPly : internalPly;
+  const setPly = useCallback((p: number | ((prev: number) => number)) => {
+    setInternalPly(p);
+  }, []);
 
   // Branch (variation) state
   const [branch, setBranch] = useState<{ startPly: number; fens: string[]; sans: string[] } | null>(null);
@@ -1709,12 +1713,13 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (autoActivate && maxPly > 0 && activeModelBoardId === 0) activeModelBoardId = instanceId;
     prevMaxPlyRef.current = maxPly;
   }, [maxPly, exitBranch, autoActivate, instanceId]);
-  useEffect(() => {
-    if (externalPly !== undefined && externalPly !== lastEmittedPly.current) {
-      setPly(externalPly); exitBranch(); activeModelBoardId = instanceId;
-    }
-    lastEmittedPly.current = undefined;
-  }, [externalPly, exitBranch, instanceId]);
+  // When externalPly changes, exit any branch
+  const prevExternalPly = useRef(externalPly);
+  if (externalPly !== undefined && externalPly !== prevExternalPly.current) {
+    if (inBranch) { setBranch(null); setBranchPly(0); }
+    activeModelBoardId = instanceId;
+  }
+  prevExternalPly.current = externalPly;
 
 
   // Play sound for a given ply (called from navigation actions, not from effects)
@@ -1722,9 +1727,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
     if (p > 0 && entries[p]?.san) playMoveSound(entries[p].san!.includes('x'));
   }, [entries]);
 
-  // Emit ply change to parent, marking it so the externalPly echo is skipped
   const emitPly = useCallback((p: number) => {
-    lastEmittedPly.current = p;
     onPlyChange?.(p);
   }, [onPlyChange]);
 
@@ -1750,11 +1753,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
         });
       }
     } else {
-      setPly(p => {
-        const newP = Math.max(0, p - 1);
-        if (newP !== p) { playSoundForPly(p); emitPly(newP); }
-        return newP;
-      });
+      const newP = Math.max(0, safePly - 1);
+      if (newP !== safePly) { playSoundForPly(safePly); setPly(newP); emitPly(newP); }
     }
   }, [inBranch, branch, safePly, playSoundForPly, emitPly, onDragSetMove]);
   const goNext = useCallback(() => {
@@ -1767,27 +1767,26 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       }
       setBranchPly(p => p + 1);
     } else if (!inBranch) {
-      setPly(p => {
-        const newP = Math.min(maxPly, p + 1);
-        if (newP !== p) {
-          playSoundForPly(newP);
-          emitPly(newP);
-          // When advancing past the target arrow move, set it as the picked move
-          if (showArrow && targetPly !== undefined && p === targetPly && newP === p + 1 && entries[p]?.san && onDragSetMove) {
-            onDragSetMove(entries[p].san!);
-          }
+      const newP = Math.min(maxPly, safePly + 1);
+      if (newP !== safePly) {
+        playSoundForPly(newP);
+        setPly(newP);
+        emitPly(newP);
+        if (showArrow && targetPly !== undefined && safePly === targetPly && entries[safePly]?.san && onDragSetMove) {
+          onDragSetMove(entries[safePly].san!);
         }
-        return newP;
-      });
+      }
     }
-  }, [branch, branchPly, inBranch, maxPly, playSoundForPly, emitPly, onDragSetMove, showArrow, entries, targetPly]);
+  }, [branch, branchPly, inBranch, maxPly, safePly, playSoundForPly, emitPly, onDragSetMove, showArrow, entries, targetPly]);
 
   const goFirst = useCallback(() => {
-    exitBranch(); setPly(p => { if (p !== 0) { playSoundForPly(p); emitPly(0); } return 0; });
-  }, [exitBranch, playSoundForPly, emitPly]);
+    exitBranch();
+    if (safePly !== 0) { playSoundForPly(safePly); setPly(0); emitPly(0); }
+  }, [exitBranch, safePly, playSoundForPly, emitPly]);
   const goLast = useCallback(() => {
-    exitBranch(); setPly(p => { if (p !== maxPly) { playSoundForPly(maxPly); emitPly(maxPly); } return maxPly; });
-  }, [exitBranch, maxPly, playSoundForPly, emitPly]);
+    exitBranch();
+    if (safePly !== maxPly) { playSoundForPly(maxPly); setPly(maxPly); emitPly(maxPly); }
+  }, [exitBranch, safePly, maxPly, playSoundForPly, emitPly]);
 
   // Handle user move (drag & drop)
   const handleUserMove = useCallback((from: string, to: string) => {
