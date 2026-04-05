@@ -379,16 +379,10 @@ export function AdminPanel() {
     return result;
   }, [filteredApiUsage?.daily_invocations, language]);
 
-  const expandedInvocationUserId = useMemo(() => {
-    if (!expandedInvocation || !filteredApiUsage) return null;
-    const inv = filteredApiUsage.invocations.find(i => i.request_id === expandedInvocation);
-    return inv?.user_id ?? null;
-  }, [expandedInvocation, filteredApiUsage]);
-
   // Fetch uploads for all users who have invocations
   const invocationUserIds = useMemo(() => {
-    if (!filteredApiUsage?.invocations) return [];
-    return [...new Set(filteredApiUsage.invocations.map(i => i.user_id))];
+    if (!filteredApiUsage?.invocations) return [] as number[];
+    return [...new Set(filteredApiUsage.invocations.map(i => i.user_id).filter((id): id is number => id !== null))];
   }, [filteredApiUsage]);
 
   const { data: allUploadsData } = useQuery({
@@ -763,7 +757,7 @@ export function AdminPanel() {
                     <tbody className="divide-y divide-slate-700/30">
                       {filteredApiUsage.invocations.map(inv => {
                         const expanded = expandedInvocation === inv.request_id;
-                        const userUploads = allUploadsData?.get(inv.user_id);
+                        const userUploads = inv.user_id != null ? allUploadsData?.get(inv.user_id) : undefined;
                         const matchedUpload = userUploads?.find(f => f.filename.includes(inv.request_id));
                         return (
                           <React.Fragment key={inv.request_id}>
