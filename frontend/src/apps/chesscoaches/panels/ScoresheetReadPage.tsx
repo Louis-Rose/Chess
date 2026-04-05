@@ -1162,7 +1162,7 @@ export function ScoresheetReadPage() {
                           </div>
                           {/* Right: board */}
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState || !allModelsFinished || !!userPickedMove} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState || !allModelsFinished} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
                               setUserPickedMove(san);
                               voteState.setEditValue(san);
@@ -1225,7 +1225,7 @@ export function ScoresheetReadPage() {
                             />
                             {/* Mobile board */}
                             <div className="w-full max-w-[400px]">
-                              <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState || !allModelsFinished || !!userPickedMove} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                              <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState || !allModelsFinished} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                                 if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
                                 setUserPickedMove(san);
                                 voteState.setEditValue(san);
@@ -1628,7 +1628,8 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, 
         exitBranch();
         return;
       }
-      // Different move — exit branch and try the new move from the pre-branch position
+      // Only allow replacement moves from the pre-branch position (same color)
+      // Block moves of the opposing color (which would be valid from the current branch fen)
       exitBranch();
       try {
         const chess = new Chess(entries[displayPly].fen);
@@ -1638,7 +1639,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, 
         setBranch({ startPly: displayPly, fens: [entries[displayPly].fen, chess.fen()], sans: [move.san] });
         setBranchPly(1);
         playMoveSound(move.san.includes('x'));
-      } catch { /* invalid move */ }
+      } catch { /* invalid move — likely wrong color */ }
       return;
     }
     const lastMove = inBranch && branch ? null : entries[safePly]?.lastMove;
@@ -1681,14 +1682,14 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, 
 
       // Diverges — create or extend branch
       if (inBranch && branch) {
+        // In edit mode, block extending the branch (only allow replacement via the handler above)
+        if (onDragSetMove) return;
         setBranch({
           ...branch,
           fens: [...branch.fens.slice(0, branchPly + 1), newFen],
           sans: [...branch.sans.slice(0, branchPly), san],
         });
         setBranchPly(branchPly + 1);
-        // Clear vote selection when extending beyond the first variation move
-        if (onDragSetMove) onDragSetMove('');
       } else {
         setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
         setBranchPly(1);
