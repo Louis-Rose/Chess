@@ -402,18 +402,18 @@ export function ScoresheetReadPage() {
               <div className="flex items-center justify-center gap-2">
                 <button
                   disabled={autoCropping}
-                  onClick={() => setCropRotation(r => r - 5)}
+                  onClick={() => setCropRotation(r => r - 1)}
                   className={`px-2 py-1 rounded-lg text-xs transition-colors ${autoCropping ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
                 >
-                  -5°
+                  -1°
                 </button>
                 <span className="text-slate-400 text-xs w-10 text-center">{cropRotation}°</span>
                 <button
                   disabled={autoCropping}
-                  onClick={() => setCropRotation(r => r + 5)}
+                  onClick={() => setCropRotation(r => r + 1)}
                   className={`px-2 py-1 rounded-lg text-xs transition-colors ${autoCropping ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
                 >
-                  +5°
+                  +1°
                 </button>
               </div>
               <div className="flex items-center justify-center">

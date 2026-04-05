@@ -417,8 +417,8 @@ def auto_crop():
     if pages:
         page = pages[0]
         angle = page.get('angle', 0)
-        # Azure returns the detected page angle; negate for CSS correction and round to 5°
-        rotation = round(-angle / 5) * 5
+        # Azure returns the detected page angle; negate for CSS correction
+        rotation = round(-angle)
         page_w = page.get('width', 1)
         page_h = page.get('height', 1)
 
