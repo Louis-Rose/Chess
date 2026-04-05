@@ -1032,13 +1032,39 @@ export function ScoresheetReadPage() {
                             )}
                             {/* Edit panel — under the moves table */}
                             {allModelsFinished && allVerified ? (
-                              <div className="w-full flex justify-center py-2 animate-[fadeIn_0.4s_ease-out]">
+                              <div className="w-full flex flex-col items-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out]">
                                 <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
                                   <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                                   </span>
                                   <span className="text-sm text-emerald-300 font-medium">{t('coaches.verificationComplete')}</span>
                                 </div>
+                                {(() => {
+                                  const lastConfirmed = (() => {
+                                    let last: { idx: number; color: 'white' | 'black' } | null = null;
+                                    displayConsensusMoves.forEach((m, i) => {
+                                      if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
+                                      if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
+                                    });
+                                    return last as { idx: number; color: 'white' | 'black' } | null;
+                                  })();
+                                  if (!lastConfirmed) return null;
+                                  return (
+                                    <button
+                                      onClick={() => {
+                                        const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                        if (current[lastConfirmed.idx]) {
+                                          delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
+                                        }
+                                        rerunConsensusAfterEdit(current);
+                                        setUserPickedMove(null);
+                                      }}
+                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                    >
+                                      {t('coaches.revertChange')}
+                                    </button>
+                                  );
+                                })()}
                               </div>
                             ) : (!allModelsFinished || analyzing || !voteState) ? (
                               <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2">
@@ -1320,13 +1346,39 @@ export function ScoresheetReadPage() {
                             })()}
                             {/* Mobile edit panel */}
                             {allModelsFinished && allVerified ? (
-                              <div className="w-full max-w-[400px] flex justify-center animate-[fadeIn_0.4s_ease-out]">
+                              <div className="w-full max-w-[400px] flex flex-col items-center gap-2 animate-[fadeIn_0.4s_ease-out]">
                                 <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
                                   <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
                                     <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                                   </span>
                                   <span className="text-sm text-emerald-300 font-medium">{t('coaches.verificationComplete')}</span>
                                 </div>
+                                {(() => {
+                                  const lastConfirmed = (() => {
+                                    let last: { idx: number; color: 'white' | 'black' } | null = null;
+                                    displayConsensusMoves.forEach((m, i) => {
+                                      if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
+                                      if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
+                                    });
+                                    return last as { idx: number; color: 'white' | 'black' } | null;
+                                  })();
+                                  if (!lastConfirmed) return null;
+                                  return (
+                                    <button
+                                      onClick={() => {
+                                        const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                        if (current[lastConfirmed.idx]) {
+                                          delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
+                                        }
+                                        rerunConsensusAfterEdit(current);
+                                        setUserPickedMove(null);
+                                      }}
+                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                    >
+                                      {t('coaches.revertChange')}
+                                    </button>
+                                  );
+                                })()}
                               </div>
                             ) : voteState && (() => {
                               const moveIdx = voteState.moveIdx;
