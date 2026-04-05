@@ -1016,7 +1016,7 @@ export function ScoresheetReadPage() {
                     };
 
                     const renderConfirmRevertButtons = () => {
-                      if (!voteState) return null;
+                      if (!voteState) return renderRevertButton();
                       const moveIdx = voteState.moveIdx;
                       const colorStr = voteState.color;
                       const moveObj = displayConsensusMoves[moveIdx];
@@ -1120,7 +1120,6 @@ export function ScoresheetReadPage() {
                         return (
                           <div className={`flex flex-col items-center justify-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out] ${minH} ${className || 'w-full'}`}>
                             {renderVerifiedBanner()}
-                            {renderRevertButton()}
                           </div>
                         );
                       }
