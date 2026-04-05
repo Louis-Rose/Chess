@@ -398,6 +398,33 @@ export function AdminPanel() {
     enabled: invocationUserIds.length > 0,
   });
 
+  // Map each invocation to its upload by matching the Nth invocation (per user+feature) to file {feature}_{surname}_{N}
+  const invUploadMap = useMemo(() => {
+    if (!filteredApiUsage?.invocations || !allUploadsData) return new Map<string, UserUpload>();
+    const result = new Map<string, UserUpload>();
+    // Group invocations by user+feature, sorted oldest first
+    const groups = new Map<string, ApiInvocation[]>();
+    for (const inv of [...filteredApiUsage.invocations].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())) {
+      const key = `${inv.user_id}_${inv.feature}`;
+      const list = groups.get(key) || [];
+      list.push(inv);
+      groups.set(key, list);
+    }
+    // For each group, match invocation N to file ending in _N.ext
+    for (const [, invs] of groups) {
+      const uploads = invs[0].user_id != null ? allUploadsData.get(invs[0].user_id) : undefined;
+      if (!uploads) continue;
+      const feature = invs[0].feature;
+      invs.forEach((inv, idx) => {
+        const n = idx + 1;
+        const pattern = new RegExp(`^${feature}_.*_${n}\\.[a-z]+$`, 'i');
+        const match = uploads.find(f => pattern.test(f.filename));
+        if (match) result.set(inv.request_id, match);
+      });
+    }
+    return result;
+  }, [filteredApiUsage, allUploadsData]);
+
   if (!authLoading && (!user || !user.is_admin)) {
     return <Navigate to="/" replace />;
   }
@@ -757,9 +784,7 @@ export function AdminPanel() {
                     <tbody className="divide-y divide-slate-700/30">
                       {filteredApiUsage.invocations.map(inv => {
                         const expanded = expandedInvocation === inv.request_id;
-                        const userUploads = inv.user_id != null ? allUploadsData?.get(inv.user_id) : undefined;
-                        const invTime = new Date(inv.created_at).getTime() / 1000;
-                        const matchedUpload = userUploads?.find(f => Math.abs(f.created_at - invTime) < 120);
+                        const matchedUpload = invUploadMap?.get(inv.request_id);
                         return (
                           <React.Fragment key={inv.request_id}>
                             <tr
