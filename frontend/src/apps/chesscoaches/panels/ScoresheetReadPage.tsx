@@ -186,6 +186,7 @@ export function ScoresheetReadPage() {
   const [cropRotation, setCropRotation] = useState(0);
 
   const [autoCropping, setAutoCropping] = useState(false);
+  const [autoCropDebug, setAutoCropDebug] = useState<{ prompt: string; raw_response: string; image_size: string; elapsed: number; tier: string } | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -194,6 +195,7 @@ export function ScoresheetReadPage() {
     setCropSrc(dataUrl);
     setCropFileName(file.name);
     setCropRotation(0);
+    setAutoCropDebug(null);
     // Default crop: full image so the user sees the handles immediately
     const defaultCrop: CropType = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
     setCrop(defaultCrop);
@@ -212,6 +214,7 @@ export function ScoresheetReadPage() {
           const autoCrop: CropType = { unit: '%', x: data.crop.x, y: data.crop.y, width: data.crop.width, height: data.crop.height };
           setCrop(autoCrop);
         }
+        if (data.debug) setAutoCropDebug(data.debug);
       }
     } catch { /* auto-crop failed silently — user can still crop manually */ }
     setAutoCropping(false);
@@ -372,6 +375,23 @@ export function ScoresheetReadPage() {
                     />
                   </ReactCrop>
                 </div>
+                {/* Auto-crop debug — admin only */}
+                {user?.is_admin && autoCropDebug && (
+                  <div className="hidden lg:block w-80 flex-shrink-0 absolute left-[calc(50%+14rem)] top-0 max-h-[80vh] overflow-y-auto">
+                    <div className="bg-slate-800/90 rounded-lg border border-slate-600/50 p-3 text-xs font-mono space-y-2">
+                      <p className="text-slate-400 uppercase tracking-wider text-[10px]">Auto-crop debug ({autoCropDebug.elapsed}s, {autoCropDebug.tier})</p>
+                      <div>
+                        <p className="text-slate-500 mb-1">Prompt:</p>
+                        <pre className="text-slate-300 whitespace-pre-wrap text-[10px] leading-tight">{autoCropDebug.prompt}</pre>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 mb-1">Response:</p>
+                        <pre className="text-emerald-400 whitespace-pre-wrap text-[10px] leading-tight">{autoCropDebug.raw_response}</pre>
+                      </div>
+                      <p className="text-slate-500">Image: {autoCropDebug.image_size}</p>
+                    </div>
+                  </div>
+                )}
               </div>
               <p className="text-slate-200 text-base font-medium text-center">
                 {t('coaches.cropHint')}

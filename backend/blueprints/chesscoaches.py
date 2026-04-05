@@ -431,7 +431,7 @@ IMPORTANT: crop values must be percentages (0-100), NOT pixels."""
                     'width': crop['width'] / img_w * 100,
                     'height': crop['height'] / img_h * 100,
                 }
-        return jsonify({'rotation': rotation, 'crop': crop})
+        return jsonify({'rotation': rotation, 'crop': crop, 'debug': {'prompt': prompt, 'raw_response': response.text, 'image_size': f'{img_w}x{img_h}', 'elapsed': elapsed, 'tier': tier}})
     except Exception as e:
         logger.error(f"[Auto-crop] Failed: {e}")
         return jsonify({'error': str(e)}), 500
