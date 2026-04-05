@@ -130,7 +130,7 @@ export function ScoresheetReadPage() {
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [selectedNotation, setSelectedNotation] = useState('english');
+  const [selectedNotation, setSelectedNotation] = useState('');
   const [imageZoomLevel, setImageZoomLevel] = useState(0); // 0=closed, 1=fit, 2=extra zoom
   const [showExampleModal, setShowExampleModal] = useState(false);
   const closeModal = useCallback(() => { setImageZoomLevel(0); setShowExampleModal(false); }, []);
@@ -357,21 +357,24 @@ export function ScoresheetReadPage() {
             </div>
           ) : !preview && !preparingImage && !loadingSample ? (
             <div className="space-y-3">
-              <UploadBox
-                onClick={() => fileInputRef.current?.click()}
-                icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
-                title={t('coaches.uploadPrompt')}
-              />
               <div className="flex justify-center">
                 <select
                   value={selectedNotation}
                   onChange={e => setSelectedNotation(e.target.value)}
                   className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-1.5 border border-slate-600 focus:outline-none focus:border-blue-500"
                 >
+                  <option value="" disabled>Notation...</option>
                   <option value="english">English</option>
                   <option value="french">French</option>
                   <option value="armenian">Armenian</option>
                 </select>
+              </div>
+              <div className={selectedNotation ? '' : 'opacity-40 pointer-events-none'}>
+              <UploadBox
+                onClick={() => fileInputRef.current?.click()}
+                icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
+                title={t('coaches.uploadPrompt')}
+              />
               </div>
               {!hasHadSuccess && (<>
                 <div className="flex items-center gap-3 max-w-lg mx-auto">
@@ -381,6 +384,7 @@ export function ScoresheetReadPage() {
                 </div>
                 <UploadBox
                   onClick={() => {
+                    if (!selectedNotation) return;
                     setLoadingSample(true);
                     fetch('/sample_scoresheet.jpeg')
                       .then(r => r.blob())
