@@ -135,7 +135,7 @@ def validate_moves():
 # Piece letter mappings to/from English
 _FRENCH_TO_ENGLISH = {'T': 'R', 'F': 'B', 'D': 'Q', 'C': 'N'}
 _ENGLISH_TO_FRENCH = {v: k for k, v in _FRENCH_TO_ENGLISH.items()}
-_ARMENIAN_TO_ENGLISH = {'Ն': 'R', 'Փ': 'B', 'Թ': 'Q', 'Ձ': 'N', 'Ա': 'K'}
+_ARMENIAN_TO_ENGLISH = {'Ն': 'R', 'Փ': 'B', 'փ': 'B', 'Թ': 'Q', 'Ձ': 'N', 'ձ': 'N', 'Ա': 'K'}
 _ENGLISH_TO_ARMENIAN = {v: k for k, v in _ARMENIAN_TO_ENGLISH.items()}
 
 _NOTATION_TO_ENGLISH = {
