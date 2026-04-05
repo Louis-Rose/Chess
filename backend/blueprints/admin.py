@@ -1440,7 +1440,7 @@ def list_user_uploads(user_id):
     if not os.path.isdir(user_dir):
         return jsonify({'uploads': []})
     files = []
-    for fname in sorted(os.listdir(user_dir), reverse=True):
+    for fname in sorted(os.listdir(user_dir)):
         fpath = os.path.join(user_dir, fname)
         if os.path.isfile(fpath):
             stat = os.stat(fpath)
