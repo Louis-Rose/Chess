@@ -891,10 +891,10 @@ export function ScoresheetReadPage() {
                     const unresolvedPlies: number[] = [];
                     if (allModelsFinished) {
                       displayConsensusMoves.forEach((m, idx) => {
-                        const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
-                        const dBlack = modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low';
+                        const d = m.white && (modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low');
+                        const dBlack = m.black && (modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low');
                         if (d && !(m as any).white_confirmed) unresolvedPlies.push(idx * 2 + 1);
-                        if (dBlack && m.black && !(m as any).black_confirmed) unresolvedPlies.push(idx * 2 + 2);
+                        if (dBlack && !(m as any).black_confirmed) unresolvedPlies.push(idx * 2 + 2);
                       });
                     }
                     const allVerified = (hasIssues || hasConfirmedMoves) && unresolvedPlies.length === 0;
@@ -1110,10 +1110,10 @@ export function ScoresheetReadPage() {
                             } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
                               const plies: number[] = [];
                               displayConsensusMoves.forEach((m, idx) => {
-                                const d = modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low';
-                                const dBlack = modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low';
+                                const d = m.white && (modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low');
+                                const dBlack = m.black && (modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low');
                                 if (d && !(m as any).white_confirmed) plies.push(idx * 2 + 1);
-                                if (dBlack && m.black && !(m as any).black_confirmed) plies.push(idx * 2 + 2);
+                                if (dBlack && !(m as any).black_confirmed) plies.push(idx * 2 + 2);
                               });
                               return plies;
                             })() : undefined} />
