@@ -463,7 +463,8 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                 const bg = isHighlight
                   ? (isLight ? '#f7ec5a' : '#dac934')
                   : (isLight ? LIGHT : DARK);
-                const piece = (dragging && dragging.fromR === r && dragging.fromC === c) ? null : board[r]?.[c];
+                const piece = board[r]?.[c];
+                const isDragSource = !!(dragging && dragging.fromR === r && dragging.fromC === c);
 
                 squares.push(
                   <div
@@ -492,7 +493,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
                       <img
                         src={pieceImageUrl(piece)}
                         alt=""
-                        className="absolute inset-[5%] w-[90%] h-[90%] cursor-grab active:cursor-grabbing"
+                        className={`absolute inset-[5%] w-[90%] h-[90%] cursor-grab active:cursor-grabbing${isDragSource ? ' opacity-0' : ''}`}
                         draggable={false}
                         onPointerDown={(e) => handlePointerDown(e, piece, r, c)}
                       />
