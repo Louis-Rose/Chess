@@ -389,7 +389,17 @@ export function ScoresheetReadPage() {
           ) : (
             <div className="space-y-4">
               {/* Error */}
-              {error && <p className="text-red-400 text-center py-4">{error}</p>}
+              {error && (
+                <div className="text-center py-4 space-y-3">
+                  <p className="text-red-400">{error}</p>
+                  <button
+                    onClick={() => { setPreparingImage(false); scoresheetClear(); }}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
+                  >
+                    {t('coaches.previous')}
+                  </button>
+                </div>
+              )}
 
               {/* Processing progress bar */}
               {(preparingImage || models.length > 0) && (() => {
