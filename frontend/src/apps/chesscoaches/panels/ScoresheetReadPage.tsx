@@ -978,6 +978,172 @@ export function ScoresheetReadPage() {
                       return { moveNumber: moveIdx + 1, color: color as 'white' | 'black', ply };
                     });
 
+                    // --- Shared helpers for desktop + mobile edit panels ---
+                    const getLastConfirmed = () => {
+                      let last: { idx: number; color: 'white' | 'black' } | null = null;
+                      displayConsensusMoves.forEach((m, i) => {
+                        if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
+                        if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
+                      });
+                      return last as { idx: number; color: 'white' | 'black' } | null;
+                    };
+
+                    const handleRevert = (lastConfirmed: { idx: number; color: 'white' | 'black' }) => {
+                      const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                      if (current[lastConfirmed.idx]) {
+                        delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
+                      }
+                      rerunConsensusAfterEdit(current);
+                      setUserPickedMove(null);
+                      if (voteState) {
+                        voteState.setEditValue('');
+                        const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
+                        voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
+                      }
+                    };
+
+                    const renderRevertButton = () => {
+                      const lastConfirmed = getLastConfirmed();
+                      if (!lastConfirmed) return null;
+                      return (
+                        <button
+                          onClick={() => handleRevert(lastConfirmed)}
+                          className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                        >
+                          {t('coaches.revertChange')}
+                        </button>
+                      );
+                    };
+
+                    const renderConfirmRevertButtons = () => {
+                      if (!voteState) return null;
+                      const moveIdx = voteState.moveIdx;
+                      const colorStr = voteState.color;
+                      const moveObj = displayConsensusMoves[moveIdx];
+                      if (!moveObj) return null;
+                      const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
+                      return (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="flex justify-center">
+                          {userPickedMove ? (
+                            userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
+                              <button
+                                onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
+                                className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
+                              >
+                                {t('coaches.confirmMove')} {displayMove}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
+                                  if (current[moveIdx]) {
+                                    current[moveIdx][colorStr] = userPickedMove;
+                                    (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
+                                    delete (current[moveIdx] as any)[`${colorStr}_reason`];
+                                  }
+                                  rerunConsensusAfterEdit(current);
+                                  setUserPickedMove(null);
+                                  if (voteState) voteState.clearSelection();
+                                }}
+                                className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
+                              >
+                                {t('coaches.pickMove')} {userPickedMove}
+                              </button>
+                            )
+                          ) : (
+                            <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
+                          )}
+                          </div>
+                          {renderRevertButton()}
+                        </div>
+                      );
+                    };
+
+                    const renderVerifiedBanner = () => (
+                      <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
+                        <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
+                          <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                        </span>
+                        <span className="text-sm text-emerald-300 font-medium">{t('coaches.verificationComplete')}</span>
+                      </div>
+                    );
+
+                    const renderMoveInfo = () => {
+                      if (!voteState) return null;
+                      const moveIdx = voteState.moveIdx;
+                      const colorStr = voteState.color;
+                      const moveObj = displayConsensusMoves[moveIdx];
+                      if (!moveObj) return null;
+                      const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
+                      const cellCrop = preview && gridData?.cells ? (() => {
+                        const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
+                        const sheetCol = Math.floor(moveIdx / rows);
+                        const rowInCol = moveIdx % rows;
+                        const azureCols = gridData.col_count || 4;
+                        const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
+                        const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
+                        const azureCol = sheetCol * colsPerSection + moveNumOffset + (colorStr === 'black' ? 1 : 0);
+                        const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
+                        const azureRow = rowInCol + rowOffset;
+                        const cell = gridData.cells![`${azureRow}-${azureCol}`];
+                        if (!cell) return null;
+                        const padX = (cell.x2 - cell.x1) * 0.2, padY = (cell.y2 - cell.y1) * 0.2;
+                        const cx1 = Math.max(0, cell.x1 - padX), cy1 = Math.max(0, cell.y1 - padY);
+                        const cx2 = Math.min(1, cell.x2 + padX), cy2 = Math.min(1, cell.y2 + padY);
+                        const cropW = cx2 - cx1, cropH = cy2 - cy1;
+                        const cW = 180, cH = cW * cropH / (cropW * imageAspect);
+                        return { cx1, cy1, cropW, cropH, cW, cH };
+                      })() : null;
+                      return (
+                        <>
+                          <p className="text-base text-slate-100 font-medium text-center">
+                            {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.moveBlack') : t('coaches.moveWhite')}
+                          </p>
+                          <div className="flex items-center justify-center gap-3 py-1 h-[72px]">
+                            {cellCrop && (
+                              <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden flex items-center" style={{ width: cellCrop.cW, height: 64 }} onClick={() => setZoomedCell(cellCrop)}>
+                                <div className="rounded-lg overflow-hidden border border-slate-600" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
+                                  <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
+                                </div>
+                              </div>
+                            )}
+                            <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
+                          </div>
+                        </>
+                      );
+                    };
+
+                    const renderEditPanel = (className?: string) => {
+                      if (allModelsFinished && allVerified) {
+                        return (
+                          <div className={`flex flex-col items-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out] ${className || 'w-full'}`}>
+                            {renderVerifiedBanner()}
+                            {renderRevertButton()}
+                          </div>
+                        );
+                      }
+                      if (!allModelsFinished || analyzing || !voteState) {
+                        return (
+                          <div className={`space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 ${className || 'w-full'}`}>
+                            <p className="text-base text-slate-500 font-medium text-center">Move — - —</p>
+                            <div className="text-center py-1">
+                              <p className="text-sm text-slate-500">{t('coaches.readAs')} <span className="font-mono">———</span></p>
+                            </div>
+                            <div className="flex justify-center">
+                              <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className={`space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3] ${className || 'w-full'}`}>
+                          {renderMoveInfo()}
+                        </div>
+                      );
+                    };
+                    // --- End shared helpers ---
+
                     return (<>
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           {/* Left: scoresheet image */}
@@ -1031,94 +1197,7 @@ export function ScoresheetReadPage() {
                             />
                             )}
                             {/* Edit panel — under the moves table */}
-                            {allModelsFinished && allVerified ? (
-                              <div className="w-full flex flex-col items-center gap-2 py-2 animate-[fadeIn_0.4s_ease-out]">
-                                <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
-                                  <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
-                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                                  </span>
-                                  <span className="text-sm text-emerald-300 font-medium">{t('coaches.verificationComplete')}</span>
-                                </div>
-                                {(() => {
-                                  const lastConfirmed = (() => {
-                                    let last: { idx: number; color: 'white' | 'black' } | null = null;
-                                    displayConsensusMoves.forEach((m, i) => {
-                                      if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
-                                      if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
-                                    });
-                                    return last as { idx: number; color: 'white' | 'black' } | null;
-                                  })();
-                                  if (!lastConfirmed) return null;
-                                  return (
-                                    <button
-                                      onClick={() => {
-                                        const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                        if (current[lastConfirmed.idx]) {
-                                          delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
-                                        }
-                                        rerunConsensusAfterEdit(current);
-                                        setUserPickedMove(null);
-                                      }}
-                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-                                    >
-                                      {t('coaches.revertChange')}
-                                    </button>
-                                  );
-                                })()}
-                              </div>
-                            ) : (!allModelsFinished || analyzing || !voteState) ? (
-                              <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2">
-                                <p className="text-base text-slate-500 font-medium text-center">Move — - —</p>
-                                <div className="text-center py-1">
-                                  <p className="text-sm text-slate-500">{t('coaches.readAs')} <span className="font-mono">———</span></p>
-                                </div>
-                                <div className="flex justify-center">
-                                    <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
-                                  </div>
-                              </div>
-                            ) : voteState && (() => {
-                              const moveIdx = voteState.moveIdx;
-                              const colorStr = voteState.color;
-                              const moveObj = displayConsensusMoves[moveIdx];
-                              if (!moveObj) return null;
-                              const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
-                              const cellCrop = preview && gridData?.cells ? (() => {
-                                const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
-                                const sheetCol = Math.floor(moveIdx / rows);
-                                const rowInCol = moveIdx % rows;
-                                const azureCols = gridData.col_count || 4;
-                                const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
-                                const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
-                                const azureCol = sheetCol * colsPerSection + moveNumOffset + (colorStr === 'black' ? 1 : 0);
-                                const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
-                                const azureRow = rowInCol + rowOffset;
-                                const cell = gridData.cells![`${azureRow}-${azureCol}`];
-                                if (!cell) return null;
-                                const padX = (cell.x2 - cell.x1) * 0.2, padY = (cell.y2 - cell.y1) * 0.2;
-                                const cx1 = Math.max(0, cell.x1 - padX), cy1 = Math.max(0, cell.y1 - padY);
-                                const cx2 = Math.min(1, cell.x2 + padX), cy2 = Math.min(1, cell.y2 + padY);
-                                const cropW = cx2 - cx1, cropH = cy2 - cy1;
-                                const cW = 180, cH = cW * cropH / (cropW * imageAspect);
-                                return { cx1, cy1, cropW, cropH, cW, cH };
-                              })() : null;
-                              return (
-                                <div className="w-full space-y-2 bg-slate-700/50 rounded-xl p-4 mt-2 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
-                                  <p className="text-base text-slate-100 font-medium text-center">
-                                    {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.moveBlack') : t('coaches.moveWhite')}
-                                  </p>
-                                  <div className="flex items-center justify-center gap-3 py-1 h-[72px]">
-                                    {cellCrop && (
-                                      <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden flex items-center" style={{ width: cellCrop.cW, height: 64 }} onClick={() => setZoomedCell(cellCrop)}>
-                                        <div className="rounded-lg overflow-hidden border border-slate-600" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
-                                          <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
-                                        </div>
-                                      </div>
-                                    )}
-                                    <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
-                                  </div>
-                                </div>
-                              );
-                            })()}
+                            {renderEditPanel()}
                             {/* Export buttons — only after verification */}
                             {allVerified && (
                             <div className="w-full bg-slate-700/50 rounded-xl overflow-hidden mt-2 animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30">
@@ -1151,77 +1230,7 @@ export function ScoresheetReadPage() {
                               });
                               return plies;
                             })() : undefined} />
-                            {voteState && (() => {
-                              const moveIdx = voteState.moveIdx;
-                              const colorStr = voteState.color;
-                              const moveObj = displayConsensusMoves[moveIdx];
-                              if (!moveObj) return null;
-                              const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
-                              // Find last confirmed move (highest ply) for revert
-                              const lastConfirmed = (() => {
-                                let last: { idx: number; color: 'white' | 'black' } | null = null;
-                                displayConsensusMoves.forEach((m, i) => {
-                                  if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
-                                  if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
-                                });
-                                return last as { idx: number; color: 'white' | 'black' } | null;
-                              })();
-                              return (
-                                <div className="flex flex-col items-center gap-2">
-                                  <div className="flex justify-center">
-                                  {userPickedMove ? (
-                                    userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
-                                      <button
-                                        onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
-                                        className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
-                                      >
-                                        {t('coaches.confirmMove')} {displayMove}
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => {
-                                          const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                          if (current[moveIdx]) {
-                                            current[moveIdx][colorStr] = userPickedMove;
-                                            (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
-                                            delete (current[moveIdx] as any)[`${colorStr}_reason`];
-                                          }
-                                          rerunConsensusAfterEdit(current);
-                                          setUserPickedMove(null);
-                                          if (voteState) voteState.clearSelection();
-                                        }}
-                                        className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
-                                      >
-                                        {t('coaches.pickMove')} {userPickedMove}
-                                      </button>
-                                    )
-                                  ) : (
-                                    <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
-                                  )}
-                                  </div>
-                                  {lastConfirmed && (
-                                    <button
-                                      onClick={() => {
-                                        const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                        if (current[lastConfirmed.idx]) {
-                                          delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
-                                        }
-                                        rerunConsensusAfterEdit(current);
-                                        setUserPickedMove(null);
-                                        if (voteState) {
-                                          voteState.setEditValue('');
-                                          const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
-                                          voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
-                                        }
-                                      }}
-                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-                                    >
-                                      {t('coaches.revertChange')}
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })()}
+                            {renderConfirmRevertButtons()}
                           </div>
                         </div>
                         {/* Mobile: image above table */}
@@ -1276,157 +1285,10 @@ export function ScoresheetReadPage() {
                                 setUserPickedMove(san);
                               } : undefined} />
                             </div>
-                            {/* Mobile confirm/pick button — under the board */}
-                            {voteState && (() => {
-                              const moveIdx = voteState.moveIdx;
-                              const colorStr = voteState.color;
-                              const moveObj = displayConsensusMoves[moveIdx];
-                              if (!moveObj) return null;
-                              const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
-                              // Find last confirmed move (highest ply) for revert
-                              const lastConfirmed = (() => {
-                                let last: { idx: number; color: 'white' | 'black' } | null = null;
-                                displayConsensusMoves.forEach((m, i) => {
-                                  if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
-                                  if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
-                                });
-                                return last as { idx: number; color: 'white' | 'black' } | null;
-                              })();
-                              return (
-                                <div className="flex flex-col items-center gap-2 w-full max-w-[400px]">
-                                  <div className="flex justify-center">
-                                  {userPickedMove ? (
-                                    userPickedMove.replace(/[+#]/g, '') === displayMove.replace(/[+#]/g, '') ? (
-                                      <button
-                                        onClick={() => { handleConfirmMove(moveIdx + 1, colorStr); setUserPickedMove(null); if (voteState) voteState.clearSelection(); }}
-                                        className="bg-emerald-700 hover:bg-emerald-600 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-emerald-400"
-                                      >
-                                        {t('coaches.confirmMove')} {displayMove}
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => {
-                                          const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                          if (current[moveIdx]) {
-                                            current[moveIdx][colorStr] = userPickedMove;
-                                            (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
-                                            delete (current[moveIdx] as any)[`${colorStr}_reason`];
-                                          }
-                                          rerunConsensusAfterEdit(current);
-                                          setUserPickedMove(null);
-                                          if (voteState) voteState.clearSelection();
-                                        }}
-                                        className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-6 py-1.5 rounded-lg transition-colors animate-pulse ring-2 ring-blue-400"
-                                      >
-                                        {t('coaches.pickMove')} {userPickedMove}
-                                      </button>
-                                    )
-                                  ) : (
-                                    <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
-                                  )}
-                                  </div>
-                                  {lastConfirmed && (
-                                    <button
-                                      onClick={() => {
-                                        const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                        if (current[lastConfirmed.idx]) {
-                                          delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
-                                        }
-                                        rerunConsensusAfterEdit(current);
-                                        setUserPickedMove(null);
-                                        if (voteState) {
-                                          voteState.setEditValue('');
-                                          const ply = lastConfirmed.color === 'white' ? lastConfirmed.idx * 2 + 1 : lastConfirmed.idx * 2 + 2;
-                                          voteState.goToMove(lastConfirmed.idx + 1, lastConfirmed.color, ply);
-                                        }
-                                      }}
-                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-                                    >
-                                      {t('coaches.revertChange')}
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })()}
+                            {/* Mobile confirm/revert buttons */}
+                            {renderConfirmRevertButtons()}
                             {/* Mobile edit panel */}
-                            {allModelsFinished && allVerified ? (
-                              <div className="w-full max-w-[400px] flex flex-col items-center gap-2 animate-[fadeIn_0.4s_ease-out]">
-                                <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 rounded-lg px-4 py-2">
-                                  <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center animate-[scaleIn_0.3s_ease-out]">
-                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-                                  </span>
-                                  <span className="text-sm text-emerald-300 font-medium">{t('coaches.verificationComplete')}</span>
-                                </div>
-                                {(() => {
-                                  const lastConfirmed = (() => {
-                                    let last: { idx: number; color: 'white' | 'black' } | null = null;
-                                    displayConsensusMoves.forEach((m, i) => {
-                                      if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
-                                      if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
-                                    });
-                                    return last as { idx: number; color: 'white' | 'black' } | null;
-                                  })();
-                                  if (!lastConfirmed) return null;
-                                  return (
-                                    <button
-                                      onClick={() => {
-                                        const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
-                                        if (current[lastConfirmed.idx]) {
-                                          delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
-                                        }
-                                        rerunConsensusAfterEdit(current);
-                                        setUserPickedMove(null);
-                                      }}
-                                      className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-                                    >
-                                      {t('coaches.revertChange')}
-                                    </button>
-                                  );
-                                })()}
-                              </div>
-                            ) : voteState && (() => {
-                              const moveIdx = voteState.moveIdx;
-                              const colorStr = voteState.color;
-                              const moveObj = displayConsensusMoves[moveIdx];
-                              if (!moveObj) return null;
-                              const displayMove = toNotation(moveObj[colorStr] || '—', consensusMeta.notation);
-                              const cellCrop = preview && gridData?.cells ? (() => {
-                                const rows = rowsPerColumn || Math.ceil(displayConsensusMoves.length / Math.max(sheetColumns, 1));
-                                const sheetCol = Math.floor(moveIdx / rows);
-                                const rowInCol = moveIdx % rows;
-                                const azureCols = gridData.col_count || 4;
-                                const colsPerSection = Math.round(azureCols / Math.max(sheetColumns, 1));
-                                const moveNumOffset = colsPerSection >= 3 ? 1 : 0;
-                                const azureCol = sheetCol * colsPerSection + moveNumOffset + (colorStr === 'black' ? 1 : 0);
-                                const rowOffset = gridData.first_move_row ?? (gridData.row_count && gridData.row_count > rows ? 1 : 0);
-                                const azureRow = rowInCol + rowOffset;
-                                const cell = gridData.cells![`${azureRow}-${azureCol}`];
-                                if (!cell) return null;
-                                const padX = (cell.x2 - cell.x1) * 0.2, padY = (cell.y2 - cell.y1) * 0.2;
-                                const cx1 = Math.max(0, cell.x1 - padX), cy1 = Math.max(0, cell.y1 - padY);
-                                const cx2 = Math.min(1, cell.x2 + padX), cy2 = Math.min(1, cell.y2 + padY);
-                                const cropW = cx2 - cx1, cropH = cy2 - cy1;
-                                const cW = 180, cH = cW * cropH / (cropW * imageAspect);
-                                return { cx1, cy1, cropW, cropH, cW, cH };
-                              })() : null;
-                              return (
-                                <div className="w-full max-w-[400px] space-y-2 bg-slate-700/50 rounded-xl p-4 border border-yellow-500/50 animate-[borderPulse_1.5s_ease-in-out_3]">
-                                  <p className="text-base text-slate-100 font-medium text-center">
-                                    {t('coaches.move')} {moveIdx + 1} - {colorStr === 'black' ? t('coaches.moveBlack') : t('coaches.moveWhite')}
-                                  </p>
-                                  <div className="flex items-center justify-center gap-3 py-1 h-[72px]">
-                                    {cellCrop && (
-                                      <div className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden flex items-center" style={{ width: cellCrop.cW, height: 64 }} onClick={() => setZoomedCell(cellCrop)}>
-                                        <div className="rounded-lg overflow-hidden border border-slate-600" style={{ width: cellCrop.cW, height: cellCrop.cH }}>
-                                          <img src={preview} alt="Cell" draggable={false} style={{ display: 'block', width: `${100 / cellCrop.cropW}%`, height: 'auto', marginLeft: `${-cellCrop.cx1 / cellCrop.cropW * 100}%`, maxWidth: 'none', transform: `translateY(${-cellCrop.cy1 * 100}%)` }} />
-                                        </div>
-                                      </div>
-                                    )}
-                                    <p className="text-sm text-slate-100">{t('coaches.readAs')} <span className="font-mono font-semibold">{displayMove}</span></p>
-                                  </div>
-                                </div>
-                              );
-                            })()}
+                            {renderEditPanel('w-full max-w-[400px]')}
                             <div ref={mobileEditRef} />
                             {/* Mobile export buttons — only after verification */}
                             {allVerified && (
