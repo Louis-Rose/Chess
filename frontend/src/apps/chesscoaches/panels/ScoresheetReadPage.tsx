@@ -1016,7 +1016,12 @@ export function ScoresheetReadPage() {
                     };
 
                     const renderConfirmRevertButtons = () => {
-                      if (!voteState) return renderRevertButton();
+                      if (!voteState) return (
+                        <div className="flex flex-col items-center gap-2">
+                          <button disabled className="text-sm px-6 py-1.5 rounded-lg bg-slate-700 text-slate-500 cursor-not-allowed">{t('coaches.confirmMove')}</button>
+                          {renderRevertButton()}
+                        </div>
+                      );
                       const moveIdx = voteState.moveIdx;
                       const colorStr = voteState.color;
                       const moveObj = displayConsensusMoves[moveIdx];
