@@ -290,7 +290,13 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging) return;
+    if (!dragging || !boardRef.current) return;
+    const rect = boardRef.current.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      setDragging(null);
+      return;
+    }
     setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
   }, [dragging]);
 
