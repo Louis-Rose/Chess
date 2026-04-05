@@ -886,6 +886,29 @@ export function AdminPanel() {
               </div>
             )}
 
+            {/* All uploads by user */}
+            {allUploadsData && [...allUploadsData.entries()].map(([uid, uploads]) => uploads.length > 0 && (
+              <div key={uid}>
+                <h4 className="text-xs text-slate-500 mb-2">Uploads ({uploads.length})</h4>
+                <div className="flex gap-2 flex-wrap">
+                  {uploads.map(file => (
+                    <button
+                      key={file.filename}
+                      onClick={() => setZoomedImageSrc(`/api/admin/user-uploads/${uid}/${file.filename}`)}
+                      className="flex flex-col items-center gap-1 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors cursor-zoom-in p-1"
+                    >
+                      <img
+                        src={`/api/admin/user-uploads/${uid}/${file.filename}`}
+                        alt={file.filename}
+                        className="w-16 h-16 object-cover flex-shrink-0 rounded"
+                      />
+                      <span className="text-[10px] text-slate-400">{file.filename}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
             {filteredApiUsage.by_model.length === 0 && (
               <p className="text-slate-500 text-sm text-center py-4">No API calls recorded yet</p>
             )}
