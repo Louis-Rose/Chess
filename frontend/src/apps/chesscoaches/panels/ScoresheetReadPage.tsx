@@ -1512,12 +1512,12 @@ export function ScoresheetReadPage() {
                       style={{
                         left: `${cell.x1 * 100}%`, top: `${cell.y1 * 100}%`,
                         width: `${(cell.x2 - cell.x1) * 100}%`, height: `${(cell.y2 - cell.y1) * 100}%`,
-                        border: '1px solid rgba(255, 100, 100, 0.5)',
+                        border: '2px solid rgba(255, 80, 80, 0.7)',
                         transform: gd.tilt ? `rotate(${gd.tilt}deg)` : undefined,
                         transformOrigin: 'left center',
                       }}
                     >
-                      <span className="text-[8px] text-red-300 leading-none">{key}</span>
+                      <span className="text-[10px] font-bold text-red-400 bg-slate-900/60 px-0.5 leading-tight">{key}</span>
                     </div>
                   ))}
                 </div>
@@ -1640,12 +1640,12 @@ function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColu
                 top: cell.y1 * scaledNH,
                 width: (cell.x2 - cell.x1) * imgSize.w,
                 height: (cell.y2 - cell.y1) * scaledNH,
-                border: '1px solid rgba(255, 100, 100, 0.5)',
+                border: '2px solid rgba(255, 80, 80, 0.7)',
                 transform: gridData.tilt ? `rotate(${gridData.tilt}deg)` : undefined,
                 transformOrigin: 'left center',
               }}
             >
-              <span className="text-[7px] text-red-300 leading-none">{key}</span>
+              <span className="text-[9px] font-bold text-red-400 bg-slate-900/60 px-0.5 leading-tight">{key}</span>
             </div>
           );
         })}
