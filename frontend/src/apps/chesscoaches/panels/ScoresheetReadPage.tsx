@@ -358,6 +358,11 @@ export function ScoresheetReadPage() {
             ) : (
             /* ── Crop step ── */
             <div className="space-y-4">
+              <p className="text-slate-200 text-base font-medium text-center">
+                {autoCropping
+                  ? <span className="text-blue-400 animate-pulse">{t('coaches.autoCropping')}</span>
+                  : t('coaches.cropHint')}
+              </p>
               <div className="relative flex justify-center">
                 {/* User's photo — centered */}
                 <div className="max-w-sm">
@@ -393,10 +398,6 @@ export function ScoresheetReadPage() {
                   </div>
                 )}
               </div>
-              <p className="text-slate-200 text-base font-medium text-center">
-                {t('coaches.cropHint')}
-                {autoCropping && <span className="ml-2 text-blue-400 text-sm animate-pulse">Auto-adjusting...</span>}
-              </p>
               {/* Rotation controls */}
               <div className="flex items-center justify-center gap-2">
                 <button

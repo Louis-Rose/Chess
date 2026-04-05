@@ -390,10 +390,11 @@ def auto_crop():
 
     prompt = f"""This photo ({img_w}x{img_h} pixels) contains a chess scoresheet (paper form with handwritten moves). The paper may be photographed at an angle or tilted.
 
-Look at the grid lines on the scoresheet. If they are not perfectly vertical and horizontal, determine the rotation needed to straighten them.
+Look at the vertical lines of the grid on the scoresheet. If the top of those lines leans to the RIGHT, the rotation value must be NEGATIVE. If the top leans to the LEFT, it must be POSITIVE.
 
 Return a JSON object with:
-1. "rotation": degrees to rotate the image so the scoresheet grid lines become vertical/horizontal. Positive = clockwise. Must be a multiple of 5. Range: -45 to 45. If the sheet is already straight, return 0. Be precise — even a small tilt of 5-10 degrees matters.
+1. "rotation": the CSS rotation in degrees to apply to straighten the image. Negative = counter-clockwise, positive = clockwise. Must be a multiple of 5. Range: -45 to 45. If already straight, return 0.
+   Example: if the paper's top-right corner is higher than the top-left, the lines lean right, so return a negative value like -5 or -10.
 2. "crop": bounding box of the ENTIRE paper sheet as PERCENTAGES (0-100) of image dimensions: {{"x": number, "y": number, "width": number, "height": number}}. x,y = top-left corner. Include the full sheet with header/player names, not just the moves table.
 
 IMPORTANT: crop values must be percentages (0-100), NOT pixels."""
@@ -421,7 +422,6 @@ IMPORTANT: crop values must be percentages (0-100), NOT pixels."""
         # Clamp rotation to multiples of 5
         rotation = result.get('rotation', 0)
         rotation = round(rotation / 5) * 5
-        rotation = -rotation  # Gemini reports tilt direction; we need the correction (opposite)
         crop = result.get('crop', {'x': 0, 'y': 0, 'width': 100, 'height': 100})
         # Convert pixel values to percentages if Gemini returned pixels
         if img_w and img_h:
