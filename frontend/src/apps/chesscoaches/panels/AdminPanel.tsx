@@ -845,13 +845,14 @@ export function AdminPanel() {
                                         <button
                                           key={file.filename}
                                           onClick={() => setZoomedImageSrc(`/api/admin/user-uploads/${inv.user_id}/${file.filename}`)}
-                                          className="block w-16 h-16 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors cursor-zoom-in"
+                                          className="flex items-center gap-1.5 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors cursor-zoom-in pr-2"
                                         >
                                           <img
                                             src={`/api/admin/user-uploads/${inv.user_id}/${file.filename}`}
                                             alt={file.filename}
-                                            className="w-full h-full object-cover"
+                                            className="w-16 h-16 object-cover flex-shrink-0"
                                           />
+                                          <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{file.filename}</span>
                                         </button>
                                       ))}
                                     </div>
