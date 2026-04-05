@@ -287,17 +287,22 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
 
   const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
     e.preventDefault();
+    console.log('[DRAG] pointerDown', piece, r, c);
     setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
   }, []);
 
   // Native document-level listeners for drag — bypasses React synthetic events entirely
   useEffect(() => {
-    if (!dragging) return;
+    if (!dragging) { console.log('[DRAG] useEffect: no dragging, skipping listeners'); return; }
+    console.log('[DRAG] useEffect: attaching document listeners');
 
     const onMove = (e: PointerEvent) => {
       if (!boardRef.current) return;
       const rect = boardRef.current.getBoundingClientRect();
-      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+      const outside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
+      console.log('[DRAG] pointermove', { x: Math.round(e.clientX), y: Math.round(e.clientY), outside });
+      if (outside) {
+        console.log('[DRAG] OUTSIDE — cancelling');
         setDragging(null);
         return;
       }
@@ -305,6 +310,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
     };
 
     const onUp = (e: PointerEvent) => {
+      console.log('[DRAG] pointerup');
       const d = draggingRef.current;
       if (!d || !boardRef.current) { setDragging(null); return; }
       const rect = boardRef.current.getBoundingClientRect();
@@ -324,7 +330,7 @@ export function Chessboard({ pgn, initialPly }: ChessboardProps) {
       setDragging(null);
     };
 
-    const onCancel = () => setDragging(null);
+    const onCancel = (e: Event) => { console.log('[DRAG] cancel/touchend', e.type); setDragging(null); };
 
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
