@@ -628,7 +628,7 @@ export function ScoresheetReadPage() {
                           }
 
                           const picked = pickBestMove(passChess, modelVals);
-                          if (!picked) continue;
+                          if (!picked) { console.warn(`[Consensus] Move ${i+1} ${color}: pickBestMove returned null — skipping without stopping!`); continue; }
 
                           // Build vote details for display
                           const voteMap: Record<string, number> = {};
@@ -649,11 +649,13 @@ export function ScoresheetReadPage() {
                               (move as any)[`${color}_legal`] = false;
                               (move as any)[`${color}_reason`] = 'No legal option — correct an earlier move';
                               stopped = true;
+                              console.warn(`[Consensus] STOPPED at move ${i+1} ${color}: tryMove said ${picked.move} was legal but passChess.move() failed`);
                             }
                           } else {
                             (move as any)[`${color}_legal`] = false;
                             (move as any)[`${color}_reason`] = 'No legal option — correct an earlier move';
                             stopped = true;
+                            console.log(`[Consensus] STOPPED at move ${i+1} ${color}: ${picked.move} is illegal`);
                           }
                         }
                         result.push(move);
