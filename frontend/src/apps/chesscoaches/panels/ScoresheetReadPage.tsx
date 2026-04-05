@@ -758,7 +758,7 @@ export function ScoresheetReadPage() {
                             </div>
                           </div>
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]">
-                            <ModelBoard moves={[]} autoActivate={false} />
+                            <ModelBoard moves={[]} autoActivate={false} disableDrag />
                           </div>
                         </div>
                         {/* Mobile skeleton: image + processing placeholder + board */}
@@ -770,7 +770,7 @@ export function ScoresheetReadPage() {
                               <span className="text-sm">{t('coaches.analyzing')}</span>
                             </div>
                           </div>
-                          <ModelBoard moves={[]} autoActivate={false} compact />
+                          <ModelBoard moves={[]} autoActivate={false} disableDrag compact />
                         </div>
                       </>
                     );
