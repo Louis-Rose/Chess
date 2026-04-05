@@ -536,11 +536,11 @@ def _enrich_models_with_avg(user_id=None):
 
 SCORESHEET_READ_PROMPT = """You are analyzing a handwritten chess tournament scoresheet image.
 
-First, identify the notation language by looking at the piece letters used in the moves themselves:
+First, identify the notation language. Focus on the first 10 half-moves of the game — knights and bishops are frequently moved in the opening, making it the best place to identify the piece letters. Look at the uppercase letters that start piece moves (not pawn moves) and match them against these three sets:
 - English: K (King), Q (Queen), R (Rook), B (Bishop), N (Knight)
 - French: R (Roi/King), D (Dame/Queen), T (Tour/Rook), F (Fou/Bishop), C (Cavalier/Knight)
 - Armenian: Ա (King), Թ (Queen), Ն (Rook), Փ/փ (Bishop), Ձ/ձ (Knight)
-Look at the uppercase letters that start piece moves (not pawn moves). Match them against the three sets above to determine the notation.
+Even a single Armenian letter (Ձ, ձ, Փ, փ) confirms Armenian notation. Do not default to French or English based on other clues — only the piece letters in the moves matter.
 
 Extract ALL moves from the scoresheet and return them as a JSON object with this exact format:
 {
