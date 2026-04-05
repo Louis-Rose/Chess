@@ -495,6 +495,8 @@ export function ScoresheetReadPage() {
 
               {/* Results: consensus + individual reads */}
               {preview && models.length > 0 && (() => {
+                // Total moves across all models (for stable table layout)
+                const totalModelMoves = Math.max(0, ...models.map(m => modelResults[m.id]?.result?.moves?.length || 0));
                 // Compute cross-model disagreements
                 const allModelMovesForDisagreement = models
                   .map(m => modelResults[m.id]?.result?.moves)
@@ -1091,6 +1093,7 @@ export function ScoresheetReadPage() {
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
 
                               onVoteStateChange={handleVoteStateChange}
+                              totalMoves={totalModelMoves}
 
                             />
                             )}
@@ -1174,6 +1177,7 @@ export function ScoresheetReadPage() {
                               modelDisagreements={modelDisagreements}
                               voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
                               onVoteStateChange={handleVoteStateChange}
+                              totalMoves={totalModelMoves}
 
                             />
                             {/* Mobile board */}
@@ -1815,7 +1819,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, 
 
 
 
-function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange }: {
+function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, totalMoves }: {
   label: string;
   moves: Move[];
   disagreements: Map<number, { white: boolean; black: boolean }>;
@@ -1838,6 +1842,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, re
   showMoveInfo?: boolean;
   loading?: boolean;
   onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null) => void;
+  totalMoves?: number;
 }) {
   const { t } = useLanguage();
   const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
@@ -1968,15 +1973,18 @@ function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, re
 
       {/* Moves table */}
       <div className={`${loading ? 'pointer-events-none' : ''}`}>
-      {moves.length > 0 && (() => {
+      {(totalMoves || moves.length) > 0 && (() => {
+        const displayTotal = totalMoves || moves.length;
         const numCols = 2;
-        const perCol = Math.ceil(moves.length / numCols);
-        const columns = Array.from({ length: numCols }, (_, c) => moves.slice(c * perCol, (c + 1) * perCol));
+        const perCol = Math.ceil(displayTotal / numCols);
+        // Pad moves array to total length for rendering empty rows
+        const paddedMoves: (Move | undefined)[] = Array.from({ length: displayTotal }, (_, i) => moves[i]);
+        const columns = Array.from({ length: numCols }, (_, c) => paddedMoves.slice(c * perCol, (c + 1) * perCol));
         const rows = Math.max(...columns.map(col => col.length));
         const hasTime = moves.some(m => m.white_time != null || m.black_time != null);
 
-        const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined) => {
-          if (!move) return <><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></>;
+        const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined, moveNumber?: number) => {
+          if (!move) return <><td className="px-3 py-1.5 text-slate-500 text-center font-mono">{moveNumber || ''}</td><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></>;
           return <>
             <td className="px-3 py-1.5 text-slate-500 text-center font-mono">{move.number}</td>
             <MoveCell
@@ -2029,9 +2037,10 @@ function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, re
                   {columns.map((col, c) => {
                     const move = col[i];
                     const idx = c * perCol + i;
+                    const expectedNumber = idx + 1;
                     const d = move ? disagreements.get(move.number) : undefined;
-                    if (!move && c > 0) return <React.Fragment key={c}><td className="px-3 py-1.5 border-l border-slate-600/30" /><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></React.Fragment>;
-                    return <React.Fragment key={c}>{renderHalf(move, idx, d)}</React.Fragment>;
+                    if (!move && c > 0) return <React.Fragment key={c}><td className="px-3 py-1.5 border-l border-slate-600/30 text-slate-500 text-center font-mono">{expectedNumber <= displayTotal ? expectedNumber : ''}</td><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></React.Fragment>;
+                    return <React.Fragment key={c}>{renderHalf(move, idx, d, expectedNumber)}</React.Fragment>;
                   })}
                 </tr>
               ))}
