@@ -359,13 +359,8 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None, 
 @coaches_bp.route('/api/coaches/auto-crop', methods=['POST'])
 @login_required
 def auto_crop():
-    """Use Gemini Flash Lite to detect rotation angle and crop coordinates for a scoresheet image."""
+    """Use Azure Document Intelligence to detect rotation angle and document bounds."""
     import time as time_module
-    from google import genai
-    from google.genai import types
-
-    from PIL import Image as PILImage
-    import io
 
     image_file = request.files.get('image')
     if not image_file:
@@ -373,63 +368,89 @@ def auto_crop():
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
 
-    # Get image dimensions for pixel-to-percent conversion
+    endpoint = os.environ.get('AZURE_DI_ENDPOINT', '').rstrip('/')
+    key = os.environ.get('AZURE_DI_KEY')
+    if not endpoint or not key:
+        return jsonify({'error': 'Azure Document Intelligence not configured'}), 500
+
+    analyze_url = f"{endpoint}/documentintelligence/documentModels/prebuilt-layout:analyze?api-version=2024-11-30"
+    headers = {'Ocp-Apim-Subscription-Key': key, 'Content-Type': mime_type}
+
+    start = time_module.time()
     try:
-        pil_img = PILImage.open(io.BytesIO(image_bytes))
-        img_w, img_h = pil_img.size
-    except Exception:
-        img_w, img_h = None, None
-
-    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
-    free_key = os.environ.get('GEMINI_FREE_API_KEY')
-    if not paid_key:
-        return jsonify({'error': 'GEMINI_PAID_API_KEY not configured'}), 500
-
-    client_paid = genai.Client(api_key=paid_key)
-    client_free = genai.Client(api_key=free_key) if free_key else None
-
-    prompt = f"""Photo of a chess scoresheet ({img_w}x{img_h}px). Return JSON:
-
-1. "rotation": degrees to rotate the image clockwise to make the scoresheet straight. Multiple of 5, range -45 to 45. 0 if already straight.
-2. "crop": bounding box of the entire paper sheet as percentages (0-100) of image size: {{"x": number, "y": number, "width": number, "height": number}}."""
-
-    model_id = 'gemini-3-flash-preview'
-    try:
-        start = time_module.time()
-        response, tier, retry_info = _gemini_generate(
-            client_free, client_paid, model_id,
-            contents=[
-                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                prompt,
-            ],
-            config={"response_mime_type": "application/json"},
-        )
-        elapsed = round(time_module.time() - start)
-        usage = getattr(response, 'usage_metadata', None)
-        in_tok = getattr(usage, 'prompt_token_count', 0) or 0
-        out_tok = getattr(usage, 'candidates_token_count', 0) or 0
-        _log_api_usage('auto_crop', model_id, in_tok, out_tok, elapsed,
-                       request_id='autocrop', billing_tier=tier, user_id=get_current_user(),
-                       retry_free_error=retry_info.get('free_error') if retry_info else None,
-                       retry_free_elapsed=retry_info.get('free_elapsed') if retry_info else None)
-        result, _ = _scoresheet_parse_response(response.text)
-        # Clamp rotation to multiples of 5
-        rotation = result.get('rotation', 0)
-        rotation = round(rotation / 5) * 5
-        crop = result.get('crop', {'x': 0, 'y': 0, 'width': 100, 'height': 100})
-        # Convert pixel values to percentages if Gemini returned pixels
-        if img_w and img_h:
-            if crop.get('x', 0) > 100 or crop.get('y', 0) > 100 or crop.get('width', 0) > 100 or crop.get('height', 0) > 100:
-                crop = {
-                    'x': crop['x'] / img_w * 100,
-                    'y': crop['y'] / img_h * 100,
-                    'width': crop['width'] / img_w * 100,
-                    'height': crop['height'] / img_h * 100,
-                }
-        return jsonify({'rotation': rotation, 'crop': crop, 'debug': {'prompt': prompt, 'raw_response': response.text, 'image_size': f'{img_w}x{img_h}', 'elapsed': elapsed, 'tier': tier}})
+        resp = http_requests.post(analyze_url, headers=headers, data=image_bytes, timeout=30)
     except Exception as e:
-        logger.error(f"[Auto-crop] Failed: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Azure DI request failed: {e}'}), 500
+
+    if resp.status_code != 202:
+        return jsonify({'error': f'Azure DI submit failed: {resp.status_code}'}), 500
+
+    result_url = resp.headers.get('Operation-Location')
+    if not result_url:
+        return jsonify({'error': 'No Operation-Location header'}), 500
+
+    # Poll for results
+    poll_headers = {'Ocp-Apim-Subscription-Key': key}
+    result_json = None
+    for _ in range(30):
+        time_module.sleep(1)
+        try:
+            result_resp = http_requests.get(result_url, headers=poll_headers, timeout=10)
+            result_json = result_resp.json()
+        except Exception as e:
+            return jsonify({'error': f'Polling failed: {e}'}), 500
+        status = result_json.get('status')
+        if status == 'succeeded':
+            break
+        if status == 'failed':
+            return jsonify({'error': 'Azure DI analysis failed'}), 500
+    else:
+        return jsonify({'error': 'Azure DI timed out'}), 500
+
+    elapsed = round(time_module.time() - start)
+    analyze_result = result_json.get('analyzeResult', {})
+    pages = analyze_result.get('pages', [])
+
+    # Extract rotation from page angle
+    rotation = 0
+    page_w, page_h = 1, 1
+    if pages:
+        page = pages[0]
+        angle = page.get('angle', 0)
+        # Azure returns the detected page angle; negate for CSS correction and round to 5°
+        rotation = round(-angle / 5) * 5
+        page_w = page.get('width', 1)
+        page_h = page.get('height', 1)
+
+    # Compute document bounding box from all word polygons
+    min_x, min_y, max_x, max_y = page_w, page_h, 0, 0
+    for page in pages:
+        for word in page.get('words', []):
+            polygon = word.get('polygon', [])
+            for i in range(0, len(polygon), 2):
+                x, y = polygon[i], polygon[i + 1]
+                min_x = min(min_x, x)
+                min_y = min(min_y, y)
+                max_x = max(max_x, x)
+                max_y = max(max_y, y)
+
+    # Convert to percentages with small padding
+    pad = 0.5  # 0.5% padding
+    crop = {
+        'x': max(0, min_x / page_w * 100 - pad),
+        'y': max(0, min_y / page_h * 100 - pad),
+        'width': min(100, (max_x - min_x) / page_w * 100 + pad * 2),
+        'height': min(100, (max_y - min_y) / page_h * 100 + pad * 2),
+    }
+
+    debug = {
+        'prompt': 'Azure Document Intelligence prebuilt-layout',
+        'raw_response': f'angle={pages[0].get("angle", 0) if pages else "N/A"}, page={page_w}x{page_h}, words={sum(len(p.get("words", [])) for p in pages)}',
+        'image_size': f'{page_w}x{page_h}',
+        'elapsed': elapsed,
+        'tier': 'azure',
+    }
+    return jsonify({'rotation': rotation, 'crop': crop, 'debug': debug})
 
 
 SCORESHEET_MODELS = [
