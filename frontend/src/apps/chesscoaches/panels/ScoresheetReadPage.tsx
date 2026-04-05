@@ -353,25 +353,7 @@ export function ScoresheetReadPage() {
                 </button>
               </div>
             </div>
-          ) : preparingImage ? (
-            <div className="flex justify-center">
-              <div className="relative bg-slate-700/40 rounded-xl p-4 min-w-[300px] max-w-[400px] w-full">
-                <div className="flex items-center mb-1.5">
-                  <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 animate-spin" />
-                    {t('coaches.processing')}
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full bg-blue-500 transition-all duration-1000 ease-out" style={{ width: '25%' }} />
-                </div>
-                <div className="text-center mt-1">
-                  <span className="text-sm font-medium text-blue-500">25%</span>
-                </div>
-                <p className="text-center text-blue-400 text-sm mt-2 animate-pulse">{t('coaches.autoCropping')}</p>
-              </div>
-            </div>
-          ) : !preview && !loadingSample ? (
+          ) : !preview && !preparingImage && !loadingSample ? (
             <div className="space-y-3">
               <UploadBox
                 onClick={() => fileInputRef.current?.click()}
@@ -401,20 +383,18 @@ export function ScoresheetReadPage() {
                 />
               </>)}
             </div>
-          ) : !preview ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
-            </div>
           ) : (
             <div className="space-y-4">
               {/* Error */}
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
               {/* Processing progress bar */}
-              {models.length > 0 && (() => {
+              {(preparingImage || models.length > 0) && (() => {
                 const finishedCount = models.filter(m => !!(modelResults[m.id]?.result || modelResults[m.id]?.error)).length;
-                const allDone = finishedCount === models.length;
-                const pct = models.length > 0 ? Math.round((finishedCount / models.length) * 100) : 0;
+                const allDone = !preparingImage && models.length > 0 && finishedCount === models.length;
+                // 0-25% = preparing image, 25-100% = model results (each model = 25%)
+                const modelPct = models.length > 0 ? Math.round((finishedCount / models.length) * 75) : 0;
+                const pct = preparingImage ? 0 : 25 + modelPct;
                 const maxAvg = Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3);
                 return (
                   <div className="flex justify-center">
@@ -446,7 +426,9 @@ export function ScoresheetReadPage() {
                           {liveGlobalElapsed}s{!allDone && maxAvg > 0 ? <> / ~{maxAvg}s <span className="inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}
                         </span>
                       </div>
-                      {!allDone ? (
+                      {preparingImage ? (
+                        <p className="text-center text-blue-400 text-sm mt-2 animate-pulse">{t('coaches.autoCropping')}</p>
+                      ) : !allDone ? (
                         <p className="text-center text-blue-400 text-sm mt-2">{t('coaches.waitProcessing')}</p>
                       ) : unresolvedCountRef.current > 0 ? (
                         <div className="text-center text-emerald-500 text-sm mt-2">
@@ -467,7 +449,7 @@ export function ScoresheetReadPage() {
               {/* Re-analyze button — hidden for now */}
 
               {/* Results: consensus + individual reads */}
-              {models.length > 0 && (() => {
+              {preview && models.length > 0 && (() => {
                 // Azure DI provides grid cell coordinates
                 const gridData = (() => {
                   if (azureGrid && azureGrid.cells && Object.keys(azureGrid.cells).length > 0) {
