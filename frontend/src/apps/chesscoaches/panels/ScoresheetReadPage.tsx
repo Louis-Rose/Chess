@@ -18,10 +18,15 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
-const ENGLISH_TO_FRENCH: Record<string, string> = { R: 'T', B: 'F', Q: 'D', N: 'C', K: 'R' };
+const NOTATION_MAPS: Record<string, Record<string, string>> = {
+  french: { R: 'T', B: 'F', Q: 'D', N: 'C', K: 'R' },
+  armenian: { R: 'Ն', B: 'Փ', Q: 'Թ', N: 'Ձ', K: 'Ա' },
+};
 function toNotation(san: string, notation?: string): string {
-  if (!san || notation !== 'french') return san;
-  if (san[0] in ENGLISH_TO_FRENCH) return ENGLISH_TO_FRENCH[san[0]] + san.slice(1);
+  if (!san || !notation || notation === 'english') return san;
+  const map = NOTATION_MAPS[notation];
+  if (!map) return san;
+  if (san[0] in map) return map[san[0]] + san.slice(1);
   return san;
 }
 
