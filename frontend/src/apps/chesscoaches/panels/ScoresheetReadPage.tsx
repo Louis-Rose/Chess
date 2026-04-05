@@ -973,14 +973,15 @@ export function ScoresheetReadPage() {
                       rerunConsensusAfterEdit(current);
                     };
                     const handleConsensusBoardPly = (ply: number) => {
-                      setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply, source: 'nav' as const } }));
+                      const clampedPly = Math.max(ply, 1);
+                      setModelBoardPlys(prev => ({ ...prev, [consensusId]: { ply: clampedPly, source: 'nav' as const } }));
                       setConsensusPreviewFen(null);
                       setUserPickedMove(null);
                       // Update edit panel to match current ply
-                      if (ply > 0 && voteState) {
-                        const moveIdx = Math.floor((ply - 1) / 2);
-                        const color = (ply % 2 === 1 ? 'white' : 'black') as 'white' | 'black';
-                        voteState.goToMove(moveIdx + 1, color, ply);
+                      if (voteState) {
+                        const moveIdx = Math.floor((clampedPly - 1) / 2);
+                        const color = (clampedPly % 2 === 1 ? 'white' : 'black') as 'white' | 'black';
+                        voteState.goToMove(moveIdx + 1, color, clampedPly);
                         setVoteState(prev => prev ? { ...prev, moveIdx, color } : prev);
                       }
                     };
