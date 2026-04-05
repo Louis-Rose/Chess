@@ -150,19 +150,6 @@ export function ScoresheetReadPage() {
   }, []);
 
 
-  // ── Live elapsed timer for status table ──
-  const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
-  useEffect(() => {
-    if (!startTime) { setLiveGlobalElapsed(0); return; }
-    if (!analyzing) {
-      setLiveGlobalElapsed(Math.round((Date.now() - startTime) / 1000));
-      return;
-    }
-    setLiveGlobalElapsed(Math.round((Date.now() - startTime) / 1000));
-    const id = setInterval(() => setLiveGlobalElapsed(Math.round((Date.now() - startTime) / 1000)), 1000);
-    return () => clearInterval(id);
-  }, [startTime, analyzing]);
-
   // ── Image natural aspect ratio (natW / natH) for cell crop calculations ──
   const [imageAspect, setImageAspect] = useState(1);
   useEffect(() => {
@@ -176,12 +163,26 @@ export function ScoresheetReadPage() {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropFileName, setCropFileName] = useState('');
   const [preparingImage, setPreparingImage] = useState(false);
+  const preparingStartTime = useRef<number | null>(null);
   // Clear preparingImage once preview is set (same render cycle, no flicker)
   useEffect(() => { if (preview && preparingImage) setPreparingImage(false); }, [preview, preparingImage]);
+
+  // ── Live elapsed timer ──
+  const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
+  useEffect(() => {
+    const t0 = preparingStartTime.current || startTime;
+    if (!t0) { setLiveGlobalElapsed(0); return; }
+    const running = preparingImage || analyzing;
+    setLiveGlobalElapsed(Math.round((Date.now() - t0) / 1000));
+    if (!running) return;
+    const id = setInterval(() => setLiveGlobalElapsed(Math.round((Date.now() - t0) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [startTime, analyzing, preparingImage]);
 
   // Auto-crop+rotate an image using Azure DI, then go straight to processing
   const processImage = useCallback(async (imageBlob: Blob, fileName: string) => {
     setPreparingImage(true);
+    preparingStartTime.current = Date.now();
     // Load image into an HTMLImageElement for canvas operations
     const dataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
