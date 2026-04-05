@@ -869,7 +869,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.movesToReview': 'Coups à vérifier',
     'coaches.confirmMove': 'Confirmer le coup',
     'coaches.pickMove': 'Confirmer',
-    'coaches.revertChange': 'Annuler',
+    'coaches.revertChange': 'Annuler le coup',
 
     // Students panel — scheduling
     'coaches.students.title': 'Mes élèves',
