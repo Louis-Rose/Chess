@@ -182,6 +182,7 @@ export function ScoresheetReadPage() {
   const [crop, setCrop] = useState<CropType>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const cropImgRef = useRef<HTMLImageElement>(null);
+  const [cropRotation, setCropRotation] = useState(0);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -189,6 +190,7 @@ export function ScoresheetReadPage() {
     const { preview: dataUrl } = await compressImage(file);
     setCropSrc(dataUrl);
     setCropFileName(file.name);
+    setCropRotation(0);
     // Default crop: full image so the user sees the handles immediately
     const defaultCrop: CropType = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
     setCrop(defaultCrop);
@@ -202,27 +204,50 @@ export function ScoresheetReadPage() {
     let finalFile: File;
     let finalPreview: string;
 
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    const rad = (cropRotation * Math.PI) / 180;
+
     if (completedCrop && completedCrop.width > 0 && completedCrop.height > 0) {
-      // Crop the image
+      const cw = completedCrop.width * scaleX;
+      const ch = completedCrop.height * scaleY;
       const canvas = document.createElement('canvas');
-      const scaleX = img.naturalWidth / img.width;
-      const scaleY = img.naturalHeight / img.height;
-      canvas.width = completedCrop.width * scaleX;
-      canvas.height = completedCrop.height * scaleY;
+      canvas.width = cw;
+      canvas.height = ch;
       const ctx = canvas.getContext('2d')!;
+      // Translate to crop center, rotate, then draw the full image offset so the crop region lands at (0,0)
+      ctx.translate(cw / 2, ch / 2);
+      ctx.rotate(rad);
       ctx.drawImage(
         img,
-        completedCrop.x * scaleX, completedCrop.y * scaleY,
-        completedCrop.width * scaleX, completedCrop.height * scaleY,
-        0, 0, canvas.width, canvas.height,
+        -(completedCrop.x * scaleX + cw / 2),
+        -(completedCrop.y * scaleY + ch / 2),
       );
       const blob = await new Promise<Blob>((resolve) =>
         canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.90)
       );
       finalFile = new File([blob], cropFileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
       finalPreview = canvas.toDataURL('image/jpeg', 0.90);
+    } else if (cropRotation !== 0) {
+      // No crop but rotated — render rotated full image
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      const sin = Math.abs(Math.sin(rad)), cos = Math.abs(Math.cos(rad));
+      const rw = Math.ceil(nw * cos + nh * sin);
+      const rh = Math.ceil(nw * sin + nh * cos);
+      const canvas = document.createElement('canvas');
+      canvas.width = rw;
+      canvas.height = rh;
+      const ctx = canvas.getContext('2d')!;
+      ctx.translate(rw / 2, rh / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -nw / 2, -nh / 2);
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.90)
+      );
+      finalFile = new File([blob], cropFileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+      finalPreview = canvas.toDataURL('image/jpeg', 0.90);
     } else {
-      // No crop — use full image
+      // No crop, no rotation — use full image
       const res = await fetch(cropSrc);
       const blob = await res.blob();
       finalFile = new File([blob], cropFileName.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
@@ -312,6 +337,7 @@ export function ScoresheetReadPage() {
                       src={cropSrc}
                       alt="Crop"
                       className="rounded-lg max-h-[50vh]"
+                      style={cropRotation ? { transform: `rotate(${cropRotation}deg)` } : undefined}
                     />
                   </ReactCrop>
                 </div>
@@ -327,6 +353,36 @@ export function ScoresheetReadPage() {
                 </div>
               </div>
               <p className="text-slate-200 text-base font-medium text-center">{t('coaches.cropHint')}</p>
+              {/* Rotation controls */}
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setCropRotation(r => r - 90)}
+                  className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                  title="-90°"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCropRotation(r => r - 5)}
+                  className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs transition-colors"
+                >
+                  -5°
+                </button>
+                <span className="text-slate-400 text-xs w-10 text-center">{cropRotation}°</span>
+                <button
+                  onClick={() => setCropRotation(r => r + 5)}
+                  className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs transition-colors"
+                >
+                  +5°
+                </button>
+                <button
+                  onClick={() => setCropRotation(r => r + 90)}
+                  className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors scale-x-[-1]"
+                  title="+90°"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
               <div className="flex items-center justify-center gap-3">
                 <button
                   onClick={handleCropCancel}
