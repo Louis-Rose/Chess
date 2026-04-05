@@ -832,32 +832,6 @@ export function AdminPanel() {
                                       ))}
                                     </tbody>
                                   </table>
-                                  {/* Uploads for this user */}
-                                  {(() => {
-                                    const invUploads = uploadsData?.uploads?.filter(f => f.filename.includes(inv.request_id)) || [];
-                                    return uploadsLoading ? (
-                                    <div className="flex justify-center py-2">
-                                      <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
-                                    </div>
-                                  ) : invUploads.length ? (
-                                    <div className="mt-2 flex gap-2 flex-wrap">
-                                      {invUploads.map(file => (
-                                        <button
-                                          key={file.filename}
-                                          onClick={() => setZoomedImageSrc(`/api/admin/user-uploads/${inv.user_id}/${file.filename}`)}
-                                          className="flex items-center gap-1.5 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors cursor-zoom-in pr-2"
-                                        >
-                                          <img
-                                            src={`/api/admin/user-uploads/${inv.user_id}/${file.filename}`}
-                                            alt={file.filename}
-                                            className="w-16 h-16 object-cover flex-shrink-0"
-                                          />
-                                          <span className="text-[10px] text-slate-400 break-all">{file.filename}</span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  ) : null;
-                                  })()}
                                 </td>
                               </tr>
                             )}
@@ -869,6 +843,33 @@ export function AdminPanel() {
                 </div>
               </div>
             )}
+
+            {/* User uploads */}
+            {expandedInvocationUserId && (uploadsLoading ? (
+              <div className="flex justify-center py-2">
+                <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
+              </div>
+            ) : uploadsData?.uploads?.length ? (
+              <div>
+                <h4 className="text-xs text-slate-500 mb-2">Uploads ({uploadsData.uploads.length})</h4>
+                <div className="flex gap-2 flex-wrap">
+                  {uploadsData.uploads.map(file => (
+                    <button
+                      key={file.filename}
+                      onClick={() => setZoomedImageSrc(`/api/admin/user-uploads/${expandedInvocationUserId}/${file.filename}`)}
+                      className="flex items-center gap-1.5 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors cursor-zoom-in pr-2"
+                    >
+                      <img
+                        src={`/api/admin/user-uploads/${expandedInvocationUserId}/${file.filename}`}
+                        alt={file.filename}
+                        className="w-16 h-16 object-cover flex-shrink-0"
+                      />
+                      <span className="text-[10px] text-slate-400 break-all">{file.filename}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null)}
 
             {filteredApiUsage.by_model.length === 0 && (
               <p className="text-slate-500 text-sm text-center py-4">No API calls recorded yet</p>
