@@ -153,15 +153,6 @@ export function ScoresheetReadPage() {
     });
   }, []);
 
-  // Scroll to mobile edit panel when first move is selected for review
-  const hasScrolledToEdit = useRef(false);
-  useEffect(() => {
-    if (voteState && mobileEditRef.current && !hasScrolledToEdit.current) {
-      hasScrolledToEdit.current = true;
-      setTimeout(() => mobileEditRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
-    }
-    if (!voteState) hasScrolledToEdit.current = false;
-  }, [voteState]);
 
   // ── Live elapsed timer for status table ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
@@ -966,9 +957,7 @@ export function ScoresheetReadPage() {
                     }
                     const allVerified = (hasIssues || hasConfirmedMoves) && unresolvedPlies.length === 0;
                     unresolvedCountRef.current = unresolvedPlies.length;
-                    // Scroll to export buttons on mobile when verification completes
                     if (allVerified && !prevAllVerifiedRef.current) {
-                      setTimeout(() => mobileExportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 200);
                       if (!getCoachesPrefs().scoresheet_success) { saveCoachesPrefs({ scoresheet_success: true }); setHasHadSuccess(true); }
                     }
                     prevAllVerifiedRef.current = allVerified;
