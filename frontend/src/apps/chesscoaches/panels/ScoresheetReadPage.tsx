@@ -822,41 +822,6 @@ export function ScoresheetReadPage() {
                         }
                       }
                     }
-                    // Remove disagreements where consensus is confident:
-                    // - chosen has 2+ votes AND all dissenters are illegal, OR
-                    // - chosen has 2+ votes AND all losers have strictly more downstream illegals
-                    for (const key of [...modelDisagreements]) {
-                      const details = voteDetails?.[key];
-                      if (!details) continue;
-                      const chosen = details.find((d: { chosen: boolean }) => d.chosen);
-                      if (!chosen || chosen.votes < 2) continue;
-
-                      // Check if all losers have more downstream illegals
-                      const losersWorse = details.every((d: { chosen: boolean; downstreamIllegals: number }) => {
-                        if (d.chosen) return true;
-                        return d.downstreamIllegals > chosen.downstreamIllegals;
-                      });
-                      if (losersWorse) { modelDisagreements.delete(key); continue; }
-
-                      // Check if all dissenters are illegal moves
-                      const [numStr, colorStr] = key.split('-');
-                      const idx = parseInt(numStr) - 1;
-                      const cLegal = consensusMoves[idx]?.[`${colorStr}_legal` as 'white_legal' | 'black_legal'];
-                      if (cLegal === false) continue;
-                      const ch = new Chess();
-                      try {
-                        for (let j = 0; j < idx; j++) {
-                          if (consensusMoves[j]?.white) ch.move(consensusMoves[j].white);
-                          if (consensusMoves[j]?.black) ch.move(consensusMoves[j].black!);
-                        }
-                        if (colorStr === 'black' && consensusMoves[idx]?.white) ch.move(consensusMoves[idx].white);
-                      } catch { continue; }
-                      const allDissentersIllegal = details.every((d: { chosen: boolean; candidate: string }) => {
-                        if (d.chosen) return true;
-                        try { ch.move(d.candidate); ch.undo(); return false; } catch { return true; }
-                      });
-                      if (allDissentersIllegal) modelDisagreements.delete(key);
-                    }
 
 
                     // Build consensus meta (player names + result) from model results
@@ -896,6 +861,47 @@ export function ScoresheetReadPage() {
                     // Apply overrides on top of computed consensus, then normalize +/# annotations
                     const rawConsensusMoves = consensusOverrides || consensusMoves;
                     const displayConsensusMoves = normalizeMoves(rawConsensusMoves);
+
+                    // Remove disagreements where all dissenters are illegal at the current consensus board position
+                    {
+                      const filterChess = new Chess();
+                      const filterFens: string[] = [];
+                      for (let fi = 0; fi < displayConsensusMoves.length; fi++) {
+                        filterFens.push(filterChess.fen());
+                        const cm = displayConsensusMoves[fi];
+                        if (cm) {
+                          for (const col of ['white', 'black'] as const) {
+                            const san = cm[col];
+                            if (!san) continue;
+                            try { filterChess.move(san); } catch {
+                              const f = filterChess.fen().split(' '); f[1] = f[1] === 'w' ? 'b' : 'w'; f[3] = '-'; try { filterChess.load(f.join(' ')); } catch {}
+                            }
+                          }
+                        }
+                      }
+                      for (const key of [...modelDisagreements]) {
+                        const [numStr, colorStr] = key.split('-');
+                        const idx = parseInt(numStr) - 1;
+                        const cLegal = displayConsensusMoves[idx]?.[`${colorStr}_legal` as 'white_legal' | 'black_legal'];
+                        if (cLegal === false) continue;
+                        if (!filterFens[idx]) continue;
+                        const allDissentersIllegal = allModelMovesForDisagreement.every(modelMoves => {
+                          const mv = modelMoves[idx]?.[colorStr as 'white' | 'black'];
+                          if (!mv) return true;
+                          const cMove = displayConsensusMoves[idx]?.[colorStr as 'white' | 'black'];
+                          if (mv.replace(/[+#x]/g, '') === cMove?.replace(/[+#x]/g, '')) return true;
+                          try {
+                            const testCh = new Chess(filterFens[idx]);
+                            if (colorStr === 'black' && displayConsensusMoves[idx]?.white) { try { testCh.move(displayConsensusMoves[idx].white); } catch {} }
+                            const ep = resolveEnPassant(testCh, mv);
+                            testCh.move(ep || mv);
+                            return false;
+                          } catch { return true; }
+                        });
+                        if (allDissentersIllegal) modelDisagreements.delete(key);
+                      }
+                    }
+
                     const handleConsensusEditSave = (_readIdx: number, confirmed: Move[], _corrKey: string) => {
                       rerunConsensusAfterEdit(confirmed);
                     };
