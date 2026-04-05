@@ -30,9 +30,9 @@ export function ImageZoomModal({ src, alt = 'Image', onClose, overlay }: ImageZo
   return (
     <div
       onClick={handleBackdrop}
-      className="fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-zoom-out overflow-auto flex items-center justify-center p-4"
+      className="fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-zoom-out overflow-auto p-4 flex"
     >
-      <div className="relative inline-block">
+      <div className="relative m-auto">
         <img
           src={src}
           alt={alt}
