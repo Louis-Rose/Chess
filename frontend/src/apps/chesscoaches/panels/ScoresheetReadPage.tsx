@@ -1216,7 +1216,7 @@ export function ScoresheetReadPage() {
                           </div>
                           {/* Right: board */}
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                               if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
                               voteState.setEditValue(san);
                               setUserPickedMove(san);
@@ -1279,7 +1279,7 @@ export function ScoresheetReadPage() {
                             />
                             {/* Mobile board */}
                             <div className="w-full max-w-[400px]">
-                              <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
+                              <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState} disableNav={allVerified} autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
                                 if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
                                 voteState.setEditValue(san);
                                 setUserPickedMove(san);
@@ -1604,7 +1604,7 @@ function ScoreSheetImage({ preview, onImageClick, fileName, activePly, sheetColu
 let activeModelBoardId = 0;
 let nextModelBoardId = 0;
 
-function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate, previewFen, highlightedPlies: _highlightedPlies, onDragSetMove, compact, targetPly }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void; compact?: boolean; targetPly?: number }) {
+function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, autoActivate, previewFen, highlightedPlies: _highlightedPlies, onDragSetMove, compact, targetPly }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; disableNav?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void; compact?: boolean; targetPly?: number }) {
   const { t } = useLanguage();
   const [instanceId] = useState(() => ++nextModelBoardId);
   const [internalPly, setInternalPly] = useState(0);
@@ -1881,6 +1881,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (disableNav) return;
       if (onDragSetMove) {
         // Modal board: capture keyboard exclusively using capture phase + stopImmediatePropagation
         if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); goPrev(); }
@@ -1902,7 +1903,7 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       // When modal board unmounts, release active state so main board can respond to keys
       if (onDragSetMove && activeModelBoardId === instanceId) activeModelBoardId = 0;
     };
-  }, [instanceId, goPrev, goNext, goFirst, goLast, onDragSetMove]);
+  }, [instanceId, goPrev, goNext, goFirst, goLast, onDragSetMove, disableNav]);
 
 
   return (
@@ -1932,13 +1933,13 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
       })()}
       <div className="relative flex justify-center gap-1.5 mt-1.5 w-full">
         {!compact && (
-          <button onClick={goFirst} className="flex-1 max-w-[80px] py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <button onClick={goFirst} disabled={disableNav} className={`flex-1 max-w-[80px] py-1.5 rounded-lg transition-colors flex items-center justify-center ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
             <ChevronFirst className="w-5 h-5" />
           </button>
         )}
         {compact ? (
           <>
-            <button onClick={goPrev} className="flex-1 py-1 2xl:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm">
+            <button onClick={goPrev} disabled={disableNav} className={`flex-1 py-1 2xl:py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
               <ChevronLeft className="w-4 h-4" /> Previous
             </button>
             <div className="flex-1 py-1 2xl:py-2.5 bg-slate-700 rounded-lg flex items-center justify-center px-2 text-center">
@@ -1952,22 +1953,22 @@ function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, autoActivate
                 );
               })()}
             </div>
-            <button onClick={goNext} className="flex-1 py-1 2xl:py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm">
+            <button onClick={goNext} disabled={disableNav} className={`flex-1 py-1 2xl:py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
               Next <ChevronRight className="w-4 h-4" />
             </button>
           </>
         ) : (
           <>
-            <button onClick={goPrev} className="flex-1 max-w-[80px] py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+            <button onClick={goPrev} disabled={disableNav} className={`flex-1 max-w-[80px] py-1.5 rounded-lg transition-colors flex items-center justify-center ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <button onClick={goNext} className="flex-1 max-w-[80px] py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+            <button onClick={goNext} disabled={disableNav} className={`flex-1 max-w-[80px] py-1.5 rounded-lg transition-colors flex items-center justify-center ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
               <ChevronRight className="w-5 h-5" />
             </button>
           </>
         )}
         {!compact && (
-          <button onClick={goLast} className="flex-1 max-w-[80px] py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center justify-center">
+          <button onClick={goLast} disabled={disableNav} className={`flex-1 max-w-[80px] py-1.5 rounded-lg transition-colors flex items-center justify-center ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
             <ChevronLast className="w-5 h-5" />
           </button>
         )}
