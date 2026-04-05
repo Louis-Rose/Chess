@@ -534,7 +534,7 @@ export function ScoresheetReadPage() {
 
                     // Early display: if only 1 model has results, show its moves directly (read-only)
                     let consensusMoves: Move[];
-                    let voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
+                    let voteDetails: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string> }[]>;
 
                     if (allModelMoves.length === 1) {
                       // Single model — use its validated moves, no vote details
@@ -743,18 +743,9 @@ export function ScoresheetReadPage() {
                       majorityMoves.push(mv);
                     }
 
-                    // Pass 1: use majority votes as downstream reference
                     const pass1 = runConsensusPass(majorityMoves);
-                    // Pass 2: use Pass 1 results as downstream reference
-                    const pass2 = runConsensusPass(pass1.moves);
-
-                    consensusMoves = pass2.moves;
-                    // Combine pass1 and pass2 details for the vote info modal
-                    voteDetails = {};
-                    for (const key of Object.keys(pass2.details)) {
-                      const p1Choice = pass1.details[key]?.find(d => d.chosen)?.candidate;
-                      voteDetails[key] = pass2.details[key].map(d => ({ ...d, pass1Choice: p1Choice }));
-                    }
+                    consensusMoves = pass1.moves;
+                    voteDetails = pass1.details;
 
                     } // end else (>= 2 models)
 
@@ -1343,7 +1334,7 @@ export function ScoresheetReadPage() {
                           }
                         }
                       }
-                      type VoteDetail = { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string };
+                      type VoteDetail = { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string> };
                       return (
                         <div className="mt-6 px-2">
                           <p className="text-slate-400 text-sm font-medium text-center mb-2">Consensus debug</p>
@@ -1362,8 +1353,7 @@ export function ScoresheetReadPage() {
                                       </th>
                                     );
                                   })}
-                                  <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Pass1</th>
-                                  <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Pass2</th>
+                                  <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Consensus</th>
                                   <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Legal</th>
                                   <th className="px-1 py-1 text-slate-400 text-center border-l border-slate-500">Votes</th>
                                 </tr>
@@ -1375,7 +1365,7 @@ export function ScoresheetReadPage() {
                                     const n = modelResults[m.id]!.result!.notation || '?';
                                     return <td key={m.id} className="px-1 py-0.5 text-center border-l border-slate-600/50 text-slate-300 capitalize">{n}</td>;
                                   })}
-                                  <td colSpan={4} className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-200 font-semibold capitalize">{consensusMeta.notation || '?'}</td>
+                                  <td colSpan={3} className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-200 font-semibold capitalize">{consensusMeta.notation || '?'}</td>
                                 </tr>
                                 {/* Compute board FENs for debug legality checks */}
                                 {Array.from({ length: maxMoves }, (_, i) => {
@@ -1384,9 +1374,6 @@ export function ScoresheetReadPage() {
                                   return (['white', 'black'] as const).map(color => {
                                     const key = `${i + 1}-${color}`;
                                     const details: VoteDetail[] | undefined = voteDetails?.[key];
-                                    const chosen = details?.find((d: VoteDetail) => d.chosen);
-                                    const pass1 = chosen?.pass1Choice;
-                                    const pass2 = chosen?.candidate;
                                     const cMove = consensusMove?.[color];
                                     const legal = consensusMove?.[`${color}_legal` as const];
                                     const reason = consensusMove?.[`${color}_reason` as const];
@@ -1434,11 +1421,8 @@ export function ScoresheetReadPage() {
                                             </td>
                                           );
                                         })}
-                                        <td className={`px-1 py-0.5 text-center border-l border-slate-500 ${pass1 && pass1 !== pass2 ? 'text-orange-400' : 'text-slate-400'}`}>
-                                          {pass1 ? toNotation(pass1, notation) : ''}
-                                        </td>
                                         <td className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-200 font-semibold">
-                                          {pass2 ? toNotation(pass2, notation) : (cMove ? toNotation(cMove, notation) : '')}
+                                          {cMove ? toNotation(cMove, notation) : ''}
                                         </td>
                                         <td className={`px-1 py-0.5 text-center border-l border-slate-500 ${legal === false ? 'text-red-400' : legal === true ? 'text-green-400' : 'text-slate-600'}`}>
                                           {legal === true ? '✓' : legal === false ? '✗' : ''}
@@ -1967,7 +1951,7 @@ function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, re
 
   modelDisagreements?: Set<string>;
   originalMoves?: Move[];
-  voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string>; pass1Choice?: string }[]>;
+  voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string> }[]>;
 
   showMoveInfo?: boolean;
   loading?: boolean;
