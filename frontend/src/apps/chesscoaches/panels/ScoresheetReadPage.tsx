@@ -641,8 +641,15 @@ export function ScoresheetReadPage() {
 
                           (move as any)[color] = picked.move;
                           if (picked.legal) {
-                            (move as any)[`${color}_legal`] = true;
-                            try { passChess.move(picked.move); } catch {}
+                            let advanced = false;
+                            try { passChess.move(picked.move); advanced = true; } catch {}
+                            if (advanced) {
+                              (move as any)[`${color}_legal`] = true;
+                            } else {
+                              (move as any)[`${color}_legal`] = false;
+                              (move as any)[`${color}_reason`] = 'No legal option — correct an earlier move';
+                              stopped = true;
+                            }
                           } else {
                             (move as any)[`${color}_legal`] = false;
                             (move as any)[`${color}_reason`] = 'No legal option — correct an earlier move';
