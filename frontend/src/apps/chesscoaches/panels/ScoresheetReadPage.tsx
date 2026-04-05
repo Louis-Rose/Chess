@@ -1004,11 +1004,11 @@ export function ScoresheetReadPage() {
 
                     const renderRevertButton = () => {
                       const lastConfirmed = getLastConfirmed();
-                      if (!lastConfirmed) return null;
                       return (
                         <button
-                          onClick={() => handleRevert(lastConfirmed)}
-                          className="text-sm px-4 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                          disabled={!lastConfirmed}
+                          onClick={() => { if (lastConfirmed) handleRevert(lastConfirmed); }}
+                          className={`text-sm px-4 py-1.5 rounded-lg transition-colors ${lastConfirmed ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
                         >
                           {t('coaches.revertChange')}
                         </button>
