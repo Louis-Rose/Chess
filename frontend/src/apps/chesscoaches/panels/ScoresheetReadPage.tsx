@@ -1414,9 +1414,8 @@ export function ScoresheetReadPage() {
                                               mvLegal = true;
                                             } catch { mvLegal = false; }
                                           }
-                                          const differs = mv && cMove && mv !== cMove;
                                           return (
-                                            <td key={m.id} className={`px-1 py-0.5 text-center border-l border-slate-600/50 ${mvLegal === false ? 'text-red-400' : differs ? 'text-yellow-400' : 'text-slate-300'}`}>
+                                            <td key={m.id} className={`px-1 py-0.5 text-center border-l border-slate-600/50 ${mvLegal === false ? 'text-red-400' : 'text-slate-300'}`}>
                                               {toNotation(mv, modelNotation)}
                                               {time != null && <span className="text-slate-500"> ({time})</span>}
                                               {conf && conf !== 'high' && <span className={`ml-0.5 ${conf === 'low' ? 'text-red-400' : 'text-yellow-600'}`}>[{conf[0]}]</span>}
