@@ -18,6 +18,18 @@ import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
+/** Try to resolve shorthand en passant like 'ef' to 'exf6' */
+function resolveEnPassant(chess: InstanceType<typeof Chess>, san: string): string | null {
+  if (san.length !== 2 || !('abcdefgh'.includes(san[0])) || !('abcdefgh'.includes(san[1]))) return null;
+  if (Math.abs(san.charCodeAt(0) - san.charCodeAt(1)) !== 1) return null;
+  for (const move of chess.moves({ verbose: true })) {
+    if (move.flags.includes('e') && move.san[0] === san[0] && move.to[0] === san[1]) {
+      return move.san;
+    }
+  }
+  return null;
+}
+
 const NOTATION_MAPS: Record<string, Record<string, string>> = {
   french: { R: 'T', B: 'F', Q: 'D', N: 'C', K: 'R' },
   armenian: { R: 'ն', B: 'փ', Q: 'թ', N: 'Ձ', K: 'ա' },
@@ -934,7 +946,8 @@ export function ScoresheetReadPage() {
                                   const orig = Object.entries(originals).sort((a, b) => b[1] - a[1])[0][0];
                                   const sim = new Chess(ch.fen());
                                   let ill = 0;
-                                  try { sim.move(orig); } catch {
+                                  const epOrig = resolveEnPassant(sim, orig);
+                                  try { sim.move(epOrig || orig); } catch {
                                     // Check ambiguity
                                     const pm = orig.match(/^([KQRBN])/);
                                     const dm = orig.match(/([a-h][1-8])$/);
@@ -950,6 +963,9 @@ export function ScoresheetReadPage() {
                               }
                               cm[col] = bestOrig;
                             }
+                            // Resolve shorthand en passant (e.g. 'ef' → 'exf6')
+                            const epResolved = resolveEnPassant(ch, cm[col]!);
+                            if (epResolved) cm[col] = epResolved;
                             // Validate
                             try { ch.move(cm[col]!); (cm as any)[`${col}_legal`] = true; }
                             catch {
