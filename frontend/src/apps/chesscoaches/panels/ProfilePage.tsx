@@ -129,8 +129,8 @@ export function ProfilePage() {
 
             {(chesscom || lichess) && (
               <div className="grid grid-cols-2 gap-4">
-                {chesscom && <InfoRow label="Chess.com" value={chesscom} />}
-                {lichess && <InfoRow label="Lichess" value={lichess} />}
+                {chesscom && <InfoRow label={t('coaches.profile.chesscomUsername')} value={chesscom} />}
+                {lichess && <InfoRow label={t('coaches.profile.lichessUsername')} value={lichess} />}
               </div>
             )}
 
@@ -291,7 +291,7 @@ function Field({ label, required, children }: { label: string; required?: boolea
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="block text-xs text-slate-500 mb-0.5">{label}</span>
+      <span className="block text-sm text-slate-400 mb-0.5">{label}</span>
       <span className="text-sm text-slate-100">{value}</span>
     </div>
   );
