@@ -15,6 +15,73 @@ UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 's
 MIME_TO_EXT = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/heic': '.heic'}
 
 
+def _azure_di_poll(result_url, key, max_iterations=60):
+    """Poll Azure Document Intelligence for results. Returns result JSON or raises."""
+    import time as time_module
+    poll_headers = {'Ocp-Apim-Subscription-Key': key}
+    for _ in range(max_iterations):
+        time_module.sleep(1)
+        result_resp = http_requests.get(result_url, headers=poll_headers, timeout=10)
+        result_json = result_resp.json()
+        status = result_json.get('status')
+        if status == 'succeeded':
+            return result_json
+        if status == 'failed':
+            raise RuntimeError('Azure DI analysis failed')
+    raise TimeoutError('Azure DI timed out')
+
+
+def _init_gemini_clients(feature_name):
+    """Validate Gemini API keys and return (client_paid, client_free). Raises if paid key missing."""
+    from google import genai
+    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
+    free_key = os.environ.get('GEMINI_FREE_API_KEY')
+    if not paid_key:
+        logger.error(f"[{feature_name}] GEMINI_PAID_API_KEY not configured")
+        raise ValueError("GEMINI_PAID_API_KEY not configured")
+    return genai.Client(api_key=paid_key), genai.Client(api_key=free_key) if free_key else None
+
+
+def _extract_usage_tokens(response):
+    """Extract input/output/thinking token counts from a Gemini response."""
+    usage = getattr(response, 'usage_metadata', None)
+    return (
+        getattr(usage, 'prompt_token_count', 0) or 0,
+        getattr(usage, 'candidates_token_count', 0) or 0,
+        getattr(usage, 'thoughts_token_count', 0) or 0,
+    )
+
+
+def _sse_response(result_queue, threads, total_threads, initial_data, feature_name):
+    """Create an SSE streaming Response from a result queue and threads."""
+    import json as json_module
+    import queue
+
+    THREAD_DONE = "THREAD_DONE"
+
+    def generate():
+        yield f"data: {json_module.dumps(initial_data)}\n\n"
+        threads_done = 0
+        while threads_done < total_threads:
+            try:
+                item = result_queue.get(timeout=300)
+                if item is THREAD_DONE:
+                    threads_done += 1
+                    continue
+                yield f"data: {json_module.dumps(item)}\n\n"
+            except queue.Empty:
+                break
+        yield "data: {\"type\": \"done\"}\n\n"
+        logger.info(f"[{feature_name}] All models done.")
+        for t in threads:
+            t.join(timeout=1)
+
+    return Response(generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+    })
+
+
 def _get_user_surname(user_id):
     """Get the user's surname (last word of name) for upload filenames."""
     try:
@@ -417,22 +484,10 @@ def auto_crop():
         return jsonify({'error': 'No Operation-Location header'}), 500
 
     # Poll for results
-    poll_headers = {'Ocp-Apim-Subscription-Key': key}
-    result_json = None
-    for _ in range(30):
-        time_module.sleep(1)
-        try:
-            result_resp = http_requests.get(result_url, headers=poll_headers, timeout=10)
-            result_json = result_resp.json()
-        except Exception as e:
-            return jsonify({'error': f'Polling failed: {e}'}), 500
-        status = result_json.get('status')
-        if status == 'succeeded':
-            break
-        if status == 'failed':
-            return jsonify({'error': 'Azure DI analysis failed'}), 500
-    else:
-        return jsonify({'error': 'Azure DI timed out'}), 500
+    try:
+        result_json = _azure_di_poll(result_url, key, max_iterations=30)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
     elapsed = round(time_module.time() - start)
     analyze_result = result_json.get('analyzeResult', {})
@@ -610,10 +665,10 @@ def reread_scoresheet():
     uid = get_current_user()
     _save_upload(uid, req_id, image_bytes, mime_type, 'reread')
 
-    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
-    free_key = os.environ.get('GEMINI_FREE_API_KEY')
-    if not paid_key:
-        return jsonify({"error": "GEMINI_PAID_API_KEY not configured"}), 500
+    try:
+        client_paid, client_free = _init_gemini_clients('Reread')
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 500
 
     # Replay confirmed moves to get board position
     board = chess.Board()
@@ -673,8 +728,6 @@ Return ONLY a JSON object:
   ]
 }}"""
 
-    client_paid = genai.Client(api_key=paid_key)
-    client_free = genai.Client(api_key=free_key) if free_key else None
     start = time_module.time()
     try:
         response, tier, _ = _gemini_generate(
@@ -692,10 +745,7 @@ Return ONLY a JSON object:
         return jsonify({"error": str(e)}), 500
 
     elapsed = round(time_module.time() - start)
-    usage = getattr(response, 'usage_metadata', None)
-    in_tok = getattr(usage, 'prompt_token_count', 0) or 0
-    out_tok = getattr(usage, 'candidates_token_count', 0) or 0
-    think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
+    in_tok, out_tok, think_tok = _extract_usage_tokens(response)
     _log_api_usage('reread', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
     gemini_result, warnings = _scoresheet_parse_response(response.text)
     new_moves = gemini_result.get("moves", [])
@@ -773,25 +823,12 @@ def read_scoresheet_azure():
         return jsonify({"error": "No Operation-Location header in response"}), 500
 
     # Poll for results
-    poll_headers = {'Ocp-Apim-Subscription-Key': key}
-    result_json = None
-    for _ in range(60):
-        time_module.sleep(1)
-        try:
-            result_resp = http_requests.get(result_url, headers=poll_headers, timeout=10)
-            result_json = result_resp.json()
-        except Exception as e:
-            return jsonify({"error": f"Polling failed: {e}"}), 500
-        status = result_json.get('status')
-        if status == 'succeeded':
-            break
-        if status == 'failed':
-            return jsonify({"error": "Azure DI analysis failed"}), 500
-    else:
-        return jsonify({"error": "Azure DI timed out"}), 500
+    try:
+        result_json = _azure_di_poll(result_url, key)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
     elapsed = round(time_module.time() - start)
-
     analyze_result = result_json.get('analyzeResult', {})
     tables = analyze_result.get('tables', [])
     pages = analyze_result.get('pages', [])
@@ -899,9 +936,7 @@ rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"""
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
 def read_diagram():
     """Analyze a chess diagram image with multiple Gemini models in parallel, streaming results via SSE."""
-    from google import genai
     from google.genai import types
-    import json as json_module
     import threading
     import queue
     import time as time_module
@@ -916,11 +951,10 @@ def read_diagram():
     if not image_file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
-    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
-    free_key = os.environ.get('GEMINI_FREE_API_KEY')
-    if not paid_key:
-        logger.error("[Diagram] GEMINI_PAID_API_KEY not configured")
-        return jsonify({"error": "GEMINI_PAID_API_KEY not configured"}), 500
+    try:
+        client_paid, client_free = _init_gemini_clients('Diagram')
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 500
 
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
@@ -932,8 +966,6 @@ def read_diagram():
     _save_upload(uid, req_id, image_bytes, mime_type, 'diagram')
 
     result_queue = queue.Queue()
-    client_paid = genai.Client(api_key=paid_key)
-    client_free = genai.Client(api_key=free_key) if free_key else None
 
     def run_model(model_info):
         model_id = model_info["id"]
@@ -949,12 +981,8 @@ def read_diagram():
                 ],
             )
             elapsed = round(time_module.time() - start)
-            usage = getattr(response, 'usage_metadata', None)
-            in_tok = getattr(usage, 'prompt_token_count', 0) or 0
-            out_tok = getattr(usage, 'candidates_token_count', 0) or 0
-            think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
+            in_tok, out_tok, think_tok = _extract_usage_tokens(response)
             fen = response.text.strip().strip('`').strip()
-            # Remove markdown code block if present
             if fen.startswith('fen\n'):
                 fen = fen[4:].strip()
             logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
@@ -974,38 +1002,14 @@ def read_diagram():
         t.start()
         threads.append(t)
 
-    def generate():
-        yield f"data: {json_module.dumps({'type': 'models', 'models': _enrich_models_with_avg(uid)})}\n\n"
-
-        threads_done = 0
-        while threads_done < len(SCORESHEET_MODELS):
-            try:
-                item = result_queue.get(timeout=300)
-                if item is THREAD_DONE:
-                    threads_done += 1
-                    continue
-                yield f"data: {json_module.dumps(item)}\n\n"
-            except queue.Empty:
-                break
-
-        yield "data: {\"type\": \"done\"}\n\n"
-        logger.info("[Diagram] All models done.")
-
-        for t in threads:
-            t.join(timeout=1)
-
-    return Response(generate(), mimetype='text/event-stream', headers={
-        'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no',
-    })
+    return _sse_response(result_queue, threads, len(SCORESHEET_MODELS),
+                         {'type': 'models', 'models': _enrich_models_with_avg(uid)}, 'Diagram')
 
 
 @coaches_bp.route('/api/coaches/read-scoresheet', methods=['POST'])
 def read_scoresheet():
     """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
-    from google import genai
     from google.genai import types
-    import json as json_module
     import threading
     import queue
     import time as time_module
@@ -1020,11 +1024,10 @@ def read_scoresheet():
     if not image_file.filename:
         return jsonify({"error": "Empty filename"}), 400
 
-    paid_key = os.environ.get('GEMINI_PAID_API_KEY')
-    free_key = os.environ.get('GEMINI_FREE_API_KEY')
-    if not paid_key:
-        logger.error("[Scoresheet] GEMINI_PAID_API_KEY not configured")
-        return jsonify({"error": "GEMINI_PAID_API_KEY not configured"}), 500
+    try:
+        client_paid, client_free = _init_gemini_clients('Scoresheet')
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 500
 
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
@@ -1037,8 +1040,6 @@ def read_scoresheet():
     _save_upload(uid, req_id, image_bytes, mime_type, 'scoresheet')
 
     result_queue = queue.Queue()
-    client_paid = genai.Client(api_key=paid_key)
-    client_free = genai.Client(api_key=free_key) if free_key else None
 
     def run_model(model_info):
         model_id = model_info["id"]
@@ -1061,10 +1062,7 @@ def read_scoresheet():
                 on_retry=on_retry,
             )
             elapsed = round(time_module.time() - start)
-            usage = getattr(response, 'usage_metadata', None)
-            in_tok = getattr(usage, 'prompt_token_count', 0) or 0
-            out_tok = getattr(usage, 'candidates_token_count', 0) or 0
-            think_tok = getattr(usage, 'thoughts_token_count', 0) or 0
+            in_tok, out_tok, think_tok = _extract_usage_tokens(response)
             logger.info(f"[Scoresheet] {model_name} responded in {elapsed}s ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
 
             result, warnings = _scoresheet_parse_response(response.text)
@@ -1114,16 +1112,10 @@ def read_scoresheet():
             if not result_url:
                 result_queue.put(THREAD_DONE)
                 return
-            poll_headers = {'Ocp-Apim-Subscription-Key': di_key}
-            result_json = None
-            for _ in range(60):
-                time_module.sleep(1)
-                result_resp = http_requests.get(result_url, headers=poll_headers, timeout=10)
-                result_json = result_resp.json()
-                if result_json.get('status') in ('succeeded', 'failed'):
-                    break
-            if not result_json or result_json.get('status') != 'succeeded':
-                logger.warning("[Scoresheet] Azure DI analysis failed or timed out")
+            try:
+                result_json = _azure_di_poll(result_url, di_key)
+            except Exception as poll_err:
+                logger.warning(f"[Scoresheet] Azure DI polling: {poll_err}")
                 result_queue.put(THREAD_DONE)
                 return
 
@@ -1275,30 +1267,8 @@ def read_scoresheet():
     threads.append(azure_thread)
     total_threads = len(SCORESHEET_MODELS) + 1
 
-    def generate():
-        yield f"data: {json_module.dumps({'type': 'models', 'models': _enrich_models_with_avg(uid)})}\n\n"
-
-        threads_done = 0
-        while threads_done < total_threads:
-            try:
-                item = result_queue.get(timeout=300)
-                if item is THREAD_DONE:
-                    threads_done += 1
-                    continue
-                yield f"data: {json_module.dumps(item)}\n\n"
-            except queue.Empty:
-                break
-
-        yield "data: {\"type\": \"done\"}\n\n"
-        logger.info(f"[Scoresheet] All models done.")
-
-        for t in threads:
-            t.join(timeout=1)
-
-    return Response(generate(), mimetype='text/event-stream', headers={
-        'Cache-Control': 'no-cache',
-        'X-Accel-Buffering': 'no',
-    })
+    return _sse_response(result_queue, threads, total_threads,
+                         {'type': 'models', 'models': _enrich_models_with_avg(uid)}, 'Scoresheet')
 
 
 # ── Coach Students Management ──

@@ -13,6 +13,66 @@ logger = logging.getLogger(__name__)
 admin_bp = Blueprint('admin', __name__)
 
 
+def _serialize_datetimes(d, fields=('created_at', 'updated_at'), utc_fields=('last_active',)):
+    """Convert datetime objects to ISO strings for JSON serialization."""
+    for f in fields:
+        if d.get(f) and hasattr(d[f], 'isoformat'):
+            d[f] = d[f].isoformat()
+    for f in utc_fields:
+        if d.get(f) and hasattr(d[f], 'isoformat'):
+            d[f] = d[f].isoformat() + 'Z'
+    return d
+
+
+def _query_time_spent_details(period, extra_clause, extra_params, select_cols, group_by):
+    """Shared logic for period-based time spent queries (date/week/month)."""
+    with get_db() as conn:
+        if '-W' in period:
+            year, week = period.split('-W')
+            if USE_POSTGRES:
+                date_filter = "EXTRACT(YEAR FROM a.activity_date::date) = %s AND EXTRACT(WEEK FROM a.activity_date::date) = %s"
+            else:
+                date_filter = "strftime('%Y', a.activity_date) = ? AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?"
+            date_params = (int(year), int(week))
+        elif len(period) == 7:
+            if USE_POSTGRES:
+                date_filter = "to_char(a.activity_date::date, 'YYYY-MM') = %s"
+            else:
+                date_filter = "strftime('%Y-%m', a.activity_date) = ?"
+            date_params = (period,)
+        else:
+            date_filter = "a.activity_date = ?"
+            date_params = (period,)
+
+        cursor = conn.execute(f'''
+            SELECT {select_cols}, SUM(a.seconds) as seconds
+            FROM user_activity a
+            JOIN users u ON a.user_id = u.id
+            WHERE {date_filter} {extra_clause}
+            GROUP BY {group_by}
+            ORDER BY seconds DESC
+        ''', (*date_params, *extra_params))
+
+        users = [dict(row) for row in cursor.fetchall()]
+    return jsonify({'users': users, 'period': period})
+
+
+def _query_page_breakdown(where_clause, params):
+    """Shared logic for page breakdown queries."""
+    with get_db() as conn:
+        cursor = conn.execute(f'''
+            SELECT p.page, SUM(p.seconds) as total_seconds
+            FROM page_activity p
+            JOIN users u ON p.user_id = u.id
+            WHERE {where_clause}
+            GROUP BY p.page
+            ORDER BY total_seconds DESC
+        ''', params)
+        breakdown = [dict(row) for row in cursor.fetchall()]
+        total = sum(item['total_seconds'] for item in breakdown)
+    return jsonify({'breakdown': breakdown, 'total_seconds': total})
+
+
 # ── Gemini pricing per 1M tokens (USD) ──
 GEMINI_PRICING = {
     'gemini-3-flash-preview':         {'input': 0.50, 'output': 3.00},
@@ -270,14 +330,7 @@ def list_users():
         for row in cursor.fetchall():
             if row['email'] in hidden_emails:
                 continue
-            user = dict(row)
-            # Convert datetime objects to ISO strings for consistent JSON serialization
-            if user.get('created_at') and hasattr(user['created_at'], 'isoformat'):
-                user['created_at'] = user['created_at'].isoformat()
-            if user.get('updated_at') and hasattr(user['updated_at'], 'isoformat'):
-                user['updated_at'] = user['updated_at'].isoformat()
-            if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
-                user['last_active'] = user['last_active'].isoformat() + 'Z'
+            user = _serialize_datetimes(dict(row))
             users.append(user)
 
     return jsonify({'users': users, 'total': len(users)})
@@ -308,13 +361,7 @@ def list_coach_users():
         ''', (COACHES_LAUNCH_DATE, COACHES_LAUNCH_DATE, COACHES_LAUNCH_DATE))
         users = []
         for row in cursor.fetchall():
-            user = dict(row)
-            if user.get('created_at') and hasattr(user['created_at'], 'isoformat'):
-                user['created_at'] = user['created_at'].isoformat()
-            if user.get('updated_at') and hasattr(user['updated_at'], 'isoformat'):
-                user['updated_at'] = user['updated_at'].isoformat()
-            if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
-                user['last_active'] = user['last_active'].isoformat() + 'Z'
+            user = _serialize_datetimes(dict(row))
             users.append(user)
 
         # Compute per-user API cost (only paid calls)
@@ -607,11 +654,7 @@ def get_chess_users():
         ''', ('chess:%', *EXCLUDED_CHESS_TESTERS))
         users = []
         for row in cursor.fetchall():
-            user = dict(row)
-            if user.get('last_active') and hasattr(user['last_active'], 'isoformat'):
-                user['last_active'] = user['last_active'].isoformat() + 'Z'
-            if user.get('created_at') and hasattr(user['created_at'], 'isoformat'):
-                user['created_at'] = user['created_at'].isoformat()
+            user = _serialize_datetimes(dict(row))
             users.append(user)
 
     return jsonify({'users': users})
@@ -643,79 +686,12 @@ def get_chess_time_spent_stats():
 def get_chess_time_spent_details(period):
     """Get chess users' time spent for a specific period (admin only)."""
     tester_placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
-    chess_filter = f"AND u.google_id LIKE ? AND LOWER(u.name) NOT IN ({tester_placeholders})"
-
-    with get_db() as conn:
-        if '-W' in period:
-            year, week = period.split('-W')
-            if USE_POSTGRES:
-                cursor = conn.execute(f'''
-                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
-                      AND EXTRACT(WEEK FROM a.activity_date::date) = %s
-                      {chess_filter}
-                    GROUP BY LOWER(u.name)
-                    ORDER BY seconds DESC
-                ''', (int(year), int(week), 'chess:%', *EXCLUDED_CHESS_TESTERS))
-            else:
-                cursor = conn.execute(f'''
-                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE strftime('%Y', a.activity_date) = ?
-                      AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
-                      {chess_filter}
-                    GROUP BY LOWER(u.name)
-                    ORDER BY seconds DESC
-                ''', (year, int(week), 'chess:%', *EXCLUDED_CHESS_TESTERS))
-        elif len(period) == 7:
-            if USE_POSTGRES:
-                cursor = conn.execute(f'''
-                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
-                      {chess_filter}
-                    GROUP BY LOWER(u.name)
-                    ORDER BY seconds DESC
-                ''', (period, 'chess:%', *EXCLUDED_CHESS_TESTERS))
-            else:
-                cursor = conn.execute(f'''
-                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE strftime('%Y-%m', a.activity_date) = ?
-                      {chess_filter}
-                    GROUP BY LOWER(u.name)
-                    ORDER BY seconds DESC
-                ''', (period, 'chess:%', *EXCLUDED_CHESS_TESTERS))
-        else:
-            if USE_POSTGRES:
-                cursor = conn.execute(f'''
-                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE a.activity_date = %s
-                      {chess_filter}
-                    GROUP BY LOWER(u.name)
-                    ORDER BY seconds DESC
-                ''', (period, 'chess:%', *EXCLUDED_CHESS_TESTERS))
-            else:
-                cursor = conn.execute(f'''
-                    SELECT LOWER(u.name) as name, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE a.activity_date = ?
-                      {chess_filter}
-                    GROUP BY LOWER(u.name)
-                    ORDER BY seconds DESC
-                ''', (period, 'chess:%', *EXCLUDED_CHESS_TESTERS))
-
-        users = [dict(row) for row in cursor.fetchall()]
-
-    return jsonify({'users': users, 'period': period})
+    return _query_time_spent_details(period,
+        extra_clause=f"AND u.google_id LIKE ? AND LOWER(u.name) NOT IN ({tester_placeholders})",
+        extra_params=('chess:%', *EXCLUDED_CHESS_TESTERS),
+        select_cols="LOWER(u.name) as name",
+        group_by="LOWER(u.name)",
+    )
 
 
 @admin_bp.route('/api/admin/chess-page-breakdown', methods=['GET'])
@@ -723,25 +699,10 @@ def get_chess_time_spent_details(period):
 def get_chess_page_breakdown():
     """Get aggregated time spent by page/section for chess users only (admin only)."""
     placeholders = ','.join(['?' for _ in EXCLUDED_CHESS_TESTERS])
-
-    with get_db() as conn:
-        cursor = conn.execute(f'''
-            SELECT p.page, SUM(p.seconds) as total_seconds
-            FROM page_activity p
-            JOIN users u ON p.user_id = u.id
-            WHERE u.google_id LIKE ?
-              AND LOWER(u.name) NOT IN ({placeholders})
-            GROUP BY p.page
-            ORDER BY total_seconds DESC
-        ''', ('chess:%', *EXCLUDED_CHESS_TESTERS))
-
-        breakdown = [dict(row) for row in cursor.fetchall()]
-        total = sum(item['total_seconds'] for item in breakdown)
-
-    return jsonify({
-        'breakdown': breakdown,
-        'total_seconds': total
-    })
+    return _query_page_breakdown(
+        f"u.google_id LIKE ? AND LOWER(u.name) NOT IN ({placeholders})",
+        ('chess:%', *EXCLUDED_CHESS_TESTERS),
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -783,15 +744,7 @@ def get_user_detail(user_id):
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    user_dict = dict(user)
-    # Convert datetime objects to ISO strings for JSON serialization
-    if user_dict.get('created_at') and hasattr(user_dict['created_at'], 'isoformat'):
-        user_dict['created_at'] = user_dict['created_at'].isoformat()
-    if user_dict.get('updated_at') and hasattr(user_dict['updated_at'], 'isoformat'):
-        user_dict['updated_at'] = user_dict['updated_at'].isoformat()
-    if user_dict.get('last_active') and hasattr(user_dict['last_active'], 'isoformat'):
-        user_dict['last_active'] = user_dict['last_active'].isoformat() + 'Z'
-
+    user_dict = _serialize_datetimes(dict(user))
     return jsonify({'user': user_dict})
 
 
@@ -845,110 +798,23 @@ def get_time_spent_stats():
 @admin_bp.route('/api/admin/time-spent/<period>', methods=['GET'])
 @admin_required
 def get_time_spent_details(period):
-    """Get users' time spent for a specific date, week, or month (admin only).
-
-    Period formats:
-    - Date: YYYY-MM-DD
-    - Week: YYYY-WXX
-    - Month: YYYY-MM
-    """
-    excluded_email = 'rose.louis.mail@gmail.com'
-
-    with get_db() as conn:
-        if '-W' in period:
-            # Week format: YYYY-WXX
-            year, week = period.split('-W')
-            if USE_POSTGRES:
-                cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE EXTRACT(YEAR FROM a.activity_date::date) = %s
-                      AND EXTRACT(WEEK FROM a.activity_date::date) = %s
-                      AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
-                    GROUP BY u.id, u.name, u.picture
-                    ORDER BY seconds DESC
-                ''', (int(year), int(week), excluded_email))
-            else:
-                cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE strftime('%Y', a.activity_date) = ?
-                      AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?
-                      AND u.email != ? AND u.google_id NOT LIKE ?
-                    GROUP BY u.id
-                    ORDER BY seconds DESC
-                ''', (year, int(week), excluded_email, 'chess:%'))
-        elif len(period) == 7:
-            # Month format: YYYY-MM
-            if USE_POSTGRES:
-                cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE to_char(a.activity_date::date, 'YYYY-MM') = %s
-                      AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
-                    GROUP BY u.id, u.name, u.picture
-                    ORDER BY seconds DESC
-                ''', (period, excluded_email))
-            else:
-                cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, SUM(a.seconds) as seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE strftime('%Y-%m', a.activity_date) = ?
-                      AND u.email != ? AND u.google_id NOT LIKE ?
-                    GROUP BY u.id
-                    ORDER BY seconds DESC
-                ''', (period, excluded_email, 'chess:%'))
-        else:
-            # Date format: YYYY-MM-DD
-            if USE_POSTGRES:
-                cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, a.seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE a.activity_date = %s
-                      AND u.email != %s AND u.google_id NOT LIKE 'chess:%%'
-                    ORDER BY a.seconds DESC
-                ''', (period, excluded_email))
-            else:
-                cursor = conn.execute('''
-                    SELECT u.id, u.name, u.picture, a.seconds
-                    FROM user_activity a
-                    JOIN users u ON a.user_id = u.id
-                    WHERE a.activity_date = ?
-                      AND u.email != ? AND u.google_id NOT LIKE ?
-                    ORDER BY a.seconds DESC
-                ''', (period, excluded_email, 'chess:%'))
-
-        users = [dict(row) for row in cursor.fetchall()]
-
-    return jsonify({'users': users, 'period': period})
+    """Get users' time spent for a specific date, week, or month (admin only)."""
+    return _query_time_spent_details(period,
+        extra_clause="AND u.email != ? AND u.google_id NOT LIKE ?",
+        extra_params=('rose.louis.mail@gmail.com', 'chess:%'),
+        select_cols="u.id, u.name, u.picture",
+        group_by="u.id, u.name, u.picture" if USE_POSTGRES else "u.id",
+    )
 
 
 @admin_bp.route('/api/admin/page-breakdown', methods=['GET'])
 @admin_required
 def get_page_breakdown():
     """Get aggregated time spent by page/section (admin only)."""
-    with get_db() as conn:
-        cursor = conn.execute('''
-            SELECT p.page, SUM(p.seconds) as total_seconds
-            FROM page_activity p
-            JOIN users u ON p.user_id = u.id
-            WHERE u.google_id NOT LIKE 'chess:%' AND u.email != 'rose.louis.mail@gmail.com'
-            GROUP BY p.page
-            ORDER BY total_seconds DESC
-        ''')
-
-        breakdown = [dict(row) for row in cursor.fetchall()]
-        total = sum(item['total_seconds'] for item in breakdown)
-
-    return jsonify({
-        'breakdown': breakdown,
-        'total_seconds': total
-    })
+    return _query_page_breakdown(
+        "u.google_id NOT LIKE ? AND u.email != ?",
+        ('chess:%', 'rose.louis.mail@gmail.com'),
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────
