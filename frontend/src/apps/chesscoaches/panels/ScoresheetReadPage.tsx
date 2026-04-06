@@ -680,32 +680,22 @@ export function ScoresheetReadPage() {
                     }
                     if (consensusMoves.length === 0) return (
                       <>
-                        {/* Desktop skeleton: image + processing placeholder + board */}
+                        {/* Desktop skeleton */}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4">
                           <div className="flex justify-end items-center">
                             <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} zoomed />
                           </div>
                           <div className="self-start">
-                            <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[540px]">
-                              <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
-                                <Clock className="w-4 h-4 animate-spin" />
-                                <span className="text-sm">{t('coaches.analyzing')}</span>
-                              </div>
-                            </div>
+                            <AnalyzingPlaceholder minWidth="min-w-[540px]" />
                           </div>
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]">
                             <ModelBoard moves={[]} autoActivate={false} disableDrag />
                           </div>
                         </div>
-                        {/* Mobile skeleton: image + processing placeholder + board */}
+                        {/* Mobile skeleton */}
                         <div className="md:hidden flex flex-col items-center gap-3 px-2">
                           <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} />
-                          <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[320px]">
-                            <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
-                              <Clock className="w-4 h-4 animate-spin" />
-                              <span className="text-sm">{t('coaches.analyzing')}</span>
-                            </div>
-                          </div>
+                          <AnalyzingPlaceholder minWidth="min-w-[320px]" />
                           <ModelBoard moves={[]} autoActivate={false} disableDrag compact />
                         </div>
                       </>
@@ -1043,173 +1033,125 @@ export function ScoresheetReadPage() {
                     };
                     // --- End shared helpers ---
 
+                    // --- Shared computed values (DRY: used by both desktop & mobile) ---
+                    const disagreementsMap = (() => {
+                      const m = new Map<number, { white: boolean; black: boolean }>();
+                      modelDisagreements.forEach(key => {
+                        const [numStr, color] = key.split('-');
+                        const num = parseInt(numStr);
+                        const existing = m.get(num) || { white: false, black: false };
+                        existing[color as 'white' | 'black'] = true;
+                        m.set(num, existing);
+                      });
+                      return m;
+                    })();
+
+                    const movesPanelLabel = !allModelsFinished || analyzing ? `${t('coaches.processing')}...` : t('coaches.consensus');
+                    const isLoading = !allModelsFinished || analyzing;
+                    const sharedVoteDetails = allModelsFinished && !analyzing ? voteDetails : undefined;
+                    const sharedEditSave = allModelsFinished && !analyzing ? (confirmed: Move[], corrKey: string) => handleConsensusEditSave(0, confirmed, corrKey) : undefined;
+                    const handleMoveClick = (movesArr: Move[], ply: number) => {
+                      setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
+                      const moveIdx = Math.floor((ply - 1) / 2);
+                      const color = ply % 2 === 1 ? 'white' : 'black';
+                      const san = movesArr[moveIdx]?.[color];
+                      if (san) playMoveSound(san.includes('x'));
+                    };
+                    const boardTargetPly = voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined;
+                    const handleDragSetMove = voteState ? (san: string) => {
+                      if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
+                      setUserPickedMove(san);
+                      voteState.setEditValue(san);
+                    } : undefined;
+                    const showTryOwn = allVerified && (wasFirstTimer.current || !hasHadSuccess);
+
+                    const renderMovesPanel = () => (
+                      <MovesPanel
+                        label={movesPanelLabel}
+                        moves={displayConsensusMoves}
+                        disagreements={disagreementsMap}
+                        loading={isLoading}
+                        meta={consensusMeta}
+                        onMetaChange={(field, value) => setMetaOverrides(prev => ({ ...prev, [field]: value }))}
+                        onEditSave={sharedEditSave}
+                        originalMoves={consensusOverrides ? consensusMoves : undefined}
+                        onMoveClick={handleMoveClick}
+                        activePly={modelBoardPlys[consensusId]?.ply}
+                        modelDisagreements={modelDisagreements}
+                        voteDetails={sharedVoteDetails}
+                        onVoteStateChange={handleVoteStateChange}
+                        totalMoves={totalModelMoves}
+                      />
+                    );
+
+                    const renderBoard = (opts?: { compact?: boolean }) => (
+                      <ModelBoard
+                        moves={hasResults ? displayConsensusMoves : []}
+                        externalPly={hasResults ? (modelBoardPlys[consensusId]?.ply || 0) : 0}
+                        onPlyChange={hasResults ? handleConsensusBoardPly : () => {}}
+                        disableDrag={!voteState || !allModelsFinished}
+                        disableNav
+                        autoActivate={false}
+                        previewFen={consensusPreviewFen}
+                        targetPly={boardTargetPly}
+                        onDragSetMove={handleDragSetMove}
+                        highlightedPlies={hasResults && allModelsFinished ? unresolvedPlies : undefined}
+                        compact={opts?.compact}
+                      />
+                    );
+
+                    const renderExportButtons = (className?: string) => allVerified ? (
+                      <div className={`bg-slate-700/50 rounded-xl overflow-hidden mt-2 animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30 ${className || 'w-full'}`}>
+                        <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={false} onIllegalClick={() => {}} />
+                        <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
+                      </div>
+                    ) : null;
+
+                    const renderTryOwnButton = (className?: string) => showTryOwn ? (
+                      <button
+                        onClick={() => scoresheetClear()}
+                        className={`mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors ${className || 'w-full'}`}
+                      >
+                        {t('coaches.tryOwnScoresheet')}
+                      </button>
+                    ) : null;
+
                     return (<>
+                        {/* Desktop layout */}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
-                          {/* Left: scoresheet image */}
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
                             <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} zoomed />
                           </div>
-                          {/* Center: moves table */}
                           <div className="self-start" onClick={e => e.stopPropagation()}>
-                            {!hasResults || consensusMoves.length === 0 ? (
-                              <div className="bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[540px]">
-                                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
-                                  <Clock className="w-4 h-4 animate-spin" />
-                                  <span className="text-sm">{t('coaches.analyzing')}</span>
-                                </div>
-                              </div>
-                            ) : (
-                            <MovesPanel
-                              label={!allModelsFinished || analyzing ? `${t('coaches.processing')}...` : t('coaches.consensus')}
-                              moves={displayConsensusMoves}
-
-                              disagreements={(() => {
-                                const m = new Map<number, { white: boolean; black: boolean }>();
-                                modelDisagreements.forEach(key => {
-                                  const [numStr, color] = key.split('-');
-                                  const num = parseInt(numStr);
-                                  const existing = m.get(num) || { white: false, black: false };
-                                  existing[color as 'white' | 'black'] = true;
-                                  m.set(num, existing);
-                                });
-                                return m;
-                              })()}
-
-                              loading={!allModelsFinished || analyzing}
-                              meta={consensusMeta}
-                              onMetaChange={(field, value) => setMetaOverrides(prev => ({ ...prev, [field]: value }))}
-                              onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
-                              originalMoves={consensusOverrides ? consensusMoves : undefined}
-                              onMoveClick={(movesArr, ply) => {
-                                setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
-                                const moveIdx = Math.floor((ply - 1) / 2);
-                                const color = ply % 2 === 1 ? 'white' : 'black';
-                                const san = movesArr[moveIdx]?.[color];
-                                if (san) playMoveSound(san.includes('x'));
-                              }}
-                              activePly={modelBoardPlys[consensusId]?.ply}
-
-                              modelDisagreements={modelDisagreements}
-                              voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
-
-                              onVoteStateChange={handleVoteStateChange}
-                              totalMoves={totalModelMoves}
-
-                            />
-                            )}
-                            {/* Edit panel — under the moves table */}
+                            {!hasResults || consensusMoves.length === 0
+                              ? <AnalyzingPlaceholder minWidth="min-w-[540px]" />
+                              : renderMovesPanel()
+                            }
                             {renderEditPanel()}
-                            {/* Export buttons — only after verification */}
-                            {allVerified && (
-                            <div className="w-full bg-slate-700/50 rounded-xl overflow-hidden mt-2 animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30">
-                              <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={false} onIllegalClick={() => {}} />
-                              <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
-                            </div>
-                            )}
-                            {allVerified && wasFirstTimer.current && (
-                              <button
-                                onClick={() => scoresheetClear()}
-                                className="w-full mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
-                              >
-                                {t('coaches.tryOwnScoresheet')}
-                              </button>
-                            )}
+                            {renderExportButtons()}
+                            {renderTryOwnButton()}
                           </div>
-                          {/* Right: board */}
                           <div className="flex flex-col items-center justify-center gap-3 max-w-[400px]" onClick={e => e.stopPropagation()}>
-                            <ModelBoard moves={hasResults ? displayConsensusMoves : []} externalPly={hasResults ? modelBoardPlys[consensusId]?.ply : 0} onPlyChange={hasResults ? handleConsensusBoardPly : () => {}} disableDrag={!voteState || !allModelsFinished} disableNav autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
-                              if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
-                              setUserPickedMove(san);
-                              voteState.setEditValue(san);
-                            } : undefined} highlightedPlies={hasResults && allModelsFinished ? (() => {
-                              const plies: number[] = [];
-                              displayConsensusMoves.forEach((m, idx) => {
-                                const d = m.white && (modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low');
-                                const dBlack = m.black && (modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low');
-                                if (d && !(m as any).white_confirmed) plies.push(idx * 2 + 1);
-                                if (dBlack && !(m as any).black_confirmed) plies.push(idx * 2 + 2);
-                              });
-                              return plies;
-                            })() : undefined} />
+                            {renderBoard()}
                             {renderConfirmRevertButtons()}
                           </div>
                         </div>
-                        {/* Mobile: image above table */}
-                        {/* Mobile layout: image → table → board → edit panel */}
+                        {/* Mobile layout */}
                         <div className="md:hidden flex flex-col items-center gap-3 px-2">
                           <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} />
-                          {!hasResults || consensusMoves.length === 0 ? (
-                            <div className="bg-slate-700/50 rounded-xl overflow-hidden min-w-[320px]">
-                              <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
-                                <Clock className="w-4 h-4 animate-spin" />
-                                <span className="text-sm">{t('coaches.analyzing')}</span>
-                              </div>
-                            </div>
-                          ) : (<>
-                            <MovesPanel
-                              label={!allModelsFinished || analyzing ? `${t('coaches.processing')}...` : t('coaches.consensus')}
-                              moves={displayConsensusMoves}
-                              disagreements={(() => {
-                                const m = new Map<number, { white: boolean; black: boolean }>();
-                                modelDisagreements.forEach(key => {
-                                  const [numStr, color] = key.split('-');
-                                  const num = parseInt(numStr);
-                                  const existing = m.get(num) || { white: false, black: false };
-                                  existing[color as 'white' | 'black'] = true;
-                                  m.set(num, existing);
-                                });
-                                return m;
-                              })()}
-
-                              loading={!allModelsFinished || analyzing}
-                              meta={consensusMeta}
-                              onMetaChange={(field, value) => setMetaOverrides(prev => ({ ...prev, [field]: value }))}
-                              onEditSave={allModelsFinished && !analyzing ? (confirmed, corrKey) => handleConsensusEditSave(0, confirmed, corrKey) : undefined}
-                              onMoveClick={(movesArr, ply) => {
-                                setModelBoardPlys(p => ({ ...p, [consensusId]: { ply, source: 'read' as const } }));
-                                const moveIdx = Math.floor((ply - 1) / 2);
-                                const color = ply % 2 === 1 ? 'white' : 'black';
-                                const san = movesArr[moveIdx]?.[color];
-                                if (san) playMoveSound(san.includes('x'));
-                              }}
-                              activePly={modelBoardPlys[consensusId]?.ply}
-
-                              modelDisagreements={modelDisagreements}
-                              voteDetails={allModelsFinished && !analyzing ? voteDetails : undefined}
-                              onVoteStateChange={handleVoteStateChange}
-                              totalMoves={totalModelMoves}
-
-                            />
-                            {/* Mobile board */}
-                            <div className="w-full max-w-[400px]">
-                              <ModelBoard moves={displayConsensusMoves} externalPly={modelBoardPlys[consensusId]?.ply || 0} onPlyChange={handleConsensusBoardPly} disableDrag={!voteState || !allModelsFinished} disableNav autoActivate={false} previewFen={consensusPreviewFen} targetPly={voteState && allModelsFinished ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2) : undefined} onDragSetMove={voteState ? (san) => {
-                                if (!san) { voteState.setEditValue(''); setUserPickedMove(null); return; }
-                                setUserPickedMove(san);
-                                voteState.setEditValue(san);
-                              } : undefined} />
-                            </div>
-                            {/* Mobile confirm/revert buttons */}
-                            {renderConfirmRevertButtons()}
-                            {/* Mobile edit panel */}
-                            {renderEditPanel('w-full max-w-[400px]')}
-                            <div ref={mobileEditRef} />
-                            {/* Mobile export buttons — only after verification */}
-                            {allVerified && (
-                            <div className="w-full max-w-[400px] bg-slate-700/50 rounded-xl overflow-hidden animate-[borderPulse_1.5s_ease-in-out_3] border border-emerald-500/30">
-                              <ChesscomAnalysisButton moves={displayConsensusMoves} meta={consensusMeta} hasIllegalMoves={false} onIllegalClick={() => {}} />
-                              <LichessStudyButton moves={displayConsensusMoves} meta={consensusMeta} fileName={fileName} hasIllegalMoves={false} onIllegalClick={() => {}} />
-                            </div>
-                            )}
-                            {allVerified && !hasHadSuccess && (
-                              <button
-                                onClick={() => scoresheetClear()}
-                                className="w-full max-w-[400px] mt-3 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
-                              >
-                                {t('coaches.tryOwnScoresheet')}
-                              </button>
-                            )}
-                            <div ref={mobileExportRef} />
-                          </>)}
+                          {!hasResults || consensusMoves.length === 0
+                            ? <AnalyzingPlaceholder minWidth="min-w-[320px]" />
+                            : (<>
+                              {renderMovesPanel()}
+                              <div className="w-full max-w-[400px]">{renderBoard({ compact: true })}</div>
+                              {renderConfirmRevertButtons()}
+                              {renderEditPanel('w-full max-w-[400px]')}
+                              <div ref={mobileEditRef} />
+                              {renderExportButtons('w-full max-w-[400px]')}
+                              {renderTryOwnButton('w-full max-w-[400px]')}
+                              <div ref={mobileExportRef} />
+                            </>)
+                          }
                         </div>
                     {/* Combined debug table — admin only */}
                     {user?.email === 'rose.louis.mail@gmail.com' && allModelsFinished && (() => {
@@ -1370,6 +1312,18 @@ export function ScoresheetReadPage() {
         />
       )}
     </PanelShell>
+  );
+}
+
+function AnalyzingPlaceholder({ minWidth }: { minWidth: string }) {
+  const { t } = useLanguage();
+  return (
+    <div className={`bg-slate-700/50 rounded-xl overflow-hidden ${minWidth}`}>
+      <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse-sync py-12">
+        <Clock className="w-4 h-4 animate-spin" />
+        <span className="text-sm">{t('coaches.analyzing')}</span>
+      </div>
+    </div>
   );
 }
 
