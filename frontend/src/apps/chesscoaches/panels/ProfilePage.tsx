@@ -122,9 +122,9 @@ export function ProfilePage() {
     return (
       <PanelShell title={t('coaches.navProfile')}>
         <div className="max-w-lg mx-auto">
-          <div className="rounded-xl border border-slate-700 p-5 space-y-4 relative">
-            <button onClick={() => setEditing(true)} className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-lg transition-colors">
-              <Pencil className="w-3.5 h-3.5" /> {t('coaches.profile.edit')}
+          <div className="rounded-xl border border-slate-700 p-5 pb-6 space-y-4 relative">
+            <button onClick={() => setEditing(true)} className="absolute top-5 right-5 flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg transition-colors">
+              <Pencil className="w-4 h-4" /> {t('coaches.profile.edit')}
             </button>
 
             <InfoRow label={t('coaches.profile.name')} value={displayName} />
