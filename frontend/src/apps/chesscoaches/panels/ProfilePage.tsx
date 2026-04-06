@@ -24,7 +24,7 @@ export function ProfilePage() {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [currency, setCurrency] = useState('');
   const [lessonRate, setLessonRate] = useState<number | ''>('');
-  const [lessonDuration, setLessonDuration] = useState(60);
+  const [lessonDuration, setLessonDuration] = useState(0);
   const [chesscom, setChesscom] = useState('');
   const [lichess, setLichess] = useState('');
   const [bundles, setBundles] = useState<BundleOffer[]>([]);
@@ -162,14 +162,15 @@ export function ProfilePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Field label={t('coaches.profile.duration')}>
-              <select value={lessonDuration} onChange={e => setLessonDuration(Number(e.target.value))} className={INPUT}>
+            <Field label={t('coaches.profile.duration')} required>
+              <select value={lessonDuration || ''} onChange={e => setLessonDuration(Number(e.target.value))} className={INPUT}>
+                <option value="">—</option>
                 <option value={60}>1 hour</option>
                 <option value={90}>1 hour 30</option>
                 <option value={120}>2 hours</option>
               </select>
             </Field>
-            <Field label={currSymbol ? `${t('coaches.profile.rate')} (${currSymbol})` : t('coaches.profile.rate')}>
+            <Field label={currSymbol ? `${t('coaches.profile.rate')} (${currSymbol})` : t('coaches.profile.rate')} required>
               <input type="text" inputMode="numeric" value={lessonRate} onChange={e => setLessonRate(e.target.value === '' ? '' : Number(e.target.value.replace(/[^0-9.]/g, '')))} className={INPUT} placeholder="40" />
             </Field>
           </div>
@@ -183,9 +184,9 @@ export function ProfilePage() {
               <div className="space-y-2 mb-3">
                 {bundles.map((b, i) => (
                   <div key={i} className="flex items-center gap-2 justify-center">
-                    <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="10" />
+                    <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-24 text-center' + (!b.lessons ? ' border-red-500/50' : '')} placeholder="10 *" />
                     <span className="text-slate-400 text-sm">{t('coaches.profile.forWord')}</span>
-                    <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="300" />
+                    <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24 text-center' + (b.price === '' ? ' border-red-500/50' : '')} placeholder="300 *" />
                     <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
