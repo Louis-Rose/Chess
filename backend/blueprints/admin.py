@@ -20,6 +20,17 @@ GEMINI_PRICING = {
     'gemini-2.0-flash':               {'input': 0.10, 'output': 0.40},
 }
 
+def _serialize_datetimes(d, fields=('created_at', 'updated_at'), utc_fields=('last_active',)):
+    """Convert datetime objects to ISO strings for JSON serialization."""
+    for f in fields:
+        if d.get(f) and hasattr(d[f], 'isoformat'):
+            d[f] = d[f].isoformat()
+    for f in utc_fields:
+        if d.get(f) and hasattr(d[f], 'isoformat'):
+            d[f] = d[f].isoformat() + 'Z'
+    return d
+
+
 @admin_bp.route('/api/admin/coach-users', methods=['GET'])
 @admin_required
 def list_coach_users():
