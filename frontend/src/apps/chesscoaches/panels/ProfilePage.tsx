@@ -77,7 +77,11 @@ export function ProfilePage() {
 
   const currSymbol = CURRENCY_SYMBOLS[currency] || '';
 
+  const canSave = displayName.trim() && city && currency && lessonDuration && lessonRate !== '' &&
+    bundles.every(b => b.lessons && b.price !== '');
+
   const handleSave = async () => {
+    if (!canSave) return;
     setSaving(true);
     const tz = getTimezoneForCity(city);
     await authFetch('/api/coaches/profile', {
@@ -262,7 +266,7 @@ export function ProfilePage() {
             </div>
           </div>
 
-          <button onClick={handleSave} disabled={saving} className={SAVE_BTN}>
+          <button onClick={handleSave} disabled={saving || !canSave} className={SAVE_BTN}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {t('coaches.profile.saveInfo')}
           </button>
