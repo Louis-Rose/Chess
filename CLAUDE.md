@@ -2,6 +2,17 @@
 
 > **Note to self**: Keep this file updated when significant changes are made (new features, deployment changes, architecture updates).
 
+## How to code
+
+### Architecture
+
+- **Dry Principle:** Never duplicate logic.
+    - **Component Size:** No frontend file should exceed 500 lines. Abstract UI logic into smaller components.
+    
+### Quality Workflow
+    
+    - **Refactor First:** Before adding a new feature, check if existing code can be reused.
+
 ## Overview
 LUMNA — chess coaching web app at lumna.co.
 
