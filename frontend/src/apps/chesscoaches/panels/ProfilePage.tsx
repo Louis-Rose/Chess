@@ -89,7 +89,7 @@ export function ProfilePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         display_name: displayName, city, timezone: tz, currency,
-        lesson_rate: lessonRate === '' ? null : lessonRate,
+        lesson_rate: lessonRate || null,
         lesson_duration: lessonDuration,
         chesscom_username: chesscom, lichess_username: lichess,
         bundles: bundles.filter(b => b.lessons && b.price !== ''),
