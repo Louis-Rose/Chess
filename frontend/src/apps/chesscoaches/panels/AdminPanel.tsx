@@ -325,7 +325,7 @@ export function AdminPanel() {
   const featureChartData = useMemo(() => buildChartData(featureTimeSpentData), [featureTimeSpentData, language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Students data (for "students" feature view)
-  const { data: studentsData } = useQuery({
+  const { data: allStudentsData } = useQuery({
     queryKey: ['admin-coach-students'],
     queryFn: async () => {
       const response = await axios.get('/api/admin/coach-students');
@@ -333,6 +333,11 @@ export function AdminPanel() {
     },
     enabled: !!user?.is_admin && selectedFeature === 'students',
   });
+  const studentsData = useMemo(() => {
+    if (!allStudentsData) return undefined;
+    if (selectedUserIds.size === 0) return [];
+    return allStudentsData.filter(c => selectedUserIds.has(c.coach_user_id));
+  }, [allStudentsData, selectedUserIds]);
 
   // Filter API usage by selected features (map page ids to API feature names)
   const filteredApiUsage = useMemo(() => {
