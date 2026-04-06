@@ -1,7 +1,8 @@
--- PostgreSQL Schema for Lumna
--- Converted from SQLite schema.sql
+-- PostgreSQL Schema for LUMNA (Chess Coaches App)
+-- This is the single source of truth for fresh database setups.
+-- Loaded by Docker via docker-entrypoint-initdb.d on first container creation.
 
--- Users table (Google OAuth data)
+-- Users (Google OAuth)
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     google_id TEXT UNIQUE NOT NULL,
@@ -12,12 +13,15 @@ CREATE TABLE IF NOT EXISTS users (
     sign_in_count INTEGER DEFAULT 0,
     session_count INTEGER DEFAULT 0,
     last_session_ping TIMESTAMP,
+    cookie_consent TEXT,
+    cookie_consent_at TIMESTAMP,
+    cookie_refusal_count INTEGER DEFAULT 0,
     registered_app TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- User preferences table
+-- User preferences
 CREATE TABLE IF NOT EXISTS user_preferences (
     id SERIAL PRIMARY KEY,
     user_id INTEGER UNIQUE NOT NULL,
@@ -25,14 +29,14 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     coaches_chess_username TEXT,
     lichess_username TEXT,
     preferred_time_class TEXT DEFAULT 'rapid',
-    dashboard_card_order TEXT,  -- JSON array of card IDs for custom order
-    financial_card_order TEXT,  -- JSON array of financial metric card IDs
+    dashboard_card_order TEXT,
+    financial_card_order TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Refresh tokens table (for token rotation security)
+-- Refresh tokens (JWT rotation)
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
@@ -42,7 +46,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Player stats cache table
+-- Player stats cache
 CREATE TABLE IF NOT EXISTS player_stats_cache (
     username TEXT NOT NULL,
     time_class TEXT NOT NULL,
@@ -53,125 +57,43 @@ CREATE TABLE IF NOT EXISTS player_stats_cache (
     PRIMARY KEY (username, time_class)
 );
 
--- Investment accounts table (PEA, CTO, Assurance-vie, etc.)
--- Note: Must be created before portfolio_transactions due to foreign key
-CREATE TABLE IF NOT EXISTS investment_accounts (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    account_type TEXT NOT NULL,
-    bank TEXT NOT NULL,
-    display_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Portfolio transactions table (investing app)
-CREATE TABLE IF NOT EXISTS portfolio_transactions (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    account_id INTEGER,
-    stock_ticker TEXT NOT NULL,
-    transaction_type TEXT NOT NULL,
-    quantity REAL NOT NULL,
-    transaction_date TEXT NOT NULL,
-    price_per_share REAL NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (account_id) REFERENCES investment_accounts(id) ON DELETE SET NULL
-);
-
--- Demo AlphaWise investment accounts table (separate from main LUMNA accounts)
-CREATE TABLE IF NOT EXISTS demo_investment_accounts (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    account_type TEXT NOT NULL,
-    bank TEXT NOT NULL,
-    display_order INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Demo AlphaWise portfolio transactions table (separate from main LUMNA transactions)
-CREATE TABLE IF NOT EXISTS demo_portfolio_transactions (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    account_id INTEGER,
-    stock_ticker TEXT NOT NULL,
-    transaction_type TEXT NOT NULL,
-    quantity REAL NOT NULL,
-    transaction_date TEXT NOT NULL,
-    price_per_share REAL NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (account_id) REFERENCES demo_investment_accounts(id) ON DELETE SET NULL
-);
-
--- AlphaWise model portfolio (global, admin-managed)
--- This represents the recommended portfolio shown to all users
-CREATE TABLE IF NOT EXISTS alphawise_model_portfolio (
-    id SERIAL PRIMARY KEY,
-    stock_ticker TEXT UNIQUE NOT NULL,
-    allocation_pct REAL NOT NULL,  -- Target allocation percentage (e.g., 5.0 for 5%)
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+-- Chess user preferences (keyed by chess username, no auth required)
+CREATE TABLE IF NOT EXISTS chess_user_prefs (
+    username TEXT PRIMARY KEY,
+    onboarding_done INTEGER NOT NULL DEFAULT 0,
+    preferred_time_class TEXT DEFAULT NULL,
+    fide_id TEXT DEFAULT NULL,
+    leaderboard_name TEXT DEFAULT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Historical stock prices cache
-CREATE TABLE IF NOT EXISTS historical_prices (
-    ticker TEXT NOT NULL,
-    date TEXT NOT NULL,
-    close_price REAL NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (ticker, date)
+-- Chess goals
+CREATE TABLE IF NOT EXISTS chess_goals (
+    username TEXT NOT NULL,
+    time_class TEXT NOT NULL,
+    elo_goal INTEGER NOT NULL,
+    elo_goal_start_elo INTEGER NOT NULL,
+    elo_goal_start_date TEXT NOT NULL,
+    elo_goal_months INTEGER NOT NULL DEFAULT 3,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, time_class)
 );
 
--- Historical FX rates cache
-CREATE TABLE IF NOT EXISTS historical_fx_rates (
-    pair TEXT NOT NULL,
-    date TEXT NOT NULL,
-    rate REAL NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (pair, date)
+-- Chess FIDE friends (leaderboard)
+CREATE TABLE IF NOT EXISTS chess_fide_friends (
+    username TEXT NOT NULL,
+    fide_id TEXT NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, fide_id)
 );
 
--- Watchlist table
-CREATE TABLE IF NOT EXISTS watchlist (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    stock_ticker TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE(user_id, stock_ticker)
-);
-
--- Earnings watchlist table
-CREATE TABLE IF NOT EXISTS earnings_watchlist (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    stock_ticker TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE(user_id, stock_ticker)
-);
-
--- Earnings dates cache (refreshed every 48 hours)
-CREATE TABLE IF NOT EXISTS earnings_cache (
-    ticker TEXT PRIMARY KEY,
-    next_earnings_date TEXT,
-    date_confirmed INTEGER DEFAULT 0,
-    earnings_time TEXT,                -- 'bmo' (before market open), 'amc' (after market close), or NULL
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Dividend dates cache (refreshed every 7 days)
-CREATE TABLE IF NOT EXISTS dividends_cache (
-    ticker TEXT PRIMARY KEY,
-    ex_dividend_date TEXT,             -- YYYY-MM-DD or NULL if unknown
-    dividend_amount REAL,              -- Per-share dividend amount in USD
-    pays_dividends INTEGER DEFAULT 1,  -- 0 if stock doesn't pay dividends
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Monthly archive cache
+CREATE TABLE IF NOT EXISTS monthly_archive_cache (
+    username TEXT NOT NULL,
+    archive_url TEXT NOT NULL,
+    games_json TEXT NOT NULL,
+    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username, archive_url)
 );
 
 -- User activity tracking
@@ -179,7 +101,7 @@ CREATE TABLE IF NOT EXISTS user_activity (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     activity_date TEXT NOT NULL,
-    minutes INTEGER DEFAULT 0,
+    seconds INTEGER DEFAULT 0,
     last_ping TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, activity_date)
@@ -190,12 +112,12 @@ CREATE TABLE IF NOT EXISTS page_activity (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     page TEXT NOT NULL,
-    minutes INTEGER DEFAULT 0,
+    seconds INTEGER DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, page)
 );
 
--- Page-level daily activity tracking (for per-page daily charts)
+-- Page-level daily activity tracking
 CREATE TABLE IF NOT EXISTS page_daily_activity (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
@@ -205,20 +127,6 @@ CREATE TABLE IF NOT EXISTS page_daily_activity (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, activity_date, page)
 );
-CREATE INDEX IF NOT EXISTS idx_page_daily_activity_date ON page_daily_activity(activity_date);
-CREATE INDEX IF NOT EXISTS idx_page_daily_activity_user ON page_daily_activity(user_id);
-
--- Earnings alert preferences
-CREATE TABLE IF NOT EXISTS earnings_alert_preferences (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE NOT NULL,
-    weekly_enabled INTEGER DEFAULT 0,
-    days_before_enabled INTEGER DEFAULT 0,
-    days_before INTEGER DEFAULT 7,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
 
 -- Graph downloads tracking
 CREATE TABLE IF NOT EXISTS graph_downloads (
@@ -227,84 +135,6 @@ CREATE TABLE IF NOT EXISTS graph_downloads (
     graph_type TEXT NOT NULL,
     downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Stock views tracking
-CREATE TABLE IF NOT EXISTS stock_views (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    stock_ticker TEXT NOT NULL,
-    view_date TEXT NOT NULL,
-    view_count INTEGER DEFAULT 1,
-    time_spent_seconds INTEGER DEFAULT 0,
-    last_viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE(user_id, stock_ticker, view_date)
-);
-
--- YouTube videos cache
-CREATE TABLE IF NOT EXISTS youtube_videos_cache (
-    id SERIAL PRIMARY KEY,
-    video_id TEXT UNIQUE NOT NULL,
-    channel_id TEXT NOT NULL,
-    channel_name TEXT NOT NULL,
-    title TEXT NOT NULL,
-    thumbnail_url TEXT,
-    published_at TEXT NOT NULL,
-    duration INTEGER,                      -- Duration in seconds
-    view_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    description TEXT
-);
-
--- YouTube channel fetch log
-CREATE TABLE IF NOT EXISTS youtube_channel_fetch_log (
-    channel_id TEXT PRIMARY KEY,
-    last_fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Video transcripts cache
-CREATE TABLE IF NOT EXISTS video_transcripts (
-    video_id TEXT PRIMARY KEY,
-    transcript TEXT,                 -- NULL if no transcript available
-    has_transcript INTEGER DEFAULT 1, -- 0 if video has no transcript (don't retry)
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Video transcript summaries cache (per ticker - same video can have different summaries for different companies)
-CREATE TABLE IF NOT EXISTS video_summaries (
-    video_id TEXT NOT NULL,
-    ticker TEXT NOT NULL,
-    summary_en TEXT,
-    summary_fr TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (video_id, ticker)
-);
-
--- Current video selection per company (only these videos need transcripts)
-CREATE TABLE IF NOT EXISTS company_video_selections (
-    ticker TEXT NOT NULL,
-    video_id TEXT NOT NULL,
-    selected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (ticker, video_id)
-);
-CREATE INDEX IF NOT EXISTS idx_company_video_selections_video ON company_video_selections(video_id);
-
--- Video sync run tracking
-CREATE TABLE IF NOT EXISTS video_sync_runs (
-    id SERIAL PRIMARY KEY,
-    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ended_at TIMESTAMP,
-    status TEXT DEFAULT 'running',  -- 'running', 'completed', 'failed'
-    tickers_count INTEGER DEFAULT 0,
-    videos_total INTEGER DEFAULT 0,
-    videos_processed INTEGER DEFAULT 0,
-    transcripts_fetched INTEGER DEFAULT 0,
-    summaries_generated INTEGER DEFAULT 0,
-    errors INTEGER DEFAULT 0,
-    current_video TEXT,  -- Currently processing video title
-    error_message TEXT
 );
 
 -- Theme usage tracking
@@ -331,7 +161,7 @@ CREATE TABLE IF NOT EXISTS device_usage (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     device_type TEXT NOT NULL,
-    minutes INTEGER DEFAULT 0,
+    seconds INTEGER DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, device_type)
@@ -348,36 +178,86 @@ CREATE TABLE IF NOT EXISTS first_visitor_reward (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Indexes for faster lookups
+-- Coach students
+CREATE TABLE IF NOT EXISTS coach_students (
+    id SERIAL PRIMARY KEY,
+    coach_user_id INTEGER NOT NULL,
+    student_name TEXT NOT NULL,
+    timezone TEXT DEFAULT 'UTC',
+    currency TEXT,
+    source TEXT,
+    chesscom_username TEXT,
+    lichess_username TEXT,
+    recurring_day INTEGER,
+    recurring_time TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Lesson packs
+CREATE TABLE IF NOT EXISTS coach_packs (
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+    total_lessons INTEGER NOT NULL,
+    lessons_done INTEGER DEFAULT 0,
+    lessons_paid INTEGER DEFAULT 0,
+    price REAL,
+    currency TEXT,
+    source TEXT,
+    note TEXT,
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Individual lessons
+CREATE TABLE IF NOT EXISTS coach_lessons (
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+    scheduled_at TIMESTAMP NOT NULL,
+    duration_minutes INTEGER DEFAULT 60,
+    status TEXT DEFAULT 'scheduled',
+    paid INTEGER DEFAULT 0,
+    pack_id INTEGER REFERENCES coach_packs(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- API usage tracking (Gemini calls)
+CREATE TABLE IF NOT EXISTS api_usage (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER,
+    request_id TEXT,
+    feature TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    input_tokens INTEGER DEFAULT 0,
+    output_tokens INTEGER DEFAULT 0,
+    thinking_tokens INTEGER DEFAULT 0,
+    billing_tier TEXT DEFAULT 'paid',
+    elapsed_seconds INTEGER DEFAULT 0,
+    error TEXT,
+    retry_free_error TEXT,
+    retry_free_elapsed INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_player_stats_cache_updated ON player_stats_cache(updated_at);
-CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_user_id ON portfolio_transactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_ticker ON portfolio_transactions(stock_ticker);
-CREATE INDEX IF NOT EXISTS idx_historical_prices_date ON historical_prices(date);
-CREATE INDEX IF NOT EXISTS idx_historical_fx_rates_date ON historical_fx_rates(date);
-CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);
-CREATE INDEX IF NOT EXISTS idx_investment_accounts_user_id ON investment_accounts(user_id);
-CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_account_id ON portfolio_transactions(account_id);
-CREATE INDEX IF NOT EXISTS idx_demo_investment_accounts_user_id ON demo_investment_accounts(user_id);
-CREATE INDEX IF NOT EXISTS idx_demo_portfolio_transactions_user_id ON demo_portfolio_transactions(user_id);
-CREATE INDEX IF NOT EXISTS idx_demo_portfolio_transactions_ticker ON demo_portfolio_transactions(stock_ticker);
-CREATE INDEX IF NOT EXISTS idx_demo_portfolio_transactions_account_id ON demo_portfolio_transactions(account_id);
-CREATE INDEX IF NOT EXISTS idx_earnings_watchlist_user_id ON earnings_watchlist(user_id);
-CREATE INDEX IF NOT EXISTS idx_earnings_cache_updated ON earnings_cache(updated_at);
 CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id);
-CREATE INDEX IF NOT EXISTS idx_earnings_alert_preferences_user_id ON earnings_alert_preferences(user_id);
-CREATE INDEX IF NOT EXISTS idx_graph_downloads_user_id ON graph_downloads(user_id);
-CREATE INDEX IF NOT EXISTS idx_stock_views_user_id ON stock_views(user_id);
-CREATE INDEX IF NOT EXISTS idx_stock_views_ticker ON stock_views(stock_ticker);
-CREATE INDEX IF NOT EXISTS idx_youtube_videos_channel ON youtube_videos_cache(channel_id);
-CREATE INDEX IF NOT EXISTS idx_youtube_videos_published ON youtube_videos_cache(published_at);
-
--- Admin analytics indexes for faster aggregation queries
 CREATE INDEX IF NOT EXISTS idx_user_activity_date ON user_activity(activity_date);
 CREATE INDEX IF NOT EXISTS idx_page_activity_user_id ON page_activity(user_id);
+CREATE INDEX IF NOT EXISTS idx_page_daily_activity_date ON page_daily_activity(activity_date);
+CREATE INDEX IF NOT EXISTS idx_page_daily_activity_user ON page_daily_activity(user_id);
+CREATE INDEX IF NOT EXISTS idx_graph_downloads_user_id ON graph_downloads(user_id);
 CREATE INDEX IF NOT EXISTS idx_theme_usage_user_id ON theme_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_language_usage_user_id ON language_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_device_usage_user_id ON device_usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_coach_students_coach ON coach_students(coach_user_id);
+CREATE INDEX IF NOT EXISTS idx_coach_packs_student ON coach_packs(student_id);
+CREATE INDEX IF NOT EXISTS idx_coach_lessons_student ON coach_lessons(student_id);
+CREATE INDEX IF NOT EXISTS idx_coach_lessons_scheduled ON coach_lessons(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_coach_lessons_pack ON coach_lessons(pack_id);
+CREATE INDEX IF NOT EXISTS idx_api_usage_created ON api_usage(created_at);
+CREATE INDEX IF NOT EXISTS idx_api_usage_feature ON api_usage(feature);
