@@ -649,30 +649,51 @@ export function AdminPanel() {
         {/* Students view — when "students" feature is selected */}
         {selectedFeature === 'students' && studentsData && (
           <div className="space-y-4">
-            {/* Student count bar chart */}
-            <div className="rounded-lg border border-slate-700 overflow-hidden">
-              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50">
-                <h3 className="text-sm font-medium text-slate-300">Students per coach</h3>
-              </div>
-              <div className="p-4">
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={studentsData.map(c => ({
-                    name: c.coach_name?.split(' ')[0] || `User ${c.coach_user_id}`,
-                    students: c.students.length,
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="name" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
-                    <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} allowDecimals={false} />
-                    <Tooltip
-                      cursor={false}
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                      labelStyle={{ color: '#e2e8f0' }}
-                    />
-                    <Bar dataKey="students" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} name="Students" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            {/* Cumulative students over time */}
+            {(() => {
+              const allDates = studentsData.flatMap(c => c.students.map(s => s.created_at?.split('T')[0])).filter(Boolean).sort();
+              if (allDates.length === 0) return null;
+              const start = new Date(allDates[0]);
+              const end = new Date();
+              const dailyCounts: Record<string, number> = {};
+              allDates.forEach(d => { dailyCounts[d] = (dailyCounts[d] || 0) + 1; });
+              const data: { date: string; label: string; total: number }[] = [];
+              const cur = new Date(start);
+              let cumulative = 0;
+              while (cur <= end) {
+                const key = cur.toISOString().split('T')[0];
+                cumulative += dailyCounts[key] || 0;
+                data.push({
+                  date: key,
+                  label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' }),
+                  total: cumulative,
+                });
+                cur.setDate(cur.getDate() + 1);
+              }
+              return (
+                <div className="rounded-lg border border-slate-700 overflow-hidden">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50">
+                    <h3 className="text-sm font-medium text-slate-300">Total students over time</h3>
+                  </div>
+                  <div className="p-4">
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                        <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+                        <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} allowDecimals={false} />
+                        <Tooltip
+                          cursor={false}
+                          contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                          labelStyle={{ color: '#e2e8f0' }}
+                          formatter={(value) => [`${value}`, 'Students']}
+                        />
+                        <Bar dataKey="total" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} name="Total students" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Student lists per coach */}
             {studentsData.map(coach => (
