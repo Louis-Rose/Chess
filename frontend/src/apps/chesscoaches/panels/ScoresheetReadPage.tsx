@@ -1154,7 +1154,7 @@ export function ScoresheetReadPage() {
                           }
                         </div>
                     {/* Combined debug table — admin only */}
-                    {user?.email === 'rose.louis.mail@gmail.com' && allModelsFinished && (() => {
+                    {user?.is_admin && allModelsFinished && (() => {
                       const finishedModels = models.filter(m => modelResults[m.id]?.result?.moves?.length);
                       if (finishedModels.length === 0) return null;
                       const maxMoves = Math.max(...finishedModels.map(m => modelResults[m.id]!.result!.moves.length), displayConsensusMoves.length);

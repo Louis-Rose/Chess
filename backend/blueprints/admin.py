@@ -779,17 +779,15 @@ def get_user_graph_downloads(user_id):
 @admin_required
 def get_time_spent_stats():
     """Get daily time spent stats for all users (admin only)."""
-    excluded_email = 'rose.louis.mail@gmail.com'
-
     with get_db() as conn:
         cursor = conn.execute('''
             SELECT a.activity_date, SUM(a.seconds) as total_seconds
             FROM user_activity a
             JOIN users u ON a.user_id = u.id
-            WHERE u.email != ? AND u.google_id NOT LIKE ?
+            WHERE u.is_admin = 0 AND u.google_id NOT LIKE ?
             GROUP BY a.activity_date
             ORDER BY a.activity_date ASC
-        ''', (excluded_email, 'chess:%'))
+        ''', ('chess:%',))
         daily_stats = [dict(row) for row in cursor.fetchall()]
 
     return jsonify({'daily_stats': daily_stats})
@@ -800,8 +798,8 @@ def get_time_spent_stats():
 def get_time_spent_details(period):
     """Get users' time spent for a specific date, week, or month (admin only)."""
     return _query_time_spent_details(period,
-        extra_clause="AND u.email != ? AND u.google_id NOT LIKE ?",
-        extra_params=('rose.louis.mail@gmail.com', 'chess:%'),
+        extra_clause="AND u.is_admin = 0 AND u.google_id NOT LIKE ?",
+        extra_params=('chess:%',),
         select_cols="u.id, u.name, u.picture",
         group_by="u.id, u.name, u.picture" if USE_POSTGRES else "u.id",
     )
@@ -812,8 +810,8 @@ def get_time_spent_details(period):
 def get_page_breakdown():
     """Get aggregated time spent by page/section (admin only)."""
     return _query_page_breakdown(
-        "u.google_id NOT LIKE ? AND u.email != ?",
-        ('chess:%', 'rose.louis.mail@gmail.com'),
+        "u.google_id NOT LIKE ? AND u.is_admin = 0",
+        ('chess:%',),
     )
 
 
