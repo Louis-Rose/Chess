@@ -184,9 +184,15 @@ export function ProfilePage() {
               <div className="space-y-2 mb-3">
                 {bundles.map((b, i) => (
                   <div key={i} className="flex items-center gap-2 justify-center">
-                    <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-24 text-center' + (!b.lessons ? ' border-red-500/50' : '')} placeholder="10 *" />
+                    <div className="flex items-center gap-0.5">
+                      <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="10" />
+                      <span className="text-red-400 text-xs">*</span>
+                    </div>
                     <span className="text-slate-400 text-sm">{t('coaches.profile.forWord')}</span>
-                    <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24 text-center' + (b.price === '' ? ' border-red-500/50' : '')} placeholder="300 *" />
+                    <div className="flex items-center gap-0.5">
+                      <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="300" />
+                      <span className="text-red-400 text-xs">*</span>
+                    </div>
                     <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
