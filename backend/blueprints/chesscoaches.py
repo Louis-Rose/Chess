@@ -3,7 +3,7 @@ import logging
 import requests as http_requests
 from flask import Blueprint, jsonify, request, Response
 from auth import login_required, admin_required, get_current_user
-from database import get_db, USE_POSTGRES
+from database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -1309,10 +1309,7 @@ def add_coach_student():
              (data.get('lichess_username') or '').strip() or None,
              recurring_day, recurring_time)
         )
-        if USE_POSTGRES:
-            student_id = conn.execute('SELECT lastval() AS id').fetchone()['id']
-        else:
-            student_id = cursor.lastrowid
+        student_id = conn.execute('SELECT lastval() AS id').fetchone()['id']
 
     return jsonify({'id': student_id, 'message': 'Student added'}), 201
 
@@ -1432,10 +1429,7 @@ def create_coach_pack(student_id):
              (data.get('source') or '').strip() or None,
              (data.get('note') or '').strip() or None)
         )
-        if USE_POSTGRES:
-            pack_id = conn.execute('SELECT lastval() AS id').fetchone()['id']
-        else:
-            pack_id = cursor.lastrowid
+        pack_id = conn.execute('SELECT lastval() AS id').fetchone()['id']
 
     return jsonify({'id': pack_id, 'message': 'Pack created'}), 201
 

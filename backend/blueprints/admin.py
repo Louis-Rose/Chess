@@ -6,7 +6,7 @@ import os
 from flask import Blueprint, jsonify, request, send_file
 
 from auth import admin_required
-from database import get_db, USE_POSTGRES
+from database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +29,10 @@ def _query_time_spent_details(period, extra_clause, extra_params, select_cols, g
     with get_db() as conn:
         if '-W' in period:
             year, week = period.split('-W')
-            if USE_POSTGRES:
-                date_filter = "EXTRACT(YEAR FROM a.activity_date::date) = %s AND EXTRACT(WEEK FROM a.activity_date::date) = %s"
-            else:
-                date_filter = "strftime('%Y', a.activity_date) = ? AND CAST(strftime('%W', a.activity_date) AS INTEGER) + 1 = ?"
+            date_filter = "EXTRACT(YEAR FROM a.activity_date::date) = %s AND EXTRACT(WEEK FROM a.activity_date::date) = %s"
             date_params = (int(year), int(week))
         elif len(period) == 7:
-            if USE_POSTGRES:
-                date_filter = "to_char(a.activity_date::date, 'YYYY-MM') = %s"
-            else:
-                date_filter = "strftime('%Y-%m', a.activity_date) = ?"
+            date_filter = "to_char(a.activity_date::date, 'YYYY-MM') = %s"
             date_params = (period,)
         else:
             date_filter = "a.activity_date = ?"
@@ -801,7 +795,7 @@ def get_time_spent_details(period):
         extra_clause="AND u.is_admin = 0 AND u.google_id NOT LIKE ?",
         extra_params=('chess:%',),
         select_cols="u.id, u.name, u.picture",
-        group_by="u.id, u.name, u.picture" if USE_POSTGRES else "u.id",
+        group_by="u.id, u.name, u.picture",
     )
 
 

@@ -17,7 +17,7 @@ from auth import (
     set_auth_cookies,
     verify_google_token,
 )
-from database import USE_POSTGRES, get_db
+from database import get_db
 from email_utils import send_admin_deletion_alert
 
 logger = logging.getLogger(__name__)
