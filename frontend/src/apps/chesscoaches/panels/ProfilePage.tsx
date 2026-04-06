@@ -156,14 +156,15 @@ export function ProfilePage() {
           {/* Lesson duration + rate */}
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('coaches.profile.duration')}>
-              <div className="flex items-center gap-2">
-                <input type="number" min={15} step={15} value={lessonDuration} onChange={e => setLessonDuration(Number(e.target.value) || 60)} className={INPUT} />
-                <span className="text-slate-400 text-sm">min</span>
-              </div>
+              <select value={lessonDuration} onChange={e => setLessonDuration(Number(e.target.value))} className={INPUT}>
+                <option value={60}>1 hour</option>
+                <option value={90}>1 hour 30</option>
+                <option value={120}>2 hours</option>
+              </select>
             </Field>
             <Field label={t('coaches.profile.rate')}>
               <div className="flex items-center gap-2">
-                <input type="number" min={0} value={lessonRate} onChange={e => setLessonRate(e.target.value === '' ? '' : Number(e.target.value))} className={INPUT} placeholder="40" />
+                <input type="text" inputMode="numeric" value={lessonRate} onChange={e => setLessonRate(e.target.value === '' ? '' : Number(e.target.value.replace(/[^0-9.]/g, '')))} className={INPUT} placeholder="40" />
                 {currency && <span className="text-slate-400 text-sm">{currency}</span>}
               </div>
             </Field>
@@ -175,9 +176,9 @@ export function ProfilePage() {
             <div className="space-y-2 mb-3">
               {bundles.map((b, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <input type="number" min={1} value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value)} className={INPUT + ' w-20'} placeholder="10" />
+                  <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-20'} placeholder="10" />
                   <span className="text-slate-400 text-sm">{t('coaches.profile.lessonsFor')}</span>
-                  <input type="number" min={0} value={b.price} onChange={e => updateBundle(i, 'price', e.target.value)} className={INPUT + ' w-24'} placeholder="300" />
+                  <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24'} placeholder="300" />
                   {currency && <span className="text-slate-400 text-sm">{currency}</span>}
                   <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
                     <Trash2 className="w-4 h-4" />
@@ -185,7 +186,7 @@ export function ProfilePage() {
                 </div>
               ))}
             </div>
-            <button onClick={addBundle} className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-slate-600 hover:border-emerald-500 text-slate-400 hover:text-emerald-400 text-xs font-medium rounded-lg transition-colors">
+            <button onClick={addBundle} className="mx-auto flex items-center justify-center gap-1.5 px-6 py-1.5 border border-dashed border-slate-600 hover:border-emerald-500 text-slate-400 hover:text-emerald-400 text-xs font-medium rounded-lg transition-colors">
               <Plus className="w-3.5 h-3.5" /> {t('coaches.profile.addBundle')}
             </button>
           </div>
