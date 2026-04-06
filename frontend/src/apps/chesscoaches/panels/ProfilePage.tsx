@@ -181,18 +181,20 @@ export function ProfilePage() {
               <label className="block text-sm text-slate-300 font-medium text-center">{t('coaches.profile.bundles')}</label>
             </div>
             <div className="p-4">
+              {bundles.length > 0 && (
+                <div className="flex items-center gap-2 justify-center mb-2">
+                  <span className="w-24 text-center text-sm text-slate-300 font-medium">{t('coaches.profile.bundleLessons')}<span className="text-red-400 ml-0.5">*</span></span>
+                  <span className="w-6" />
+                  <span className="w-24 text-center text-sm text-slate-300 font-medium">{t('coaches.profile.bundlePrice')}<span className="text-red-400 ml-0.5">*</span></span>
+                  <span className="w-4" />
+                </div>
+              )}
               <div className="space-y-2 mb-3">
                 {bundles.map((b, i) => (
                   <div key={i} className="flex items-center gap-2 justify-center">
-                    <div className="flex items-center gap-0.5">
-                      <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="10" />
-                      <span className="text-red-400 text-xs">*</span>
-                    </div>
-                    <span className="text-slate-400 text-sm">{t('coaches.profile.forWord')}</span>
-                    <div className="flex items-center gap-0.5">
-                      <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="300" />
-                      <span className="text-red-400 text-xs">*</span>
-                    </div>
+                    <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="10" />
+                    <span className="text-slate-400 text-sm w-6 text-center">{t('coaches.profile.forWord')}</span>
+                    <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="300" />
                     <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
