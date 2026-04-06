@@ -12,6 +12,7 @@
 ### Quality Workflow
     
     - **Refactor First:** Before adding a new feature, check if existing code can be reused.
+    - **Delete Zombie code:** "Find any functions or variables that are defined but never used and delete them."
 
 ## Overview
 LUMNA — chess coaching web app at lumna.co.

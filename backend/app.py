@@ -28,11 +28,9 @@ init_db()
 
 # Register blueprints
 from blueprints.auth_routes import auth_bp
-from blueprints.chessdata import chess_bp
 from blueprints.chesscoaches import coaches_bp
 from blueprints.admin import admin_bp
 app.register_blueprint(auth_bp)
-app.register_blueprint(chess_bp)
 app.register_blueprint(coaches_bp)
 app.register_blueprint(admin_bp)
 
