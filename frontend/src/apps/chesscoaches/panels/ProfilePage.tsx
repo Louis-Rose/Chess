@@ -183,12 +183,9 @@ export function ProfilePage() {
               <div className="space-y-2 mb-3">
                 {bundles.map((b, i) => (
                   <div key={i} className="flex items-center gap-2 justify-center">
-                    <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-20 text-center'} placeholder="10" />
+                    <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="10" />
                     <span className="text-slate-400 text-sm">{t('coaches.profile.forWord')}</span>
-                    <div className="flex items-center gap-1">
-                      {currSymbol && <span className="text-slate-400 text-sm">{currSymbol}</span>}
-                      <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24'} placeholder="300" />
-                    </div>
+                    <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24 text-center'} placeholder="300" />
                     <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
