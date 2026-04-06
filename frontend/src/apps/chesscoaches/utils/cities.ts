@@ -1,47 +1,47 @@
-// City → IANA timezone mapping (covers major cities worldwide)
-export const CITY_TIMEZONES: [string, string][] = [
+// City → [IANA timezone, country flag]
+export const CITY_TIMEZONES: [string, string, string][] = [
   // North America
-  ['New York', 'America/New_York'], ['Los Angeles', 'America/Los_Angeles'],
-  ['Chicago', 'America/Chicago'], ['Houston', 'America/Chicago'],
-  ['Phoenix', 'America/Phoenix'], ['San Francisco', 'America/Los_Angeles'],
-  ['Seattle', 'America/Los_Angeles'], ['Denver', 'America/Denver'],
-  ['Boston', 'America/New_York'], ['Miami', 'America/New_York'],
-  ['Washington DC', 'America/New_York'], ['Toronto', 'America/Toronto'],
-  ['Montreal', 'America/Toronto'], ['Vancouver', 'America/Vancouver'],
-  ['Mexico City', 'America/Mexico_City'],
+  ['New York', 'America/New_York', '\u{1F1FA}\u{1F1F8}'], ['Los Angeles', 'America/Los_Angeles', '\u{1F1FA}\u{1F1F8}'],
+  ['Chicago', 'America/Chicago', '\u{1F1FA}\u{1F1F8}'], ['Houston', 'America/Chicago', '\u{1F1FA}\u{1F1F8}'],
+  ['Phoenix', 'America/Phoenix', '\u{1F1FA}\u{1F1F8}'], ['San Francisco', 'America/Los_Angeles', '\u{1F1FA}\u{1F1F8}'],
+  ['Seattle', 'America/Los_Angeles', '\u{1F1FA}\u{1F1F8}'], ['Denver', 'America/Denver', '\u{1F1FA}\u{1F1F8}'],
+  ['Boston', 'America/New_York', '\u{1F1FA}\u{1F1F8}'], ['Miami', 'America/New_York', '\u{1F1FA}\u{1F1F8}'],
+  ['Washington DC', 'America/New_York', '\u{1F1FA}\u{1F1F8}'], ['Toronto', 'America/Toronto', '\u{1F1E8}\u{1F1E6}'],
+  ['Montreal', 'America/Toronto', '\u{1F1E8}\u{1F1E6}'], ['Vancouver', 'America/Vancouver', '\u{1F1E8}\u{1F1E6}'],
+  ['Mexico City', 'America/Mexico_City', '\u{1F1F2}\u{1F1FD}'],
   // South America
-  ['Sao Paulo', 'America/Sao_Paulo'], ['Buenos Aires', 'America/Argentina/Buenos_Aires'],
-  ['Lima', 'America/Lima'], ['Bogota', 'America/Bogota'], ['Santiago', 'America/Santiago'],
+  ['Sao Paulo', 'America/Sao_Paulo', '\u{1F1E7}\u{1F1F7}'], ['Buenos Aires', 'America/Argentina/Buenos_Aires', '\u{1F1E6}\u{1F1F7}'],
+  ['Lima', 'America/Lima', '\u{1F1F5}\u{1F1EA}'], ['Bogota', 'America/Bogota', '\u{1F1E8}\u{1F1F4}'], ['Santiago', 'America/Santiago', '\u{1F1E8}\u{1F1F1}'],
   // Europe
-  ['London', 'Europe/London'], ['Paris', 'Europe/Paris'], ['Lyon', 'Europe/Paris'],
-  ['Marseille', 'Europe/Paris'], ['Toulouse', 'Europe/Paris'], ['Bordeaux', 'Europe/Paris'],
-  ['Lille', 'Europe/Paris'], ['Nice', 'Europe/Paris'], ['Strasbourg', 'Europe/Paris'],
-  ['Berlin', 'Europe/Berlin'], ['Munich', 'Europe/Berlin'],
-  ['Madrid', 'Europe/Madrid'], ['Barcelona', 'Europe/Madrid'],
-  ['Rome', 'Europe/Rome'], ['Milan', 'Europe/Rome'],
-  ['Amsterdam', 'Europe/Amsterdam'], ['Brussels', 'Europe/Brussels'],
-  ['Zurich', 'Europe/Zurich'], ['Geneva', 'Europe/Zurich'],
-  ['Vienna', 'Europe/Vienna'], ['Prague', 'Europe/Prague'],
-  ['Warsaw', 'Europe/Warsaw'], ['Budapest', 'Europe/Budapest'],
-  ['Lisbon', 'Europe/Lisbon'], ['Dublin', 'Europe/Dublin'],
-  ['Copenhagen', 'Europe/Copenhagen'], ['Stockholm', 'Europe/Stockholm'],
-  ['Oslo', 'Europe/Oslo'], ['Helsinki', 'Europe/Helsinki'],
-  ['Athens', 'Europe/Athens'], ['Moscow', 'Europe/Moscow'],
-  ['Istanbul', 'Europe/Istanbul'], ['Kyiv', 'Europe/Kyiv'],
+  ['London', 'Europe/London', '\u{1F1EC}\u{1F1E7}'], ['Paris', 'Europe/Paris', '\u{1F1EB}\u{1F1F7}'], ['Lyon', 'Europe/Paris', '\u{1F1EB}\u{1F1F7}'],
+  ['Marseille', 'Europe/Paris', '\u{1F1EB}\u{1F1F7}'], ['Toulouse', 'Europe/Paris', '\u{1F1EB}\u{1F1F7}'], ['Bordeaux', 'Europe/Paris', '\u{1F1EB}\u{1F1F7}'],
+  ['Lille', 'Europe/Paris', '\u{1F1EB}\u{1F1F7}'], ['Nice', 'Europe/Paris', '\u{1F1EB}\u{1F1F7}'], ['Strasbourg', 'Europe/Paris', '\u{1F1EB}\u{1F1F7}'],
+  ['Berlin', 'Europe/Berlin', '\u{1F1E9}\u{1F1EA}'], ['Munich', 'Europe/Berlin', '\u{1F1E9}\u{1F1EA}'],
+  ['Madrid', 'Europe/Madrid', '\u{1F1EA}\u{1F1F8}'], ['Barcelona', 'Europe/Madrid', '\u{1F1EA}\u{1F1F8}'],
+  ['Rome', 'Europe/Rome', '\u{1F1EE}\u{1F1F9}'], ['Milan', 'Europe/Rome', '\u{1F1EE}\u{1F1F9}'],
+  ['Amsterdam', 'Europe/Amsterdam', '\u{1F1F3}\u{1F1F1}'], ['Brussels', 'Europe/Brussels', '\u{1F1E7}\u{1F1EA}'],
+  ['Zurich', 'Europe/Zurich', '\u{1F1E8}\u{1F1ED}'], ['Geneva', 'Europe/Zurich', '\u{1F1E8}\u{1F1ED}'],
+  ['Vienna', 'Europe/Vienna', '\u{1F1E6}\u{1F1F9}'], ['Prague', 'Europe/Prague', '\u{1F1E8}\u{1F1FF}'],
+  ['Warsaw', 'Europe/Warsaw', '\u{1F1F5}\u{1F1F1}'], ['Budapest', 'Europe/Budapest', '\u{1F1ED}\u{1F1FA}'],
+  ['Lisbon', 'Europe/Lisbon', '\u{1F1F5}\u{1F1F9}'], ['Dublin', 'Europe/Dublin', '\u{1F1EE}\u{1F1EA}'],
+  ['Copenhagen', 'Europe/Copenhagen', '\u{1F1E9}\u{1F1F0}'], ['Stockholm', 'Europe/Stockholm', '\u{1F1F8}\u{1F1EA}'],
+  ['Oslo', 'Europe/Oslo', '\u{1F1F3}\u{1F1F4}'], ['Helsinki', 'Europe/Helsinki', '\u{1F1EB}\u{1F1EE}'],
+  ['Athens', 'Europe/Athens', '\u{1F1EC}\u{1F1F7}'], ['Moscow', 'Europe/Moscow', '\u{1F1F7}\u{1F1FA}'],
+  ['Istanbul', 'Europe/Istanbul', '\u{1F1F9}\u{1F1F7}'], ['Kyiv', 'Europe/Kyiv', '\u{1F1FA}\u{1F1E6}'],
   // Middle East
-  ['Dubai', 'Asia/Dubai'], ['Riyadh', 'Asia/Riyadh'], ['Tel Aviv', 'Asia/Jerusalem'],
+  ['Dubai', 'Asia/Dubai', '\u{1F1E6}\u{1F1EA}'], ['Riyadh', 'Asia/Riyadh', '\u{1F1F8}\u{1F1E6}'], ['Tel Aviv', 'Asia/Jerusalem', '\u{1F1EE}\u{1F1F1}'],
   // Africa
-  ['Cairo', 'Africa/Cairo'], ['Lagos', 'Africa/Lagos'], ['Nairobi', 'Africa/Nairobi'],
-  ['Johannesburg', 'Africa/Johannesburg'], ['Casablanca', 'Africa/Casablanca'],
+  ['Cairo', 'Africa/Cairo', '\u{1F1EA}\u{1F1EC}'], ['Lagos', 'Africa/Lagos', '\u{1F1F3}\u{1F1EC}'], ['Nairobi', 'Africa/Nairobi', '\u{1F1F0}\u{1F1EA}'],
+  ['Johannesburg', 'Africa/Johannesburg', '\u{1F1FF}\u{1F1E6}'], ['Casablanca', 'Africa/Casablanca', '\u{1F1F2}\u{1F1E6}'],
   // Asia
-  ['Mumbai', 'Asia/Kolkata'], ['Delhi', 'Asia/Kolkata'], ['Bangalore', 'Asia/Kolkata'],
-  ['Shanghai', 'Asia/Shanghai'], ['Beijing', 'Asia/Shanghai'],
-  ['Hong Kong', 'Asia/Hong_Kong'], ['Tokyo', 'Asia/Tokyo'],
-  ['Seoul', 'Asia/Seoul'], ['Singapore', 'Asia/Singapore'],
-  ['Bangkok', 'Asia/Bangkok'], ['Jakarta', 'Asia/Jakarta'],
+  ['Mumbai', 'Asia/Kolkata', '\u{1F1EE}\u{1F1F3}'], ['Delhi', 'Asia/Kolkata', '\u{1F1EE}\u{1F1F3}'], ['Bangalore', 'Asia/Kolkata', '\u{1F1EE}\u{1F1F3}'],
+  ['Shanghai', 'Asia/Shanghai', '\u{1F1E8}\u{1F1F3}'], ['Beijing', 'Asia/Shanghai', '\u{1F1E8}\u{1F1F3}'],
+  ['Hong Kong', 'Asia/Hong_Kong', '\u{1F1ED}\u{1F1F0}'], ['Tokyo', 'Asia/Tokyo', '\u{1F1EF}\u{1F1F5}'],
+  ['Seoul', 'Asia/Seoul', '\u{1F1F0}\u{1F1F7}'], ['Singapore', 'Asia/Singapore', '\u{1F1F8}\u{1F1EC}'],
+  ['Bangkok', 'Asia/Bangkok', '\u{1F1F9}\u{1F1ED}'], ['Jakarta', 'Asia/Jakarta', '\u{1F1EE}\u{1F1E9}'],
   // Oceania
-  ['Sydney', 'Australia/Sydney'], ['Melbourne', 'Australia/Melbourne'],
-  ['Auckland', 'Pacific/Auckland'],
+  ['Sydney', 'Australia/Sydney', '\u{1F1E6}\u{1F1FA}'], ['Melbourne', 'Australia/Melbourne', '\u{1F1E6}\u{1F1FA}'],
+  ['Auckland', 'Pacific/Auckland', '\u{1F1F3}\u{1F1FF}'],
 ];
 
 // Timezone → currency mapping
@@ -70,6 +70,20 @@ const TZ_CURRENCY: Record<string, string> = {
   'Pacific/Auckland': 'NZD',
 };
 
+// Currency code → full name
+export const CURRENCY_NAMES: Record<string, string> = {
+  USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound', CAD: 'Canadian Dollar',
+  AUD: 'Australian Dollar', CHF: 'Swiss Franc', JPY: 'Japanese Yen', CNY: 'Chinese Yuan',
+  INR: 'Indian Rupee', BRL: 'Brazilian Real', MXN: 'Mexican Peso', KRW: 'South Korean Won',
+  SGD: 'Singapore Dollar', HKD: 'Hong Kong Dollar', SEK: 'Swedish Krona', NOK: 'Norwegian Krone',
+  DKK: 'Danish Krone', NZD: 'New Zealand Dollar', ZAR: 'South African Rand', PLN: 'Polish Zloty',
+  CZK: 'Czech Koruna', HUF: 'Hungarian Forint', TRY: 'Turkish Lira', ILS: 'Israeli Shekel',
+  AED: 'UAE Dirham', SAR: 'Saudi Riyal', THB: 'Thai Baht', IDR: 'Indonesian Rupiah',
+  ARS: 'Argentine Peso', COP: 'Colombian Peso', CLP: 'Chilean Peso', PEN: 'Peruvian Sol',
+  EGP: 'Egyptian Pound', NGN: 'Nigerian Naira', KES: 'Kenyan Shilling', MAD: 'Moroccan Dirham',
+  RUB: 'Russian Ruble', UAH: 'Ukrainian Hryvnia',
+};
+
 export function getCurrencyForCity(city: string): string {
   const entry = CITY_TIMEZONES.find(([c]) => c === city);
   return entry ? TZ_CURRENCY[entry[1]] || '' : '';
@@ -78,6 +92,11 @@ export function getCurrencyForCity(city: string): string {
 export function getTimezoneForCity(city: string): string {
   const entry = CITY_TIMEZONES.find(([c]) => c === city);
   return entry ? entry[1] : '';
+}
+
+export function getFlagForCity(city: string): string {
+  const entry = CITY_TIMEZONES.find(([c]) => c === city);
+  return entry ? entry[2] : '';
 }
 
 const TOP_CURRENCIES = [

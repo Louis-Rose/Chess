@@ -4,7 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell, btnPrimary, BTN_GHOST } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
-import { CITY_TIMEZONES, getCurrencyForCity, getTimezoneForCity, CURRENCY_LIST } from '../utils/cities';
+import { CITY_TIMEZONES, getCurrencyForCity, getTimezoneForCity, CURRENCY_LIST, CURRENCY_NAMES } from '../utils/cities';
 
 interface BundleOffer {
   lessons: number | '';
@@ -58,8 +58,7 @@ export function ProfilePage() {
   const selectCity = (name: string) => {
     setCity(name);
     setCitySearch(name);
-    const tz = getTimezoneForCity(name);
-    if (tz && !currency) {
+    if (!currency) {
       const curr = getCurrencyForCity(name);
       if (curr) setCurrency(curr);
     }
@@ -132,13 +131,14 @@ export function ProfilePage() {
             />
             {cityMatches.length > 0 && (
               <div className="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                {cityMatches.map(([name]) => (
+                {cityMatches.map(([name, , flag]) => (
                   <button
                     key={name}
                     onClick={() => selectCity(name)}
-                    className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors flex items-center gap-2"
                   >
-                    {name}
+                    <span>{flag}</span>
+                    <span>{name}</span>
                   </button>
                 ))}
               </div>
@@ -150,79 +150,9 @@ export function ProfilePage() {
         <Field label={t('coaches.profile.currency')}>
           <select value={currency} onChange={e => setCurrency(e.target.value)} className={INPUT}>
             <option value="">—</option>
-            {CURRENCY_LIST.map(c => <option key={c} value={c}>{c}</option>)}
+            {CURRENCY_LIST.map(c => <option key={c} value={c}>{CURRENCY_NAMES[c] || c} ({c})</option>)}
           </select>
         </Field>
-
-        {/* Lesson rate + duration */}
-        <div className="grid grid-cols-2 gap-4">
-          <Field label={t('coaches.profile.rate')}>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={0}
-                value={lessonRate}
-                onChange={e => setLessonRate(e.target.value === '' ? '' : Number(e.target.value))}
-                className={INPUT}
-                placeholder="40"
-              />
-              {currency && <span className="text-slate-400 text-sm">{currency}</span>}
-            </div>
-          </Field>
-          <Field label={t('coaches.profile.duration')}>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={15}
-                step={15}
-                value={lessonDuration}
-                onChange={e => setLessonDuration(Number(e.target.value) || 60)}
-                className={INPUT}
-              />
-              <span className="text-slate-400 text-sm">min</span>
-            </div>
-          </Field>
-        </div>
-
-        {/* Bundle offers */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm text-slate-300 font-medium">{t('coaches.profile.bundles')}</label>
-            <button onClick={addBundle} className={BTN_GHOST + ' text-xs flex items-center gap-1'}>
-              <Plus className="w-3 h-3" /> {t('coaches.profile.addBundle')}
-            </button>
-          </div>
-          {bundles.length === 0 && (
-            <p className="text-sm text-slate-500">{t('coaches.profile.noBundles')}</p>
-          )}
-          <div className="space-y-2">
-            {bundles.map((b, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  value={b.lessons}
-                  onChange={e => updateBundle(i, 'lessons', e.target.value)}
-                  className={INPUT + ' w-20'}
-                  placeholder="10"
-                />
-                <span className="text-slate-400 text-sm">{t('coaches.profile.lessonsFor')}</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={b.price}
-                  onChange={e => updateBundle(i, 'price', e.target.value)}
-                  className={INPUT + ' w-24'}
-                  placeholder="300"
-                />
-                {currency && <span className="text-slate-400 text-sm">{currency}</span>}
-                <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Chess usernames */}
         <div className="grid grid-cols-2 gap-4">
@@ -242,6 +172,84 @@ export function ProfilePage() {
               placeholder={t('coaches.profile.optional')}
             />
           </Field>
+        </div>
+
+        {/* Lesson Rates section */}
+        <div className="rounded-lg border border-slate-700 overflow-hidden">
+          <div className="px-4 py-3 bg-slate-700/50">
+            <h3 className="text-sm font-medium text-slate-300">{t('coaches.profile.rates')}</h3>
+          </div>
+          <div className="p-4 space-y-4">
+            {/* Rate + duration */}
+            <div className="grid grid-cols-2 gap-4">
+              <Field label={t('coaches.profile.rate')}>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={lessonRate}
+                    onChange={e => setLessonRate(e.target.value === '' ? '' : Number(e.target.value))}
+                    className={INPUT}
+                    placeholder="40"
+                  />
+                  {currency && <span className="text-slate-400 text-sm">{currency}</span>}
+                </div>
+              </Field>
+              <Field label={t('coaches.profile.duration')}>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={15}
+                    step={15}
+                    value={lessonDuration}
+                    onChange={e => setLessonDuration(Number(e.target.value) || 60)}
+                    className={INPUT}
+                  />
+                  <span className="text-slate-400 text-sm">min</span>
+                </div>
+              </Field>
+            </div>
+
+            {/* Bundle offers */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm text-slate-300 font-medium">{t('coaches.profile.bundles')}</label>
+                <button onClick={addBundle} className={BTN_GHOST + ' text-xs flex items-center gap-1'}>
+                  <Plus className="w-3 h-3" /> {t('coaches.profile.addBundle')}
+                </button>
+              </div>
+              {bundles.length === 0 && (
+                <p className="text-sm text-slate-500">{t('coaches.profile.noBundles')}</p>
+              )}
+              <div className="space-y-2">
+                {bundles.map((b, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={b.lessons}
+                      onChange={e => updateBundle(i, 'lessons', e.target.value)}
+                      className={INPUT + ' w-20'}
+                      placeholder="10"
+                    />
+                    <span className="text-slate-400 text-sm">{t('coaches.profile.lessonsFor')}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={b.price}
+                      onChange={e => updateBundle(i, 'price', e.target.value)}
+                      className={INPUT + ' w-24'}
+                      placeholder="300"
+                    />
+                    {currency && <span className="text-slate-400 text-sm">{currency}</span>}
+                    <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Save */}
