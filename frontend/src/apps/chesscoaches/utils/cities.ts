@@ -101,9 +101,12 @@ export function getFlagForCity(city: string): string {
 
 export function getTimezoneAbbr(tz: string): string {
   try {
-    return new Intl.DateTimeFormat('en-US', {
-      timeZone: tz, timeZoneName: 'short',
-    }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || tz;
+    // Get UTC offset like "UTC+2", "UTC-5", "UTC+5:30"
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-GB', { timeZone: tz, timeZoneName: 'shortOffset' });
+    const parts = formatter.formatToParts(now);
+    const tzPart = parts.find(p => p.type === 'timeZoneName')?.value || '';
+    return tzPart || tz;
   } catch { return tz; }
 }
 

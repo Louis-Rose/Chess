@@ -114,17 +114,25 @@ export function ProfilePage() {
           {/* City */}
           <Field label={t('coaches.profile.city')} required>
             <div className="relative">
-              <div className="flex items-center gap-2">
-                <input value={citySearch} onChange={e => { setCitySearch(e.target.value); setCity(''); }} className={INPUT} placeholder="Paris, London, New York..." />
-                {cityTimezone && <span className="text-slate-400 text-xs whitespace-nowrap">{cityTimezone}</span>}
-              </div>
+              <input
+                value={cityTimezone ? `${citySearch} (${cityTimezone})` : citySearch}
+                onChange={e => {
+                  // Strip the timezone suffix when editing
+                  const raw = e.target.value.replace(/\s*\([^)]*\)\s*$/, '');
+                  setCitySearch(raw);
+                  setCity('');
+                }}
+                onFocus={() => { if (city) setCitySearch(city); }}
+                className={INPUT}
+                placeholder="Paris, London, New York..."
+              />
               {cityMatches.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {cityMatches.map(([name, tz, flag]) => (
                     <button key={name} onClick={() => selectCity(name)} className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors flex items-center gap-2">
                       <span>{flag}</span>
                       <span className="flex-1">{name}</span>
-                      <span className="text-slate-500 text-xs">{getTimezoneAbbr(tz)}</span>
+                      <span className="text-slate-100 text-xs">({getTimezoneAbbr(tz)})</span>
                     </button>
                   ))}
                 </div>
@@ -150,8 +158,16 @@ export function ProfilePage() {
             </Field>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-slate-700" />
+          {/* Save profile */}
+          <button onClick={handleSave} disabled={saving} className={SAVE_BTN}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
+            {saved ? t('coaches.profile.saved') : t('coaches.profile.saveInfo')}
+          </button>
+
+          {/* Divider + Pricing title */}
+          <div className="border-t border-slate-700 pt-4">
+            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider text-center">{t('coaches.profile.pricingTitle')}</h3>
+          </div>
 
           {/* Lesson duration + rate */}
           <div className="grid grid-cols-2 gap-4">
@@ -177,7 +193,7 @@ export function ProfilePage() {
               {bundles.map((b, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-20'} placeholder="10" />
-                  <span className="text-slate-400 text-sm">{t('coaches.profile.lessonsFor')}</span>
+                  <span className="text-slate-400 text-sm whitespace-nowrap text-center w-16">{t('coaches.profile.lessonsFor')}</span>
                   <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24'} placeholder="300" />
                   {currency && <span className="text-slate-400 text-sm">{currency}</span>}
                   <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
@@ -191,10 +207,10 @@ export function ProfilePage() {
             </button>
           </div>
 
-          {/* Save */}
-          <button onClick={handleSave} disabled={saving} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+          {/* Save pricing */}
+          <button onClick={handleSave} disabled={saving} className={SAVE_BTN}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
-            {saved ? t('coaches.profile.saved') : t('coaches.profile.saveInfo')}
+            {saved ? t('coaches.profile.saved') : t('coaches.profile.saveRates')}
           </button>
 
         </div>
@@ -204,6 +220,7 @@ export function ProfilePage() {
 }
 
 const INPUT = 'w-full bg-slate-700 text-slate-100 text-sm rounded-lg px-3 py-2 border border-slate-600 focus:outline-none focus:border-blue-500';
+const SAVE_BTN = 'w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
