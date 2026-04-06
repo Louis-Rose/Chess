@@ -4,7 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
-import { CITY_TIMEZONES, getCurrencyForCity, getTimezoneForCity, getTimezoneAbbr, CURRENCY_LIST, CURRENCY_NAMES } from '../utils/cities';
+import { CITY_TIMEZONES, getCurrencyForCity, getTimezoneForCity, getTimezoneAbbr, CURRENCY_LIST, CURRENCY_NAMES, CURRENCY_SYMBOLS } from '../utils/cities';
 
 interface BundleOffer {
   lessons: number | '';
@@ -21,6 +21,7 @@ export function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [city, setCity] = useState('');
   const [citySearch, setCitySearch] = useState('');
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [currency, setCurrency] = useState('');
   const [lessonRate, setLessonRate] = useState<number | ''>('');
   const [lessonDuration, setLessonDuration] = useState(60);
@@ -47,10 +48,10 @@ export function ProfilePage() {
   }, []);
 
   const cityMatches = useMemo(() => {
-    if (!citySearch || citySearch === city) return [];
+    if (!showCityDropdown || !citySearch) return [];
     const q = citySearch.toLowerCase();
     return CITY_TIMEZONES.filter(([c]) => c.toLowerCase().includes(q)).slice(0, 8);
-  }, [citySearch, city]);
+  }, [citySearch, showCityDropdown]);
 
   const cityTimezone = useMemo(() => {
     if (!city) return '';
@@ -61,11 +62,14 @@ export function ProfilePage() {
   const selectCity = (name: string) => {
     setCity(name);
     setCitySearch(name);
+    setShowCityDropdown(false);
     if (!currency) {
       const curr = getCurrencyForCity(name);
       if (curr) setCurrency(curr);
     }
   };
+
+  const currSymbol = CURRENCY_SYMBOLS[currency] || '';
 
   const handleSave = async () => {
     setSaving(true); setSaved(false);
@@ -106,30 +110,24 @@ export function ProfilePage() {
       <div className="max-w-lg mx-auto">
         <div className="rounded-xl border border-slate-700 p-5 space-y-5">
 
-          {/* Name */}
           <Field label={t('coaches.profile.name')} required>
             <input value={displayName} onChange={e => setDisplayName(e.target.value)} className={INPUT} placeholder={user?.name || ''} />
           </Field>
 
-          {/* City */}
           <Field label={t('coaches.profile.city')} required>
             <div className="relative">
               <input
-                value={cityTimezone ? `${citySearch} (${cityTimezone})` : citySearch}
-                onChange={e => {
-                  // Strip the timezone suffix when editing
-                  const raw = e.target.value.replace(/\s*\([^)]*\)\s*$/, '');
-                  setCitySearch(raw);
-                  setCity('');
-                }}
-                onFocus={() => { if (city) setCitySearch(city); }}
+                value={city && !showCityDropdown ? `${city} (${cityTimezone})` : citySearch}
+                onChange={e => { setCitySearch(e.target.value); setCity(''); setShowCityDropdown(true); }}
+                onFocus={() => { setCitySearch(city || citySearch); setShowCityDropdown(true); }}
+                onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
                 className={INPUT}
                 placeholder="Paris, London, New York..."
               />
               {cityMatches.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {cityMatches.map(([name, tz, flag]) => (
-                    <button key={name} onClick={() => selectCity(name)} className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors flex items-center gap-2">
+                    <button key={name} onMouseDown={() => selectCity(name)} className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors flex items-center gap-2">
                       <span>{flag}</span>
                       <span className="flex-1">{name}</span>
                       <span className="text-slate-100 text-xs">({getTimezoneAbbr(tz)})</span>
@@ -140,15 +138,15 @@ export function ProfilePage() {
             </div>
           </Field>
 
-          {/* Currency */}
           <Field label={t('coaches.profile.currency')} required>
             <select value={currency} onChange={e => setCurrency(e.target.value)} className={INPUT}>
               <option value="">—</option>
-              {CURRENCY_LIST.map(c => <option key={c} value={c}>{CURRENCY_NAMES[c] || c} ({c})</option>)}
+              {CURRENCY_LIST.map(c => (
+                <option key={c} value={c}>{CURRENCY_SYMBOLS[c] || ''} {CURRENCY_NAMES[c] || c} ({c})</option>
+              ))}
             </select>
           </Field>
 
-          {/* Chess usernames */}
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('coaches.profile.chesscomUsername')}>
               <input value={chesscom} onChange={e => setChesscom(e.target.value)} className={INPUT} />
@@ -158,18 +156,11 @@ export function ProfilePage() {
             </Field>
           </div>
 
-          {/* Save profile */}
-          <button onClick={handleSave} disabled={saving} className={SAVE_BTN}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
-            {saved ? t('coaches.profile.saved') : t('coaches.profile.saveInfo')}
-          </button>
-
           {/* Divider + Pricing title */}
           <div className="border-t border-slate-700 pt-4">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider text-center">{t('coaches.profile.pricingTitle')}</h3>
           </div>
 
-          {/* Lesson duration + rate */}
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('coaches.profile.duration')}>
               <select value={lessonDuration} onChange={e => setLessonDuration(Number(e.target.value))} className={INPUT}>
@@ -180,22 +171,27 @@ export function ProfilePage() {
             </Field>
             <Field label={t('coaches.profile.rate')}>
               <div className="flex items-center gap-2">
+                {currSymbol && <span className="text-slate-400 text-sm">{currSymbol}</span>}
                 <input type="text" inputMode="numeric" value={lessonRate} onChange={e => setLessonRate(e.target.value === '' ? '' : Number(e.target.value.replace(/[^0-9.]/g, '')))} className={INPUT} placeholder="40" />
-                {currency && <span className="text-slate-400 text-sm">{currency}</span>}
               </div>
             </Field>
           </div>
 
           {/* Bundle offers */}
           <div>
-            <label className="block text-sm text-slate-300 font-medium mb-3">{t('coaches.profile.bundles')}</label>
+            <label className="block text-sm text-slate-300 font-medium mb-3 text-center">{t('coaches.profile.bundles')}</label>
             <div className="space-y-2 mb-3">
               {bundles.map((b, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-20'} placeholder="10" />
-                  <span className="text-slate-400 text-sm whitespace-nowrap text-center w-16">{t('coaches.profile.lessonsFor')}</span>
-                  <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24'} placeholder="300" />
-                  {currency && <span className="text-slate-400 text-sm">{currency}</span>}
+                <div key={i} className="flex items-center gap-2 justify-center">
+                  <div className="flex flex-col items-center">
+                    <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' w-20 text-center'} placeholder="10" />
+                    <span className="text-slate-400 text-xs mt-0.5">{t('coaches.profile.lessonsLabel')}</span>
+                  </div>
+                  <span className="text-slate-400 text-sm">{t('coaches.profile.forWord')}</span>
+                  <div className="flex items-center gap-1">
+                    {currSymbol && <span className="text-slate-400 text-sm">{currSymbol}</span>}
+                    <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' w-24'} placeholder="300" />
+                  </div>
                   <button onClick={() => removeBundle(i)} className="text-slate-500 hover:text-red-400 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -207,10 +203,10 @@ export function ProfilePage() {
             </button>
           </div>
 
-          {/* Save pricing */}
+          {/* Single save button */}
           <button onClick={handleSave} disabled={saving} className={SAVE_BTN}>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
-            {saved ? t('coaches.profile.saved') : t('coaches.profile.saveRates')}
+            {saved ? t('coaches.profile.saved') : t('coaches.profile.saveInfo')}
           </button>
 
         </div>

@@ -84,6 +84,16 @@ export const CURRENCY_NAMES: Record<string, string> = {
   RUB: 'Russian Ruble', UAH: 'Ukrainian Hryvnia',
 };
 
+export const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', EUR: '\u20AC', GBP: '\u00A3', CAD: 'C$', AUD: 'A$', CHF: 'CHF',
+  JPY: '\u00A5', CNY: '\u00A5', INR: '\u20B9', BRL: 'R$', MXN: 'MX$', KRW: '\u20A9',
+  SGD: 'S$', HKD: 'HK$', SEK: 'kr', NOK: 'kr', DKK: 'kr', NZD: 'NZ$',
+  ZAR: 'R', PLN: 'z\u0142', CZK: 'K\u010D', HUF: 'Ft', TRY: '\u20BA', ILS: '\u20AA',
+  AED: 'AED', SAR: 'SAR', THB: '\u0E3F', IDR: 'Rp', ARS: 'AR$', COP: 'COL$',
+  CLP: 'CL$', PEN: 'S/', EGP: 'E\u00A3', NGN: '\u20A6', KES: 'KSh', MAD: 'MAD',
+  RUB: '\u20BD', UAH: '\u20B4',
+};
+
 export function getCurrencyForCity(city: string): string {
   const entry = CITY_TIMEZONES.find(([c]) => c === city);
   return entry ? TZ_CURRENCY[entry[1]] || '' : '';
