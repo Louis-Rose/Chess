@@ -99,6 +99,14 @@ export function getFlagForCity(city: string): string {
   return entry ? entry[2] : '';
 }
 
+export function getTimezoneAbbr(tz: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, timeZoneName: 'short',
+    }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || tz;
+  } catch { return tz; }
+}
+
 const TOP_CURRENCIES = [
   'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'JPY', 'CNY', 'INR', 'BRL',
   'MXN', 'KRW', 'SGD', 'SEK', 'NOK', 'PLN', 'TRY', 'ZAR', 'NZD', 'AED',

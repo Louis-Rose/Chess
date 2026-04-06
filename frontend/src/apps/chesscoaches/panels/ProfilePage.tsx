@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { Loader2, Plus, Trash2, Check } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PanelShell, btnPrimary } from '../components/PanelShell';
+import { PanelShell } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
-import { CITY_TIMEZONES, getCurrencyForCity, getTimezoneForCity, CURRENCY_LIST, CURRENCY_NAMES } from '../utils/cities';
+import { CITY_TIMEZONES, getCurrencyForCity, getTimezoneForCity, getTimezoneAbbr, CURRENCY_LIST, CURRENCY_NAMES } from '../utils/cities';
 
 interface BundleOffer {
   lessons: number | '';
@@ -15,8 +15,10 @@ export function ProfilePage() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savingInfo, setSavingInfo] = useState(false);
+  const [savedInfo, setSavedInfo] = useState(false);
+  const [savingRates, setSavingRates] = useState(false);
+  const [savedRates, setSavedRates] = useState(false);
 
   const [displayName, setDisplayName] = useState('');
   const [city, setCity] = useState('');
@@ -52,6 +54,12 @@ export function ProfilePage() {
     return CITY_TIMEZONES.filter(([c]) => c.toLowerCase().includes(q)).slice(0, 8);
   }, [citySearch, city]);
 
+  const cityTimezone = useMemo(() => {
+    if (!city) return '';
+    const tz = getTimezoneForCity(city);
+    return tz ? getTimezoneAbbr(tz) : '';
+  }, [city]);
+
   const selectCity = (name: string) => {
     setCity(name);
     setCitySearch(name);
@@ -61,9 +69,7 @@ export function ProfilePage() {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    setSaved(false);
+  const saveAll = async () => {
     const tz = getTimezoneForCity(city);
     await authFetch('/api/coaches/profile', {
       method: 'PUT',
@@ -76,9 +82,20 @@ export function ProfilePage() {
         bundles: bundles.filter(b => b.lessons && b.price !== ''),
       }),
     });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleSaveInfo = async () => {
+    setSavingInfo(true); setSavedInfo(false);
+    await saveAll();
+    setSavingInfo(false); setSavedInfo(true);
+    setTimeout(() => setSavedInfo(false), 2000);
+  };
+
+  const handleSaveRates = async () => {
+    setSavingRates(true); setSavedRates(false);
+    await saveAll();
+    setSavingRates(false); setSavedRates(true);
+    setTimeout(() => setSavedRates(false), 2000);
   };
 
   const addBundle = () => setBundles(prev => [...prev, { lessons: '', price: '' }]);
@@ -102,60 +119,72 @@ export function ProfilePage() {
       <div className="max-w-lg mx-auto space-y-6">
 
         {/* Personal info container */}
-        <div className="rounded-xl border border-slate-700 p-5 space-y-4">
-          <Field label={t('coaches.profile.name')}>
-            <input value={displayName} onChange={e => setDisplayName(e.target.value)} className={INPUT} placeholder={user?.name || ''} />
-          </Field>
+        <div className="rounded-xl border border-slate-700 overflow-hidden">
+          <div className="px-5 py-3 bg-slate-700/50">
+            <h3 className="text-sm font-medium text-slate-300 text-center">{t('coaches.profile.infoTitle')}</h3>
+          </div>
+          <div className="p-5 space-y-4">
+            <Field label={t('coaches.profile.name')} required>
+              <input value={displayName} onChange={e => setDisplayName(e.target.value)} className={INPUT} placeholder={user?.name || ''} />
+            </Field>
 
-          <Field label={t('coaches.profile.city')}>
-            <div className="relative">
-              <input value={citySearch} onChange={e => { setCitySearch(e.target.value); setCity(''); }} className={INPUT} placeholder="Paris, London, New York..." />
-              {cityMatches.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {cityMatches.map(([name, , flag]) => (
-                    <button key={name} onClick={() => selectCity(name)} className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors flex items-center gap-2">
-                      <span>{flag}</span><span>{name}</span>
-                    </button>
-                  ))}
+            <Field label={t('coaches.profile.city')} required>
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  <input value={citySearch} onChange={e => { setCitySearch(e.target.value); setCity(''); }} className={INPUT} placeholder="Paris, London, New York..." />
+                  {cityTimezone && <span className="text-slate-400 text-xs whitespace-nowrap">{cityTimezone}</span>}
                 </div>
-              )}
+                {cityMatches.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {cityMatches.map(([name, tz, flag]) => (
+                      <button key={name} onClick={() => selectCity(name)} className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors flex items-center gap-2">
+                        <span>{flag}</span>
+                        <span className="flex-1">{name}</span>
+                        <span className="text-slate-500 text-xs">{getTimezoneAbbr(tz)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Field>
+
+            <Field label={t('coaches.profile.currency')} required>
+              <select value={currency} onChange={e => setCurrency(e.target.value)} className={INPUT}>
+                <option value="">—</option>
+                {CURRENCY_LIST.map(c => <option key={c} value={c}>{CURRENCY_NAMES[c] || c} ({c})</option>)}
+              </select>
+            </Field>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Chess.com">
+                <input value={chesscom} onChange={e => setChesscom(e.target.value)} className={INPUT} />
+              </Field>
+              <Field label="Lichess">
+                <input value={lichess} onChange={e => setLichess(e.target.value)} className={INPUT} />
+              </Field>
             </div>
-          </Field>
 
-          <Field label={t('coaches.profile.currency')}>
-            <select value={currency} onChange={e => setCurrency(e.target.value)} className={INPUT}>
-              <option value="">—</option>
-              {CURRENCY_LIST.map(c => <option key={c} value={c}>{CURRENCY_NAMES[c] || c} ({c})</option>)}
-            </select>
-          </Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Chess.com">
-              <input value={chesscom} onChange={e => setChesscom(e.target.value)} className={INPUT} placeholder={t('coaches.profile.optional')} />
-            </Field>
-            <Field label="Lichess">
-              <input value={lichess} onChange={e => setLichess(e.target.value)} className={INPUT} placeholder={t('coaches.profile.optional')} />
-            </Field>
+            <SaveButton saving={savingInfo} saved={savedInfo} onClick={handleSaveInfo} label={t('coaches.profile.saveInfo')} />
           </div>
         </div>
 
         {/* Lesson Rates container */}
         <div className="rounded-xl border border-slate-700 overflow-hidden">
           <div className="px-5 py-3 bg-slate-700/50">
-            <h3 className="text-sm font-medium text-slate-300">{t('coaches.profile.rates')}</h3>
+            <h3 className="text-sm font-medium text-slate-300 text-center">{t('coaches.profile.rates')}</h3>
           </div>
           <div className="p-5 space-y-5">
             <div className="grid grid-cols-2 gap-4">
-              <Field label={t('coaches.profile.rate')}>
-                <div className="flex items-center gap-2">
-                  <input type="number" min={0} value={lessonRate} onChange={e => setLessonRate(e.target.value === '' ? '' : Number(e.target.value))} className={INPUT} placeholder="40" />
-                  {currency && <span className="text-slate-400 text-sm">{currency}</span>}
-                </div>
-              </Field>
               <Field label={t('coaches.profile.duration')}>
                 <div className="flex items-center gap-2">
                   <input type="number" min={15} step={15} value={lessonDuration} onChange={e => setLessonDuration(Number(e.target.value) || 60)} className={INPUT} />
                   <span className="text-slate-400 text-sm">min</span>
+                </div>
+              </Field>
+              <Field label={t('coaches.profile.rate')}>
+                <div className="flex items-center gap-2">
+                  <input type="number" min={0} value={lessonRate} onChange={e => setLessonRate(e.target.value === '' ? '' : Number(e.target.value))} className={INPUT} placeholder="40" />
+                  {currency && <span className="text-slate-400 text-sm">{currency}</span>}
                 </div>
               </Field>
             </div>
@@ -183,14 +212,10 @@ export function ProfilePage() {
                 <Plus className="w-4 h-4" /> {t('coaches.profile.addBundle')}
               </button>
             </div>
+
+            <SaveButton saving={savingRates} saved={savedRates} onClick={handleSaveRates} label={t('coaches.profile.saveRates')} />
           </div>
         </div>
-
-        {/* Save */}
-        <button onClick={handleSave} disabled={saving} className={btnPrimary('blue') + ' w-full flex items-center justify-center gap-2'}>
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
-          {saved ? t('coaches.profile.saved') : t('coaches.profile.save')}
-        </button>
       </div>
     </PanelShell>
   );
@@ -198,11 +223,22 @@ export function ProfilePage() {
 
 const INPUT = 'w-full bg-slate-700 text-slate-100 text-sm rounded-lg px-3 py-2 border border-slate-600 focus:outline-none focus:border-blue-500';
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-sm text-slate-300 font-medium mb-1">{label}</label>
+      <label className="block text-sm text-slate-300 font-medium mb-1">
+        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
       {children}
     </div>
+  );
+}
+
+function SaveButton({ saving, saved, onClick, label }: { saving: boolean; saved: boolean; onClick: () => void; label: string }) {
+  return (
+    <button onClick={onClick} disabled={saving} className={`w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors`}>
+      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
+      {saved ? label.replace(/save|enregistrer/i, '').trim() + ' ✓' : label}
+    </button>
   );
 }
