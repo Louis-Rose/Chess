@@ -659,7 +659,6 @@ export function AdminPanel() {
                   <BarChart data={studentsData.map(c => ({
                     name: c.coach_name?.split(' ')[0] || `User ${c.coach_user_id}`,
                     students: c.students.length,
-                    active: c.students.filter(s => s.is_active).length,
                   }))}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis dataKey="name" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
@@ -669,8 +668,7 @@ export function AdminPanel() {
                       contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                       labelStyle={{ color: '#e2e8f0' }}
                     />
-                    <Bar dataKey="students" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} name="Total" />
-                    <Bar dataKey="active" fill="#16a34a" radius={[2, 2, 0, 0]} activeBar={false} name="Active" />
+                    <Bar dataKey="students" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} name="Students" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -694,12 +692,7 @@ export function AdminPanel() {
                   {coach.students.map((s, i) => (
                     <div key={i} className="flex items-center justify-between px-3 py-1.5 text-sm">
                       <span className="text-slate-200">{s.name}</span>
-                      <div className="flex items-center gap-3">
-                        <span className={`text-xs ${s.is_active ? 'text-emerald-400' : 'text-slate-500'}`}>
-                          {s.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                        <span className="text-xs text-slate-500">{formatDate(s.created_at, language)}</span>
-                      </div>
+                      <span className="text-xs text-slate-500">{formatDate(s.created_at, language)}</span>
                     </div>
                   ))}
                 </div>
