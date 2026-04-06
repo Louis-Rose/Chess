@@ -215,52 +215,6 @@ def get_current_user_info():
     return jsonify({ 'user': user_payload })
 
 
-# ============= PREFERENCES ROUTES =============
-
-@auth_bp.route('/api/preferences', methods=['GET'])
-@login_required
-def get_preferences():
-    """Get user preferences."""
-    with get_db() as conn:
-        cursor = conn.execute('''
-            SELECT chess_username, preferred_time_class
-            FROM user_preferences WHERE user_id = ?
-        ''', (request.user_id,))
-        row = cursor.fetchone()
-
-    return jsonify(dict(row) if row else {})
-
-
-@auth_bp.route('/api/preferences', methods=['PUT'])
-@login_required
-def update_preferences():
-    """Update user preferences."""
-    data = request.get_json()
-
-    allowed_fields = ['chess_username', 'preferred_time_class']
-    updates = {k: v for k, v in data.items() if k in allowed_fields}
-
-    if not updates:
-        return jsonify({'error': 'No valid fields to update'}), 400
-
-    # Validate time_class
-    if 'preferred_time_class' in updates:
-        if updates['preferred_time_class'] not in ['rapid', 'blitz', 'bullet']:
-            return jsonify({'error': 'Invalid time_class'}), 400
-
-    set_clause = ', '.join(f'{k} = ?' for k in updates.keys())
-    values = list(updates.values()) + [request.user_id]
-
-    with get_db() as conn:
-        conn.execute(f'''
-            UPDATE user_preferences
-            SET {set_clause}, updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ?
-        ''', values)
-
-    return jsonify({'success': True, 'preferences': updates})
-
-
 
 
 # ============= ACTIVITY TRACKING =============

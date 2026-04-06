@@ -88,8 +88,6 @@ export function ScoresheetReadPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mobileEditRef = useRef<HTMLDivElement>(null);
-  const mobileExportRef = useRef<HTMLDivElement>(null);
   const prevAllVerifiedRef = useRef(false);
   const {
     scoresheet, scoresheetSetImage, scoresheetStartOneRead,
@@ -1146,10 +1144,8 @@ export function ScoresheetReadPage() {
                               <div className="w-full max-w-[400px]">{renderBoard({ compact: true })}</div>
                               {renderConfirmRevertButtons()}
                               {renderEditPanel('w-full max-w-[400px]')}
-                              <div ref={mobileEditRef} />
                               {renderExportButtons('w-full max-w-[400px]')}
                               {renderTryOwnButton('w-full max-w-[400px]')}
-                              <div ref={mobileExportRef} />
                             </>)
                           }
                         </div>

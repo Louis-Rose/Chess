@@ -185,8 +185,6 @@ interface CoachesDataContextType {
   scoresheet: ScoresheetState;
   scoresheetSetImage: (file: File, preview: string, fileName: string) => void;
   scoresheetStartOneRead: (notation?: string) => void;
-  scoresheetHandleEditSave: (modelId: string, readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => void;
-  scoresheetReread: (modelId: string) => void;
   scoresheetCancel: () => void;
   scoresheetClear: () => void;
   scoresheetSetOverrides: (overrides: ScoresheetMove[] | null) => void;
@@ -245,119 +243,6 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     setScoresheet(prev => ({ ...prev, consensusOverrides: overrides }));
   }, []);
 
-  const scoresheetDoReread = useCallback(async (file: File, modelId: string, confirmedMoves: ScoresheetMove[], signal?: AbortSignal) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    formData.append('confirmed_moves', JSON.stringify(confirmedMoves));
-    formData.append('model_id', modelId);
-    try {
-      const res = await fetch('/api/coaches/reread-scoresheet', { method: 'POST', body: formData, signal });
-      if (res.ok) {
-        const json = await res.json();
-        return { moves: json.result.moves as ScoresheetMove[], elapsed: json.elapsed as number, warnings: json.warnings as string[] | undefined };
-      }
-    } catch { /* ignore */ }
-    return null;
-  }, []);
-
-  const scoresheetHandleEditSave = useCallback(async (modelId: string, _readIdx: number, confirmed: ScoresheetMove[], correctionKey: string) => {
-    // Update the model result in-place (no re-read)
-    const prevCorrections = new Set<string>();
-    setScoresheet(prev => {
-      const mr = prev.modelResults[modelId];
-      if (!mr?.result) return prev;
-      const corr = new Set<string>(prev.reReads[modelId]?.[0]?.corrections);
-      corr.add(correctionKey);
-      corr.forEach(c => prevCorrections.add(c));
-      return {
-        ...prev,
-        modelResults: {
-          ...prev.modelResults,
-          [modelId]: { ...mr, result: { ...mr.result, moves: confirmed } },
-        },
-        reReads: { ...prev.reReads, [modelId]: [{ moves: confirmed, elapsed: 0, rereading: false, corrections: corr }] },
-      };
-    });
-
-    // Re-validate legality of all moves
-    try {
-      const res = await fetch('/api/coaches/validate-moves', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ moves: confirmed }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setScoresheet(prev => {
-          const mr = prev.modelResults[modelId];
-          if (!mr?.result) return prev;
-          return {
-            ...prev,
-            modelResults: {
-              ...prev.modelResults,
-              [modelId]: { ...mr, result: { ...mr.result, moves: json.moves } },
-            },
-            reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, moves: json.moves }] },
-          };
-        });
-      }
-    } catch { /* validation failed silently */ }
-  }, []);
-
-  const scoresheetReread = useCallback(async (modelId: string) => {
-    const mr = scoresheet.modelResults[modelId];
-    const confirmed = mr?.result?.moves;
-    if (!confirmed) return;
-
-    setScoresheet(prev => {
-      const mr2 = prev.modelResults[modelId];
-      if (!mr2) return prev;
-      return {
-        ...prev,
-        modelResults: { ...prev.modelResults, [modelId]: { ...mr2, rereading: true } },
-      };
-    });
-
-    const file = scoresheet.imageFile;
-    if (!file) return;
-    try {
-      const result = await scoresheetDoReread(file, modelId, confirmed);
-      if (result) {
-        setScoresheet(prev => {
-          const mr2 = prev.modelResults[modelId];
-          if (!mr2) return prev;
-          return {
-            ...prev,
-            modelResults: {
-              ...prev.modelResults,
-              [modelId]: { ...mr2, result: { ...mr2.result!, moves: result.moves }, elapsed: result.elapsed, rereading: false },
-            },
-            reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, moves: result.moves, elapsed: result.elapsed, rereading: false }] },
-          };
-        });
-      } else {
-        setScoresheet(prev => {
-          const mr2 = prev.modelResults[modelId];
-          if (!mr2) return prev;
-          return {
-            ...prev,
-            modelResults: { ...prev.modelResults, [modelId]: { ...mr2, rereading: false, error: 'Re-read failed' } },
-            reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, rereading: false, error: 'Re-read failed' }] },
-          };
-        });
-      }
-    } catch {
-      setScoresheet(prev => {
-        const mr2 = prev.modelResults[modelId];
-        if (!mr2) return prev;
-        return {
-          ...prev,
-          modelResults: { ...prev.modelResults, [modelId]: { ...mr2, rereading: false, error: 'Re-read failed' } },
-          reReads: { ...prev.reReads, [modelId]: [{ ...prev.reReads[modelId]?.[0]!, rereading: false, error: 'Re-read failed' }] },
-        };
-      });
-    }
-  }, [scoresheet.imageFile, scoresheet.modelResults, scoresheetDoReread]);
 
   const scoresheetAnalyzeImage = useCallback(async (file: File, signal: AbortSignal, notation?: string) => {
     setScoresheet(prev => ({ ...prev, error: '', modelResults: {}, reReads: {}, models: [], analyzing: true }));
@@ -563,7 +448,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
   return (
     <CoachesDataContext.Provider value={{
-      scoresheet, scoresheetSetImage, scoresheetStartOneRead, scoresheetHandleEditSave, scoresheetReread, scoresheetCancel, scoresheetClear, scoresheetSetOverrides,
+      scoresheet, scoresheetSetImage, scoresheetStartOneRead, scoresheetCancel, scoresheetClear, scoresheetSetOverrides,
       diagram, diagramSetImage, diagramAnalyze, diagramClear,
       mistakes: mistakesState, mistakesSetFile, mistakesAnalyze, mistakesClear, mistakesSetExpanded,
     }}>

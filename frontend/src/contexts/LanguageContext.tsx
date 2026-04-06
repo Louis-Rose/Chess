@@ -1,7 +1,5 @@
 import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import axios from 'axios';
-
 type Language = 'en' | 'fr';
 
 interface LanguageContextType {
@@ -527,15 +525,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return browserLang.startsWith('fr') ? 'fr' : 'en';
   });
 
-  // Record language to backend for analytics (called when user changes language)
-  const recordLanguage = (lang: Language) => {
-    axios.post('/api/language', { language: lang }).catch(() => {});
-  };
-
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('language', lang);
-    recordLanguage(lang);
   };
 
   const t = (key: string): string => {
