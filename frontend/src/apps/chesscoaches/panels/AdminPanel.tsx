@@ -454,6 +454,9 @@ export function AdminPanel() {
   return (
     <PanelShell title={t('coaches.navAdmin')}>
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Codelines indicator */}
+        <CodelinesBadge />
+
         {/* Users Table */}
         {error ? (
           <p className="text-red-400 text-center py-8">{t('coaches.admin.failedLoad')}</p>
@@ -1018,6 +1021,23 @@ export function AdminPanel() {
         />
       )}
     </PanelShell>
+  );
+}
+
+function CodelinesBadge() {
+  const { data } = useQuery({
+    queryKey: ['admin-codelines'],
+    queryFn: async () => {
+      const res = await axios.get('/api/admin/codelines');
+      return res.data.lines as number;
+    },
+  });
+  if (!data) return null;
+  return (
+    <div className="flex items-center gap-2 text-sm text-slate-400">
+      <span className="font-mono text-slate-200">{data.toLocaleString()}</span>
+      <span>lines of code</span>
+    </div>
   );
 }
 

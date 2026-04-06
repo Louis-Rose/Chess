@@ -847,6 +847,31 @@ def get_coach_students():
     return jsonify({'coaches': list(by_coach.values())})
 
 
+@admin_bp.route('/api/admin/codelines', methods=['GET'])
+@admin_required
+def get_codelines():
+    """Count lines of code in the codebase (admin only)."""
+    import subprocess
+    base = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    result = subprocess.run(
+        ['find', base, '-type', 'f',
+         '(', '-name', '*.py', '-o', '-name', '*.ts', '-o', '-name', '*.tsx',
+         '-o', '-name', '*.js', '-o', '-name', '*.jsx', '-o', '-name', '*.css', '-o', '-name', '*.html', ')',
+         '!', '-path', '*/node_modules/*', '!', '-path', '*/dist/*',
+         '!', '-path', '*/.venv/*', '!', '-path', '*/__pycache__/*', '!', '-path', '*/venv/*'],
+        capture_output=True, text=True, timeout=10
+    )
+    total = 0
+    for line in result.stdout.strip().split('\n'):
+        if line:
+            try:
+                with open(line) as f:
+                    total += sum(1 for _ in f)
+            except Exception:
+                pass
+    return jsonify({'lines': total})
+
+
 @admin_bp.route('/api/admin/delete-user', methods=['POST'])
 @admin_required
 def delete_user():
