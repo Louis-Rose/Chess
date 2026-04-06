@@ -154,10 +154,10 @@ export function ProfilePage() {
                 </div>
                 <div className="p-4 space-y-2">
                   {bundles.filter(b => b.lessons && b.price !== '').map((b, i) => (
-                    <div key={i} className="flex items-center justify-center gap-3 text-sm">
-                      <span className="text-slate-100 font-medium">{b.lessons} {t('coaches.profile.bundleLessons').toLowerCase()}</span>
-                      <span className="text-slate-500">{t('coaches.profile.forWord')}</span>
-                      <span className="text-slate-100 font-medium">{currSymbol}{b.price}</span>
+                    <div key={i} className="flex items-center gap-2 justify-center">
+                      <div className="w-24 bg-slate-700/50 text-slate-100 text-sm rounded-lg px-3 py-2 border border-slate-600/50 text-center">{b.lessons}</div>
+                      <span className="text-slate-400 text-sm">{t('coaches.profile.forWord')}</span>
+                      <div className="w-24 bg-slate-700/50 text-slate-100 text-sm rounded-lg px-3 py-2 border border-slate-600/50 text-center">{currSymbol}{b.price}</div>
                     </div>
                   ))}
                 </div>
@@ -295,8 +295,8 @@ function Field({ label, required, children }: { label: string; required?: boolea
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="block text-sm text-slate-400 mb-0.5">{label}</span>
-      <span className="text-sm text-slate-100">{value}</span>
+      <span className="block text-sm text-slate-300 font-medium mb-1">{label}</span>
+      <div className="w-full bg-slate-700/50 text-slate-100 text-sm rounded-lg px-3 py-2 border border-slate-600/50">{value}</div>
     </div>
   );
 }
