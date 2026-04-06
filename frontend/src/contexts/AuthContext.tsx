@@ -216,11 +216,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (parts[0] === 'students' && parts[1]) return 'students'; // /students/:id -> students
         return parts[0];
       }
-      // Investing app: /investing/portfolio, etc.
-      if (parts[0] === 'investing' && parts[1]) {
-        if (parts[1] === 'stock' && parts[2]) return `stock/${parts[2]}`;
-        return parts[1];
-      }
       return 'other';
     };
 

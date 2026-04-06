@@ -259,10 +259,7 @@ def list_users():
             SELECT u.id, u.email, u.name, u.picture, u.is_admin, u.created_at, u.updated_at, u.sign_in_count, u.session_count,
                    COALESCE(SUM(a.seconds), 0) as total_seconds,
                    MAX(a.last_ping) as last_active,
-                   (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads,
-                   (SELECT COUNT(*) FROM investment_accounts ia WHERE ia.user_id = u.id) as account_count,
-                   (SELECT COUNT(DISTINCT stock_ticker) FROM portfolio_transactions pt WHERE pt.user_id = u.id) as portfolio_companies,
-                   (SELECT COUNT(DISTINCT stock_ticker) FROM watchlist w WHERE w.user_id = u.id) as watchlist_companies
+                   (SELECT COUNT(*) FROM graph_downloads g WHERE g.user_id = u.id) as graph_downloads
             FROM users u
             LEFT JOIN user_activity a ON u.id = a.user_id
             WHERE u.google_id NOT LIKE 'chess:%'
@@ -767,22 +764,6 @@ def get_user_activity(user_id):
     return jsonify({'activity': activity})
 
 
-@admin_bp.route('/api/admin/users/<int:user_id>/accounts', methods=['GET'])
-@admin_required
-def get_user_accounts(user_id):
-    """Get investment accounts for a user (admin only)."""
-    with get_db() as conn:
-        cursor = conn.execute('''
-            SELECT id, name, account_type, bank, created_at
-            FROM investment_accounts
-            WHERE user_id = ?
-            ORDER BY created_at ASC
-        ''', (user_id,))
-        accounts = [dict(row) for row in cursor.fetchall()]
-
-    return jsonify({'accounts': accounts})
-
-
 @admin_bp.route('/api/admin/users/<int:user_id>', methods=['GET'])
 @admin_required
 def get_user_detail(user_id):
@@ -814,73 +795,6 @@ def get_user_detail(user_id):
     return jsonify({'user': user_dict})
 
 
-@admin_bp.route('/api/admin/users/<int:user_id>/watchlist', methods=['GET'])
-@admin_required
-def get_user_watchlist(user_id):
-    """Get a user's watchlist (admin only)."""
-    with get_db() as conn:
-        cursor = conn.execute(
-            'SELECT stock_ticker FROM watchlist WHERE user_id = ? ORDER BY created_at ASC',
-            (user_id,)
-        )
-        rows = cursor.fetchall()
-
-    symbols = [row['stock_ticker'] for row in rows]
-    return jsonify({'symbols': symbols})
-
-
-@admin_bp.route('/api/admin/users/<int:user_id>/portfolio', methods=['GET'])
-@admin_required
-def get_user_portfolio(user_id):
-    """Get a user's portfolio composition grouped by account (admin only)."""
-    # Local imports to avoid circular dependencies
-    from blueprints.investing import compute_holdings_from_transactions
-    from investing_utils import compute_portfolio_composition
-
-    # Get all accounts for this user
-    with get_db() as conn:
-        cursor = conn.execute('''
-            SELECT id, name, account_type, bank, created_at
-            FROM investment_accounts
-            WHERE user_id = ?
-            ORDER BY created_at ASC
-        ''', (user_id,))
-        accounts = [dict(row) for row in cursor.fetchall()]
-
-    result = []
-    total_value_eur = 0
-
-    for account in accounts:
-        holdings = compute_holdings_from_transactions(user_id, [account['id']])
-        if holdings:
-            try:
-                composition = compute_portfolio_composition(holdings)
-                account_data = {
-                    'account': account,
-                    'holdings': composition.get('holdings', []),
-                    'total_value_eur': composition.get('total_value_eur', 0)
-                }
-                total_value_eur += composition.get('total_value_eur', 0)
-            except:
-                account_data = {
-                    'account': account,
-                    'holdings': [],
-                    'total_value_eur': 0
-                }
-        else:
-            account_data = {
-                'account': account,
-                'holdings': [],
-                'total_value_eur': 0
-            }
-        result.append(account_data)
-
-    return jsonify({
-        'accounts': result,
-        'total_value_eur': total_value_eur
-    })
-
-
 @admin_bp.route('/api/admin/users/<int:user_id>/graph-downloads', methods=['GET'])
 @admin_required
 def get_user_graph_downloads(user_id):
@@ -897,253 +811,11 @@ def get_user_graph_downloads(user_id):
     return jsonify({'downloads': downloads})
 
 
-@admin_bp.route('/api/admin/users/<int:user_id>/stock-views', methods=['GET'])
-@admin_required
-def get_user_stock_views(user_id):
-    """Get stock view statistics for a specific user (admin only)."""
-    with get_db() as conn:
-        cursor = conn.execute('''
-            SELECT stock_ticker,
-                   SUM(view_count) as total_views,
-                   SUM(time_spent_seconds) as total_time_seconds
-            FROM stock_views
-            WHERE user_id = ?
-            GROUP BY stock_ticker
-            ORDER BY total_views DESC
-        ''', (user_id,))
-        views = [dict(row) for row in cursor.fetchall()]
-
-    return jsonify({'views': views})
-
 
 # ──────────────────────────────────────────────────────────────────────
-#  Video sync status
+#  Legacy endpoints (kept as stubs to avoid 404s during transition)
 # ──────────────────────────────────────────────────────────────────────
 
-@admin_bp.route('/api/admin/sync-status', methods=['GET'])
-@admin_required
-def get_sync_status():
-    """Get current and recent sync run status (admin only)."""
-    with get_db() as conn:
-        # Mark stale runs (running but no heartbeat in 2+ minutes)
-        if USE_POSTGRES:
-            conn.execute('''
-                UPDATE video_sync_runs
-                SET status = 'stale', ended_at = CURRENT_TIMESTAMP,
-                    error_message = 'No heartbeat received (sync script likely crashed)'
-                WHERE status = 'running'
-                AND updated_at < CURRENT_TIMESTAMP - INTERVAL '2 minutes'
-            ''')
-        else:
-            conn.execute('''
-                UPDATE video_sync_runs
-                SET status = 'stale', ended_at = CURRENT_TIMESTAMP,
-                    error_message = 'No heartbeat received (sync script likely crashed)'
-                WHERE status = 'running'
-                AND updated_at < datetime('now', '-2 minutes')
-            ''')
-
-        # Get current/most recent runs
-        cursor = conn.execute('''
-            SELECT * FROM video_sync_runs
-            ORDER BY started_at DESC
-            LIMIT 5
-        ''')
-        runs = [dict(row) for row in cursor.fetchall()]
-
-    return jsonify({'runs': runs})
-
-
-@admin_bp.route('/api/admin/sync-run/<int:run_id>', methods=['DELETE'])
-@admin_required
-def delete_sync_run(run_id):
-    """Delete or stop a sync run (admin only)."""
-    with get_db() as conn:
-        # Check if it's running - if so, mark as interrupted instead of deleting
-        if USE_POSTGRES:
-            cursor = conn.execute('SELECT status FROM video_sync_runs WHERE id = %s', (run_id,))
-        else:
-            cursor = conn.execute('SELECT status FROM video_sync_runs WHERE id = ?', (run_id,))
-        row = cursor.fetchone()
-
-        if not row:
-            return jsonify({'error': 'Run not found'}), 404
-
-        if row['status'] == 'running':
-            # Mark as interrupted (the script will check this and stop)
-            if USE_POSTGRES:
-                conn.execute('''
-                    UPDATE video_sync_runs
-                    SET status = 'interrupted', ended_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
-                ''', (run_id,))
-            else:
-                conn.execute('''
-                    UPDATE video_sync_runs
-                    SET status = 'interrupted', ended_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                ''', (run_id,))
-            return jsonify({'success': True, 'action': 'interrupted'})
-        else:
-            # Delete the record
-            if USE_POSTGRES:
-                conn.execute('DELETE FROM video_sync_runs WHERE id = %s', (run_id,))
-            else:
-                conn.execute('DELETE FROM video_sync_runs WHERE id = ?', (run_id,))
-            return jsonify({'success': True, 'action': 'deleted'})
-
-
-# ──────────────────────────────────────────────────────────────────────
-#  Stock views & company stats
-# ──────────────────────────────────────────────────────────────────────
-
-@admin_bp.route('/api/admin/stock-views', methods=['GET'])
-@admin_required
-def get_stock_views_stats():
-    """Get aggregated stock view statistics (admin only)."""
-    excluded_email = 'rose.louis.mail@gmail.com'
-
-    with get_db() as conn:
-        # Get aggregated stats by stock (exclude admin)
-        cursor = conn.execute('''
-            SELECT sv.stock_ticker,
-                   COUNT(DISTINCT sv.user_id) as unique_users,
-                   SUM(sv.view_count) as total_views,
-                   SUM(sv.time_spent_seconds) as total_time_seconds
-            FROM stock_views sv
-            JOIN users u ON sv.user_id = u.id
-            WHERE u.email != ?
-            GROUP BY sv.stock_ticker
-            ORDER BY total_views DESC
-        ''', (excluded_email,))
-        by_stock = [dict(row) for row in cursor.fetchall()]
-
-        # Get stats by user (exclude admin)
-        cursor = conn.execute('''
-            SELECT u.id, u.name, u.email,
-                   COUNT(DISTINCT sv.stock_ticker) as stocks_viewed,
-                   SUM(sv.view_count) as total_views,
-                   SUM(sv.time_spent_seconds) as total_time_seconds
-            FROM stock_views sv
-            JOIN users u ON sv.user_id = u.id
-            WHERE u.email != ?
-            GROUP BY u.id
-            ORDER BY total_views DESC
-        ''', (excluded_email,))
-        by_user = [dict(row) for row in cursor.fetchall()]
-
-    return jsonify({
-        'by_stock': by_stock,
-        'by_user': by_user
-    })
-
-
-@admin_bp.route('/api/admin/company-stats', methods=['GET'])
-@admin_required
-def get_company_stats():
-    """Get company popularity stats - how many portfolios/watchlists each ticker appears in."""
-    with get_db() as conn:
-        # Get portfolio counts by ticker
-        cursor = conn.execute('''
-            SELECT pt.stock_ticker as ticker, COUNT(DISTINCT pt.user_id) as portfolio_count
-            FROM portfolio_transactions pt
-            GROUP BY pt.stock_ticker
-        ''')
-        portfolio_counts = {row['ticker']: row['portfolio_count'] for row in cursor.fetchall()}
-
-        # Get watchlist counts by ticker
-        cursor = conn.execute('''
-            SELECT w.stock_ticker as ticker, COUNT(DISTINCT w.user_id) as watchlist_count
-            FROM watchlist w
-            GROUP BY w.stock_ticker
-        ''')
-        watchlist_counts = {row['ticker']: row['watchlist_count'] for row in cursor.fetchall()}
-
-        # Combine all tickers
-        all_tickers = set(portfolio_counts.keys()) | set(watchlist_counts.keys())
-        companies = []
-        for ticker in all_tickers:
-            p_count = portfolio_counts.get(ticker, 0)
-            w_count = watchlist_counts.get(ticker, 0)
-            companies.append({
-                'ticker': ticker,
-                'portfolio_count': p_count,
-                'watchlist_count': w_count,
-                'total': p_count + w_count
-            })
-
-        # Sort by total (portfolio + watchlist) descending
-        companies.sort(key=lambda x: x['total'], reverse=True)
-
-    return jsonify({'companies': companies})
-
-
-@admin_bp.route('/api/admin/company-stats/<ticker>', methods=['GET'])
-@admin_required
-def get_company_users(ticker):
-    """Get users who have this ticker in their portfolio or watchlist."""
-    with get_db() as conn:
-        # Get users with this ticker in portfolio
-        cursor = conn.execute('''
-            SELECT DISTINCT u.id, u.name, u.picture
-            FROM users u
-            JOIN portfolio_transactions pt ON u.id = pt.user_id
-            WHERE pt.stock_ticker = ?
-            ORDER BY u.name
-        ''', (ticker,))
-        portfolio_users = [dict(row) for row in cursor.fetchall()]
-
-        # Get users with this ticker in watchlist
-        cursor = conn.execute('''
-            SELECT DISTINCT u.id, u.name, u.picture
-            FROM users u
-            JOIN watchlist w ON u.id = w.user_id
-            WHERE w.stock_ticker = ?
-            ORDER BY u.name
-        ''', (ticker,))
-        watchlist_users = [dict(row) for row in cursor.fetchall()]
-
-    return jsonify({
-        'ticker': ticker,
-        'portfolio_users': portfolio_users,
-        'watchlist_users': watchlist_users
-    })
-
-
-@admin_bp.route('/api/admin/stock-views/<ticker>', methods=['GET'])
-@admin_required
-def get_stock_views_detail(ticker):
-    """Get detailed view statistics for a specific stock (admin only)."""
-    with get_db() as conn:
-        # Get all views for this stock by user
-        cursor = conn.execute('''
-            SELECT u.id, u.name, u.picture,
-                   sv.view_date,
-                   sv.view_count,
-                   sv.time_spent_seconds,
-                   sv.last_viewed_at
-            FROM stock_views sv
-            JOIN users u ON sv.user_id = u.id
-            WHERE sv.stock_ticker = ?
-            ORDER BY sv.view_date DESC
-        ''', (ticker,))
-        views = [dict(row) for row in cursor.fetchall()]
-
-        # Get totals
-        cursor = conn.execute('''
-            SELECT COUNT(DISTINCT sv.user_id) as unique_users,
-                   SUM(sv.view_count) as total_views,
-                   SUM(sv.time_spent_seconds) as total_time_seconds
-            FROM stock_views sv
-            WHERE sv.stock_ticker = ?
-        ''', (ticker,))
-        totals = dict(cursor.fetchone())
-
-    return jsonify({
-        'ticker': ticker,
-        'views': views,
-        'totals': totals
-    })
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -1283,82 +955,6 @@ def get_page_breakdown():
 #  Maintenance / data management
 # ──────────────────────────────────────────────────────────────────────
 
-@admin_bp.route('/api/admin/clear-video-cache', methods=['POST'])
-@admin_required
-def clear_video_cache():
-    """Clear YouTube video cache, channel fetch log, and company selections (admin only)."""
-    with get_db() as conn:
-        conn.execute('DELETE FROM youtube_videos_cache')
-        conn.execute('DELETE FROM youtube_channel_fetch_log')
-        conn.execute('DELETE FROM company_video_selections')
-    return jsonify({'success': True, 'message': 'Video cache, fetch log, and company selections cleared.'})
-
-
-@admin_bp.route('/api/admin/backfill-demo-portfolios', methods=['POST'])
-@admin_required
-def backfill_demo_portfolios():
-    """Add demo portfolios to users (admin only). Use force=true to add to ALL users."""
-    from auth import create_demo_portfolio
-
-    data = request.get_json() or {}
-    force = data.get('force', False)
-
-    with get_db() as conn:
-        if force:
-            # Add to ALL users
-            cursor = conn.execute('SELECT id, email FROM users')
-        else:
-            # Find users without any transactions
-            cursor = conn.execute('''
-                SELECT u.id, u.email
-                FROM users u
-                LEFT JOIN portfolio_transactions pt ON u.id = pt.user_id
-                GROUP BY u.id
-                HAVING COUNT(pt.id) = 0
-            ''')
-        users = cursor.fetchall()
-
-        backfilled_count = 0
-        for user in users:
-            if create_demo_portfolio(user['id'], force=force):
-                backfilled_count += 1
-
-    return jsonify({
-        'success': True,
-        'message': f'Demo portfolios created for {backfilled_count} users',
-        'users_backfilled': backfilled_count,
-        'force': force
-    })
-
-
-@admin_bp.route('/api/admin/remove-demo-portfolios', methods=['POST'])
-@admin_required
-def remove_demo_portfolios():
-    """Remove demo portfolios from all users (admin only)."""
-    with get_db() as conn:
-        # First, delete all transactions linked to demo portfolio accounts
-        cursor = conn.execute('''
-            DELETE FROM portfolio_transactions
-            WHERE account_id IN (
-                SELECT id FROM investment_accounts WHERE name = 'Demo Portfolio'
-            )
-        ''')
-        transactions_deleted = cursor.rowcount
-
-        # Then delete the demo portfolio accounts
-        cursor = conn.execute('''
-            DELETE FROM investment_accounts WHERE name = 'Demo Portfolio'
-        ''')
-        accounts_deleted = cursor.rowcount
-
-    return jsonify({
-        'success': True,
-        'message': f'Removed {accounts_deleted} demo portfolios ({transactions_deleted} transactions)',
-        'accounts_deleted': accounts_deleted,
-        'transactions_deleted': transactions_deleted
-    })
-
-
 @admin_bp.route('/api/admin/delete-user', methods=['POST'])
 @admin_required
 def delete_user():
@@ -1381,10 +977,6 @@ def delete_user():
         # Delete all related data
         conn.execute('DELETE FROM user_activity WHERE user_id = ?', (user_id,))
         conn.execute('DELETE FROM page_activity WHERE user_id = ?', (user_id,))
-        conn.execute('DELETE FROM stock_views WHERE user_id = ?', (user_id,))
-        conn.execute('DELETE FROM portfolio_transactions WHERE user_id = ?', (user_id,))
-        conn.execute('DELETE FROM watchlist WHERE user_id = ?', (user_id,))
-        conn.execute('DELETE FROM investment_accounts WHERE user_id = ?', (user_id,))
         conn.execute('DELETE FROM user_preferences WHERE user_id = ?', (user_id,))
         conn.execute('DELETE FROM graph_downloads WHERE user_id = ?', (user_id,))
         conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
@@ -1392,40 +984,6 @@ def delete_user():
     return jsonify({
         'success': True,
         'message': f'Deleted user {email} (id={user_id})'
-    })
-
-
-@admin_bp.route('/api/admin/cleanup-orphaned-transactions', methods=['POST'])
-@admin_required
-def cleanup_orphaned_transactions():
-    """Delete portfolio transactions whose investment account no longer exists."""
-    with get_db() as conn:
-        # Find orphaned transactions (account_id not in investment_accounts)
-        cursor = conn.execute('''
-            SELECT pt.id, pt.user_id, pt.account_id, pt.stock_ticker, u.name as user_name
-            FROM portfolio_transactions pt
-            LEFT JOIN investment_accounts ia ON pt.account_id = ia.id
-            LEFT JOIN users u ON pt.user_id = u.id
-            WHERE ia.id IS NULL
-        ''')
-        orphaned = [dict(row) for row in cursor.fetchall()]
-
-        if orphaned:
-            # Delete orphaned transactions
-            cursor = conn.execute('''
-                DELETE FROM portfolio_transactions
-                WHERE account_id NOT IN (SELECT id FROM investment_accounts)
-                   OR account_id IS NULL
-            ''')
-            deleted_count = cursor.rowcount
-        else:
-            deleted_count = 0
-
-    return jsonify({
-        'success': True,
-        'orphaned_found': len(orphaned),
-        'deleted': deleted_count,
-        'details': orphaned[:20]  # Show first 20 for reference
     })
 
 

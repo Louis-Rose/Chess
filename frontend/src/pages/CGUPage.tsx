@@ -12,7 +12,7 @@ export function CGUPage() {
     <div className="min-h-screen bg-slate-800 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <Link
-          to="/investing"
+          to="/"
           className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-200 mb-8 transition-colors"
         >
           <ArrowLeft size={20} />
@@ -101,30 +101,13 @@ export function CGUPage() {
 
               <div>
                 <h3 className="text-lg font-semibold text-slate-200 mb-2">
-                  {fr ? '2.2 Avertissement : Absence de Conseil Financier' : '2.2 Disclaimer: No Financial Advice'}
+                  {fr ? '2.2 Avertissement' : '2.2 Disclaimer'}
                 </h3>
-                <ul className="list-disc list-inside space-y-2 ml-2">
-                  <li>
-                    {fr
-                      ? 'Lumna est un outil technique de visualisation de portefeuille.'
-                      : 'Lumna is a technical portfolio visualization tool.'}
-                  </li>
-                  <li>
-                    {fr
-                      ? 'Louis Rose EI ne fournit aucun conseil en investissement au sens du Code monétaire et financier.'
-                      : 'Louis Rose EI does not provide any investment advice as defined by financial regulations.'}
-                  </li>
-                  <li>
-                    {fr
-                      ? 'Les performances passées, graphiques et indicateurs sont fournis à titre informatif.'
-                      : 'Past performance, charts, and indicators are provided for informational purposes only.'}
-                  </li>
-                  <li>
-                    {fr
-                      ? 'L\'utilisateur est seul responsable de ses décisions d\'achat ou de vente. L\'éditeur décline toute responsabilité en cas de perte financière subie par l\'utilisateur.'
-                      : 'The user is solely responsible for their buy or sell decisions. The publisher disclaims any liability for financial losses incurred by the user.'}
-                  </li>
-                </ul>
+                <p>
+                  {fr
+                    ? 'Lumna est un outil technique destiné aux coachs d\'échecs. Les données et statistiques sont fournies à titre informatif.'
+                    : 'Lumna is a technical tool for chess coaches. Data and statistics are provided for informational purposes only.'}
+                </p>
               </div>
 
               <div>
@@ -168,10 +151,10 @@ export function CGUPage() {
                     {fr ? 'Email (gestion du compte).' : 'Email (account management).'}
                   </li>
                   <li>
-                    <strong className="text-slate-200">{fr ? 'Financières :' : 'Financial:'}</strong>{' '}
+                    <strong className="text-slate-200">{fr ? 'Données d\'utilisation :' : 'Usage data:'}</strong>{' '}
                     {fr
-                      ? 'Données de portefeuille (Titres, PRU, quantités) saisies volontairement.'
-                      : 'Portfolio data (Securities, cost basis, quantities) entered voluntarily.'}
+                      ? 'Données de coaching (élèves, cours, feuilles de partie) saisies volontairement.'
+                      : 'Coaching data (students, lessons, scoresheets) entered voluntarily.'}
                   </li>
                 </ul>
               </div>
@@ -182,8 +165,8 @@ export function CGUPage() {
                 </h3>
                 <p>
                   {fr
-                    ? 'Calcul des performances du portefeuille et maintenance technique. Aucune donnée n\'est revendue à des tiers.'
-                    : 'Portfolio performance calculation and technical maintenance. No data is sold to third parties.'}
+                    ? 'Fonctionnement du service et maintenance technique. Aucune donnée n\'est revendue à des tiers.'
+                    : 'Service operation and technical maintenance. No data is sold to third parties.'}
                 </p>
               </div>
 
