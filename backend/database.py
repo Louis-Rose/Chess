@@ -304,14 +304,6 @@ def init_db():
                 if conn._cursor.fetchone():
                     conn.execute("ALTER TABLE coach_students ALTER COLUMN coach_username DROP NOT NULL")
                     print("[Database] Relaxed coach_username NOT NULL constraint")
-                # Drop dead is_active column if it exists
-                conn.execute("""
-                    SELECT column_name FROM information_schema.columns
-                    WHERE table_name = 'coach_students' AND column_name = 'is_active'
-                """)
-                if conn._cursor.fetchone():
-                    conn.execute("ALTER TABLE coach_students DROP COLUMN is_active")
-                    print("[Database] Dropped is_active column from coach_students")
 
             conn.execute("""
                 SELECT table_name FROM information_schema.tables
