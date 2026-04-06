@@ -77,8 +77,8 @@ export function ProfilePage() {
 
   const currSymbol = CURRENCY_SYMBOLS[currency] || '';
 
-  const canSave = !!(displayName.trim() && city && currency && lessonDuration && (lessonRate !== '' && lessonRate !== 0) &&
-    bundles.every(b => b.lessons && b.price !== '' && b.price !== 0));
+  const canSave = !!(displayName.trim() && city && currency && lessonDuration && lessonRate &&
+    bundles.every(b => b.lessons && b.price));
 
   const handleSave = async () => {
     if (!canSave) return;
