@@ -1536,3 +1536,80 @@ def import_pgn_to_lichess_study(study_id):
     except http_requests.RequestException as e:
         logger.error(f'Lichess import-pgn error: {e}')
         return jsonify({'error': 'Failed to import PGN to Lichess study'}), 502
+
+
+# ── Coach Profile ──
+
+@coaches_bp.route('/api/coaches/profile', methods=['GET'])
+@login_required
+def get_profile():
+    """Get the current coach's profile and bundle offers."""
+    user_id = request.user_id
+    with get_db() as conn:
+        cursor = conn.execute('SELECT * FROM coach_profiles WHERE user_id = ?', (user_id,))
+        profile = cursor.fetchone()
+
+        cursor = conn.execute(
+            'SELECT id, lessons, price FROM coach_bundle_offers WHERE user_id = ? ORDER BY lessons ASC',
+            (user_id,)
+        )
+        bundles = [dict(row) for row in cursor.fetchall()]
+
+    # Get user name/picture for pre-fill
+    with get_db() as conn:
+        cursor = conn.execute('SELECT name, picture FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+
+    result = dict(profile) if profile else {}
+    result['bundles'] = bundles
+    result['google_name'] = user['name'] if user else None
+    result['picture'] = user['picture'] if user else None
+    return jsonify(result)
+
+
+@coaches_bp.route('/api/coaches/profile', methods=['PUT'])
+@login_required
+def update_profile():
+    """Update the coach's profile and bundle offers."""
+    user_id = request.user_id
+    data = request.get_json()
+
+    display_name = (data.get('display_name') or '').strip() or None
+    city = (data.get('city') or '').strip() or None
+    timezone = (data.get('timezone') or '').strip() or None
+    currency = (data.get('currency') or '').strip() or None
+    lesson_rate = data.get('lesson_rate')
+    lesson_duration = data.get('lesson_duration') or 60
+    chesscom_username = (data.get('chesscom_username') or '').strip() or None
+    lichess_username = (data.get('lichess_username') or '').strip() or None
+    bundles = data.get('bundles', [])
+
+    with get_db() as conn:
+        # Upsert profile
+        conn.execute('''
+            INSERT INTO coach_profiles (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id) DO UPDATE SET
+                display_name = EXCLUDED.display_name,
+                city = EXCLUDED.city,
+                timezone = EXCLUDED.timezone,
+                currency = EXCLUDED.currency,
+                lesson_rate = EXCLUDED.lesson_rate,
+                lesson_duration = EXCLUDED.lesson_duration,
+                chesscom_username = EXCLUDED.chesscom_username,
+                lichess_username = EXCLUDED.lichess_username,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username))
+
+        # Replace bundle offers
+        conn.execute('DELETE FROM coach_bundle_offers WHERE user_id = ?', (user_id,))
+        for b in bundles:
+            lessons = b.get('lessons')
+            price = b.get('price')
+            if lessons and price is not None:
+                conn.execute(
+                    'INSERT INTO coach_bundle_offers (user_id, lessons, price) VALUES (?, ?, ?)',
+                    (user_id, int(lessons), float(price))
+                )
+
+    return jsonify({'success': True})

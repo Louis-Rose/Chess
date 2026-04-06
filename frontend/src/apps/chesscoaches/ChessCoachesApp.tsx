@@ -11,6 +11,7 @@ import { DiagramToFenPanel } from './panels/DiagramToFenPanel';
 import { AboutPanel } from './panels/AboutPanel';
 import { StudentDetailPage } from './panels/StudentDetailPage';
 import { PaymentsPanel } from './panels/PaymentsPanel';
+import { ProfilePage } from './panels/ProfilePage';
 
 const AdminPanel = lazy(() =>
   import('./panels/AdminPanel').then(m => ({ default: m.AdminPanel }))
@@ -27,6 +28,7 @@ export function ChessCoachesApp() {
     <Routes>
       <Route element={<ChessCoachesLayout />}>
         <Route index element={<ScoresheetPanel />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="students" element={<StudentsPanel />} />
         <Route path="students/:studentId" element={<StudentDetailPage />} />
         <Route path="payments" element={<PaymentsPanel />} />

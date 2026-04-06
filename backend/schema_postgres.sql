@@ -151,6 +151,30 @@ CREATE TABLE IF NOT EXISTS coach_lessons (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Coach profile (one per coach)
+CREATE TABLE IF NOT EXISTS coach_profiles (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    display_name TEXT,
+    city TEXT,
+    timezone TEXT,
+    currency TEXT,
+    lesson_rate REAL,
+    lesson_duration INTEGER DEFAULT 60,
+    chesscom_username TEXT,
+    lichess_username TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Coach bundle offers (multiple per coach)
+CREATE TABLE IF NOT EXISTS coach_bundle_offers (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lessons INTEGER NOT NULL,
+    price REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_coach_bundle_offers_user ON coach_bundle_offers(user_id);
+
 -- API usage tracking (Gemini calls)
 CREATE TABLE IF NOT EXISTS api_usage (
     id SERIAL PRIMARY KEY,

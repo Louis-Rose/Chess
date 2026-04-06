@@ -79,7 +79,39 @@ class _ConnectionWrapper:
 
 def init_db():
     """Run pending migrations. Schema is created by schema_postgres.sql via Docker init."""
-    # All historical migrations have been applied and folded into schema_postgres.sql.
     # New migrations go here temporarily, then get folded into the schema file
     # once they've run in production.
-    pass
+    with get_db() as conn:
+        # Migration: Create coach_profiles table
+        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'coach_profiles'")
+        if not conn._cursor.fetchone():
+            conn.execute("""
+                CREATE TABLE coach_profiles (
+                    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                    display_name TEXT,
+                    city TEXT,
+                    timezone TEXT,
+                    currency TEXT,
+                    lesson_rate REAL,
+                    lesson_duration INTEGER DEFAULT 60,
+                    chesscom_username TEXT,
+                    lichess_username TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            print("[Database] Created coach_profiles table")
+
+        # Migration: Create coach_bundle_offers table
+        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'coach_bundle_offers'")
+        if not conn._cursor.fetchone():
+            conn.execute("""
+                CREATE TABLE coach_bundle_offers (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    lessons INTEGER NOT NULL,
+                    price REAL NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_coach_bundle_offers_user ON coach_bundle_offers(user_id)")
+            print("[Database] Created coach_bundle_offers table")
