@@ -192,18 +192,9 @@ export function AdminPanel() {
   const [usersCollapsed, setUsersCollapsed] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [chartCollapsed, setChartCollapsed] = useState(false);
-  const [featuresCollapsed, setFeaturesCollapsed] = useState(false);
-  const [selectedFeatures, setSelectedFeatures] = useState<Set<string>>(() => new Set(COACH_FEATURES.map(f => f.id)));
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [usersInitialized, setUsersInitialized] = useState(false);
   const [zoomedImageSrc, setZoomedImageSrc] = useState<string | null>(null);
-
-  const toggleFeature = (feature: string) => {
-    setSelectedFeatures(prev => {
-      const next = new Set(prev);
-      if (next.has(feature)) next.delete(feature); else next.add(feature);
-      return next;
-    });
-  };
 
   const toggleUser = (id: number) => {
     setSelectedUserIds(prev => {
@@ -239,27 +230,36 @@ export function AdminPanel() {
   }, [selectedUserIds, data?.users]);
 
   const pagesParam = useMemo(() => {
-    if (selectedFeatures.size === 0) return '';
-    const pageIds = new Set(COACH_FEATURES.map(p => p.id));
-    const selected = [...selectedFeatures].filter(f => pageIds.has(f));
-    if (selected.length === 0) return undefined;
-    if (selected.length === COACH_FEATURES.length) return undefined;
-    return selected.join(',');
-  }, [selectedFeatures]);
+    if (!selectedFeature) return undefined; // no feature filter = all pages
+    return selectedFeature;
+  }, [selectedFeature]);
 
   const nothingSelected = userIdsParam === '';
 
+  // Global time spent (no feature filter)
   const { data: timeSpentData } = useQuery({
-    queryKey: ['admin-coach-time-spent', userIdsParam, pagesParam],
+    queryKey: ['admin-coach-time-spent', userIdsParam],
     queryFn: async (): Promise<TimeSpentDay[]> => {
-      if (nothingSelected || pagesParam === '') return [];
+      if (nothingSelected) return [];
       const params: Record<string, string> = {};
       if (userIdsParam) params.user_ids = userIdsParam;
-      if (pagesParam) params.pages = pagesParam;
       const response = await axios.get('/api/admin/coach-time-spent', { params });
       return response.data.daily_stats;
     },
     enabled: !!user?.is_admin,
+  });
+
+  // Per-feature time spent (when a feature is selected)
+  const { data: featureTimeSpentData } = useQuery({
+    queryKey: ['admin-coach-time-spent-feature', userIdsParam, pagesParam],
+    queryFn: async (): Promise<TimeSpentDay[]> => {
+      if (nothingSelected || !pagesParam) return [];
+      const params: Record<string, string> = { pages: pagesParam };
+      if (userIdsParam) params.user_ids = userIdsParam;
+      const response = await axios.get('/api/admin/coach-time-spent', { params });
+      return response.data.daily_stats;
+    },
+    enabled: !!user?.is_admin && !!selectedFeature,
   });
 
   const { data: apiUsage } = useQuery({
@@ -299,44 +299,49 @@ export function AdminPanel() {
     });
   }, [data?.users, sortColumn, sortDirection]);
 
-  // Fill in missing dates so the chart has no gaps (always show date range even with no data)
-  const chartData = useMemo(() => {
+  // Build chart data from time spent days (fills gaps so chart has no holes)
+  const buildChartData = (days: TimeSpentDay[] | undefined) => {
     const LAUNCH = '2026-03-23';
     const today = new Date().toISOString().split('T')[0];
     const start = new Date(LAUNCH);
     const end = new Date(today);
     const byDate: Record<string, number> = {};
-    (timeSpentData || []).forEach(d => { byDate[d.activity_date] = d.total_seconds; });
-
+    (days || []).forEach(d => { byDate[d.activity_date] = d.total_seconds; });
     const result: { date: string; label: string; minutes: number }[] = [];
     const cur = new Date(start);
     while (cur <= end) {
       const key = cur.toISOString().split('T')[0];
-      const seconds = byDate[key] || 0;
       result.push({
         date: key,
         label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long' }),
-        minutes: Math.round(seconds / 60),
+        minutes: Math.round((byDate[key] || 0) / 60),
       });
       cur.setDate(cur.getDate() + 1);
     }
     return result;
-  }, [timeSpentData, language]);
+  };
+
+  const chartData = useMemo(() => buildChartData(timeSpentData), [timeSpentData, language]); // eslint-disable-line react-hooks/exhaustive-deps
+  const featureChartData = useMemo(() => buildChartData(featureTimeSpentData), [featureTimeSpentData, language]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Students data (for "students" feature view)
+  const { data: studentsData } = useQuery({
+    queryKey: ['admin-coach-students'],
+    queryFn: async () => {
+      const response = await axios.get('/api/admin/coach-students');
+      return response.data.coaches as { coach_user_id: number; coach_name: string; coach_picture: string | null; students: { name: string; is_active: number; created_at: string }[] }[];
+    },
+    enabled: !!user?.is_admin && selectedFeature === 'students',
+  });
 
   // Filter API usage by selected features (map page ids to API feature names)
   const filteredApiUsage = useMemo(() => {
     if (!apiUsage) return undefined;
-    // Derive which API features are selected based on page selection
+    if (!selectedFeature) return apiUsage; // no filter = show all
+    // Derive which API features match the selected page
     const selectedApiFeatures = new Set<string>();
-    for (const pageId of selectedFeatures) {
-      const apiFeatures = PAGE_TO_API_FEATURES[pageId];
-      if (apiFeatures) apiFeatures.forEach(f => selectedApiFeatures.add(f));
-    }
-    // All API features covered = no filter needed
-    const allApiFeatures = new Set(apiUsage.by_feature.map(f => f.feature));
-    const allCovered = [...allApiFeatures].every(f => selectedApiFeatures.has(f));
-    if (allCovered && selectedFeatures.size > 0) return apiUsage;
-    // None selected = empty
+    const apiFeatures = PAGE_TO_API_FEATURES[selectedFeature];
+    if (apiFeatures) apiFeatures.forEach(f => selectedApiFeatures.add(f));
     if (selectedApiFeatures.size === 0) {
       return { ...apiUsage, by_feature: [], by_model: [], invocations: [], daily_invocations: [], total_cost_usd: 0 };
     }
@@ -350,7 +355,7 @@ export function AdminPanel() {
         .filter(f => selectedApiFeatures.has(f.feature))
         .reduce((sum, f) => sum + f.cost_usd, 0),
     };
-  }, [apiUsage, selectedFeatures]);
+  }, [apiUsage, selectedFeature]);
 
   // Cumulative daily invocation chart data
   const invocationChartData = useMemo(() => {
@@ -564,58 +569,7 @@ export function AdminPanel() {
           </div>
         )}
 
-        {/* Pages / Features Table */}
-        <div className="overflow-x-auto rounded-lg border border-slate-700">
-          <table className="w-full text-sm">
-            <thead>
-              <tr
-                className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider cursor-pointer hover:bg-slate-700/70 transition-colors"
-                onClick={() => setFeaturesCollapsed(c => !c)}
-              >
-                <th className="w-8 px-2 py-2">
-                  {featuresCollapsed ? <ChevronDown className="w-5 h-5 text-slate-400 mx-auto" /> : <ChevronUp className="w-5 h-5 text-slate-400 mx-auto" />}
-                </th>
-                <th className="px-3 py-2 text-left text-sm normal-case tracking-normal text-slate-300" colSpan={featuresCollapsed ? 1 : 1}>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedFeatures.size === COACH_FEATURES.length}
-                      ref={el => { if (el) el.indeterminate = selectedFeatures.size > 0 && selectedFeatures.size < COACH_FEATURES.length; }}
-                      onChange={() => {
-                        if (selectedFeatures.size === COACH_FEATURES.length) {
-                          setSelectedFeatures(new Set());
-                        } else {
-                          setSelectedFeatures(new Set(COACH_FEATURES.map(p => p.id)));
-                        }
-                      }}
-                      onClick={e => e.stopPropagation()}
-                      className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
-                    />
-                    <span>{COACH_FEATURES.length} {COACH_FEATURES.length === 1 ? 'feature' : 'features'}</span>
-                    {selectedFeatures.size > 0 && <span className="text-blue-400">({selectedFeatures.size} selected)</span>}
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            {!featuresCollapsed && <tbody className="divide-y divide-slate-700/50">
-              {COACH_FEATURES.map(page => (
-                <tr key={page.id} className={`hover:bg-slate-700/30 transition-colors ${selectedFeatures.has(page.id) ? 'bg-slate-700/20' : ''}`}>
-                  <td className="px-2 py-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedFeatures.has(page.id)}
-                      onChange={() => toggleFeature(page.id)}
-                      className="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-slate-200">{t(page.labelKey)}</td>
-                </tr>
-              ))}
-            </tbody>}
-          </table>
-        </div>
-
-        {/* Time Spent Chart */}
+        {/* Global Time Spent Chart */}
         {chartData.length > 0 && (
           <div className="rounded-lg border border-slate-700 overflow-hidden">
             <div
@@ -644,6 +598,113 @@ export function AdminPanel() {
                 </ResponsiveContainer>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Feature Dropdown */}
+        <div className="flex items-center gap-3">
+          <select
+            value={selectedFeature || ''}
+            onChange={e => setSelectedFeature(e.target.value || null)}
+            className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 border border-slate-600 focus:outline-none focus:border-blue-500"
+          >
+            <option value="">All features</option>
+            {COACH_FEATURES.map(f => (
+              <option key={f.id} value={f.id}>{t(f.labelKey)}</option>
+            ))}
+          </select>
+          {selectedFeature && (
+            <span className="text-xs text-slate-500">Showing data for {t(COACH_FEATURES.find(f => f.id === selectedFeature)?.labelKey || '')}</span>
+          )}
+        </div>
+
+        {/* Per-feature time spent sub-chart */}
+        {selectedFeature && featureChartData.length > 0 && (
+          <div className="rounded-lg border border-slate-700 overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50">
+              <Clock className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-medium text-slate-300">
+                {t(COACH_FEATURES.find(f => f.id === selectedFeature)?.labelKey || '')} — {t('coaches.admin.dailyTimeSpent')}
+              </h3>
+            </div>
+            <div className="p-4">
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={featureChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+                  <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} allowDecimals={false} />
+                  <Tooltip
+                    cursor={false}
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                    labelStyle={{ color: '#e2e8f0' }}
+                    formatter={(value) => [`${value} min`, t('coaches.admin.time')]}
+                  />
+                  <Bar dataKey="minutes" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Students view — when "students" feature is selected */}
+        {selectedFeature === 'students' && studentsData && (
+          <div className="space-y-4">
+            {/* Student count bar chart */}
+            <div className="rounded-lg border border-slate-700 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50">
+                <h3 className="text-sm font-medium text-slate-300">Students per coach</h3>
+              </div>
+              <div className="p-4">
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={studentsData.map(c => ({
+                    name: c.coach_name?.split(' ')[0] || `User ${c.coach_user_id}`,
+                    students: c.students.length,
+                    active: c.students.filter(s => s.is_active).length,
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis dataKey="name" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+                    <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} allowDecimals={false} />
+                    <Tooltip
+                      cursor={false}
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                      labelStyle={{ color: '#e2e8f0' }}
+                    />
+                    <Bar dataKey="students" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} name="Total" />
+                    <Bar dataKey="active" fill="#16a34a" radius={[2, 2, 0, 0]} activeBar={false} name="Active" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Student lists per coach */}
+            {studentsData.map(coach => (
+              <div key={coach.coach_user_id} className="rounded-lg border border-slate-700 overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50">
+                  {coach.coach_picture ? (
+                    <img src={coach.coach_picture} alt="" className="w-5 h-5 rounded-full" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300">
+                      {(coach.coach_name || '?').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <h4 className="text-sm font-medium text-slate-300">{coach.coach_name}</h4>
+                  <span className="text-xs text-slate-500">({coach.students.length} students)</span>
+                </div>
+                <div className="divide-y divide-slate-700/50">
+                  {coach.students.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-1.5 text-sm">
+                      <span className="text-slate-200">{s.name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs ${s.is_active ? 'text-emerald-400' : 'text-slate-500'}`}>
+                          {s.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        <span className="text-xs text-slate-500">{formatDate(s.created_at, language)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

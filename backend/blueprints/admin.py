@@ -819,6 +819,40 @@ def get_page_breakdown():
 #  Maintenance / data management
 # ──────────────────────────────────────────────────────────────────────
 
+@admin_bp.route('/api/admin/coach-students', methods=['GET'])
+@admin_required
+def get_coach_students():
+    """Get all students grouped by coach user (admin only)."""
+    with get_db() as conn:
+        cursor = conn.execute('''
+            SELECT cs.coach_user_id, cs.student_name, cs.is_active, cs.created_at,
+                   u.name as coach_name, u.picture as coach_picture
+            FROM coach_students cs
+            JOIN users u ON cs.coach_user_id = u.id
+            ORDER BY cs.coach_user_id, cs.created_at ASC
+        ''')
+        rows = [dict(row) for row in cursor.fetchall()]
+
+    # Group by coach
+    by_coach: dict = {}
+    for row in rows:
+        cid = row['coach_user_id']
+        if cid not in by_coach:
+            by_coach[cid] = {
+                'coach_user_id': cid,
+                'coach_name': row['coach_name'],
+                'coach_picture': row['coach_picture'],
+                'students': [],
+            }
+        by_coach[cid]['students'].append({
+            'name': row['student_name'],
+            'is_active': row['is_active'],
+            'created_at': row['created_at'],
+        })
+
+    return jsonify({'coaches': list(by_coach.values())})
+
+
 @admin_bp.route('/api/admin/delete-user', methods=['POST'])
 @admin_required
 def delete_user():
