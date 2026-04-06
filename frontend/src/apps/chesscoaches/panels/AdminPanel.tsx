@@ -1034,9 +1034,15 @@ function CodelinesBadge() {
   });
   if (!data) return null;
   return (
-    <div className="flex items-center gap-2 text-sm text-slate-400">
-      <span className="font-mono text-slate-200">{data.toLocaleString()}</span>
-      <span>lines of code</span>
+    <div className="rounded-lg border border-slate-700 overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50">
+        <h3 className="text-sm font-medium text-slate-300">Codebase</h3>
+      </div>
+      <div className="px-4 py-3 flex items-baseline gap-2">
+        <span className="font-mono text-2xl font-bold text-slate-100">{data.toLocaleString()}</span>
+        <span className="text-sm text-slate-400">lines of code</span>
+        <span className="text-xs text-slate-500 ml-auto">py + ts + tsx + css + html</span>
+      </div>
     </div>
   );
 }
