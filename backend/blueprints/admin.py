@@ -838,9 +838,10 @@ def get_coach_students():
                 'coach_picture': row['coach_picture'],
                 'students': [],
             }
+        created = row['created_at']
         by_coach[cid]['students'].append({
             'name': row['student_name'],
-            'created_at': row['created_at'],
+            'created_at': created.isoformat() if hasattr(created, 'isoformat') else created,
         })
 
     return jsonify({'coaches': list(by_coach.values())})

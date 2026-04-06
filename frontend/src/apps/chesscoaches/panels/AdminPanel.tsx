@@ -651,7 +651,10 @@ export function AdminPanel() {
           <div className="space-y-4">
             {/* Cumulative students over time */}
             {(() => {
-              const allDates = studentsData.flatMap(c => c.students.map(s => s.created_at?.split('T')[0])).filter(Boolean).sort();
+              const allDates = studentsData.flatMap(c => c.students.map(s => {
+                if (!s.created_at) return '';
+                return new Date(s.created_at).toISOString().split('T')[0];
+              })).filter(Boolean).sort();
               if (allDates.length === 0) return null;
               const start = new Date(allDates[0]);
               const end = new Date();
