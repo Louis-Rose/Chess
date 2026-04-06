@@ -13,19 +13,12 @@ if (typeof window !== 'undefined' && localStorage.getItem(POSTHOG_EXCLUDED_KEY) 
   posthog.opt_out_capturing();
 }
 
-interface UserPreferences {
-  chess_username: string | null;
-  preferred_time_class: 'rapid' | 'blitz' | 'bullet';
-}
-
 interface User {
   id: number;
   email: string;
   name: string;
   picture: string;
   is_admin: boolean;
-  cookie_consent: string | null;  // 'accepted' or null
-  preferences: UserPreferences;
   _t?: number;
 }
 
@@ -33,11 +26,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  isNewUser: boolean;
   login: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
-  updatePreferences: (prefs: Partial<UserPreferences>) => Promise<void>;
-  clearNewUserFlag: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,14 +35,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isNewUser, setIsNewUser] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const clickCount = useRef(0);
   const newThreshold = () => Math.floor(Math.random() * 5) + 3; // 3-7
   const clickThreshold = useRef(newThreshold());
   const blockTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const queryClient = useQueryClient();
-  const hasRecordedSettings = useRef(false);
   const isLoggingOut = useRef(false);
   const isRefreshing = useRef(false);
   const refreshSubscribers = useRef<((success: boolean) => void)[]>([]);
@@ -166,35 +154,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [queryClient]);
 
-  // Record theme and device for analytics (only once per session when user is authenticated)
-  const recordUserSettings = () => {
-    if (hasRecordedSettings.current) return;
-    hasRecordedSettings.current = true;
-
-    axios.post('/api/theme', { theme: 'dark', resolved_theme: 'dark' }).catch(() => {});
-
-    // Get language from localStorage
-    const language = localStorage.getItem('language') || 'en';
-    axios.post('/api/language', { language }).catch(() => {});
-
-    // Detect device type
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
-    const deviceType = isMobile ? 'mobile' : 'desktop';
-    axios.post('/api/device', { device_type: deviceType }).catch(() => {});
-  };
-
   // Check auth status on mount
   useEffect(() => {
     checkAuth();
   }, []);
-
-  // Record settings when user becomes authenticated
-  useEffect(() => {
-    if (user && !isLoading) {
-      recordUserSettings();
-    }
-  }, [user, isLoading]);
 
   // Heartbeat for activity tracking (every 15s when logged in, tab visible, and user active)
   useEffect(() => {
@@ -325,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     queryClient.clear(); // Clear cache from previous user
     setUser(data.user);
-    setIsNewUser(data.is_new_user || false);
+    // data.is_new_user available if needed
 
     // Handle PostHog for new login
     if (data.user) {
@@ -343,10 +306,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const clearNewUserFlag = () => {
-    setIsNewUser(false);
-  };
-
   const logout = async () => {
     try {
       await fetch('/api/auth/logout', {
@@ -361,35 +320,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     posthog.reset(); // Clear PostHog identity
   };
 
-  const updatePreferences = async (prefs: Partial<UserPreferences>) => {
-    const response = await fetch('/api/preferences', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(prefs)
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to update preferences');
-    }
-
-    // Update local user state
-    setUser(prev => prev ? {
-      ...prev,
-      preferences: { ...prev.preferences, ...prefs }
-    } : null);
-  };
-
   return (
     <AuthContext.Provider value={{
       user,
       isLoading,
       isAuthenticated: !!user,
-      isNewUser,
       login,
       logout,
-      updatePreferences,
-      clearNewUserFlag
     }}>
       {children}
       {blocked && (

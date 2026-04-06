@@ -8,7 +8,6 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
-  tAll: (key: string) => { en: string; fr: string };
 }
 
 const translations: Record<Language, Record<string, string>> = {
@@ -60,18 +59,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.analyzing': 'Analyzing scoresheet...',
     'coaches.reanalyze': 'Re-analyze',
     'coaches.consensus': 'Moves',
-    'coaches.individualReads': 'See Individual Reads',
     'coaches.results': 'Results',
     'coaches.models': 'models',
-    'coaches.voteInfo': 'Vote info',
-    'coaches.voteCandidate': 'Move',
-    'coaches.voteVotes': 'Votes',
-    'coaches.voteIllegals': 'Illegals after',
-    'coaches.voteItselfIllegal': 'itself illegal',
-    'coaches.voteAllIllegal': 'All options are illegal — please edit this move manually',
     'coaches.analyze': 'Analyze',
-    'coaches.groundTruth': 'Ground Truth',
-    'coaches.read': 'Read',
     'coaches.startingPosition': 'Starting position',
     'coaches.illegalMove': 'Illegal move',
     'coaches.illegal': 'Illegal',
@@ -93,7 +83,6 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.showOnBoard': 'Show on board',
     'coaches.save': 'Save',
     'coaches.revertToConsensus': 'Revert to consensus',
-    'coaches.analyzeAzure': 'Analyzing with Azure DI...',
     'coaches.selectPiece': 'Select a piece',
     'coaches.navDiagram': 'Diagram → FEN',
     'coaches.diagram.uploadPrompt': 'Upload a chess diagram',
@@ -237,10 +226,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.packs.cancel': 'Cancel',
     // Shared
     'coaches.sectionAdmin': 'Admin',
-    'coaches.sectionLessons': 'My Lessons',
     'coaches.sectionAITools': 'AI Tools',
-    'coaches.sectionEmpty': 'Coming soon',
-    'coaches.comingSoon': 'Coming soon...',
     'coaches.homePrompt': 'Pick a feature to get started',
     'coaches.previous': 'Previous',
     'coaches.processing': 'Reading in progress',
@@ -255,15 +241,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.status.retrying': 'Retrying...',
     'coaches.status.computing': 'Computing...',
     'coaches.status.waiting': 'Waiting...',
-    'coaches.reader': 'Reader',
-    'coaches.waitingOnReaders': 'Waiting on {n} reader...',
-    'coaches.waitingOnReadersPlural': 'Waiting on {n} readers...',
-    'coaches.readersDisagree': 'Readers disagree',
     'coaches.navAdmin': 'Admin',
     // Admin panel
     'coaches.admin.user1': 'user',
     'coaches.admin.users': 'users',
-    'coaches.admin.ignoreSelf': 'Ignore myself',
     'coaches.admin.dailyTimeSpent': 'Daily Time Spent (minutes)',
     'coaches.admin.time': 'Time',
     'coaches.admin.failedLoad': 'Failed to load users',
@@ -275,8 +256,6 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.loading': 'Loading...',
     'common.error': 'Error',
-    'common.signInRequired': 'Sign In Required',
-    'common.signInMessage': 'Please sign in to continue.',
   },
   fr: {
     'chess.logout': 'Se déconnecter',
@@ -326,18 +305,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.analyzing': 'Analyse en cours...',
     'coaches.reanalyze': 'Ré-analyser',
     'coaches.consensus': 'Moves',
-    'coaches.individualReads': 'Voir les lectures individuelles',
     'coaches.results': 'Résultats',
     'coaches.models': 'modèles',
-    'coaches.voteInfo': 'Détails du vote',
-    'coaches.voteCandidate': 'Coup',
-    'coaches.voteVotes': 'Votes',
-    'coaches.voteIllegals': 'Illégaux après',
-    'coaches.voteItselfIllegal': 'lui-même illégal',
-    'coaches.voteAllIllegal': 'Toutes les options sont illégales — veuillez corriger manuellement',
     'coaches.analyze': 'Analyser',
-    'coaches.groundTruth': 'Référence',
-    'coaches.read': 'Lecture',
     'coaches.startingPosition': 'Position de départ',
     'coaches.illegalMove': 'Coup illégal',
     'coaches.illegal': 'Illégal',
@@ -359,7 +329,6 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.showOnBoard': 'Voir sur l\'échiquier',
     'coaches.save': 'Enregistrer',
     'coaches.revertToConsensus': 'Revenir au consensus',
-    'coaches.analyzeAzure': 'Analyse Azure DI...',
     'coaches.selectPiece': 'Sélectionnez une pièce',
     'coaches.navDiagram': 'Diagramme → FEN',
     'coaches.diagram.uploadPrompt': 'Importer un diagramme d\'échecs',
@@ -503,10 +472,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.packs.cancel': 'Annuler',
     // Shared
     'coaches.sectionAdmin': 'Administratif',
-    'coaches.sectionLessons': 'Mes cours',
     'coaches.sectionAITools': 'Outils IA',
-    'coaches.sectionEmpty': 'Bientôt disponible',
-    'coaches.comingSoon': 'Bientôt disponible...',
     'coaches.homePrompt': 'Choisissez une fonctionnalité pour commencer',
     'coaches.previous': 'Précédent',
     'coaches.processing': 'Lecture en cours',
@@ -521,15 +487,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.status.retrying': 'Nouvel essai...',
     'coaches.status.computing': 'Calcul...',
     'coaches.status.waiting': 'En attente...',
-    'coaches.reader': 'Lecteur',
-    'coaches.waitingOnReaders': 'En attente de {n} lecteur...',
-    'coaches.waitingOnReadersPlural': 'En attente de {n} lecteurs...',
-    'coaches.readersDisagree': 'Les lecteurs divergent',
     'coaches.navAdmin': 'Admin',
     // Admin panel
     'coaches.admin.user1': 'utilisateur',
     'coaches.admin.users': 'utilisateurs',
-    'coaches.admin.ignoreSelf': 'M\'exclure',
     'coaches.admin.dailyTimeSpent': 'Temps passé par jour (minutes)',
     'coaches.admin.time': 'Temps',
     'coaches.admin.failedLoad': 'Erreur de chargement des utilisateurs',
@@ -541,8 +502,6 @@ const translations: Record<Language, Record<string, string>> = {
     // Common
     'common.loading': 'Chargement...',
     'common.error': 'Erreur',
-    'common.signInRequired': 'Connexion Requise',
-    'common.signInMessage': 'Veuillez vous connecter pour continuer.',
   },
 };
 
@@ -583,13 +542,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return translations[language][key] || key;
   };
 
-  const tAll = (key: string) => ({
-    en: translations.en[key] || key,
-    fr: translations.fr[key] || key,
-  });
-
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, tAll }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

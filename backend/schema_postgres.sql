@@ -46,56 +46,6 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Player stats cache
-CREATE TABLE IF NOT EXISTS player_stats_cache (
-    username TEXT NOT NULL,
-    time_class TEXT NOT NULL,
-    player_data TEXT NOT NULL,
-    stats_data TEXT NOT NULL,
-    last_archive TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (username, time_class)
-);
-
--- Chess user preferences (keyed by chess username, no auth required)
-CREATE TABLE IF NOT EXISTS chess_user_prefs (
-    username TEXT PRIMARY KEY,
-    onboarding_done INTEGER NOT NULL DEFAULT 0,
-    preferred_time_class TEXT DEFAULT NULL,
-    fide_id TEXT DEFAULT NULL,
-    leaderboard_name TEXT DEFAULT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Chess goals
-CREATE TABLE IF NOT EXISTS chess_goals (
-    username TEXT NOT NULL,
-    time_class TEXT NOT NULL,
-    elo_goal INTEGER NOT NULL,
-    elo_goal_start_elo INTEGER NOT NULL,
-    elo_goal_start_date TEXT NOT NULL,
-    elo_goal_months INTEGER NOT NULL DEFAULT 3,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (username, time_class)
-);
-
--- Chess FIDE friends (leaderboard)
-CREATE TABLE IF NOT EXISTS chess_fide_friends (
-    username TEXT NOT NULL,
-    fide_id TEXT NOT NULL,
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (username, fide_id)
-);
-
--- Monthly archive cache
-CREATE TABLE IF NOT EXISTS monthly_archive_cache (
-    username TEXT NOT NULL,
-    archive_url TEXT NOT NULL,
-    games_json TEXT NOT NULL,
-    fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (username, archive_url)
-);
-
 -- User activity tracking
 CREATE TABLE IF NOT EXISTS user_activity (
     id SERIAL PRIMARY KEY,
@@ -128,15 +78,6 @@ CREATE TABLE IF NOT EXISTS page_daily_activity (
     UNIQUE(user_id, activity_date, page)
 );
 
--- Graph downloads tracking
-CREATE TABLE IF NOT EXISTS graph_downloads (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    graph_type TEXT NOT NULL,
-    downloaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
 -- Theme usage tracking
 CREATE TABLE IF NOT EXISTS theme_usage (
     id SERIAL PRIMARY KEY,
@@ -165,17 +106,6 @@ CREATE TABLE IF NOT EXISTS device_usage (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, device_type)
-);
-
--- First visitor reward tracking
-CREATE TABLE IF NOT EXISTS first_visitor_reward (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    user_name TEXT NOT NULL,
-    user_email TEXT NOT NULL,
-    selected_company TEXT NOT NULL,
-    claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Coach students
@@ -244,13 +174,11 @@ CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
-CREATE INDEX IF NOT EXISTS idx_player_stats_cache_updated ON player_stats_cache(updated_at);
 CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_activity_date ON user_activity(activity_date);
 CREATE INDEX IF NOT EXISTS idx_page_activity_user_id ON page_activity(user_id);
 CREATE INDEX IF NOT EXISTS idx_page_daily_activity_date ON page_daily_activity(activity_date);
 CREATE INDEX IF NOT EXISTS idx_page_daily_activity_user ON page_daily_activity(user_id);
-CREATE INDEX IF NOT EXISTS idx_graph_downloads_user_id ON graph_downloads(user_id);
 CREATE INDEX IF NOT EXISTS idx_theme_usage_user_id ON theme_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_language_usage_user_id ON language_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_device_usage_user_id ON device_usage(user_id);

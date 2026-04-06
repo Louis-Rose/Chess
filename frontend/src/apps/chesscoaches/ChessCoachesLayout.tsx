@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CalendarDays, CreditCard } from 'lucide-react';
+import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CreditCard } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
@@ -28,14 +28,9 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'coaches.sectionAdmin',
     items: [
-      { path: '/calendar', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', hidden: true },
       { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600' },
       { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600' },
     ],
-  },
-  {
-    titleKey: 'coaches.sectionLessons',
-    items: [],
   },
   {
     titleKey: 'coaches.sectionAITools',
@@ -46,9 +41,6 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ];
-
-// Flat list for sidebar nav
-export const NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap(s => s.items);
 
 function CoachesNavSidebar() {
   const { t } = useLanguage();
