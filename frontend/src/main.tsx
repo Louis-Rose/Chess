@@ -7,14 +7,12 @@ import { PostHogProvider } from 'posthog-js/react'
 import axios from 'axios'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
-import { ThemeProvider } from './contexts/ThemeContext'
-// Cookie consent temporarily disabled - recording all sessions
-// import { CookieConsentProvider } from './contexts/CookieConsentContext'
-// import { ConditionalPostHog } from './components/ConditionalPostHog'
-// import { CookieBanner } from './components/CookieBanner'
 import posthog from 'posthog-js'
 import './index.css'
 import App from './App.tsx'
+
+// Always dark mode
+document.documentElement.classList.add('dark')
 
 // Allow opting out of tracking via ?no_track URL param (persists in localStorage)
 if (new URLSearchParams(window.location.search).has('no_track')) {
@@ -23,15 +21,13 @@ if (new URLSearchParams(window.location.search).has('no_track')) {
 
 const isPostHogExcluded = localStorage.getItem('posthog-excluded') === 'true'
 
-// PostHog config
-// Note: Minimum session recording duration is configured in PostHog dashboard (Project Settings > Session Replay)
 const posthogOptions = {
   api_host: window.location.origin + '/ph',
   ui_host: 'https://eu.posthog.com',
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
   enable_recording_console_log: false,
-  capture_pageview: false, // We capture manually on SPA route changes
+  capture_pageview: false,
   capture_pageleave: true,
   session_recording: {
     maskAllInputs: false,
@@ -39,14 +35,13 @@ const posthogOptions = {
   },
 }
 
-// Configure axios to always send cookies for authentication
 axios.defaults.withCredentials = true
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 30, // Data stays fresh for 30 minutes
-      gcTime: 1000 * 60 * 60, // Cache persists for 1 hour
+      staleTime: 1000 * 60 * 30,
+      gcTime: 1000 * 60 * 60,
       refetchOnWindowFocus: false,
     },
   },
@@ -54,39 +49,29 @@ const queryClient = new QueryClient({
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ThemeProvider>
-      <LanguageProvider>
-        {/* Cookie consent temporarily disabled - recording all sessions */}
-        {isPostHogExcluded ? (
-          <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-            <QueryClientProvider client={queryClient}>
-              <AuthProvider>
-                <BrowserRouter>
-                  <App />
-                </BrowserRouter>
-              </AuthProvider>
-            </QueryClientProvider>
-          </GoogleOAuthProvider>
-        ) : (
-          <PostHogProvider
-            apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-            options={posthogOptions}
-          >
-            <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-              <QueryClientProvider client={queryClient}>
-                <AuthProvider>
-                  <BrowserRouter>
-                    <App />
-                  </BrowserRouter>
-                </AuthProvider>
-              </QueryClientProvider>
-            </GoogleOAuthProvider>
-          </PostHogProvider>
-        )}
-      </LanguageProvider>
-    </ThemeProvider>
-  </StrictMode>
+const appTree = (
+  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
+  </GoogleOAuthProvider>
 )
 
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <LanguageProvider>
+      {isPostHogExcluded ? appTree : (
+        <PostHogProvider
+          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+          options={posthogOptions}
+        >
+          {appTree}
+        </PostHogProvider>
+      )}
+    </LanguageProvider>
+  </StrictMode>
+)

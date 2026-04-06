@@ -33,7 +33,7 @@ export function CoachesSidebar() {
   const { t } = useLanguage();
 
   return (
-    <SidebarShell hideThemeToggle hideLanguageToggle fullWidth>
+    <SidebarShell fullWidth>
       <div className="flex flex-col items-center px-2 pb-3 mb-2">
         <LumnaBrand />
       </div>
