@@ -181,12 +181,11 @@ export function ScoresheetReadPage() {
   // ── Live elapsed timer ──
   const [liveGlobalElapsed, setLiveGlobalElapsed] = useState(0);
   useEffect(() => {
-    const t0 = preparingStartTime.current || startTime;
-    if (!t0) { setLiveGlobalElapsed(0); return; }
-    const running = preparingImage || analyzing;
-    setLiveGlobalElapsed(Math.round((Date.now() - t0) / 1000));
-    if (!running) return;
-    const id = setInterval(() => setLiveGlobalElapsed(Math.round((Date.now() - t0) / 1000)), 1000);
+    const getT0 = () => preparingStartTime.current || startTime;
+    if (!getT0()) { setLiveGlobalElapsed(0); return; }
+    const tick = () => { const t0 = getT0(); setLiveGlobalElapsed(t0 ? Math.round((Date.now() - t0) / 1000) : 0); };
+    tick();
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [startTime, analyzing, preparingImage]);
 
