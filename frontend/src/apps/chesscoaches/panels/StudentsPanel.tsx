@@ -16,7 +16,6 @@ interface Student {
   source: string | null;
   recurring_day: number | null;   // 0=Mon .. 6=Sun, null=no recurring
   recurring_time: string | null;  // "HH:MM" in coach's TZ
-  is_active: number;
   created_at: string;
   next_lesson: Lesson | null;
 }

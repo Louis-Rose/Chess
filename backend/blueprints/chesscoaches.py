@@ -1279,7 +1279,7 @@ def get_coach_students():
     """List all students for the authenticated coach."""
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT * FROM coach_students WHERE coach_user_id = ? ORDER BY is_active DESC, student_name ASC',
+            'SELECT * FROM coach_students WHERE coach_user_id = ? ORDER BY student_name ASC',
             (request.user_id,)
         ).fetchall()
     return jsonify({'students': [dict(r) for r in rows]})
@@ -1323,7 +1323,7 @@ def update_coach_student(student_id):
     """Update a student's details."""
     data = request.get_json()
 
-    allowed = ['student_name', 'timezone', 'currency', 'source', 'chesscom_username', 'lichess_username', 'recurring_day', 'recurring_time', 'is_active']
+    allowed = ['student_name', 'timezone', 'currency', 'source', 'chesscom_username', 'lichess_username', 'recurring_day', 'recurring_time']
     sets = []
     vals = []
     for field in allowed:

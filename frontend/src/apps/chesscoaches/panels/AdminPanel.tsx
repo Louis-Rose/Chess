@@ -329,7 +329,7 @@ export function AdminPanel() {
     queryKey: ['admin-coach-students'],
     queryFn: async () => {
       const response = await axios.get('/api/admin/coach-students');
-      return response.data.coaches as { coach_user_id: number; coach_name: string; coach_picture: string | null; students: { name: string; is_active: number; created_at: string }[] }[];
+      return response.data.coaches as { coach_user_id: number; coach_name: string; coach_picture: string | null; students: { name: string; created_at: string }[] }[];
     },
     enabled: !!user?.is_admin && selectedFeature === 'students',
   });

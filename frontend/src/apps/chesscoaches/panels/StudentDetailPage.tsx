@@ -14,7 +14,6 @@ interface Student {
   source: string | null;
   chesscom_username: string | null;
   lichess_username: string | null;
-  is_active: number;
   created_at: string;
 }
 

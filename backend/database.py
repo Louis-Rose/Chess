@@ -240,13 +240,11 @@ def init_db():
                         timezone TEXT DEFAULT 'UTC',
                         recurring_day INTEGER,
                         recurring_time TEXT,
-                        is_active INTEGER DEFAULT 1,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
                 conn.execute("CREATE INDEX idx_coach_students_coach ON coach_students(coach_user_id)")
-                conn.execute("CREATE INDEX idx_coach_students_active ON coach_students(coach_user_id, is_active)")
                 print("[Database] Created coach_students table")
             else:
                 # Add recurring columns if missing

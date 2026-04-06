@@ -188,7 +188,6 @@ CREATE TABLE IF NOT EXISTS coach_students (
     lichess_username TEXT,                   -- lichess username
     recurring_day INTEGER,                   -- 0=Mon .. 6=Sun, NULL=no recurring
     recurring_time TEXT,                     -- 'HH:MM' in coach's TZ, NULL=no recurring
-    is_active INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -255,7 +254,7 @@ CREATE INDEX IF NOT EXISTS idx_device_usage_user_id ON device_usage(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_usage_created ON api_usage(created_at);
 CREATE INDEX IF NOT EXISTS idx_api_usage_feature ON api_usage(feature);
 CREATE INDEX IF NOT EXISTS idx_coach_students_coach ON coach_students(coach_user_id);
-CREATE INDEX IF NOT EXISTS idx_coach_students_active ON coach_students(coach_user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_coach_students_active ON coach_students(coach_user_id);
 CREATE INDEX IF NOT EXISTS idx_coach_packs_student ON coach_packs(student_id);
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_student ON coach_lessons(student_id);
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_scheduled ON coach_lessons(scheduled_at);

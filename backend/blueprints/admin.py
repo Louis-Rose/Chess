@@ -825,7 +825,7 @@ def get_coach_students():
     """Get all students grouped by coach user (admin only)."""
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT cs.coach_user_id, cs.student_name, cs.is_active, cs.created_at,
+            SELECT cs.coach_user_id, cs.student_name, cs.created_at,
                    u.name as coach_name, u.picture as coach_picture
             FROM coach_students cs
             JOIN users u ON cs.coach_user_id = u.id
@@ -846,7 +846,6 @@ def get_coach_students():
             }
         by_coach[cid]['students'].append({
             'name': row['student_name'],
-            'is_active': row['is_active'],
             'created_at': row['created_at'],
         })
 
