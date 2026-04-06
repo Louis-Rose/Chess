@@ -123,7 +123,8 @@ export function ProfilePage() {
       <PanelShell title={t('coaches.navProfile')}>
         <div className="max-w-lg mx-auto">
           <div className="rounded-xl border border-slate-700 p-5 pb-6 space-y-4">
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">{t('coaches.profile.personalTitle')}</h3>
               <button onClick={() => setEditing(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg transition-colors">
                 <Pencil className="w-4 h-4" /> {t('coaches.profile.edit')}
               </button>
