@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Plus, Trash2, Check } from 'lucide-react';
+import { Loader2, Plus, Trash2, Check, Pencil } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
@@ -11,12 +11,15 @@ interface BundleOffer {
   price: number | '';
 }
 
+const DURATION_LABELS: Record<number, string> = { 60: '1 hour', 90: '1 hour 30', 120: '2 hours' };
+
 export function ProfilePage() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
 
   const [displayName, setDisplayName] = useState('');
   const [city, setCity] = useState('');
@@ -38,13 +41,16 @@ export function ProfilePage() {
         setCitySearch(data.city || '');
         setCurrency(data.currency || '');
         setLessonRate(data.lesson_rate ?? '');
-        setLessonDuration(data.lesson_duration || 60);
+        setLessonDuration(data.lesson_duration || 0);
         setChesscom(data.chesscom_username || '');
         setLichess(data.lichess_username || '');
         setBundles(data.bundles?.length ? data.bundles.map((b: { lessons: number; price: number }) => ({ lessons: b.lessons, price: b.price })) : []);
+        const hasSaved = !!(data.display_name || data.city || data.currency);
+        setHasProfile(hasSaved);
+        setEditing(!hasSaved);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { setEditing(true); setLoading(false); });
   }, []);
 
   const cityMatches = useMemo(() => {
@@ -72,7 +78,7 @@ export function ProfilePage() {
   const currSymbol = CURRENCY_SYMBOLS[currency] || '';
 
   const handleSave = async () => {
-    setSaving(true); setSaved(false);
+    setSaving(true);
     const tz = getTimezoneForCity(city);
     await authFetch('/api/coaches/profile', {
       method: 'PUT',
@@ -85,8 +91,9 @@ export function ProfilePage() {
         bundles: bundles.filter(b => b.lessons && b.price !== ''),
       }),
     });
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(false);
+    setHasProfile(true);
+    setEditing(false);
   };
 
   const addBundle = () => setBundles(prev => [...prev, { lessons: '', price: '' }]);
@@ -105,6 +112,60 @@ export function ProfilePage() {
     );
   }
 
+  // ── Read-only view ──
+  if (!editing && hasProfile) {
+    const currName = CURRENCY_NAMES[currency] || currency;
+    return (
+      <PanelShell title={t('coaches.navProfile')}>
+        <div className="max-w-lg mx-auto">
+          <div className="rounded-xl border border-slate-700 p-5 space-y-4 relative">
+            <button onClick={() => setEditing(true)} className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-lg transition-colors">
+              <Pencil className="w-3.5 h-3.5" /> {t('coaches.profile.edit')}
+            </button>
+
+            <InfoRow label={t('coaches.profile.name')} value={displayName} />
+            <InfoRow label={t('coaches.profile.city')} value={city ? `${city} (${cityTimezone})` : '—'} />
+            <InfoRow label={t('coaches.profile.currency')} value={currency ? `${currName} (${currSymbol})` : '—'} />
+
+            {(chesscom || lichess) && (
+              <div className="grid grid-cols-2 gap-4">
+                {chesscom && <InfoRow label="Chess.com" value={chesscom} />}
+                {lichess && <InfoRow label="Lichess" value={lichess} />}
+              </div>
+            )}
+
+            <div className="border-t border-slate-700 pt-4">
+              <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider text-center">{t('coaches.profile.pricingTitle')}</h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <InfoRow label={t('coaches.profile.duration')} value={DURATION_LABELS[lessonDuration] || '—'} />
+              <InfoRow label={t('coaches.profile.rate')} value={lessonRate !== '' ? `${currSymbol}${lessonRate}` : '—'} />
+            </div>
+
+            {bundles.length > 0 && (
+              <div className="rounded-lg border border-slate-600/50 overflow-hidden">
+                <div className="px-4 py-2 bg-slate-700/30 border-b border-slate-600/50">
+                  <label className="block text-sm text-slate-300 font-medium text-center">{t('coaches.profile.bundles')}</label>
+                </div>
+                <div className="p-4 space-y-2">
+                  {bundles.filter(b => b.lessons && b.price !== '').map((b, i) => (
+                    <div key={i} className="flex items-center justify-center gap-3 text-sm">
+                      <span className="text-slate-100 font-medium">{b.lessons} {t('coaches.profile.bundleLessons').toLowerCase()}</span>
+                      <span className="text-slate-500">{t('coaches.profile.forWord')}</span>
+                      <span className="text-slate-100 font-medium">{currSymbol}{b.price}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </PanelShell>
+    );
+  }
+
+  // ── Edit view ──
   return (
     <PanelShell title={t('coaches.navProfile')}>
       <div className="max-w-lg mx-auto">
@@ -156,7 +217,6 @@ export function ProfilePage() {
             </Field>
           </div>
 
-          {/* Divider + Pricing title */}
           <div className="border-t border-slate-700 pt-4">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider text-center">{t('coaches.profile.pricingTitle')}</h3>
           </div>
@@ -175,7 +235,6 @@ export function ProfilePage() {
             </Field>
           </div>
 
-          {/* Bundle offers — sub-container */}
           <div className="rounded-lg border border-slate-600/50 overflow-hidden">
             <div className="px-4 py-2 bg-slate-700/30 border-b border-slate-600/50">
               <label className="block text-sm text-slate-300 font-medium text-center">{t('coaches.profile.bundles')}</label>
@@ -203,10 +262,9 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {/* Single save button */}
           <button onClick={handleSave} disabled={saving} className={SAVE_BTN}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
-            {saved ? t('coaches.profile.saved') : t('coaches.profile.saveInfo')}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {t('coaches.profile.saveInfo')}
           </button>
 
         </div>
@@ -219,12 +277,22 @@ const INPUT = 'w-full bg-slate-700 text-slate-100 text-sm rounded-lg px-3 py-2 b
 const SAVE_BTN = 'w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  if (!label) return <div>{children}</div>;
   return (
     <div>
       <label className="block text-sm text-slate-300 font-medium mb-1">
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
       {children}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="block text-xs text-slate-500 mb-0.5">{label}</span>
+      <span className="text-sm text-slate-100">{value}</span>
     </div>
   );
 }
