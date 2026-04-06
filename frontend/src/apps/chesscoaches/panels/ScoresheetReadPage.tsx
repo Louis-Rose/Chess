@@ -1944,28 +1944,28 @@ function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, re
       {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
 
       {/* Game metadata */}
-      {meta && (
+      {meta && (meta.white || meta.black || meta.result || meta.date || meta.event) && (
         <div className="px-3 py-2 border-b border-slate-600/30 text-sm text-slate-300 space-y-1">
-          <div className="flex items-center gap-2">
+          {meta.white && <div className="flex items-center gap-2">
             <span className="text-slate-400 w-28 text-right shrink-0">Player (White) :</span>
-            <input value={meta.white || ''} onChange={e => onMetaChange?.('white', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>
-          <div className="flex items-center gap-2">
+            <input value={meta.white} onChange={e => onMetaChange?.('white', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>}
+          {meta.black && <div className="flex items-center gap-2">
             <span className="text-slate-400 w-28 text-right shrink-0">Player (Black) :</span>
-            <input value={meta.black || ''} onChange={e => onMetaChange?.('black', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>
-          <div className="flex items-center gap-2">
+            <input value={meta.black} onChange={e => onMetaChange?.('black', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>}
+          {meta.result && <div className="flex items-center gap-2">
             <span className="text-slate-400 w-28 text-right shrink-0">Result :</span>
-            <input value={meta.result || ''} onChange={e => onMetaChange?.('result', e.target.value)} className="flex-1 bg-transparent text-slate-100 font-semibold border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>
-          <div className="flex items-center gap-2">
+            <input value={meta.result} onChange={e => onMetaChange?.('result', e.target.value)} className="flex-1 bg-transparent text-slate-100 font-semibold border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>}
+          {meta.date && <div className="flex items-center gap-2">
             <span className="text-slate-400 w-28 text-right shrink-0">Date :</span>
-            <input value={meta.date || ''} onChange={e => onMetaChange?.('date', e.target.value)} placeholder="DD/MM/YYYY" className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>
-          <div className="flex items-center gap-2">
+            <input value={meta.date} onChange={e => onMetaChange?.('date', e.target.value)} placeholder="DD/MM/YYYY" className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>}
+          {meta.event && <div className="flex items-center gap-2">
             <span className="text-slate-400 w-28 text-right shrink-0">Event :</span>
-            <input value={meta.event || ''} onChange={e => onMetaChange?.('event', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>
+            <input value={meta.event} onChange={e => onMetaChange?.('event', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
+          </div>}
         </div>
       )}
 
