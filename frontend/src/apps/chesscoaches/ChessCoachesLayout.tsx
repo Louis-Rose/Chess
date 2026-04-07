@@ -2,16 +2,14 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle } from 'lucide-react';
+import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, RotateCcw } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { CoachesDataProvider } from './contexts/CoachesDataContext';
+import { CoachesDataProvider, saveCoachesPrefs } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { LumnaBrand, LumnaBrandSubtitle } from './components/LumnaBrand';
 import { LanguageToggle } from './components/LanguageToggle';
-import { RotateCcw } from 'lucide-react';
-import { saveCoachesPrefs } from './contexts/CoachesDataContext';
 
 export interface NavItem {
   path: string;

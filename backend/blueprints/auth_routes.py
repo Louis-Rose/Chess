@@ -3,6 +3,8 @@
 import hashlib
 import json
 import logging
+import os
+import secrets as py_secrets
 from datetime import datetime
 
 from flask import Blueprint, jsonify, make_response, request
@@ -26,6 +28,19 @@ auth_bp = Blueprint('auth_routes', __name__)
 
 BLOCKED_EMAILS = set()
 INVITE_EXPIRY_DAYS = 30
+IS_PRODUCTION = os.environ.get('FLASK_ENV') == 'prod'
+APP_ORIGIN = 'https://lumna.co' if IS_PRODUCTION else 'http://localhost:5173'
+
+# Temp store for OAuth state tokens (maps token → user_id, short-lived)
+_oauth_states: dict[str, int] = {}
+
+
+def _is_invite_expired(invite: dict) -> bool:
+    """Check if an invite has expired (30 days)."""
+    created = invite['created_at']
+    if isinstance(created, str):
+        created = datetime.fromisoformat(created)
+    return (datetime.utcnow() - created.replace(tzinfo=None)).days > INVITE_EXPIRY_DAYS
 
 
 def _build_user_payload(user: dict) -> dict:
@@ -390,6 +405,7 @@ def debug_become_student():
         conn.execute("UPDATE users SET role = 'student' WHERE id = ?", (request.user_id,))
         conn.execute("UPDATE coach_students SET linked_user_id = ? WHERE id = ?", (request.user_id, student['id']))
 
+    logger.warning(f'[Debug] User {request.user_id} used debug-student')
     return jsonify({'success': True})
 
 
@@ -402,6 +418,7 @@ def reset_role():
         if not row or not row['is_admin']:
             return jsonify({'error': 'Admin only'}), 403
         conn.execute("UPDATE users SET role = NULL WHERE id = ?", (request.user_id,))
+    logger.warning(f'[Debug] User {request.user_id} used reset-role')
     return jsonify({'success': True})
 
 
@@ -425,8 +442,9 @@ def google_calendar_status():
 def google_calendar_connect():
     """Start the Google Calendar OAuth flow. Returns the auth URL."""
     from google_calendar import get_auth_url
-    state = str(request.user_id)
-    url = get_auth_url(state)
+    state_token = py_secrets.token_urlsafe(24)
+    _oauth_states[state_token] = request.user_id
+    url = get_auth_url(state_token)
     return jsonify({'auth_url': url})
 
 
@@ -435,15 +453,20 @@ def google_calendar_callback():
     """OAuth callback — exchanges code for tokens and stores refresh token."""
     from google_calendar import exchange_code
     code = request.args.get('code')
-    state = request.args.get('state')  # user_id
+    state = request.args.get('state')
     error = request.args.get('error')
 
     if error or not code or not state:
         return '<script>window.close()</script>', 200
 
+    # Validate CSRF state token
+    user_id = _oauth_states.pop(state, None)
+    if not user_id:
+        logger.warning(f'[Calendar] Invalid OAuth state token: {state}')
+        return '<script>window.close()</script>', 200
+
     try:
         tokens = exchange_code(code)
-        user_id = int(state)
         if tokens.get('refresh_token'):
             with get_db() as conn:
                 conn.execute(
@@ -454,8 +477,8 @@ def google_calendar_callback():
     except Exception as e:
         logger.error(f'[Calendar] OAuth callback error: {e}')
 
-    # Close the popup window
-    return '<html><body><script>window.opener?.postMessage("calendar-connected","*");window.close()</script><p>Connected! You can close this window.</p></body></html>', 200
+    # Close the popup window — restrict postMessage to app origin
+    return f'<html><body><script>window.opener?.postMessage("calendar-connected","{APP_ORIGIN}");window.close()</script><p>Connected! You can close this window.</p></body></html>', 200
 
 
 @auth_bp.route('/api/auth/google-calendar/disconnect', methods=['POST'])
@@ -488,10 +511,7 @@ def get_invite_info(token):
         return jsonify({'error': 'Invite not found'}), 404
     if invite['accepted_at']:
         return jsonify({'error': 'Invite already used'}), 410
-    created = invite['created_at']
-    if isinstance(created, str):
-        created = datetime.fromisoformat(created)
-    if (datetime.utcnow() - created.replace(tzinfo=None)).days > INVITE_EXPIRY_DAYS:
+    if _is_invite_expired(invite):
         return jsonify({'error': 'Invite has expired'}), 410
 
     return jsonify({
@@ -521,11 +541,15 @@ def accept_invite(token):
             return jsonify({'error': 'Invite already used'}), 410
         if invite['linked_user_id']:
             return jsonify({'error': 'Student already has an account'}), 400
-        created = invite['created_at']
-        if isinstance(created, str):
-            created = datetime.fromisoformat(created)
-        if (datetime.utcnow() - created.replace(tzinfo=None)).days > INVITE_EXPIRY_DAYS:
+        if _is_invite_expired(invite):
             return jsonify({'error': 'Invite has expired'}), 410
+
+        # Prevent one user from linking to multiple students
+        already = conn.execute(
+            'SELECT id FROM coach_students WHERE linked_user_id = ?', (user_id,)
+        ).fetchone()
+        if already:
+            return jsonify({'error': 'Your account is already linked to a student'}), 400
 
         # Link user to student record and set role
         conn.execute(
@@ -719,12 +743,15 @@ def student_dashboard():
         if not student:
             return jsonify({'error': 'No student record found'}), 404
 
-        # Get active packs
+        # Get active packs with live consumed count
         packs = conn.execute('''
-            SELECT id, total_lessons, lessons_done, price, currency, source, status, created_at
-            FROM coach_packs
-            WHERE student_id = ? AND status = 'active'
-            ORDER BY created_at DESC
+            SELECT p.id, p.total_lessons, p.price, p.currency, p.source, p.status, p.created_at,
+                   COUNT(CASE WHEN l.status = 'completed' THEN 1 END) AS consumed
+            FROM coach_packs p
+            LEFT JOIN coach_lessons l ON l.pack_id = p.id
+            WHERE p.student_id = ? AND p.status = 'active'
+            GROUP BY p.id
+            ORDER BY p.created_at DESC
         ''', (student['id'],)).fetchall()
 
         # Get recent lessons

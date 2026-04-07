@@ -10,6 +10,10 @@ logger = logging.getLogger(__name__)
 
 coaches_bp = Blueprint('coaches', __name__)
 
+
+def _revolut_link(username: str, amount: float, currency: str) -> str:
+    return f"https://revolut.me/{username}/{amount:.2f}{currency}"
+
 GROUND_TRUTH_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'scoresheets')
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'scoresheet_uploads')
 
@@ -1568,7 +1572,7 @@ def create_invoice():
             (request.user_id,)
         ).fetchone()
         if coach_profile and coach_profile['revolut_username']:
-            revolut_link = f"https://revolut.me/{coach_profile['revolut_username']}/{amount:.2f}{currency}"
+            revolut_link = _revolut_link(coach_profile['revolut_username'], amount, currency)
 
     return jsonify({
         'invoice_id': invoice_id,
@@ -1605,7 +1609,7 @@ def get_invoice(invoice_id):
 
     revolut_link = None
     if invoice['revolut_username']:
-        revolut_link = f"https://revolut.me/{invoice['revolut_username']}/{invoice['amount']:.2f}{invoice['currency']}"
+        revolut_link = _revolut_link(invoice['revolut_username'], invoice['amount'], invoice['currency'])
 
     return jsonify({
         'id': invoice['id'],

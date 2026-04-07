@@ -10,7 +10,7 @@ interface DashboardData {
   student: { id: number; name: string };
   coach_user_id: number;
   coach: { name: string; picture: string | null; city: string | null };
-  packs: { id: number; total_lessons: number; lessons_done: number; price: number | null; currency: string | null; source: string | null; status: string }[];
+  packs: { id: number; total_lessons: number; consumed: number; price: number | null; currency: string | null; source: string | null; status: string }[];
   lessons: { id: number; scheduled_at: string; duration_minutes: number; status: string }[];
 }
 
@@ -73,8 +73,8 @@ export function StudentHomePage() {
               {t('coaches.studentDashboard.activePacks')}
             </h2>
             {data.packs.map(p => {
-              const remaining = p.total_lessons - p.lessons_done;
-              const pct = p.total_lessons > 0 ? Math.min((p.lessons_done / p.total_lessons) * 100, 100) : 0;
+              const remaining = p.total_lessons - p.consumed;
+              const pct = p.total_lessons > 0 ? Math.min((p.consumed / p.total_lessons) * 100, 100) : 0;
               return (
                 <div key={p.id} className="bg-slate-700/50 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -92,7 +92,7 @@ export function StudentHomePage() {
                     />
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
-                    {p.lessons_done} {t('coaches.packs.used')} {t('coaches.packs.of')} {p.total_lessons}
+                    {p.consumed} {t('coaches.packs.used')} {t('coaches.packs.of')} {p.total_lessons}
                   </div>
                 </div>
               );
