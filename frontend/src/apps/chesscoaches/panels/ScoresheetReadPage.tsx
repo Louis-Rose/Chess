@@ -1,87 +1,24 @@
 // Scoresheet reader page — reads scoresheets with Gemini, supports iterative correction
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { ImageIcon, FileText, Clock, Check, ExternalLink, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react';
+import { ImageIcon, FileText, Clock, Check, X } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
-import { ImageZoomModal } from '../components/ImageZoomModal';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useCoachesData, getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
-import { BoardPreview } from '../components/BoardPreview';
 import { playMoveSound } from '../components/Chessboard';
-import { pieceImageUrl } from '../utils/pieces';
 import { Chess } from 'chess.js';
 import type { ScoresheetMove as Move } from '../contexts/CoachesDataContext';
 
-/** Try to resolve shorthand pawn capture like 'ef' to 'exf6' (en passant or regular) */
-function resolvePawnCapture(chess: InstanceType<typeof Chess>, san: string): string | null {
-  if (san.length !== 2 || !('abcdefgh'.includes(san[0])) || !('abcdefgh'.includes(san[1]))) return null;
-  if (Math.abs(san.charCodeAt(0) - san.charCodeAt(1)) !== 1) return null;
-  // Find any pawn capture from san[0]-file to san[1]-file
-  const matches = chess.moves({ verbose: true }).filter(m =>
-    !m.san[0].match(/[A-Z]/) && m.san[0] === san[0] && m.to[0] === san[1] && m.flags.includes('c')
-  );
-  if (matches.length === 1) return matches[0].san;
-  // Multiple matches (rare) — prefer en passant
-  const ep = matches.find(m => m.flags.includes('e'));
-  return ep ? ep.san : matches[0]?.san || null;
-}
-
-const NOTATION_MAPS: Record<string, Record<string, string>> = {
-  french: { R: 'T', B: 'F', Q: 'D', N: 'C', K: 'R' },
-  armenian: { R: 'ն', B: 'փ', Q: 'թ', N: 'Ձ', K: 'Ա' },
-};
-function toNotation(san: string, notation?: string): string {
-  if (!san || !notation || notation === 'english') return san;
-  const map = NOTATION_MAPS[notation];
-  if (!map) return san;
-  if (san[0] in map) return map[san[0]] + san.slice(1);
-  return san;
-}
-
-/** Replay moves on a board and return copies with correct +/# annotations only (keeps original move text). */
-function normalizeMoves(moves: Move[]): Move[] {
-  const chess = new Chess();
-  return moves.map(m => {
-    const out: Move = { ...m };
-    for (const color of ['white', 'black'] as const) {
-      const san = m[color];
-      if (!san) continue;
-      try {
-        const move = chess.move(san);
-        if (move) {
-          // Keep original text but fix check/checkmate suffix
-          const base = san.replace(/[+#]/g, '');
-          const suffix = move.san.endsWith('#') ? '#' : move.san.endsWith('+') ? '+' : '';
-          out[color] = base + suffix;
-        }
-      } catch {
-        // illegal move — keep original text
-      }
-    }
-    return out;
-  });
-}
-
-function buildPgn(moves: Move[], meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string }): string {
-  const headers = [
-    meta?.event ? `[Event "${meta.event}"]` : null,
-    meta?.date ? `[Date "${meta.date}"]` : null,
-    `[White "${meta?.white || '?'}"]`,
-    `[Black "${meta?.black || '?'}"]`,
-    `[Result "${meta?.result || '*'}"]`,
-  ].filter(Boolean).join('\n');
-  const normalized = normalizeMoves(moves);
-  const moveText = normalized.map(m =>
-    `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
-  ).join(' ');
-  return `${headers}\n\n${moveText} ${meta?.result || '*'}\n`;
-}
+import { resolvePawnCapture, toNotation } from './scoresheet/utils';
+import { ModelBoard, resetActiveModelBoard } from './scoresheet/ModelBoard';
+import { MovesPanel } from './scoresheet/MovesPanel';
+import { ChesscomAnalysisButton, LichessStudyButton } from './scoresheet/ExportButtons';
+import type { VoteState } from './scoresheet/types';
 
 
 export function ScoresheetReadPage() {
@@ -144,31 +81,25 @@ export function ScoresheetReadPage() {
 
   const [selectedNotation, setSelectedNotation] = useState('');
   const [imageZoomLevel, setImageZoomLevel] = useState(0); // 0=closed, 1=fit, 2=extra zoom
-  const [showExampleModal, setShowExampleModal] = useState(false);
-  const closeModal = useCallback(() => { setImageZoomLevel(0); setShowExampleModal(false); }, []);
+  const closeModal = useCallback(() => { setImageZoomLevel(0); }, []);
   useEffect(() => {
-    if (!imageZoomLevel && !showExampleModal) return;
+    if (!imageZoomLevel) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeModal(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [imageZoomLevel, showExampleModal, closeModal]);
+  }, [imageZoomLevel, closeModal]);
 
 
-  const [voteState, setVoteState] = useState<{ setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null>(null);
+  const [voteState, setVoteState] = useState<VoteState | null>(null);
   const [userPickedMove, setUserPickedMove] = useState<string | null>(null);
   const unresolvedCountRef = useRef(0);
-  const handleVoteStateChange = useCallback((s: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null) => {
+  const handleVoteStateChange = useCallback((s: VoteState | null) => {
     setVoteState(prev => {
       if (prev && s && prev.moveIdx === s.moveIdx && prev.color === s.color) return s;
       setUserPickedMove(null);
       return s;
     });
   }, []);
-
-
-  useEffect(() => {
-    if (!preview) return;
-  }, [preview]);
 
   // ── Crop state (only used for first-time demo) ──
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -300,7 +231,7 @@ export function ScoresheetReadPage() {
   useEffect(() => {
     if (autoRun && scoresheet.imageFile) {
       setAutoRun(false);
-      activeModelBoardId = 0;
+      resetActiveModelBoard();
       scoresheetStartOneRead(selectedNotation);
     }
   }, [autoRun, scoresheet.imageFile, scoresheetStartOneRead, selectedNotation]);
@@ -327,6 +258,10 @@ export function ScoresheetReadPage() {
       navigate('/');
     }
   }, [cropSrc, preparingImage, preview, scoresheetClear, navigate]);
+
+  const handleImageClick = useCallback(() => {
+    setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1);
+  }, []);
 
   return (
     <PanelShell title={t('coaches.navScoresheets')} onBack={handleBack}>
@@ -486,10 +421,6 @@ export function ScoresheetReadPage() {
                 );
               })()}
 
-              {/* Old model status table removed — see git history (commit 6309c734) */}
-
-              {/* Re-analyze button — hidden for now */}
-
               {/* Results: consensus + individual reads */}
               {preview && models.length > 0 && (() => {
                 // Total moves across all models (for stable table layout)
@@ -610,7 +541,7 @@ export function ScoresheetReadPage() {
                               modelVals.push(val);
                               if (!votersByCandidate[normalized]) votersByCandidate[normalized] = [];
                               votersByCandidate[normalized].push(modelNames[mi]);
-                              const conf = moveObj?.[`${color}_confidence` as 'white_confidence' | 'black_confidence'];
+                              const conf = moveObj?.[`${color}_confidence`];
                               if (conf) confidenceByModel[modelNames[mi]] = conf;
                             }
                           }
@@ -630,21 +561,21 @@ export function ScoresheetReadPage() {
                             models: votersByCandidate[c] || [], confidenceByModel,
                           }));
 
-                          (move as any)[color] = picked.move;
+                          move[color] = picked.move;
                           if (picked.legal) {
                             let advanced = false;
                             try { passChess.move(picked.move); advanced = true; } catch {}
                             if (advanced) {
-                              (move as any)[`${color}_legal`] = true;
+                              move[`${color}_legal`] = true;
                             } else {
-                              (move as any)[`${color}_legal`] = false;
-                              (move as any)[`${color}_reason`] = 'No legal option — correct an earlier move';
+                              move[`${color}_legal`] = false;
+                              move[`${color}_reason`] = 'No legal option — correct an earlier move';
                               stopped = true;
                               console.warn(`[Consensus] STOPPED at move ${i+1} ${color}: tryMove said ${picked.move} was legal but passChess.move() failed`);
                             }
                           } else {
-                            (move as any)[`${color}_legal`] = false;
-                            (move as any)[`${color}_reason`] = 'No legal option — correct an earlier move';
+                            move[`${color}_legal`] = false;
+                            move[`${color}_reason`] = 'No legal option — correct an earlier move';
                             stopped = true;
                             console.log(`[Consensus] STOPPED at move ${i+1} ${color}: ${picked.move} is illegal`);
                           }
@@ -666,7 +597,7 @@ export function ScoresheetReadPage() {
                         const timeKey = `${color}_time` as const;
                         for (const modelMv of allModelMoves) {
                           const t = modelMv[i]?.[timeKey];
-                          if (t != null) { (consensusMoves[i] as any)[timeKey] = t; break; }
+                          if (t != null) { consensusMoves[i][timeKey] = t; break; }
                         }
                       }
                     }
@@ -680,7 +611,7 @@ export function ScoresheetReadPage() {
                         {/* Desktop skeleton */}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4">
                           <div className="flex justify-end items-center">
-                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} zoomed />
+                            <ScoreSheetImage preview={preview} onImageClick={handleImageClick} fileName={fileName || undefined} zoomed />
                           </div>
                           <div className="self-start">
                             <AnalyzingPlaceholder minWidth="min-w-[540px]" />
@@ -691,7 +622,7 @@ export function ScoresheetReadPage() {
                         </div>
                         {/* Mobile skeleton */}
                         <div className="md:hidden flex flex-col items-center gap-3 px-2">
-                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} />
+                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={handleImageClick} />
                           <AnalyzingPlaceholder minWidth="min-w-[320px]" />
                           <ModelBoard moves={[]} autoActivate={false} disableDrag compact />
                         </div>
@@ -704,9 +635,9 @@ export function ScoresheetReadPage() {
                       for (const color of ['white', 'black'] as const) {
                         const san = cm[color];
                         if (!san) continue;
-                        try { valChess.move(san); (cm as any)[`${color}_legal`] = true; }
+                        try { valChess.move(san); cm[`${color}_legal`] = true; }
                         catch {
-                          (cm as any)[`${color}_legal`] = false;
+                          cm[`${color}_legal`] = false;
                           const fen = valChess.fen().split(' ');
                           fen[1] = fen[1] === 'w' ? 'b' : 'w';
                           fen[3] = '-'; // clear en-passant square to keep FEN valid
@@ -750,9 +681,8 @@ export function ScoresheetReadPage() {
                     if (metaOverrides.date !== undefined) consensusMeta.date = metaOverrides.date;
                     if (metaOverrides.event !== undefined) consensusMeta.event = metaOverrides.event;
 
-                    // Apply overrides on top of computed consensus, then normalize +/# annotations
-                    const rawConsensusMoves = consensusOverrides || consensusMoves;
-                    const displayConsensusMoves = rawConsensusMoves;
+                    // Apply overrides on top of computed consensus
+                    const displayConsensusMoves = consensusOverrides ?? consensusMoves;
 
                     // Remove disagreements where all dissenters are illegal at the current consensus board position
                     {
@@ -810,22 +740,22 @@ export function ScoresheetReadPage() {
                         for (const col of ['white', 'black'] as const) {
                           if (stopped) {
                             delete cm[col];
-                            delete (cm as any)[`${col}_legal`];
-                            delete (cm as any)[`${col}_reason`];
+                            delete cm[`${col}_legal`];
+                            delete cm[`${col}_reason`];
                             continue;
                           }
 
-                          if ((cm as any)[`${col}_confirmed`]) {
+                          if (cm[`${col}_confirmed`]) {
                             // Confirmed move — play it
                             const san = cm[col];
                             if (!san) continue;
                             const resolved = tryMove(ch, san);
                             if (resolved) {
                               cm[col] = resolved;
-                              (cm as any)[`${col}_legal`] = true;
+                              cm[`${col}_legal`] = true;
                               ch.move(resolved);
                             } else {
-                              (cm as any)[`${col}_legal`] = false;
+                              cm[`${col}_legal`] = false;
                               stopped = true;
                             }
                           } else {
@@ -835,13 +765,13 @@ export function ScoresheetReadPage() {
                             const picked = pickBestMove(ch, modelVals);
                             if (picked && picked.legal) {
                               cm[col] = picked.move;
-                              (cm as any)[`${col}_legal`] = true;
-                              delete (cm as any)[`${col}_reason`];
+                              cm[`${col}_legal`] = true;
+                              delete cm[`${col}_reason`];
                               try { ch.move(picked.move); } catch {}
                             } else {
                               if (picked) cm[col] = picked.move;
-                              (cm as any)[`${col}_legal`] = false;
-                              (cm as any)[`${col}_reason`] = 'No legal option — correct an earlier move';
+                              cm[`${col}_legal`] = false;
+                              cm[`${col}_reason`] = 'No legal option — correct an earlier move';
                               stopped = true;
                             }
                           }
@@ -858,14 +788,12 @@ export function ScoresheetReadPage() {
                       const current = consensusOverrides || [...consensusMoves.map(m => ({ ...m }))];
                       const idx = moveNumber - 1;
                       if (current[idx]) {
-                        delete (current[idx] as any)[`${color}_reason`];
-                        (current[idx] as any)[`${color}_confirmed`] = true;
+                        delete current[idx][`${color}_reason`];
+                        current[idx][`${color}_confirmed`] = true;
                       }
                       rerunConsensusAfterEdit(current);
                     };
                     const handleConsensusBoardPly = (ply: number) => {
-                      // The board shows an arrow at targetPly (position at targetPly-1 + arrow).
-                      // When the board emits targetPly, it's just catching up to the arrow — ignore it.
                       const currentTargetPly = voteState
                         ? (voteState.color === 'white' ? voteState.moveIdx * 2 + 1 : voteState.moveIdx * 2 + 2)
                         : 0;
@@ -887,14 +815,14 @@ export function ScoresheetReadPage() {
                     };
                     // Compute unresolved moves for review bar
                     const hasIssues = allModelsFinished && (modelDisagreements.size > 0 || displayConsensusMoves.some(m => m.white_reason || m.black_reason) || displayConsensusMoves.some(m => m.white_legal === false || m.black_legal === false));
-                    const hasConfirmedMoves = displayConsensusMoves.some(m => (m as any).white_confirmed || (m as any).black_confirmed);
+                    const hasConfirmedMoves = displayConsensusMoves.some(m => m.white_confirmed || m.black_confirmed);
                     const unresolvedPlies: number[] = [];
                     if (allModelsFinished) {
                       displayConsensusMoves.forEach((m, idx) => {
                         const d = m.white && (modelDisagreements.has(`${m.number}-white`) || !!m.white_reason || m.white_legal === false || m.white_confidence === 'low');
                         const dBlack = m.black && (modelDisagreements.has(`${m.number}-black`) || !!m.black_reason || m.black_legal === false || m.black_confidence === 'low');
-                        if (d && !(m as any).white_confirmed) unresolvedPlies.push(idx * 2 + 1);
-                        if (dBlack && !(m as any).black_confirmed) unresolvedPlies.push(idx * 2 + 2);
+                        if (d && !m.white_confirmed) unresolvedPlies.push(idx * 2 + 1);
+                        if (dBlack && !m.black_confirmed) unresolvedPlies.push(idx * 2 + 2);
                       });
                     }
                     const allVerified = (hasIssues || hasConfirmedMoves) && unresolvedPlies.length === 0;
@@ -907,8 +835,8 @@ export function ScoresheetReadPage() {
                     const getLastConfirmed = () => {
                       let last: { idx: number; color: 'white' | 'black' } | null = null;
                       displayConsensusMoves.forEach((m, i) => {
-                        if ((m as any).white_confirmed) last = { idx: i, color: 'white' };
-                        if ((m as any).black_confirmed) last = { idx: i, color: 'black' };
+                        if (m.white_confirmed) last = { idx: i, color: 'white' };
+                        if (m.black_confirmed) last = { idx: i, color: 'black' };
                       });
                       return last as { idx: number; color: 'white' | 'black' } | null;
                     };
@@ -916,7 +844,7 @@ export function ScoresheetReadPage() {
                     const handleRevert = (lastConfirmed: { idx: number; color: 'white' | 'black' }) => {
                       const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
                       if (current[lastConfirmed.idx]) {
-                        delete (current[lastConfirmed.idx] as any)[`${lastConfirmed.color}_confirmed`];
+                        delete current[lastConfirmed.idx][`${lastConfirmed.color}_confirmed`];
                       }
                       rerunConsensusAfterEdit(current);
                       setUserPickedMove(null);
@@ -984,8 +912,8 @@ export function ScoresheetReadPage() {
                                     const current = consensusOverrides || [...displayConsensusMoves.map(m => ({ ...m }))];
                                     if (current[moveIdx]) {
                                       current[moveIdx][colorStr] = userPickedMove!;
-                                      (current[moveIdx] as any)[`${colorStr}_confirmed`] = true;
-                                      delete (current[moveIdx] as any)[`${colorStr}_reason`];
+                                      current[moveIdx][`${colorStr}_confirmed`] = true;
+                                      delete current[moveIdx][`${colorStr}_reason`];
                                     }
                                     rerunConsensusAfterEdit(current);
                                   } else {
@@ -1074,7 +1002,6 @@ export function ScoresheetReadPage() {
                         originalMoves={consensusOverrides ? consensusMoves : undefined}
                         onMoveClick={handleMoveClick}
                         activePly={modelBoardPlys[consensusId]?.ply}
-                        modelDisagreements={modelDisagreements}
                         voteDetails={sharedVoteDetails}
                         onVoteStateChange={handleVoteStateChange}
                         totalMoves={totalModelMoves}
@@ -1117,7 +1044,7 @@ export function ScoresheetReadPage() {
                         {/* Desktop layout */}
                         <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4" onClick={consensusReady ? deselectConsensus : undefined}>
                           <div className="flex justify-end items-center" onClick={e => e.stopPropagation()}>
-                            <ScoreSheetImage preview={preview} onImageClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} fileName={fileName || undefined} zoomed />
+                            <ScoreSheetImage preview={preview} onImageClick={handleImageClick} fileName={fileName || undefined} zoomed />
                           </div>
                           <div className="self-start" onClick={e => e.stopPropagation()}>
                             {!hasResults || consensusMoves.length === 0
@@ -1135,7 +1062,7 @@ export function ScoresheetReadPage() {
                         </div>
                         {/* Mobile layout */}
                         <div className="md:hidden flex flex-col items-center gap-3 px-2">
-                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={() => setImageZoomLevel(window.innerWidth >= 768 ? 3 : 1)} />
+                          <img src={preview} alt="Scoresheet" className="max-h-[200px] rounded-xl object-contain cursor-pointer" onClick={handleImageClick} />
                           {!hasResults || consensusMoves.length === 0
                             ? <AnalyzingPlaceholder minWidth="min-w-[320px]" />
                             : (<>
@@ -1202,7 +1129,6 @@ export function ScoresheetReadPage() {
                                   })}
                                   <td colSpan={3} className="px-1 py-0.5 text-center border-l border-slate-500 text-slate-200 font-semibold capitalize">{consensusMeta.notation || '?'}</td>
                                 </tr>
-                                {/* Compute board FENs for debug legality checks */}
                                 {Array.from({ length: maxMoves }, (_, i) => {
                                   const consensusMove = displayConsensusMoves[i];
                                   const notation = consensusMeta.notation;
@@ -1222,8 +1148,8 @@ export function ScoresheetReadPage() {
                                           const mr = modelResults[m.id]!;
                                           const mv = mr.result!.moves[i]?.[color] || '';
                                           const modelNotation = mr.result!.notation;
-                                          const conf = mr.result!.moves[i]?.[`${color}_confidence` as 'white_confidence' | 'black_confidence'];
-                                          const time = mr.result!.moves[i]?.[`${color}_time` as 'white_time' | 'black_time'];
+                                          const conf = mr.result!.moves[i]?.[`${color}_confidence`];
+                                          const time = mr.result!.moves[i]?.[`${color}_time`];
                                           // Test this model's move against current consensus board position
                                           let mvLegal: boolean | null = null;
                                           if (mv && debugFens[i]) {
@@ -1273,8 +1199,6 @@ export function ScoresheetReadPage() {
                     </div>
                   </div>
 
-                  {/* Azure DI section — disabled, kept for future use */}
-
                 </div>
                 );
               })()}
@@ -1297,15 +1221,6 @@ export function ScoresheetReadPage() {
           </div>
         </div>
       )}
-
-      {/* Example image modal */}
-      {showExampleModal && (
-        <ImageZoomModal
-          src="/cropping_example.jpeg"
-          alt="Cropping example"
-          onClose={() => setShowExampleModal(false)}
-        />
-      )}
     </PanelShell>
   );
 }
@@ -1320,14 +1235,6 @@ function AnalyzingPlaceholder({ minWidth }: { minWidth: string }) {
       </div>
     </div>
   );
-}
-
-interface PlyEntry {
-  fen: string;
-  lastMove: { from: string; to: string } | null;
-  illegal?: { moveNumber: number; color: 'white' | 'black'; san: string; reason?: string };
-  san?: string;
-  reason?: string;
 }
 
 function ScoreSheetImage({ preview, onImageClick, fileName, zoomed }: { preview: string; onImageClick: () => void; fileName?: string; zoomed?: boolean }) {
@@ -1358,1240 +1265,5 @@ function ScoreSheetImage({ preview, onImageClick, fileName, zoomed }: { preview:
       </div>
       {fileName && <span className="text-slate-100 text-sm mt-2 truncate max-w-full">{fileName}</span>}
     </div>
-  );
-}
-
-// Track which ModelBoard instance is "active" (last interacted with)
-let activeModelBoardId = 0;
-let nextModelBoardId = 0;
-
-function ModelBoard({ moves, externalPly, onPlyChange, disableDrag, disableNav, autoActivate, previewFen, highlightedPlies: _highlightedPlies, onDragSetMove, compact, targetPly }: { moves: Move[]; externalPly?: number; onPlyChange?: (ply: number) => void; disableDrag?: boolean; disableNav?: boolean; autoActivate?: boolean; previewFen?: string | null; highlightedPlies?: number[]; onDragSetMove?: (san: string) => void; compact?: boolean; targetPly?: number }) {
-  const { t } = useLanguage();
-  const [instanceId] = useState(() => ++nextModelBoardId);
-  const [internalPly, setInternalPly] = useState(0);
-  // Use externalPly directly when provided (controlled mode), fall back to internal state
-  const ply = externalPly !== undefined ? externalPly : internalPly;
-  const setPly = useCallback((p: number | ((prev: number) => number)) => {
-    setInternalPly(p);
-  }, []);
-
-  // Branch (variation) state
-  const [branch, setBranch] = useState<{ startPly: number; fens: string[]; sans: string[] } | null>(null);
-  const [branchPly, setBranchPly] = useState(0);
-  const inBranch = branch !== null && branchPly > 0;
-  const exitBranch = useCallback(() => { setBranch(null); setBranchPly(0); }, []);
-
-  const entries = useMemo(() => {
-    const chess = new Chess();
-    const result: PlyEntry[] = [{ fen: chess.fen(), lastMove: null }];
-    for (const m of moves) {
-      for (const color of ['white', 'black'] as const) {
-        const san = m[color];
-        if (!san) continue;
-        const moveReason = m[`${color}_reason` as 'white_reason' | 'black_reason'];
-        try {
-          const move = chess.move(san);
-          result.push({ fen: chess.fen(), lastMove: move ? { from: move.from, to: move.to } : null, san, reason: moveReason });
-        } catch {
-          const reason = moveReason;
-          result.push({ fen: chess.fen(), lastMove: null, illegal: { moveNumber: m.number, color, san, reason }, san });
-          // Flip turn so next move validates from the right side
-          const fen = chess.fen().split(' ');
-          fen[1] = fen[1] === 'w' ? 'b' : 'w';
-          fen[3] = '-'; // clear en-passant square to keep FEN valid
-          try { chess.load(fen.join(' ')); } catch {}
-        }
-      }
-    }
-    return result;
-  }, [moves]);
-
-  const maxPly = entries.length - 1;
-  const safePly = Math.min(ply, maxPly);
-  // Show position BEFORE the move with an arrow overlay for all moves
-  const showArrow = safePly > 0 && !inBranch && !previewFen;
-  const displayPly = showArrow ? safePly - 1 : safePly;
-  const currentFen = previewFen || (inBranch ? branch!.fens[branchPly] : entries[displayPly].fen);
-  const currentLastMove = previewFen ? null : (inBranch && branch && branchPly > 0 ? (() => {
-    try {
-      const chess = new Chess(branch.fens[branchPly - 1]);
-      const move = chess.move(branch.sans[branchPly - 1]);
-      return move ? { from: move.from, to: move.to } : null;
-    } catch { return null; }
-  })() : showArrow ? null : entries[displayPly].lastMove);
-  const currentArrow: { from: string; to: string } | { from: string; to: string }[] | null = showArrow ? (() => {
-    const entry = entries[safePly];
-    // If the move failed (illegal/ambiguous), try to show possible arrows from the position
-    if (!entry.lastMove && entry.san) {
-      try {
-        const ch = new Chess(entries[displayPly].fen);
-        const san = entry.san;
-        const pieceMatch = san.match(/^([KQRBN])/);
-        const destMatch = san.match(/([a-h][1-8])/);
-        if (pieceMatch && destMatch) {
-          const piece = pieceMatch[1];
-          const dest = destMatch[1];
-          const candidates = ch.moves({ verbose: true }).filter(m => m.san.startsWith(piece) && m.to === dest);
-          if (candidates.length >= 1) {
-            const arrows = candidates.map(m => ({ from: m.from, to: m.to }));
-            return arrows.length > 1 ? arrows : arrows[0];
-          }
-        }
-      } catch { /* fall through */ }
-    }
-    if (entry.lastMove && entry.san) {
-      // For castling, show both king and rook arrows
-      const castleSan = entry.san.replace(/[+#]/g, '');
-      if (castleSan === 'O-O' || castleSan === 'O-O-O') {
-        const rank = entry.lastMove.from[1]; // '1' for white, '8' for black
-        if (castleSan === 'O-O') {
-          return [entry.lastMove, { from: `h${rank}`, to: `f${rank}` }];
-        } else {
-          return [entry.lastMove, { from: `a${rank}`, to: `d${rank}` }];
-        }
-      }
-    }
-    return entry.lastMove;
-  })() : null;
-  const currentIllegal = inBranch ? undefined : entries[displayPly].illegal;
-
-  // Compute highlight squares for ambiguous moves
-  const ambiguousSquares = useMemo(() => {
-    if (!currentIllegal?.reason) return undefined;
-    const match = currentIllegal.reason.match(/did you mean (.+)\?/i);
-    if (!match) return undefined;
-    const sans = match[1].split(/ or |, /).map(s => s.trim());
-    try {
-      const chess = new Chess(entries[safePly].fen);
-      const squares: string[] = [];
-      for (const san of sans) {
-        const move = chess.move(san);
-        if (move) {
-          if (!squares.includes(move.from)) squares.push(move.from);
-          if (!squares.includes(move.to)) squares.push(move.to);
-          chess.undo();
-        }
-      }
-      return squares.length > 0 ? squares : undefined;
-    } catch { return undefined; }
-  }, [currentIllegal, entries, safePly]);
-
-  const prevMaxPlyRef = useRef(0);
-  useEffect(() => {
-    // Only reset to ply 0 on fresh results (was 0, now has moves)
-    // On re-read (maxPly changes but ply was already set), preserve position
-    if (prevMaxPlyRef.current === 0 && maxPly > 0) {
-      setPly(0); exitBranch();
-    }
-    if (autoActivate && maxPly > 0 && activeModelBoardId === 0) activeModelBoardId = instanceId;
-    prevMaxPlyRef.current = maxPly;
-  }, [maxPly, exitBranch, autoActivate, instanceId]);
-  // When externalPly changes, exit any branch
-  const prevExternalPly = useRef(externalPly);
-  if (externalPly !== undefined && externalPly !== prevExternalPly.current) {
-    if (inBranch) { setBranch(null); setBranchPly(0); }
-    activeModelBoardId = instanceId;
-  }
-  prevExternalPly.current = externalPly;
-
-
-  // Play sound for a given ply (called from navigation actions, not from effects)
-  const playSoundForPly = useCallback((p: number) => {
-    if (p > 0 && entries[p]?.san) playMoveSound(entries[p].san!.includes('x'));
-  }, [entries]);
-
-  const emitPly = useCallback((p: number) => {
-    onPlyChange?.(p);
-  }, [onPlyChange]);
-
-  // Navigation
-  const goPrev = useCallback(() => {
-    if (inBranch) {
-      if (branchPly <= 1) {
-        // Exit and destroy branch immediately
-        playSoundForPly(safePly);
-        if (onDragSetMove) {
-          onDragSetMove('');
-          emitPly(safePly);
-        }
-        exitBranch();
-      } else {
-        setBranchPly(p => {
-          const san = branch?.sans[p - 2];
-          if (san) playMoveSound(san.includes('x'));
-          if (p - 1 === 1 && onDragSetMove && branch?.sans[0]) {
-            onDragSetMove(branch.sans[0]);
-          }
-          return p - 1;
-        });
-      }
-    } else {
-      const newP = Math.max(0, safePly - 1);
-      if (newP !== safePly) { playSoundForPly(safePly); setPly(newP); emitPly(newP); }
-    }
-  }, [inBranch, branch, safePly, playSoundForPly, emitPly, onDragSetMove]);
-  const goNext = useCallback(() => {
-    if (inBranch && branch && branchPly < branch.fens.length - 1) {
-      const san = branch.sans[branchPly];
-      if (san) playMoveSound(san.includes('x'));
-      // Clear vote value when going past the first variation move
-      if (branchPly >= 1 && onDragSetMove) {
-        onDragSetMove('');
-      }
-      setBranchPly(p => p + 1);
-    } else if (!inBranch) {
-      const newP = Math.min(maxPly, safePly + 1);
-      if (newP !== safePly) {
-        playSoundForPly(newP);
-        setPly(newP);
-        emitPly(newP);
-        if (showArrow && targetPly !== undefined && safePly === targetPly && entries[safePly]?.san && onDragSetMove) {
-          onDragSetMove(entries[safePly].san!);
-        }
-      }
-    }
-  }, [branch, branchPly, inBranch, maxPly, safePly, playSoundForPly, emitPly, onDragSetMove, showArrow, entries, targetPly]);
-
-  const goFirst = useCallback(() => {
-    exitBranch();
-    if (safePly !== 0) { playSoundForPly(safePly); setPly(0); emitPly(0); }
-  }, [exitBranch, safePly, playSoundForPly, emitPly]);
-  const goLast = useCallback(() => {
-    exitBranch();
-    if (safePly !== maxPly) { playSoundForPly(maxPly); setPly(maxPly); emitPly(maxPly); }
-  }, [exitBranch, safePly, maxPly, playSoundForPly, emitPly]);
-
-  // Handle user move (drag & drop)
-  const handleUserMove = useCallback((from: string, to: string) => {
-    // Detect reverse of last move (dragging piece back) → go previous
-    // If in a 1-move branch (user already dragged), allow undoing or picking a different move
-    if (inBranch && branch && branchPly === 1 && onDragSetMove) {
-      // Check if dragging the piece back (reversing the branch move)
-      const branchMove = (() => {
-        try {
-          const ch = new Chess(branch.fens[0]);
-          const m = ch.move(branch.sans[0]);
-          return m ? { from: m.from, to: m.to } : null;
-        } catch { return null; }
-      })();
-      if (branchMove && from === branchMove.to && to === branchMove.from) {
-        // Undo — exit branch, clear pick, go back to arrow view
-        onDragSetMove('');
-        exitBranch();
-        return;
-      }
-      // Only allow replacement moves from the pre-branch position (same color)
-      // Block moves of the opposing color (which would be valid from the current branch fen)
-      exitBranch();
-      try {
-        const chess = new Chess(entries[displayPly].fen);
-        const move = chess.move({ from, to, promotion: 'q' });
-        if (!move) return;
-        onDragSetMove(move.san);
-        setBranch({ startPly: displayPly, fens: [entries[displayPly].fen, chess.fen()], sans: [move.san] });
-        setBranchPly(1);
-        playMoveSound(move.san.includes('x'));
-      } catch { /* invalid move — likely wrong color */ }
-      return;
-    }
-    const lastMove = inBranch && branch ? null : entries[safePly]?.lastMove;
-    if (lastMove && from === lastMove.to && to === lastMove.from) {
-      goPrev();
-      return;
-    }
-    try {
-      const chess = new Chess(currentFen);
-      const move = chess.move({ from, to, promotion: 'q' });
-      if (!move) return;
-      const newFen = chess.fen();
-      const san = move.san;
-
-      // Check if matches the arrow move (displayed move) or next main-line move
-      const nextMainPly = showArrow ? safePly : safePly + 1;
-      if (!inBranch && nextMainPly <= maxPly && entries[nextMainPly]?.san === san) {
-        if (onDragSetMove) onDragSetMove(san);
-        if (showArrow) {
-          // Show the result of the drag by creating a one-move branch
-          setBranch({ startPly: displayPly, fens: [entries[displayPly].fen, newFen], sans: [san] });
-          setBranchPly(1);
-        } else {
-          setPly(p => p + 1); emitPly(safePly + 1);
-        }
-        playMoveSound(san.includes('x'));
-        return;
-      }
-
-      // When vote modal is open and not yet in a branch, set the vote value and create a one-move branch
-      // Note: do NOT call onPlyChange here — it would update externalPly which triggers an effect
-      // that destroys the branch we just created (feedback loop via parent state)
-      if (onDragSetMove && !inBranch) {
-        onDragSetMove(san);
-        setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
-        setBranchPly(1);
-        playMoveSound(san.includes('x'));
-        return;
-      }
-
-      // Diverges — create or extend branch
-      if (inBranch && branch) {
-        // In edit mode, block extending the branch (only allow replacement via the handler above)
-        if (onDragSetMove) return;
-        setBranch({
-          ...branch,
-          fens: [...branch.fens.slice(0, branchPly + 1), newFen],
-          sans: [...branch.sans.slice(0, branchPly), san],
-        });
-        setBranchPly(branchPly + 1);
-      } else {
-        setBranch({ startPly: safePly, fens: [entries[safePly].fen, newFen], sans: [san] });
-        setBranchPly(1);
-      }
-      playMoveSound(san.includes('x'));
-    } catch { /* invalid move */ }
-  }, [currentFen, inBranch, branch, branchPly, safePly, maxPly, entries, onDragSetMove, goPrev, showArrow, displayPly]);
-
-  // Activate this board on any click, then keyboard only responds to active board
-  const activate = useCallback(() => { activeModelBoardId = instanceId; }, [instanceId]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (disableNav) return;
-      if (onDragSetMove) {
-        // Modal board: capture keyboard exclusively using capture phase + stopImmediatePropagation
-        if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); goPrev(); }
-        if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); goNext(); }
-        if (e.key === 'Home') { e.preventDefault(); e.stopImmediatePropagation(); goFirst(); }
-        if (e.key === 'End') { e.preventDefault(); e.stopImmediatePropagation(); goLast(); }
-      } else {
-        if (activeModelBoardId !== 0 && activeModelBoardId !== instanceId) return;
-        if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
-        if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
-        if (e.key === 'Home') { e.preventDefault(); goFirst(); }
-        if (e.key === 'End') { e.preventDefault(); goLast(); }
-      }
-    };
-    // Modal board uses capture phase so it fires before and blocks the main board
-    window.addEventListener('keydown', handler, !!onDragSetMove);
-    return () => {
-      window.removeEventListener('keydown', handler, !!onDragSetMove);
-      // When modal board unmounts, release active state so main board can respond to keys
-      if (onDragSetMove && activeModelBoardId === instanceId) activeModelBoardId = 0;
-    };
-  }, [instanceId, goPrev, goNext, goFirst, goLast, onDragSetMove, disableNav]);
-
-
-  return (
-    <div className="flex flex-col items-center w-full max-w-[480px]" onClick={activate}>
-      {/* Player bar — Black (top) */}
-      {(() => {
-        const isBlackTurn = currentFen.split(' ')[1] === 'b';
-        return (
-          <div className="w-full flex items-center gap-2 px-2 py-1 rounded-t-lg bg-slate-600/50">
-            <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-500 inline-block" />
-            <span className="text-xs text-slate-300">Black</span>
-            {isBlackTurn && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-          </div>
-        );
-      })()}
-      <BoardPreview fen={currentFen} lastMove={currentLastMove} arrow={currentArrow} onUserMove={disableDrag ? undefined : handleUserMove} highlightSquares={ambiguousSquares} />
-      {/* Player bar — White (bottom) */}
-      {(() => {
-        const isWhiteTurn = currentFen.split(' ')[1] === 'w';
-        return (
-          <div className="w-full flex items-center gap-2 px-2 py-1 rounded-b-lg bg-slate-600/50">
-            <span className="w-3 h-3 rounded-full bg-slate-100 border border-slate-400 inline-block" />
-            <span className="text-xs text-slate-300">White</span>
-            {isWhiteTurn && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-          </div>
-        );
-      })()}
-      {!disableNav && <div className="relative flex justify-center gap-1.5 mt-1.5 w-full">
-        {!compact && (
-          <button onClick={goFirst} disabled={disableNav} className={`flex-1 max-w-[80px] py-1.5 rounded-lg transition-colors flex items-center justify-center ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
-            <ChevronFirst className="w-5 h-5" />
-          </button>
-        )}
-        {compact ? (
-          <>
-            <button onClick={goPrev} disabled={disableNav} className={`flex-1 py-1 2xl:py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
-              <ChevronLeft className="w-4 h-4" /> Previous
-            </button>
-            <div className="flex-1 py-1 2xl:py-2.5 bg-slate-700 rounded-lg flex items-center justify-center px-2 text-center">
-              {(() => {
-                const displayPly = inBranch ? (branch!.startPly + branchPly) : safePly;
-                if (displayPly <= 0) return <span className="text-xs 2xl:text-sm text-slate-400">Start</span>;
-                return (
-                  <span className="text-xs 2xl:text-sm text-slate-100">
-                    {t('coaches.move')} {Math.ceil(displayPly / 2)} ({displayPly % 2 === 1 ? t('coaches.moveWhite') : t('coaches.moveBlack')})
-                  </span>
-                );
-              })()}
-            </div>
-            <button onClick={goNext} disabled={disableNav} className={`flex-1 py-1 2xl:py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1 text-xs 2xl:text-sm ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
-              Next <ChevronRight className="w-4 h-4" />
-            </button>
-          </>
-        ) : (
-          <>
-            <button onClick={goPrev} disabled={disableNav} className={`flex-1 max-w-[80px] py-1.5 rounded-lg transition-colors flex items-center justify-center ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button onClick={goNext} disabled={disableNav} className={`flex-1 max-w-[80px] py-1.5 rounded-lg transition-colors flex items-center justify-center ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </>
-        )}
-        {!compact && (
-          <button onClick={goLast} disabled={disableNav} className={`flex-1 max-w-[80px] py-1.5 rounded-lg transition-colors flex items-center justify-center ${disableNav ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
-            <ChevronLast className="w-5 h-5" />
-          </button>
-        )}
-      </div>}
-      {compact && targetPly !== undefined && (
-        <button
-          onClick={() => { exitBranch(); setPly(targetPly); playSoundForPly(targetPly); emitPly(targetPly); if (onDragSetMove) onDragSetMove(''); }}
-          className={`w-full mt-1 2xl:mt-1.5 py-1.5 2xl:py-2 rounded-lg transition-colors text-xs 2xl:text-sm ${safePly === targetPly && !inBranch ? 'bg-slate-700 text-slate-400 cursor-default' : 'bg-slate-700 hover:bg-slate-600 text-yellow-400'}`}
-          disabled={safePly === targetPly && !inBranch}
-        >
-          {(() => {
-            const effectivePly = inBranch && branch ? branch.startPly + branchPly : safePly;
-            const diff = targetPly - effectivePly;
-            if (diff === 0 && !inBranch) return 'Currently at highlighted move';
-            const sign = diff > 0 ? `+${diff}` : `${diff}`;
-            return `Go to highlighted move (${sign})`;
-          })()}
-        </button>
-      )}
-    </div>
-  );
-}
-
-
-
-function MovesPanel({ label, moves, disagreements, error, meta, onMetaChange, rereading, corrections, onEditSave, onReread, onMoveClick, activePly, onPreview, onClearPreview, originalMoves, voteDetails, showMoveInfo, loading, onVoteStateChange, totalMoves }: {
-  label: string;
-  moves: Move[];
-  disagreements: Map<number, { white: boolean; black: boolean }>;
-  error?: string;
-  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string };
-  onMetaChange?: (field: string, value: string) => void;
-  rereading?: boolean;
-  corrections?: Set<string>;
-  onEditSave?: (confirmed: Move[], correctionKey: string) => void;
-  onReread?: () => void;
-  onMoveClick?: (moves: Move[], ply: number) => void;
-  activePly?: number;
-  onPreview?: (moveIdx: number, color: 'white' | 'black', san: string) => void;
-  onClearPreview?: () => void;
-
-  modelDisagreements?: Set<string>;
-  originalMoves?: Move[];
-  voteDetails?: Record<string, { candidate: string; votes: number; downstreamIllegals: number; chosen: boolean; models: string[]; confidenceByModel: Record<string, string> }[]>;
-
-  showMoveInfo?: boolean;
-  loading?: boolean;
-  onVoteStateChange?: (state: { setEditValue: (san: string) => void; moveIdx: number; color: 'white' | 'black'; goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => void; clearSelection: () => void } | null) => void;
-  totalMoves?: number;
-}) {
-  const { t } = useLanguage();
-  const [editing, setEditing] = useState<{ moveIdx: number; color: 'white' | 'black'; value: string } | null>(null);
-  const [editFromVoteKey, setEditFromVoteKey] = useState<string | null>(null);
-  const [showIllegalModal, setShowIllegalModal] = useState(false);
-  const [voteInfoKey, setVoteInfoKey] = useState<string | null>(null);
-  const [, setVoteEditValue] = useState<string | null>(null);
-  // Notify parent when vote modal opens/closes (for board drag integration)
-  useEffect(() => {
-    if (!onVoteStateChange) return;
-    if (voteInfoKey) {
-      const [mn, cl] = voteInfoKey.split('-');
-      onVoteStateChange({
-        setEditValue: (san: string) => { setVoteEditValue(san); },
-        moveIdx: parseInt(mn) - 1,
-        color: cl as 'white' | 'black',
-        goToMove: (moveNumber: number, color: 'white' | 'black', ply: number) => {
-          setVoteInfoKey(`${moveNumber}-${color}`);
-          onMoveClick?.(moves, ply);
-        },
-        clearSelection: () => { setVoteInfoKey(null); },
-      });
-    } else {
-      onVoteStateChange(null);
-    }
-  }, [voteInfoKey, onVoteStateChange]);
-
-  // Auto-select first move of the game when all models are done
-  useEffect(() => {
-    if (moves && moves.length > 0 && !loading && !voteInfoKey) {
-      setVoteInfoKey('1-white');
-      onMoveClick?.(moves, 1);
-    }
-  }, [moves, loading]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const [moveInfoKey, setMoveInfoKey] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Compute legal moves at the editing position
-  const legalMoves = useMemo(() => {
-    if (!editing) return [];
-    try {
-      const chess = new Chess();
-      for (let i = 0; i < editing.moveIdx; i++) {
-        const m = moves[i];
-        if (m.white) try { chess.move(m.white); } catch { break; }
-        if (m.black) try { chess.move(m.black); } catch { break; }
-      }
-      // For the editing move's row, play white first if we're editing black
-      if (editing.color === 'black') {
-        const m = moves[editing.moveIdx];
-        if (m?.white) try { chess.move(m.white); } catch { /* */ }
-      }
-      return chess.moves().sort();
-    } catch { return []; }
-  }, [editing, moves]);
-
-  useEffect(() => {
-    if (editing && inputRef.current) inputRef.current.focus();
-  }, [editing]);
-
-
-  const handleSave = () => {
-    if (!editing || !onEditSave) return;
-    const editedMoveIdx = editing.moveIdx;
-    const editedColor = editing.color;
-    const editedValue = editing.value;
-    setEditing(null);
-    setEditFromVoteKey(null);
-
-    // Build all moves with the edit applied, clear legality for re-validation
-    const confirmed: Move[] = [];
-    for (let i = 0; i < moves.length; i++) {
-      const m = { ...moves[i] };
-      if (i === editedMoveIdx) {
-        m[editedColor] = editedValue;
-        (m as any)[`${editedColor}_confirmed`] = true;
-        delete (m as any)[`${editedColor}_reason`];
-      }
-      delete m.white_legal;
-      delete m.black_legal;
-      confirmed.push(m);
-    }
-
-    const correctionKey = `${moves[editedMoveIdx].number}-${editedColor}`;
-    onEditSave(confirmed, correctionKey);
-  };
-
-
-
-  return (
-    <div className={`bg-slate-700/50 rounded-xl overflow-hidden self-start min-w-[320px] ${loading ? 'animate-loading-pulse' : ''}`}>
-      {/* Header */}
-      <div className="px-3 py-2.5 border-b border-slate-600 flex items-center justify-center">
-        <span className="text-slate-100 font-medium text-sm">{label}</span>
-      </div>
-
-
-      {error && <p className="text-red-400 text-center py-3 text-xs px-2 break-words max-w-sm mx-auto">{error}</p>}
-
-      {/* Game metadata */}
-      {meta && (meta.white || meta.black || meta.result || meta.date || meta.event) && (
-        <div className="px-3 py-2 border-b border-slate-600/30 text-sm text-slate-300 space-y-1">
-          {meta.white && <div className="flex items-center gap-2">
-            <span className="text-slate-400 w-28 text-right shrink-0">Player (White) :</span>
-            <input value={meta.white} onChange={e => onMetaChange?.('white', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>}
-          {meta.black && <div className="flex items-center gap-2">
-            <span className="text-slate-400 w-28 text-right shrink-0">Player (Black) :</span>
-            <input value={meta.black} onChange={e => onMetaChange?.('black', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>}
-          {meta.result && <div className="flex items-center gap-2">
-            <span className="text-slate-400 w-28 text-right shrink-0">Result :</span>
-            <input value={meta.result} onChange={e => onMetaChange?.('result', e.target.value)} className="flex-1 bg-transparent text-slate-100 font-semibold border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>}
-          {meta.date && <div className="flex items-center gap-2">
-            <span className="text-slate-400 w-28 text-right shrink-0">Date :</span>
-            <input value={meta.date} onChange={e => onMetaChange?.('date', e.target.value)} placeholder="DD/MM/YYYY" className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>}
-          {meta.event && <div className="flex items-center gap-2">
-            <span className="text-slate-400 w-28 text-right shrink-0">Event :</span>
-            <input value={meta.event} onChange={e => onMetaChange?.('event', e.target.value)} className="flex-1 bg-transparent text-slate-100 border-b border-slate-600 focus:border-blue-500 outline-none px-1 py-0.5" />
-          </div>}
-        </div>
-      )}
-
-
-
-      {/* Moves table */}
-      <div className={`${loading ? 'pointer-events-none' : ''}`}>
-      {(totalMoves || moves.length) > 0 && (() => {
-        const displayTotal = totalMoves || moves.length;
-        const numCols = 2;
-        const perCol = Math.ceil(displayTotal / numCols);
-        // Pad moves array to total length for rendering empty rows
-        const paddedMoves: (Move | undefined)[] = Array.from({ length: displayTotal }, (_, i) => moves[i]);
-        const columns = Array.from({ length: numCols }, (_, c) => paddedMoves.slice(c * perCol, (c + 1) * perCol));
-        const rows = Math.max(...columns.map(col => col.length));
-        const hasTime = moves.some(m => m.white_time != null || m.black_time != null);
-
-        const renderHalf = (move: Move | undefined, idx: number, d: { white: boolean; black: boolean } | undefined, moveNumber?: number) => {
-          if (!move) return <><td className="px-3 py-1.5 text-slate-500 text-center font-mono">{moveNumber || ''}</td><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></>;
-          return <>
-            <td className="px-3 py-1.5 text-slate-500 text-center font-mono">{move.number}</td>
-            <MoveCell
-              value={toNotation(move.white, meta?.notation)}
-              legal={move.white_legal}
-              highlight={(d?.white || !!move.white_reason) && !(move as any).white_confirmed}
-              corrected={corrections?.has(`${move.number}-white`)}
-              active={activePly === idx * 2 + 1}
-              reason={move.white_reason}
-              confidence={move.white_confidence}
-              time={move.white_time}
-              hasTime={hasTime}
-              onShowBoard={onMoveClick ? () => onMoveClick(moves, idx * 2 + 1) : undefined}
-              onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-white`); setVoteEditValue(move.white || ''); onMoveClick?.(moves, idx * 2 + 1); } : undefined}
-              onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-white`) : undefined}
-            />
-            <MoveCell
-              value={toNotation(move.black || '', meta?.notation)}
-              legal={move.black_legal}
-              corrected={corrections?.has(`${move.number}-black`)}
-              highlight={(d?.black || !!move.black_reason) && !(move as any).black_confirmed}
-              active={activePly === idx * 2 + 2}
-              reason={move.black_reason}
-              confidence={move.black_confidence}
-              time={move.black_time}
-              hasTime={hasTime}
-              onShowBoard={onMoveClick && move.black ? () => onMoveClick(moves, idx * 2 + 2) : undefined}
-              onVoteInfo={voteDetails ? () => { setVoteInfoKey(`${move.number}-black`); setVoteEditValue(move.black || ''); onMoveClick?.(moves, idx * 2 + 2); } : undefined}
-              onMoveInfo={showMoveInfo ? () => setMoveInfoKey(`${move.number}-black`) : undefined}
-            />
-          </>;
-        };
-
-        return (
-          <table className="w-full text-base">
-            <thead className="bg-slate-700">
-              <tr className="border-b border-slate-600">
-                {columns.map((_, c) => (
-                  <React.Fragment key={c}>
-                    <th className={`px-3 py-2 text-slate-400 font-medium text-center w-8 ${c > 0 ? 'border-l border-slate-600' : ''}`}>#</th>
-                    <th className="px-3 py-2 text-slate-400 font-medium text-center">{hasTime ? 'White (⏱)' : 'White'}</th>
-                    <th className="px-3 py-2 text-slate-400 font-medium text-center">{hasTime ? 'Black (⏱)' : 'Black'}</th>
-                  </React.Fragment>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: rows }, (_, i) => (
-                <tr key={i} className="border-b border-slate-600/30 last:border-0">
-                  {columns.map((col, c) => {
-                    const move = col[i];
-                    const idx = c * perCol + i;
-                    const expectedNumber = idx + 1;
-                    const d = move ? disagreements.get(move.number) : undefined;
-                    if (!move && c > 0) return <React.Fragment key={c}><td className="px-3 py-1.5 border-l border-slate-600/30 text-slate-500 text-center font-mono">{expectedNumber <= displayTotal ? expectedNumber : ''}</td><td className="px-3 py-1.5" /><td className="px-3 py-1.5" /></React.Fragment>;
-                    return <React.Fragment key={c}>{renderHalf(move, idx, d, expectedNumber)}</React.Fragment>;
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        );
-      })()}
-      {rereading ? (
-        <div className="flex items-center justify-center gap-1.5 py-2.5 border-t border-slate-600/50 text-xs text-blue-400 animate-pulse">
-          <Clock className="w-3 h-3 animate-spin" />
-          <span>{t('coaches.rereading')}</span>
-        </div>
-      ) : moves.length > 0 && (<>
-        {onReread && corrections && corrections.size > 0 && (
-          <button
-            onClick={onReread}
-            className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-sm text-blue-400 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            {t('coaches.rereadFromEdit')}
-          </button>
-        )}
-      </>)}
-      </div>
-
-      {/* Edit modal */}
-      {editing && (
-        <div
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px]"
-          onClick={() => { setEditing(null); onClearPreview?.(); setEditFromVoteKey(null); }}
-        >
-          <div
-            className="bg-slate-800 rounded-xl p-4 min-w-[260px] shadow-xl border border-slate-600"
-            onClick={e => e.stopPropagation()}
-          >
-            {editFromVoteKey && (
-              <button
-                onClick={() => { setEditing(null); onClearPreview?.(); setVoteInfoKey(editFromVoteKey); setEditFromVoteKey(null); }}
-                className="text-slate-400 hover:text-slate-200 text-xs mb-2 transition-colors"
-              >
-                &larr; Back to votes
-              </button>
-            )}
-            <div className="text-slate-100 text-sm font-medium mb-2 text-center">
-              {t('coaches.move')} {moves[editing.moveIdx]?.number} · {editing.color === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
-            </div>
-            {moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason'] && (
-              <p className="text-red-400 text-sm mb-2 text-center">{moves[editing.moveIdx][`${editing.color}_reason` as 'white_reason' | 'black_reason']}</p>
-            )}
-            <MoveSuggestions legalMoves={legalMoves} color={editing.color} value={editing.value} reason={moves[editing.moveIdx]?.[`${editing.color}_reason` as 'white_reason' | 'black_reason']} onSelect={san => {
-              setEditing({ ...editing, value: san });
-              onPreview?.(editing.moveIdx, editing.color, san);
-              playMoveSound(san.includes('x'));
-            }} onDeselect={() => {
-              const orig = moves[editing.moveIdx]?.[editing.color] || '';
-              setEditing({ ...editing, value: orig });
-              onClearPreview?.();
-              playMoveSound(false);
-            }} />
-            <div className="mt-3 space-y-1.5">
-              {onMoveClick && (
-                <button
-                  onClick={() => {
-                    const ply = editing.color === 'white' ? editing.moveIdx * 2 : editing.moveIdx * 2 + 1;
-                    onMoveClick(moves, ply);
-                    onClearPreview?.();
-                    setEditing({ ...editing, value: '' });
-                  }}
-                  className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-1.5 rounded-lg transition-colors"
-                >
-                  Show position before this move
-                </button>
-              )}
-              <button
-                onClick={() => { handleSave(); onClearPreview?.(); }}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
-              >
-                {t('coaches.save')}
-              </button>
-              {originalMoves && (() => {
-                const origVal = originalMoves[editing.moveIdx]?.[editing.color] || '';
-                const currentVal = moves[editing.moveIdx]?.[editing.color] || '';
-                if (origVal === currentVal) return null;
-                return (
-                  <button
-                    onClick={() => { setEditing({ ...editing, value: origVal }); }}
-                    className="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
-                  >
-                    {t('coaches.revertToConsensus')} ({origVal})
-                  </button>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Illegal moves modal */}
-      {showIllegalModal && createPortal(
-        <div
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]"
-          onClick={() => setShowIllegalModal(false)}
-        >
-          <div
-            className="bg-slate-800 rounded-xl p-5 max-w-sm shadow-xl border border-slate-600 space-y-3"
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="text-slate-100 font-medium text-center">{t('coaches.illegalMovesTitle')}</h3>
-            <p className="text-slate-300 text-sm text-center whitespace-pre-line">{t('coaches.illegalMovesDesc')}</p>
-            <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="flex items-center gap-1 text-green-400"><span className="text-[10px]">&#10003;</span> {t('coaches.legalMove')}</span>
-              <span className="flex items-center gap-1 text-red-400"><span className="text-[10px]">&#10007;</span> {t('coaches.illegal')}</span>
-            </div>
-            <button
-              onClick={() => setShowIllegalModal(false)}
-              className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
-            >
-              OK
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Old vote modal removed — now inline in MovesPanel */}
-
-      {/* Move info modal (for individual reads) */}
-      {moveInfoKey && (() => {
-        const [numStr, colorStr] = moveInfoKey.split('-');
-        const moveIdx = parseInt(numStr) - 1;
-        const move = moves[moveIdx];
-        if (!move) return null;
-        const san = move[colorStr as 'white' | 'black'];
-        const legal = move[`${colorStr}_legal` as 'white_legal' | 'black_legal'];
-        const conf = move[`${colorStr}_confidence` as 'white_confidence' | 'black_confidence'];
-        const reason = move[`${colorStr}_reason` as 'white_reason' | 'black_reason'];
-        const isHighlighted = legal === false || !!reason;
-        return createPortal(
-          <div
-            className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]"
-            onClick={() => setMoveInfoKey(null)}
-          >
-            <div
-              className="bg-slate-800 rounded-xl p-5 min-w-[260px] max-w-sm shadow-xl border border-slate-600 space-y-3"
-              onClick={e => e.stopPropagation()}
-            >
-              <h3 className="text-slate-100 font-medium text-center">
-                {t('coaches.move')} {numStr} · {colorStr === 'white' ? t('coaches.moveWhite') : t('coaches.moveBlack')}
-              </h3>
-              <div className="text-center font-mono text-lg text-slate-100">{san || '—'}</div>
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr className="border-b border-slate-700/50">
-                    <td className="py-1.5 px-2 text-slate-400">Legality</td>
-                    <td className="py-1.5 px-2 text-right">
-                      {legal === true ? <span className="text-green-400">Legal</span> : legal === false ? <span className="text-red-400">Illegal</span> : <span className="text-slate-500">—</span>}
-                    </td>
-                  </tr>
-                  <tr className="border-b border-slate-700/50">
-                    <td className="py-1.5 px-2 text-slate-400">Confidence</td>
-                    <td className={`py-1.5 px-2 text-right ${conf === 'high' ? 'text-emerald-400' : conf === 'medium' ? 'text-yellow-400' : conf === 'low' ? 'text-red-400' : 'text-slate-500'}`}>
-                      {conf || '—'}
-                    </td>
-                  </tr>
-                  {isHighlighted && (
-                    <tr>
-                      <td className="py-1.5 px-2 text-slate-400">Highlighted</td>
-                      <td className="py-1.5 px-2 text-right text-yellow-400 text-xs">
-                        {legal === false ? 'Illegal move' : reason || ''}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>,
-          document.body
-        );
-      })()}
-    </div>
-  );
-}
-
-function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegalClick }: {
-  moves: Move[];
-  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string };
-  hasIllegalMoves?: boolean;
-  onIllegalClick?: () => void;
-}) {
-  const { t } = useLanguage();
-  const [copied, setCopied] = useState(false);
-  const handleClick = async () => {
-    if (hasIllegalMoves) { onIllegalClick?.(); return; }
-    const normalized = normalizeMoves(moves);
-    const moveText = normalized.map(m =>
-      `${m.number}. ${m.white}${m.black ? ' ' + m.black : ''}`
-    ).join(' ');
-    const pgn = `[White "${meta?.white || '?'}"]\n[Black "${meta?.black || '?'}"]\n[Result "${meta?.result || '*'}"]\n[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n\n${moveText} ${meta?.result || '*'}`;
-    if (copied) {
-      // Second tap: open Chess.com
-      window.open(`https://www.chess.com/analysis?pgn=${encodeURIComponent(pgn)}`, '_blank');
-      setCopied(false);
-      return;
-    }
-    // First tap: copy PGN to clipboard
-    try { await navigator.clipboard.writeText(pgn); } catch { /* fallback */ }
-    setCopied(true);
-  };
-  return (
-    <button
-      onClick={handleClick}
-      className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-sm text-slate-200 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
-    >
-      {copied ? (
-        <><ExternalLink className="w-3.5 h-3.5 text-emerald-400" /> {t('coaches.chesscom.pgnCopied')}</>
-      ) : (
-        <><ExternalLink className="w-3.5 h-3.5" /> {t('coaches.chesscom.copyPaste')}</>
-      )}
-    </button>
-  );
-}
-
-
-
-function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalClick }: {
-  moves: Move[];
-  meta?: { white?: string; black?: string; result?: string; date?: string; event?: string; notation?: string };
-  fileName?: string | null;
-  hasIllegalMoves?: boolean;
-  onIllegalClick?: () => void;
-}) {
-  const { t } = useLanguage();
-  const [open, setOpen] = useState(false);
-  const [usernameInput, setUsernameInput] = useState('');
-  const [needsUsername, setNeedsUsername] = useState(false);
-  const [studies, setStudies] = useState<{ id: string; name: string }[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [success, setSuccess] = useState<{ studyId: string; studyName: string } | null>(null);
-  const [error, setError] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const fetchStudies = useCallback(async (username: string) => {
-    setLoading(true);
-    setError('');
-    setStudies(null);
-    try {
-      const res = await fetch(`/api/coaches/lichess/studies?username=${encodeURIComponent(username)}`, { credentials: 'include' });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed');
-      setStudies(json.studies);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleOpen = () => {
-    if (hasIllegalMoves) { onIllegalClick?.(); return; }
-    setSuccess(null);
-    setError('');
-    const prefs = getCoachesPrefs();
-    if (prefs.lichess_username) {
-      setOpen(true);
-      setNeedsUsername(false);
-      fetchStudies(prefs.lichess_username);
-    } else {
-      setOpen(true);
-      setNeedsUsername(true);
-      setUsernameInput('');
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  };
-
-  const handleSaveUsername = () => {
-    const trimmed = usernameInput.trim();
-    if (!trimmed) return;
-    saveCoachesPrefs({ lichess_username: trimmed });
-    setNeedsUsername(false);
-    fetchStudies(trimmed);
-  };
-
-  const handleChangeUser = () => {
-    setNeedsUsername(true);
-    setStudies(null);
-    setUsernameInput(getCoachesPrefs().lichess_username || '');
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
-
-  const handleSelectStudy = async (study: { id: string; name: string }) => {
-    setImporting(true);
-    setError('');
-    const pgn = buildPgn(moves, meta);
-    const chapterName = fileName?.replace(/\.[^.]+$/, '') || [meta?.white, meta?.black].filter(Boolean).join(' vs ') || 'Scoresheet';
-    try {
-      const res = await fetch(`/api/coaches/lichess/studies/${study.id}/import-pgn`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ pgn, name: chapterName }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Import failed');
-      setSuccess({ studyId: study.id, studyName: study.name });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setStudies(null);
-    setError('');
-    setNeedsUsername(false);
-    setSuccess(null);
-    setImporting(false);
-  };
-
-  return (
-    <>
-      <button
-        onClick={handleOpen}
-        className="w-full px-2 py-2.5 border-t border-slate-600/50 text-center text-sm text-slate-200 hover:bg-slate-600/40 transition-colors flex items-center justify-center gap-1.5"
-      >
-        <ExternalLink className="w-3.5 h-3.5" /> {t('coaches.lichess.sendToStudy')}
-      </button>
-
-      {open && (
-        <div
-          className="fixed inset-0 md:left-56 2xl:left-64 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]"
-          onClick={handleClose}
-        >
-          <div
-            className="bg-slate-800 rounded-xl p-4 min-w-[260px] max-w-[360px] shadow-xl border border-slate-600"
-            onClick={e => e.stopPropagation()}
-          >
-            {success ? (
-              <div className="text-center py-4">
-                <Check className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                <div className="text-slate-200 text-sm font-medium mb-1">{t('coaches.lichess.imported')}</div>
-                <div className="text-slate-400 text-xs mb-3">{success.studyName}</div>
-                <a
-                  href={`https://lichess.org/study/${success.studyId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 w-full mt-2 bg-blue-600 hover:bg-blue-500 text-white text-xs py-2 rounded-lg transition-colors"
-                >
-                  {t('coaches.lichess.openStudy')} <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            ) : needsUsername ? (
-              <>
-                <div className="text-slate-200 text-sm font-medium mb-1">{t('coaches.lichess.usernamePrompt')}</div>
-                <div className="text-slate-500 text-xs mb-3">{t('coaches.lichess.usernameHint')}</div>
-                <input
-                  ref={inputRef}
-                  value={usernameInput}
-                  onChange={e => setUsernameInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveUsername()}
-                  placeholder="username"
-                  className="w-full bg-slate-700 text-slate-100 text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
-                />
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={handleSaveUsername}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
-                  >
-                    {t('coaches.lichess.save')}
-                  </button>
-                  <button
-                    onClick={handleClose}
-                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
-                  >
-                    {t('coaches.lichess.cancel')}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-slate-200 text-sm font-medium">{t('coaches.lichess.selectStudy')}</div>
-                  <button
-                    onClick={handleChangeUser}
-                    className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    {getCoachesPrefs().lichess_username} · {t('coaches.lichess.changeUser')}
-                  </button>
-                </div>
-                {loading && (
-                  <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-6">
-                    <Clock className="w-3.5 h-3.5 animate-spin" />
-                    <span className="text-xs">{t('coaches.lichess.loading')}</span>
-                  </div>
-                )}
-                {importing && (
-                  <div className="flex items-center justify-center gap-2 text-blue-400 animate-pulse py-6">
-                    <Clock className="w-3.5 h-3.5 animate-spin" />
-                    <span className="text-xs">{t('coaches.lichess.importing')}</span>
-                  </div>
-                )}
-                {error && <p className="text-red-400 text-center py-3 text-xs">{error}</p>}
-                {!importing && studies && studies.length === 0 && (
-                  <p className="text-slate-500 text-center py-6 text-xs">{t('coaches.lichess.noStudies')}</p>
-                )}
-                {!importing && studies && studies.length > 0 && (
-                  <div className="max-h-[300px] overflow-y-auto space-y-2">
-                    {studies.map(s => (
-                      <button
-                        key={s.id}
-                        onClick={() => handleSelectStudy(s)}
-                        disabled={importing}
-                        className="w-full text-center px-3 py-2 rounded-lg text-xs text-slate-200 bg-slate-700 hover:bg-slate-600 hover:text-white transition-colors disabled:opacity-50"
-                      >
-                        {s.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <button
-                  onClick={handleClose}
-                  className="w-full mt-3 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 rounded-lg transition-colors"
-                >
-                  {t('coaches.lichess.cancel')}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-const PIECE_FILTERS = [
-  { key: 'K', label: 'K', fen: (w: boolean) => w ? 'K' : 'k' },
-  { key: 'Q', label: 'Q', fen: (w: boolean) => w ? 'Q' : 'q' },
-  { key: 'R', label: 'R', fen: (w: boolean) => w ? 'R' : 'r' },
-  { key: 'B', label: 'B', fen: (w: boolean) => w ? 'B' : 'b' },
-  { key: 'N', label: 'N', fen: (w: boolean) => w ? 'N' : 'n' },
-  { key: 'P', label: '', fen: (w: boolean) => w ? 'P' : 'p' },
-  { key: 'O', label: 'O-O', fen: (w: boolean) => w ? 'K' : 'k' },
-];
-
-function getPieceKey(san: string): string {
-  if (san.startsWith('O-O')) return 'O';
-  const ch = san[0];
-  if (ch >= 'A' && ch <= 'Z' && 'KQRBN'.includes(ch)) return ch;
-  return 'P';
-}
-
-function MoveSuggestions({ legalMoves, color, value, reason, onSelect, onDeselect }: {
-  legalMoves: string[];
-  color: 'white' | 'black';
-  value: string;
-  reason?: string;
-  onSelect: (san: string) => void;
-  onDeselect?: () => void;
-}) {
-  const { t } = useLanguage();
-  // Pre-select piece filter based on current value
-  const [pieceFilter, setPieceFilter] = useState<string | null>(() => {
-    if (!value) return null;
-    return getPieceKey(value);
-  });
-  // Sync piece filter when value changes externally (e.g., drag on board)
-  useEffect(() => {
-    if (value) setPieceFilter(getPieceKey(value));
-  }, [value]);
-  const isWhite = color === 'white';
-
-  // Extract suggested moves from ambiguous reason (e.g., "Ambiguous (N5h4/N3h4) → N5h4")
-  const suggestedMoves = useMemo(() => {
-    if (!reason) return [];
-    const match = reason.match(/Ambiguous \((.+)\)/);
-    if (!match) return [];
-    return match[1].split('/').map(s => s.trim()).filter(s => legalMoves.includes(s));
-  }, [reason, legalMoves]);
-
-  const suggestedPieceKey = suggestedMoves.length > 0 ? getPieceKey(suggestedMoves[0]) : null;
-
-  // Which pieces have legal moves?
-  const availablePieces = useMemo(() => {
-    const set = new Set<string>();
-    for (const san of legalMoves) set.add(getPieceKey(san));
-    return set;
-  }, [legalMoves]);
-
-  const filtered = pieceFilter ? legalMoves.filter(san => getPieceKey(san) === pieceFilter) : [];
-  // When the selected piece matches the ambiguous piece, separate suggested from others
-  const showSuggested = pieceFilter === suggestedPieceKey && suggestedMoves.length > 0;
-  const suggestedFiltered = showSuggested ? suggestedMoves : [];
-  const otherFiltered = showSuggested ? filtered.filter(san => !suggestedMoves.includes(san)) : filtered;
-
-  if (legalMoves.length === 0) return null;
-
-  return (
-    <div className="mt-2 space-y-1.5">
-      {/* Piece filter row */}
-      {!pieceFilter && <p className="text-slate-500 text-[10px] text-center">{t('coaches.selectPiece')}</p>}
-      <div className="flex justify-center gap-1">
-        {PIECE_FILTERS.filter(p => availablePieces.has(p.key)).map(p => (
-          <button
-            key={p.key}
-            onClick={() => setPieceFilter(pieceFilter === p.key ? null : p.key)}
-            className={`flex items-center justify-center w-8 h-8 rounded transition-colors ${
-              pieceFilter === p.key ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'
-            }`}
-          >
-            {p.key === 'O' ? (
-              <span className="text-[9px] text-slate-300 font-mono">O-O</span>
-            ) : (
-              <img src={pieceImageUrl(p.fen(isWhite))} alt={p.label} className="w-5 h-5" draggable={false} />
-            )}
-          </button>
-        ))}
-      </div>
-      {/* Suggested moves (from ambiguous diagnosis) */}
-      {suggestedFiltered.length > 0 && (
-        <div className="flex flex-wrap gap-1 justify-center">
-          {suggestedFiltered.map(san => {
-            const isSelected = san === value;
-            return (
-              <button
-                key={san}
-                onClick={() => isSelected ? onDeselect?.() : onSelect(san)}
-                className={`px-2 py-1 rounded text-xs font-mono transition-colors border ${
-                  isSelected ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-700 text-amber-300 hover:bg-slate-600 border-amber-500/40'
-                }`}
-              >
-                {san}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      {/* Other filtered moves */}
-      {otherFiltered.length > 0 && (
-        <div className="flex flex-wrap gap-1 justify-center max-w-[320px] mx-auto">
-          {otherFiltered.map(san => {
-            const isSelected = san === value;
-            return (
-              <button
-                key={san}
-                onClick={() => isSelected ? onDeselect?.() : onSelect(san)}
-                className={`px-2 py-1 rounded text-xs font-mono transition-colors ${
-                  isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                {san}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MoveCell({ value, legal, highlight, corrected, active, confidence, time, hasTime, onShowBoard, onVoteInfo, onMoveInfo }: {
-  value: string;
-  legal?: boolean;
-  highlight?: boolean;
-  corrected?: boolean;
-  active?: boolean;
-  reason?: string;
-  confidence?: 'high' | 'medium' | 'low';
-  time?: number;
-  hasTime?: boolean;
-  onShowBoard?: () => void;
-  onVoteInfo?: () => void;
-  onMoveInfo?: () => void;
-}) {
-  const isLowConfidence = confidence === 'low';
-  const isIllegal = legal === false;
-  const bg = corrected ? 'bg-green-900/50 text-green-200' : (highlight || isIllegal || isLowConfidence) ? 'bg-yellow-500/50 text-yellow-100' : 'text-slate-100';
-  const border = active ? 'outline outline-3 outline-blue-400 -outline-offset-1 animate-pulse' : '';
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onMoveInfo) { onMoveInfo(); return; }
-    if (onVoteInfo) { onVoteInfo(); return; }
-    if (onShowBoard) onShowBoard();
-  };
-
-  return (
-    <td
-      className={`px-3 py-1.5 font-mono text-center cursor-pointer hover:bg-slate-600/50 ${bg} ${border}`}
-      onClick={handleClick}
-    >
-      {hasTime ? (
-        <span className="inline-flex items-center w-full">
-          <span className="flex-1 text-center">{value}</span>
-          <span className="flex-1 text-center">{time != null ? `(${time})` : ''}</span>
-        </span>
-      ) : (
-        <span className="inline-flex items-center justify-center gap-1 w-full">
-          {value}
-        </span>
-      )}
-    </td>
   );
 }

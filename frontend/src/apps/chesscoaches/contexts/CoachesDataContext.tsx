@@ -42,6 +42,8 @@ export interface ScoresheetMove {
   black_confidence?: 'high' | 'medium' | 'low';
   white_time?: number;
   black_time?: number;
+  white_confirmed?: boolean;
+  black_confirmed?: boolean;
 }
 
 export interface ScoresheetResult {
