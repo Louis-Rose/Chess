@@ -1,8 +1,7 @@
 // Student home page — packs, lessons, coach info (inside shared layout)
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Clock, Send, MessageCircle } from 'lucide-react';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { Clock } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 
