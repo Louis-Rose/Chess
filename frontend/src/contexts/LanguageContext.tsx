@@ -275,6 +275,18 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.admin.lastActive': 'Last Active',
     'coaches.admin.sessions': 'Sessions',
 
+    // Role selection
+    'coaches.roleSelection.welcome': 'Welcome!',
+    'coaches.roleSelection.question': 'How will you use LUMNA?',
+    'coaches.roleSelection.coach': "I'm a coach",
+    'coaches.roleSelection.coachDesc': 'Manage students & lessons',
+    'coaches.roleSelection.student': "I'm a student",
+    'coaches.roleSelection.studentDesc': 'Join my coach on LUMNA',
+    'coaches.roleSelection.enterInvite': 'Enter the invite link or code from your coach:',
+    'coaches.roleSelection.invitePlaceholder': 'Paste invite link or code...',
+    'coaches.roleSelection.join': 'Join',
+    'coaches.roleSelection.back': 'Back',
+
     // Common
     'common.loading': 'Loading...',
     'common.error': 'Error',
@@ -544,6 +556,18 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.admin.joined': 'Inscrit',
     'coaches.admin.lastActive': 'Dernière activité',
     'coaches.admin.sessions': 'Sessions',
+
+    // Role selection
+    'coaches.roleSelection.welcome': 'Bienvenue !',
+    'coaches.roleSelection.question': 'Comment allez-vous utiliser LUMNA ?',
+    'coaches.roleSelection.coach': 'Je suis entra\u00EEneur',
+    'coaches.roleSelection.coachDesc': 'Gérer élèves & cours',
+    'coaches.roleSelection.student': 'Je suis élève',
+    'coaches.roleSelection.studentDesc': 'Rejoindre mon entra\u00EEneur',
+    'coaches.roleSelection.enterInvite': "Entrez le lien ou code d'invitation de votre entra\u00EEneur :",
+    'coaches.roleSelection.invitePlaceholder': "Collez le lien ou code d'invitation...",
+    'coaches.roleSelection.join': 'Rejoindre',
+    'coaches.roleSelection.back': 'Retour',
 
     // Common
     'common.loading': 'Chargement...',

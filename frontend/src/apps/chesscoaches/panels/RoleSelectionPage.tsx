@@ -77,12 +77,12 @@ export function RoleSelectionPage() {
   };
 
   return (
-    <div className="h-dvh bg-slate-800 font-sans text-slate-100 flex flex-col items-center justify-center px-4">
+    <div className="h-dvh bg-slate-800 font-sans text-slate-100 flex flex-col items-center px-4 pt-12 md:pt-20">
       <div className="max-w-md w-full space-y-8 text-center">
         <div>
           <LumnaBrand />
           <p className="text-slate-400 text-sm mt-4">
-            {t('coaches.roleSelection.welcome') || `Welcome, ${user?.name?.split(' ')[0] || ''}!`}
+            {t('coaches.roleSelection.welcome')}
           </p>
         </div>
 
