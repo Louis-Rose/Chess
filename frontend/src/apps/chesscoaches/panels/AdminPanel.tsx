@@ -1014,8 +1014,7 @@ export function AdminPanel() {
         {/* Debug Tools */}
         <div className="rounded-lg border border-slate-700 p-4">
           <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3">Debug Tools</h3>
-          <ResetScoresheetSuccess />
-          <ResetFirstTimeLogin />
+          <ResetFirstTimeUser />
         </div>
 
       </div>
@@ -1053,49 +1052,23 @@ function CodelinesBadge() {
   );
 }
 
-function ResetScoresheetSuccess() {
-  const [success, setSuccess] = useState(getCoachesPrefs().scoresheet_success);
+function ResetFirstTimeUser() {
+  const { logout } = useAuth();
   return (
-    <label className="flex items-center justify-between cursor-pointer">
+    <label className="flex items-center justify-between">
       <div>
-        <span className="text-sm text-slate-200">Scoresheet first-time user</span>
-        <p className="text-xs text-slate-500">
-          {success ? 'Has completed a scoresheet — sees upload choice' : 'First-timer — auto-loads sample on next visit'}
-        </p>
-      </div>
-      <button
-        onClick={() => {
-          const next = !success;
-          saveCoachesPrefs({ scoresheet_success: next });
-          setSuccess(next);
-        }}
-        className={`relative w-10 h-5 rounded-full transition-colors ${success ? 'bg-emerald-600' : 'bg-slate-600'}`}
-      >
-        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${success ? 'translate-x-5' : ''}`} />
-      </button>
-    </label>
-  );
-}
-
-function ResetFirstTimeLogin() {
-  const [done, setDone] = useState(false);
-  return (
-    <label className="flex items-center justify-between cursor-pointer mt-3">
-      <div>
-        <span className="text-sm text-slate-200">Reset to first-time login</span>
-        <p className="text-xs text-slate-500">
-          {done ? 'Role reset — log out and back in to see role selection' : 'Next login will show coach/student choice screen'}
-        </p>
+        <span className="text-sm text-slate-200">Reset to first-time user</span>
+        <p className="text-xs text-slate-500">Resets scoresheet + role, then logs out</p>
       </div>
       <button
         onClick={async () => {
-          if (done) return;
+          saveCoachesPrefs({ scoresheet_success: false });
           await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
-          setDone(true);
+          await logout();
         }}
-        className={`px-3 py-1 text-xs rounded-lg transition-colors ${done ? 'bg-emerald-600 text-white' : 'bg-slate-600 hover:bg-slate-500 text-slate-300'}`}
+        className="px-3 py-1 text-xs rounded-lg bg-slate-600 hover:bg-slate-500 text-slate-300 transition-colors"
       >
-        {done ? 'Done' : 'Reset'}
+        Reset & log out
       </button>
     </label>
   );
