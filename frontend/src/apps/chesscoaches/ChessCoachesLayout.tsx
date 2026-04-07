@@ -10,6 +10,8 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { LumnaBrand, LumnaBrandSubtitle } from './components/LumnaBrand';
 import { LanguageToggle } from './components/LanguageToggle';
+import { RotateCcw } from 'lucide-react';
+import { saveCoachesPrefs } from './contexts/CoachesDataContext';
 
 export interface NavItem {
   path: string;
@@ -113,6 +115,20 @@ function CoachesNavSidebar() {
                   <LogOut className="w-4 h-4" />
                   {t('chess.logout')}
                 </button>
+                {user.is_admin && (
+                  <button
+                    onClick={async () => {
+                      setShowPlayerMenu(false);
+                      saveCoachesPrefs({ scoresheet_success: false });
+                      await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
+                      await logout();
+                    }}
+                    className="w-full px-3 py-2.5 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-xs transition-colors border-t border-slate-700"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Reset &amp; log out
+                  </button>
+                )}
               </div>
             )}
           </div>
