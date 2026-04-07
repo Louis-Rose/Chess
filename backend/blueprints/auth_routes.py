@@ -362,6 +362,28 @@ def activity_heartbeat():
     return jsonify({'success': True})
 
 
+# ============= ROLE SELECTION =============
+
+@auth_bp.route('/api/auth/set-role', methods=['POST'])
+@login_required
+def set_role():
+    """Set the user's role after first login."""
+    data = request.get_json()
+    role = data.get('role')
+    if role not in ('coach', 'student'):
+        return jsonify({'error': 'Invalid role'}), 400
+
+    with get_db() as conn:
+        # Only allow setting role if it's currently NULL (first time)
+        row = conn.execute('SELECT role FROM users WHERE id = ?', (request.user_id,)).fetchone()
+        if row and row['role'] is not None:
+            return jsonify({'error': 'Role already set'}), 400
+
+        conn.execute("UPDATE users SET role = ? WHERE id = ?", (role, request.user_id))
+
+    return jsonify({'success': True, 'role': role})
+
+
 # ============= INVITE ROUTES =============
 
 @auth_bp.route('/api/invite/<token>', methods=['GET'])

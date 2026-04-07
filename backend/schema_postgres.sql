@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     name TEXT,
     picture TEXT,
-    role TEXT DEFAULT 'coach',  -- 'coach' or 'student'
+    role TEXT,  -- NULL until first login choice, then 'coach' or 'student'
     is_admin INTEGER DEFAULT 0,
     sign_in_count INTEGER DEFAULT 0,
     session_count INTEGER DEFAULT 0,

@@ -79,10 +79,10 @@ def get_or_create_user(google_user: dict, registered_app: str = None) -> int:
             ''', (google_user['email'], google_user['name'], google_user['picture'], row['id']))
             return row['id']
 
-        # Create new user with sign_in_count = 1
+        # Create new user with sign_in_count = 1, role NULL until they choose
         cursor = conn.execute('''
-            INSERT INTO users (google_id, email, name, picture, sign_in_count, registered_app)
-            VALUES (?, ?, ?, ?, 1, ?)
+            INSERT INTO users (google_id, email, name, picture, sign_in_count, registered_app, role)
+            VALUES (?, ?, ?, ?, 1, ?, NULL)
             RETURNING id
         ''', (google_user['google_id'], google_user['email'], google_user['name'], google_user['picture'], registered_app))
         user_id = cursor.fetchone()['id']

@@ -14,6 +14,7 @@ import { PaymentsPanel } from './panels/PaymentsPanel';
 import { ProfilePage } from './panels/ProfilePage';
 import { StudentDashboard } from './panels/StudentDashboard';
 import { InvitePage } from './panels/InvitePage';
+import { RoleSelectionPage } from './panels/RoleSelectionPage';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AdminPanel = lazy(() =>
@@ -28,6 +29,16 @@ export function ChessCoachesApp() {
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) link.href = '/favicon.svg';
   }, []);
+
+  // New user — needs to pick role
+  if (user && user.role === null) {
+    return (
+      <Routes>
+        <Route path="invite/:token" element={<InvitePage />} />
+        <Route path="*" element={<RoleSelectionPage />} />
+      </Routes>
+    );
+  }
 
   // Student role → student dashboard (no coach tools)
   if (user?.role === 'student') {

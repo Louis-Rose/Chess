@@ -18,13 +18,14 @@ interface User {
   email: string;
   name: string;
   picture: string;
-  role: 'coach' | 'student';
+  role: 'coach' | 'student' | null;
   is_admin: boolean;
   _t?: number;
 }
 
 interface AuthContextType {
   user: User | null;
+  setUser: (user: User | null) => void;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (credential: string) => Promise<void>;
@@ -324,6 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user,
+      setUser,
       isLoading,
       isAuthenticated: !!user,
       login,
