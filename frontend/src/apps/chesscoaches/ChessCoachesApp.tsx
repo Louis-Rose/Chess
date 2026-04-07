@@ -13,7 +13,7 @@ import { StudentDetailPage } from './panels/StudentDetailPage';
 import { PaymentsPanel } from './panels/PaymentsPanel';
 import { ProfilePage } from './panels/ProfilePage';
 import { MessagesPanel } from './panels/MessagesPanel';
-import { StudentDashboard } from './panels/StudentDashboard';
+import { StudentHomePage } from './panels/StudentHomePage';
 import { InvitePage } from './panels/InvitePage';
 import { RoleSelectionPage } from './panels/RoleSelectionPage';
 import { useAuth } from '../../contexts/AuthContext';
@@ -41,35 +41,30 @@ export function ChessCoachesApp() {
     );
   }
 
-  // Student role → student dashboard (no coach tools)
-  if (user?.role === 'student') {
-    return (
-      <Routes>
-        <Route index element={<StudentDashboard />} />
-        <Route path="invite/:token" element={<InvitePage />} />
-        <Route path="*" element={<StudentDashboard />} />
-      </Routes>
-    );
-  }
+  const isStudent = user?.role === 'student';
 
   return (
     <Routes>
       {/* Invite page — accessible without auth (has its own layout) */}
       <Route path="invite/:token" element={<InvitePage />} />
 
-      {/* Coach routes */}
+      {/* Shared layout for both coaches and students */}
       <Route element={<ChessCoachesLayout />}>
-        <Route index element={<ScoresheetPanel />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="students" element={<StudentsPanel />} />
-        <Route path="students/:studentId" element={<StudentDetailPage />} />
-        <Route path="payments" element={<PaymentsPanel />} />
+        <Route index element={isStudent ? <StudentHomePage /> : <ScoresheetPanel />} />
         <Route path="messages" element={<MessagesPanel />} />
-        <Route path="scoresheets" element={<ScoresheetReadPage />} />
-        <Route path="mistakes" element={<MistakeFinderPanel />} />
-        <Route path="diagram" element={<DiagramToFenPanel />} />
-        <Route path="about" element={<AboutPanel />} />
-        <Route path="admin" element={<Suspense><AdminPanel /></Suspense>} />
+
+        {/* Coach-only routes */}
+        {!isStudent && <>
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="students" element={<StudentsPanel />} />
+          <Route path="students/:studentId" element={<StudentDetailPage />} />
+          <Route path="payments" element={<PaymentsPanel />} />
+          <Route path="scoresheets" element={<ScoresheetReadPage />} />
+          <Route path="mistakes" element={<MistakeFinderPanel />} />
+          <Route path="diagram" element={<DiagramToFenPanel />} />
+          <Route path="about" element={<AboutPanel />} />
+          <Route path="admin" element={<Suspense><AdminPanel /></Suspense>} />
+        </>}
       </Route>
     </Routes>
   );
