@@ -170,12 +170,29 @@ CREATE TABLE IF NOT EXISTS messages (
     sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
+    invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL,
     read_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(sender_id, receiver_id, created_at);
+
+-- Invoices (coach sends to student, paid via Revolut link)
+CREATE TABLE IF NOT EXISTS invoices (
+    id SERIAL PRIMARY KEY,
+    coach_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+    message_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+    amount REAL NOT NULL,
+    currency TEXT NOT NULL,
+    description TEXT,
+    status TEXT DEFAULT 'pending',  -- 'pending' or 'paid'
+    paid_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_invoices_student ON invoices(student_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_coach ON invoices(coach_user_id);
 
 -- Coach profile (one per coach)
 CREATE TABLE IF NOT EXISTS coach_profiles (
@@ -188,6 +205,7 @@ CREATE TABLE IF NOT EXISTS coach_profiles (
     lesson_duration INTEGER DEFAULT 60,
     chesscom_username TEXT,
     lichess_username TEXT,
+    revolut_username TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

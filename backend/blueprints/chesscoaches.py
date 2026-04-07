@@ -1405,6 +1405,124 @@ def create_student_invite(student_id):
     return jsonify({'token': token}), 201
 
 
+# ── Invoices ──
+
+@coaches_bp.route('/api/coaches/invoices', methods=['POST'])
+@login_required
+def create_invoice():
+    """Create an invoice and send it as a chat message to the student."""
+    data = request.get_json()
+    student_id = data.get('student_id')
+    amount = data.get('amount')
+    currency = data.get('currency')
+    description = (data.get('description') or '').strip()
+
+    if not student_id or not amount or not currency:
+        return jsonify({'error': 'student_id, amount, and currency are required'}), 400
+    if amount <= 0:
+        return jsonify({'error': 'Amount must be positive'}), 400
+
+    with get_db() as conn:
+        # Verify coach owns this student and student has a linked account
+        student = conn.execute(
+            'SELECT id, linked_user_id, student_name FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            (student_id, request.user_id)
+        ).fetchone()
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        if not student['linked_user_id']:
+            return jsonify({'error': 'Student has no account — invite them first'}), 400
+
+        # Create the invoice
+        cursor = conn.execute(
+            '''INSERT INTO invoices (coach_user_id, student_id, amount, currency, description)
+               VALUES (?, ?, ?, ?, ?) RETURNING id''',
+            (request.user_id, student_id, amount, currency, description or None)
+        )
+        invoice_id = cursor.fetchone()['id']
+
+        # Send as a chat message
+        msg_content = f"Invoice: {currency} {amount:.2f}" + (f" — {description}" if description else "")
+        cursor = conn.execute(
+            '''INSERT INTO messages (sender_id, receiver_id, content, invoice_id)
+               VALUES (?, ?, ?, ?) RETURNING id, created_at''',
+            (request.user_id, student['linked_user_id'], msg_content, invoice_id)
+        )
+        msg = cursor.fetchone()
+
+        # Link message back to invoice
+        conn.execute('UPDATE invoices SET message_id = ? WHERE id = ?', (msg['id'], invoice_id))
+
+    return jsonify({
+        'invoice_id': invoice_id,
+        'message': {
+            'id': msg['id'],
+            'sender_id': request.user_id,
+            'content': msg_content,
+            'invoice_id': invoice_id,
+            'created_at': msg['created_at'].isoformat(),
+        }
+    }), 201
+
+
+@coaches_bp.route('/api/invoices/<int:invoice_id>', methods=['GET'])
+@login_required
+def get_invoice(invoice_id):
+    """Get invoice details (accessible by coach or linked student)."""
+    with get_db() as conn:
+        invoice = conn.execute('''
+            SELECT i.*, cs.student_name, cs.linked_user_id,
+                   cp.revolut_username, cp.currency AS coach_currency
+            FROM invoices i
+            JOIN coach_students cs ON i.student_id = cs.id
+            LEFT JOIN coach_profiles cp ON i.coach_user_id = cp.user_id
+            WHERE i.id = ?
+        ''', (invoice_id,)).fetchone()
+
+        if not invoice:
+            return jsonify({'error': 'Invoice not found'}), 404
+        # Only coach or linked student can view
+        if request.user_id != invoice['coach_user_id'] and request.user_id != invoice['linked_user_id']:
+            return jsonify({'error': 'Not authorized'}), 403
+
+    revolut_link = None
+    if invoice['revolut_username']:
+        revolut_link = f"https://revolut.me/{invoice['revolut_username']}/{invoice['amount']:.2f}{invoice['currency']}"
+
+    return jsonify({
+        'id': invoice['id'],
+        'amount': invoice['amount'],
+        'currency': invoice['currency'],
+        'description': invoice['description'],
+        'status': invoice['status'],
+        'revolut_link': revolut_link,
+        'student_name': invoice['student_name'],
+        'created_at': invoice['created_at'].isoformat() if invoice['created_at'] else None,
+        'paid_at': invoice['paid_at'].isoformat() if invoice['paid_at'] else None,
+    })
+
+
+@coaches_bp.route('/api/invoices/<int:invoice_id>/mark-paid', methods=['PUT'])
+@login_required
+def mark_invoice_paid(invoice_id):
+    """Coach marks an invoice as paid."""
+    with get_db() as conn:
+        invoice = conn.execute(
+            'SELECT id, coach_user_id FROM invoices WHERE id = ?', (invoice_id,)
+        ).fetchone()
+        if not invoice:
+            return jsonify({'error': 'Invoice not found'}), 404
+        if invoice['coach_user_id'] != request.user_id:
+            return jsonify({'error': 'Not authorized'}), 403
+
+        conn.execute(
+            "UPDATE invoices SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (invoice_id,)
+        )
+
+    return jsonify({'success': True})
+
+
 # ── Coach Packs Management ──
 
 @coaches_bp.route('/api/coaches/packs', methods=['GET'])
@@ -1615,13 +1733,14 @@ def update_profile():
     lesson_duration = data.get('lesson_duration') or 60
     chesscom_username = (data.get('chesscom_username') or '').strip() or None
     lichess_username = (data.get('lichess_username') or '').strip() or None
+    revolut_username = (data.get('revolut_username') or '').strip() or None
     bundles = data.get('bundles', [])
 
     with get_db() as conn:
         # Upsert profile
         conn.execute('''
-            INSERT INTO coach_profiles (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO coach_profiles (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username, revolut_username, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT (user_id) DO UPDATE SET
                 display_name = EXCLUDED.display_name,
                 city = EXCLUDED.city,
@@ -1631,8 +1750,9 @@ def update_profile():
                 lesson_duration = EXCLUDED.lesson_duration,
                 chesscom_username = EXCLUDED.chesscom_username,
                 lichess_username = EXCLUDED.lichess_username,
+                revolut_username = EXCLUDED.revolut_username,
                 updated_at = CURRENT_TIMESTAMP
-        ''', (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username))
+        ''', (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username, revolut_username))
 
         # Replace bundle offers
         conn.execute('DELETE FROM coach_bundle_offers WHERE user_id = ?', (user_id,))

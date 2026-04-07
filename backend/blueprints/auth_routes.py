@@ -501,7 +501,7 @@ def get_conversations():
         if user_role == 'coach':
             # Get linked students (with or without messages)
             contacts = conn.execute('''
-                SELECT u.id, u.name, u.picture, cs.student_name,
+                SELECT u.id, u.name, u.picture, cs.id AS student_id, cs.student_name,
                     (SELECT content FROM messages
                      WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
                      ORDER BY created_at DESC LIMIT 1) AS last_message,
@@ -538,6 +538,7 @@ def get_conversations():
     for c in contacts:
         result.append({
             'user_id': c['id'],
+            'student_id': c.get('student_id'),
             'name': c.get('coach_display_name') or c.get('student_name') or c['name'],
             'picture': c['picture'],
             'last_message': c['last_message'],
@@ -558,7 +559,7 @@ def get_messages(other_user_id):
     with get_db() as conn:
         params = [user_id, other_user_id, user_id, other_user_id]
         query = '''
-            SELECT id, sender_id, receiver_id, content, read_at, created_at
+            SELECT id, sender_id, receiver_id, content, invoice_id, read_at, created_at
             FROM messages
             WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
         '''
@@ -579,6 +580,7 @@ def get_messages(other_user_id):
         'id': r['id'],
         'sender_id': r['sender_id'],
         'content': r['content'],
+        'invoice_id': r['invoice_id'],
         'read_at': r['read_at'].isoformat() if r['read_at'] else None,
         'created_at': r['created_at'].isoformat() if r['created_at'] else None,
     } for r in reversed(rows)]  # reverse to chronological order

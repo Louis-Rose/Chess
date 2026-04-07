@@ -1,7 +1,7 @@
-// Messages panel — coach-student chat
+// Messages panel — coach-student chat with invoice support
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Send, ArrowLeft, MessageCircle } from 'lucide-react';
+import { Send, ArrowLeft, MessageCircle, Receipt, Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
@@ -9,6 +9,7 @@ import { authFetch } from '../utils/authFetch';
 
 interface Conversation {
   user_id: number;
+  student_id: number | null;
   name: string;
   picture: string | null;
   last_message: string | null;
@@ -20,8 +21,19 @@ interface Message {
   id: number;
   sender_id: number;
   content: string;
+  invoice_id: number | null;
   read_at: string | null;
   created_at: string;
+}
+
+interface InvoiceInfo {
+  id: number;
+  amount: number;
+  currency: string;
+  description: string | null;
+  status: 'pending' | 'paid';
+  revolut_link: string | null;
+  paid_at: string | null;
 }
 
 export function MessagesPanel() {
@@ -50,7 +62,7 @@ export function MessagesPanel() {
 
   if (activeChat) {
     return (
-      <PanelShell title={t('coaches.messages.title') || 'Messages'}>
+      <PanelShell title={t('coaches.messages.title')}>
         <ChatView
           conversation={activeChat}
           onBack={() => { setActiveChat(null); fetchConversations(); }}
@@ -60,7 +72,7 @@ export function MessagesPanel() {
   }
 
   return (
-    <PanelShell title={t('coaches.messages.title') || 'Messages'}>
+    <PanelShell title={t('coaches.messages.title')}>
       <div className="max-w-2xl mx-auto">
         {loading ? (
           <div className="space-y-3">
@@ -81,8 +93,8 @@ export function MessagesPanel() {
             <div className="w-16 h-16 rounded-full bg-blue-600/10 flex items-center justify-center mb-4">
               <MessageCircle className="w-8 h-8 text-blue-400" />
             </div>
-            <p className="text-slate-300 text-lg">{t('coaches.messages.empty') || 'No conversations yet'}</p>
-            <p className="text-slate-500 text-sm mt-1">{t('coaches.messages.emptyHint') || 'Invite a student to the platform to start chatting'}</p>
+            <p className="text-slate-300 text-lg">{t('coaches.messages.empty')}</p>
+            <p className="text-slate-500 text-sm mt-1">{t('coaches.messages.emptyHint')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -132,10 +144,14 @@ export function MessagesPanel() {
 
 function ChatView({ conversation, onBack }: { conversation: Conversation; onBack: () => void }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
+  const isCoach = user?.role === 'coach';
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [invoiceCache, setInvoiceCache] = useState<Record<number, InvoiceInfo>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -151,21 +167,37 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
     fetchMessages().then(() => setLoading(false));
   }, [fetchMessages]);
 
-  // Poll for new messages every 3s
   useEffect(() => {
     const id = setInterval(fetchMessages, 3000);
     return () => clearInterval(id);
   }, [fetchMessages]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  // Focus input on mount
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!showInvoiceForm) inputRef.current?.focus();
+  }, [showInvoiceForm]);
+
+  // Fetch invoice details for invoice messages
+  const fetchInvoice = useCallback(async (invoiceId: number) => {
+    if (invoiceCache[invoiceId]) return;
+    try {
+      const res = await authFetch(`/api/invoices/${invoiceId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setInvoiceCache(prev => ({ ...prev, [invoiceId]: data }));
+      }
+    } catch { /* ignore */ }
+  }, [invoiceCache]);
+
+  // Fetch all invoice details when messages load
+  useEffect(() => {
+    for (const m of messages) {
+      if (m.invoice_id && !invoiceCache[m.invoice_id]) fetchInvoice(m.invoice_id);
+    }
+  }, [messages, invoiceCache, fetchInvoice]);
 
   const handleSend = async () => {
     const content = text.trim();
@@ -188,6 +220,19 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
     }
   };
 
+  const handleInvoiceSent = (msg: Message, invoice: InvoiceInfo) => {
+    setMessages(prev => [...prev, msg]);
+    setInvoiceCache(prev => ({ ...prev, [invoice.id]: invoice }));
+    setShowInvoiceForm(false);
+  };
+
+  const handleMarkPaid = async (invoiceId: number) => {
+    const res = await authFetch(`/api/invoices/${invoiceId}/mark-paid`, { method: 'PUT' });
+    if (res.ok) {
+      setInvoiceCache(prev => ({ ...prev, [invoiceId]: { ...prev[invoiceId], status: 'paid', paid_at: new Date().toISOString() } }));
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto flex flex-col" style={{ height: 'calc(100dvh - 120px)' }}>
       {/* Chat header */}
@@ -202,8 +247,28 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
             {conversation.name.charAt(0).toUpperCase()}
           </div>
         )}
-        <span className="text-slate-100 font-medium">{conversation.name}</span>
+        <span className="text-slate-100 font-medium flex-1">{conversation.name}</span>
+        {isCoach && conversation.student_id && (
+          <button
+            onClick={() => setShowInvoiceForm(!showInvoiceForm)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+              showInvoiceForm ? 'bg-emerald-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+            }`}
+          >
+            <Receipt className="w-3.5 h-3.5" />
+            {t('coaches.invoice.send') || 'Send invoice'}
+          </button>
+        )}
       </div>
+
+      {/* Invoice form */}
+      {showInvoiceForm && conversation.student_id && (
+        <InvoiceForm
+          studentId={conversation.student_id}
+          onSent={handleInvoiceSent}
+          onCancel={() => setShowInvoiceForm(false)}
+        />
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-4 space-y-3">
@@ -218,6 +283,68 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
         ) : (
           messages.map(m => {
             const isMine = m.sender_id === user?.id;
+            const invoice = m.invoice_id ? invoiceCache[m.invoice_id] : null;
+
+            // Invoice message — special rendering
+            if (m.invoice_id) {
+              return (
+                <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div className="max-w-[85%] bg-slate-700 border border-slate-600 rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-600/50 flex items-center gap-2">
+                      <Receipt className="w-4 h-4 text-emerald-400" />
+                      <span className="text-sm font-medium text-emerald-400">Invoice</span>
+                      {invoice?.status === 'paid' && (
+                        <span className="ml-auto flex items-center gap-1 text-xs text-emerald-400">
+                          <Check className="w-3 h-3" /> Paid
+                        </span>
+                      )}
+                    </div>
+                    <div className="px-4 py-3 space-y-2">
+                      {invoice ? (
+                        <>
+                          <div className="text-2xl font-bold text-slate-100">
+                            {invoice.currency} {invoice.amount.toFixed(2)}
+                          </div>
+                          {invoice.description && (
+                            <p className="text-sm text-slate-400">{invoice.description}</p>
+                          )}
+                          {/* Student sees Pay button */}
+                          {!isCoach && invoice.status === 'pending' && invoice.revolut_link && (
+                            <a
+                              href={invoice.revolut_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 w-full mt-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" /> Pay with Revolut
+                            </a>
+                          )}
+                          {!isCoach && invoice.status === 'pending' && !invoice.revolut_link && (
+                            <p className="text-xs text-slate-500 mt-2">Your coach will share payment details</p>
+                          )}
+                          {/* Coach sees Mark as paid button */}
+                          {isCoach && invoice.status === 'pending' && (
+                            <button
+                              onClick={() => handleMarkPaid(invoice.id)}
+                              className="flex items-center justify-center gap-2 w-full mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-xl transition-colors"
+                            >
+                              <Check className="w-4 h-4" /> Mark as paid
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <div className="h-8 bg-slate-600 rounded animate-pulse" />
+                      )}
+                    </div>
+                    <div className="px-4 py-1.5 text-[10px] text-slate-500">
+                      {formatTime(m.created_at)}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Regular message
             return (
               <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl ${
@@ -256,6 +383,84 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
             <Send className="w-4 h-4" />
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function InvoiceForm({ studentId, onSent, onCancel }: {
+  studentId: number;
+  onSent: (msg: Message, invoice: InvoiceInfo) => void;
+  onCancel: () => void;
+}) {
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('EUR');
+  const [description, setDescription] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handleSubmit = async () => {
+    const num = parseFloat(amount);
+    if (!num || num <= 0 || sending) return;
+    setSending(true);
+    try {
+      const res = await authFetch('/api/coaches/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, amount: num, currency, description: description.trim() || undefined }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onSent(data.message, { id: data.invoice_id, amount: num, currency, description: description.trim() || null, status: 'pending', revolut_link: null, paid_at: null });
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="border-b border-slate-700 py-3 space-y-3">
+      <div className="flex items-center gap-2">
+        <select
+          value={currency}
+          onChange={e => setCurrency(e.target.value)}
+          className="bg-slate-700 text-slate-100 text-sm px-3 py-2 rounded-lg border border-slate-600 focus:outline-none focus:border-emerald-500"
+        >
+          <option value="EUR">EUR</option>
+          <option value="USD">USD</option>
+          <option value="GBP">GBP</option>
+          <option value="CHF">CHF</option>
+        </select>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={amount}
+          onChange={e => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+          placeholder="Amount"
+          className="flex-1 bg-slate-700 text-slate-100 text-sm px-4 py-2 rounded-lg border border-slate-600 focus:outline-none focus:border-emerald-500"
+          autoFocus
+        />
+      </div>
+      <input
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+        placeholder="Description (optional)"
+        className="w-full bg-slate-700 text-slate-100 text-sm px-4 py-2 rounded-lg border border-slate-600 focus:outline-none focus:border-emerald-500"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleSubmit}
+          disabled={!amount || parseFloat(amount) <= 0 || sending}
+          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          {sending ? '...' : 'Send invoice'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );

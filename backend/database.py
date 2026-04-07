@@ -161,3 +161,36 @@ def init_db():
             conn.execute("CREATE INDEX idx_messages_receiver ON messages(receiver_id)")
             conn.execute("CREATE INDEX idx_messages_conversation ON messages(sender_id, receiver_id, created_at)")
             print("[Database] Created messages table")
+
+        # Migration: Create invoices table
+        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'invoices'")
+        if not conn._cursor.fetchone():
+            conn.execute("""
+                CREATE TABLE invoices (
+                    id SERIAL PRIMARY KEY,
+                    coach_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+                    message_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+                    amount REAL NOT NULL,
+                    currency TEXT NOT NULL,
+                    description TEXT,
+                    status TEXT DEFAULT 'pending',
+                    paid_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_invoices_student ON invoices(student_id)")
+            conn.execute("CREATE INDEX idx_invoices_coach ON invoices(coach_user_id)")
+            print("[Database] Created invoices table")
+
+        # Migration: Add invoice_id to messages
+        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'invoice_id'")
+        if not conn._cursor.fetchone():
+            conn.execute("ALTER TABLE messages ADD COLUMN invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL")
+            print("[Database] Added invoice_id column to messages")
+
+        # Migration: Add revolut_username to coach_profiles
+        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'coach_profiles' AND column_name = 'revolut_username'")
+        if not conn._cursor.fetchone():
+            conn.execute("ALTER TABLE coach_profiles ADD COLUMN revolut_username TEXT")
+            print("[Database] Added revolut_username column to coach_profiles")

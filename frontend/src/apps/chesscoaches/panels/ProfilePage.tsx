@@ -30,6 +30,7 @@ export function ProfilePage() {
   const [lessonDuration, setLessonDuration] = useState(0);
   const [chesscom, setChesscom] = useState('');
   const [lichess, setLichess] = useState('');
+  const [revolut, setRevolut] = useState('');
   const [bundles, setBundles] = useState<BundleOffer[]>([]);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export function ProfilePage() {
         setLessonDuration(data.lesson_duration || 0);
         setChesscom(data.chesscom_username || '');
         setLichess(data.lichess_username || '');
+        setRevolut(data.revolut_username || '');
         setBundles(data.bundles?.length ? data.bundles.map((b: { lessons: number; price: number }) => ({ lessons: b.lessons, price: b.price })) : []);
         const hasSaved = !!(data.display_name || data.city || data.currency);
         setHasProfile(hasSaved);
@@ -92,7 +94,7 @@ export function ProfilePage() {
           display_name: displayName, city, timezone: tz, currency,
           lesson_rate: lessonRate || null,
           lesson_duration: lessonDuration,
-          chesscom_username: chesscom, lichess_username: lichess,
+          chesscom_username: chesscom, lichess_username: lichess, revolut_username: revolut,
           bundles: bundles.filter(b => b.lessons && b.price !== ''),
         }),
       });
@@ -138,10 +140,11 @@ export function ProfilePage() {
             <InfoRow label={t('coaches.profile.city')} value={city ? `${city} (${cityTimezone})` : '—'} />
             <InfoRow label={t('coaches.profile.currency')} value={currency ? `${currName} (${currSymbol})` : '—'} />
 
-            {(chesscom || lichess) && (
+            {(chesscom || lichess || revolut) && (
               <div className="grid grid-cols-2 gap-4">
                 {chesscom && <InfoRow label={t('coaches.profile.chesscomUsername')} value={chesscom} />}
                 {lichess && <InfoRow label={t('coaches.profile.lichessUsername')} value={lichess} />}
+                {revolut && <InfoRow label="Revolut" value={revolut} />}
               </div>
             )}
 
@@ -227,6 +230,10 @@ export function ProfilePage() {
               <input value={lichess} onChange={e => setLichess(e.target.value)} className={INPUT} />
             </Field>
           </div>
+
+          <Field label="Revolut username">
+            <input value={revolut} onChange={e => setRevolut(e.target.value)} className={INPUT} placeholder="e.g. louisrose" />
+          </Field>
 
           <div className="border-t border-slate-700 pt-4">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider text-center">{t('coaches.profile.pricingTitle')}</h3>
