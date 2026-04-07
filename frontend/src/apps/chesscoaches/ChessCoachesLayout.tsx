@@ -95,7 +95,10 @@ function CoachesNavSidebar() {
                     {(user.name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                <p className={`text-white font-medium w-full text-center pl-14 break-words ${nameFontClass}`}>{user.name}</p>
+                <div className="w-full text-center pl-14">
+                  <p className={`text-white font-medium break-words ${nameFontClass}`}>{user.name}</p>
+                  <p className="text-slate-500 text-[10px] uppercase tracking-wider">{user.role === 'student' ? t('coaches.roleLabel.student') : t('coaches.roleLabel.coach')}</p>
+                </div>
               </div>
             </button>
             {showPlayerMenu && (
