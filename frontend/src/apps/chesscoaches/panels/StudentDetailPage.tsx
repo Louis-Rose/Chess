@@ -152,7 +152,7 @@ export function StudentDetailPage() {
                     </a>
                   )}
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col items-end gap-2">
                   <button
                     onClick={() => setEditing(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-200 text-xs rounded-lg transition-colors"
@@ -166,7 +166,7 @@ export function StudentDetailPage() {
                   {student.linked_user_id && (
                     <span className="flex items-center gap-1.5 px-3 py-1.5 text-emerald-400 text-xs">
                       <Check className="w-3.5 h-3.5" />
-                      {t('coaches.students.accountLinked') || 'Account linked'}
+                      {t('coaches.students.accountLinked')}
                     </span>
                   )}
                 </div>
