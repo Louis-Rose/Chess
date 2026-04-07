@@ -384,6 +384,18 @@ def set_role():
     return jsonify({'success': True, 'role': role})
 
 
+@auth_bp.route('/api/auth/reset-role', methods=['POST'])
+@login_required
+def reset_role():
+    """Admin debug: reset role to NULL to re-trigger role selection."""
+    with get_db() as conn:
+        row = conn.execute('SELECT is_admin FROM users WHERE id = ?', (request.user_id,)).fetchone()
+        if not row or not row['is_admin']:
+            return jsonify({'error': 'Admin only'}), 403
+        conn.execute("UPDATE users SET role = NULL WHERE id = ?", (request.user_id,))
+    return jsonify({'success': True})
+
+
 # ============= INVITE ROUTES =============
 
 @auth_bp.route('/api/invite/<token>', methods=['GET'])
