@@ -48,23 +48,19 @@ export function ChessCoachesApp() {
       {/* Invite page — accessible without auth (has its own layout) */}
       <Route path="invite/:token" element={<InvitePage />} />
 
-      {/* Shared layout for both coaches and students */}
+      {/* Shared layout — sidebar filters visibility by role */}
       <Route element={<ChessCoachesLayout />}>
         <Route index element={isStudent ? <StudentHomePage /> : <ScoresheetPanel />} />
         <Route path="messages" element={<MessagesPanel />} />
-
-        {/* Coach-only routes */}
-        {!isStudent && <>
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="students" element={<StudentsPanel />} />
-          <Route path="students/:studentId" element={<StudentDetailPage />} />
-          <Route path="payments" element={<PaymentsPanel />} />
-          <Route path="scoresheets" element={<ScoresheetReadPage />} />
-          <Route path="mistakes" element={<MistakeFinderPanel />} />
-          <Route path="diagram" element={<DiagramToFenPanel />} />
-          <Route path="about" element={<AboutPanel />} />
-          <Route path="admin" element={<Suspense><AdminPanel /></Suspense>} />
-        </>}
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="students" element={<StudentsPanel />} />
+        <Route path="students/:studentId" element={<StudentDetailPage />} />
+        <Route path="payments" element={<PaymentsPanel />} />
+        <Route path="scoresheets" element={<ScoresheetReadPage />} />
+        <Route path="mistakes" element={<MistakeFinderPanel />} />
+        <Route path="diagram" element={<DiagramToFenPanel />} />
+        <Route path="about" element={<AboutPanel />} />
+        <Route path="admin" element={<Suspense><AdminPanel /></Suspense>} />
       </Route>
     </Routes>
   );
