@@ -81,7 +81,7 @@ export function RoleSelectionPage() {
       <div className="max-w-md w-full space-y-8 text-center">
         <div>
           <LumnaBrand />
-          <p className="text-slate-400 text-sm mt-4">
+          <p className="text-slate-300 text-xl mt-4">
             {t('coaches.roleSelection.welcome')}
           </p>
         </div>
@@ -92,8 +92,8 @@ export function RoleSelectionPage() {
 
         {showInviteInput ? (
           <div className="space-y-4">
-            <p className="text-slate-300 text-sm">
-              {t('coaches.roleSelection.enterInvite') || 'Enter the invite link or code from your coach:'}
+            <p className="text-slate-200 text-lg">
+              {t('coaches.roleSelection.enterInvite')}
             </p>
             <input
               value={inviteCode}
@@ -122,8 +122,8 @@ export function RoleSelectionPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-slate-300">
-              {t('coaches.roleSelection.question') || 'How will you use LUMNA?'}
+            <p className="text-slate-200 text-xl">
+              {t('coaches.roleSelection.question')}
             </p>
             <div className="grid grid-cols-2 gap-4">
               <button
@@ -135,8 +135,8 @@ export function RoleSelectionPage() {
                   <Users className="w-7 h-7 text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-slate-100 font-medium">{t('coaches.roleSelection.coach') || "I'm a coach"}</p>
-                  <p className="text-slate-500 text-xs mt-1">{t('coaches.roleSelection.coachDesc') || 'Manage students & lessons'}</p>
+                  <p className="text-slate-100 font-medium text-lg">{t('coaches.roleSelection.coach')}</p>
+                  <p className="text-slate-200 text-sm mt-1">{t('coaches.roleSelection.coachDesc')}</p>
                 </div>
               </button>
               <button
@@ -148,8 +148,8 @@ export function RoleSelectionPage() {
                   <GraduationCap className="w-7 h-7 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-slate-100 font-medium">{t('coaches.roleSelection.student') || "I'm a student"}</p>
-                  <p className="text-slate-500 text-xs mt-1">{t('coaches.roleSelection.studentDesc') || 'Join my coach on LUMNA'}</p>
+                  <p className="text-slate-100 font-medium text-lg">{t('coaches.roleSelection.student')}</p>
+                  <p className="text-slate-200 text-sm mt-1">{t('coaches.roleSelection.studentDesc')}</p>
                 </div>
               </button>
             </div>
