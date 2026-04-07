@@ -384,6 +384,30 @@ def set_role():
     return jsonify({'success': True, 'role': role})
 
 
+@auth_bp.route('/api/auth/debug-student', methods=['POST'])
+@login_required
+def debug_become_student():
+    """Admin debug: become a student of yourself (links to your first student record)."""
+    with get_db() as conn:
+        row = conn.execute('SELECT is_admin FROM users WHERE id = ?', (request.user_id,)).fetchone()
+        if not row or not row['is_admin']:
+            return jsonify({'error': 'Admin only'}), 403
+
+        # Find first student owned by this coach
+        student = conn.execute(
+            'SELECT id FROM coach_students WHERE coach_user_id = ? ORDER BY id LIMIT 1',
+            (request.user_id,)
+        ).fetchone()
+        if not student:
+            return jsonify({'error': 'No students found — add one first'}), 400
+
+        # Set role and link
+        conn.execute("UPDATE users SET role = 'student' WHERE id = ?", (request.user_id,))
+        conn.execute("UPDATE coach_students SET linked_user_id = ? WHERE id = ?", (request.user_id, student['id']))
+
+    return jsonify({'success': True})
+
+
 @auth_bp.route('/api/auth/reset-role', methods=['POST'])
 @login_required
 def reset_role():

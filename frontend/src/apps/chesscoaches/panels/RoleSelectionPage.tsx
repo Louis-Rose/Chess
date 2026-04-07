@@ -32,7 +32,23 @@ export function RoleSelectionPage() {
     }
   };
 
-  const selectStudent = () => {
+  const selectStudent = async () => {
+    // Admin shortcut: skip invite, auto-link to first student
+    if (user?.is_admin) {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/auth/debug-student', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (res.ok && user) {
+          setUser({ ...user, role: 'student' });
+          return;
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
     setShowInviteInput(true);
   };
 
