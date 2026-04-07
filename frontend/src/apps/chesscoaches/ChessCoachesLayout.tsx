@@ -97,7 +97,7 @@ function CoachesNavSidebar() {
                 )}
                 <div className="w-full text-center pl-14">
                   <p className={`text-white font-medium break-words ${nameFontClass}`}>{user.name}</p>
-                  <p className="text-slate-500 text-[10px] uppercase tracking-wider">{user.role === 'student' ? t('coaches.roleLabel.student') : t('coaches.roleLabel.coach')}</p>
+                  <p className={`text-[10px] uppercase tracking-wider font-semibold ${user.role === 'student' ? 'text-purple-400' : 'text-blue-400'}`}>{user.role === 'student' ? t('coaches.roleLabel.student') : t('coaches.roleLabel.coach')}</p>
                 </div>
               </div>
             </button>
