@@ -194,3 +194,9 @@ def init_db():
         if not conn._cursor.fetchone():
             conn.execute("ALTER TABLE coach_profiles ADD COLUMN revolut_username TEXT")
             print("[Database] Added revolut_username column to coach_profiles")
+
+        # Migration: Add notes column to coach_lessons
+        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'coach_lessons' AND column_name = 'notes'")
+        if not conn._cursor.fetchone():
+            conn.execute("ALTER TABLE coach_lessons ADD COLUMN notes TEXT")
+            print("[Database] Added notes column to coach_lessons")

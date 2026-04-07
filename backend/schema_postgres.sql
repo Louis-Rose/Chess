@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS coach_lessons (
     status TEXT DEFAULT 'scheduled',
     paid INTEGER DEFAULT 0,
     pack_id INTEGER REFERENCES coach_packs(id) ON DELETE SET NULL,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

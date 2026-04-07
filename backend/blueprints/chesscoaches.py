@@ -1361,7 +1361,7 @@ def delete_coach_student(student_id):
 @coaches_bp.route('/api/coaches/students/<int:student_id>/lessons', methods=['GET'])
 @login_required
 def get_student_detail(student_id):
-    """Get a specific student's details."""
+    """Get a specific student's details + lessons."""
     with get_db() as conn:
         student = conn.execute(
             'SELECT * FROM coach_students WHERE id = ? AND coach_user_id = ?',
@@ -1369,7 +1369,98 @@ def get_student_detail(student_id):
         ).fetchone()
         if not student:
             return jsonify({'error': 'Student not found'}), 404
-    return jsonify({'student': dict(student)})
+
+        lessons = conn.execute('''
+            SELECT id, scheduled_at, duration_minutes, status, notes, pack_id, created_at
+            FROM coach_lessons WHERE student_id = ?
+            ORDER BY scheduled_at DESC
+        ''', (student_id,)).fetchall()
+
+    return jsonify({
+        'student': dict(student),
+        'lessons': [dict(l) for l in lessons],
+    })
+
+
+@coaches_bp.route('/api/coaches/students/<int:student_id>/lessons', methods=['POST'])
+@login_required
+def create_lesson(student_id):
+    """Create a lesson for a student."""
+    data = request.get_json()
+    scheduled_at = data.get('scheduled_at')
+    duration = data.get('duration_minutes', 60)
+    notes = (data.get('notes') or '').strip() or None
+
+    if not scheduled_at:
+        return jsonify({'error': 'scheduled_at is required'}), 400
+
+    with get_db() as conn:
+        # Verify ownership
+        student = conn.execute(
+            'SELECT id FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            (student_id, request.user_id)
+        ).fetchone()
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+
+        cursor = conn.execute('''
+            INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, notes)
+            VALUES (?, ?, ?, ?) RETURNING id
+        ''', (student_id, scheduled_at, duration, notes))
+        lesson_id = cursor.fetchone()['id']
+
+    return jsonify({'id': lesson_id}), 201
+
+
+@coaches_bp.route('/api/coaches/lessons/<int:lesson_id>', methods=['PUT'])
+@login_required
+def update_lesson(lesson_id):
+    """Update a lesson (status, notes, scheduled_at)."""
+    data = request.get_json()
+    with get_db() as conn:
+        # Verify ownership via student
+        lesson = conn.execute('''
+            SELECT cl.id, cs.coach_user_id FROM coach_lessons cl
+            JOIN coach_students cs ON cl.student_id = cs.id
+            WHERE cl.id = ?
+        ''', (lesson_id,)).fetchone()
+        if not lesson or lesson['coach_user_id'] != request.user_id:
+            return jsonify({'error': 'Lesson not found'}), 404
+
+        allowed = ['scheduled_at', 'duration_minutes', 'status', 'notes']
+        sets = []
+        vals = []
+        for field in allowed:
+            if field in data:
+                val = data[field]
+                if isinstance(val, str) and field == 'notes':
+                    val = val.strip() or None
+                sets.append(f'{field} = ?')
+                vals.append(val)
+
+        if not sets:
+            return jsonify({'error': 'No fields to update'}), 400
+
+        vals.append(lesson_id)
+        conn.execute(f'UPDATE coach_lessons SET {", ".join(sets)} WHERE id = ?', tuple(vals))
+
+    return jsonify({'success': True})
+
+
+@coaches_bp.route('/api/coaches/lessons/<int:lesson_id>', methods=['DELETE'])
+@login_required
+def delete_lesson(lesson_id):
+    """Delete a lesson."""
+    with get_db() as conn:
+        lesson = conn.execute('''
+            SELECT cl.id, cs.coach_user_id FROM coach_lessons cl
+            JOIN coach_students cs ON cl.student_id = cs.id
+            WHERE cl.id = ?
+        ''', (lesson_id,)).fetchone()
+        if not lesson or lesson['coach_user_id'] != request.user_id:
+            return jsonify({'error': 'Lesson not found'}), 404
+        conn.execute('DELETE FROM coach_lessons WHERE id = ?', (lesson_id,))
+    return jsonify({'success': True})
 
 
 @coaches_bp.route('/api/coaches/students/<int:student_id>/invite', methods=['POST'])
