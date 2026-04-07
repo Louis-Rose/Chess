@@ -136,7 +136,6 @@ export function RoleSelectionPage() {
                 </div>
                 <div>
                   <p className="text-slate-100 font-medium text-lg">{t('coaches.roleSelection.coach')}</p>
-                  <p className="text-slate-200 text-sm mt-1">{t('coaches.roleSelection.coachDesc')}</p>
                 </div>
               </button>
               <button
@@ -149,7 +148,6 @@ export function RoleSelectionPage() {
                 </div>
                 <div>
                   <p className="text-slate-100 font-medium text-lg">{t('coaches.roleSelection.student')}</p>
-                  <p className="text-slate-200 text-sm mt-1">{t('coaches.roleSelection.studentDesc')}</p>
                 </div>
               </button>
             </div>
