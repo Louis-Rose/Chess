@@ -200,3 +200,15 @@ def init_db():
         if not conn._cursor.fetchone():
             conn.execute("ALTER TABLE coach_lessons ADD COLUMN notes TEXT")
             print("[Database] Added notes column to coach_lessons")
+
+        # Migration: Add meet_link to coach_lessons
+        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'coach_lessons' AND column_name = 'meet_link'")
+        if not conn._cursor.fetchone():
+            conn.execute("ALTER TABLE coach_lessons ADD COLUMN meet_link TEXT")
+            print("[Database] Added meet_link column to coach_lessons")
+
+        # Migration: Add google_calendar_refresh_token to users
+        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'google_calendar_refresh_token'")
+        if not conn._cursor.fetchone():
+            conn.execute("ALTER TABLE users ADD COLUMN google_calendar_refresh_token TEXT")
+            print("[Database] Added google_calendar_refresh_token column to users")

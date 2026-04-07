@@ -1371,7 +1371,7 @@ def get_student_detail(student_id):
             return jsonify({'error': 'Student not found'}), 404
 
         lessons = conn.execute('''
-            SELECT id, scheduled_at, duration_minutes, status, notes, pack_id, created_at
+            SELECT id, scheduled_at, duration_minutes, status, notes, meet_link, pack_id, created_at
             FROM coach_lessons WHERE student_id = ?
             ORDER BY scheduled_at DESC
         ''', (student_id,)).fetchall()
@@ -1385,31 +1385,47 @@ def get_student_detail(student_id):
 @coaches_bp.route('/api/coaches/students/<int:student_id>/lessons', methods=['POST'])
 @login_required
 def create_lesson(student_id):
-    """Create a lesson for a student."""
+    """Create a lesson for a student, optionally with Google Meet link."""
     data = request.get_json()
     scheduled_at = data.get('scheduled_at')
     duration = data.get('duration_minutes', 60)
     notes = (data.get('notes') or '').strip() or None
+    create_meet = data.get('create_meet', False)
 
     if not scheduled_at:
         return jsonify({'error': 'scheduled_at is required'}), 400
 
+    meet_link = None
     with get_db() as conn:
         # Verify ownership
         student = conn.execute(
-            'SELECT id FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            'SELECT id, student_name FROM coach_students WHERE id = ? AND coach_user_id = ?',
             (student_id, request.user_id)
         ).fetchone()
         if not student:
             return jsonify({'error': 'Student not found'}), 404
 
+        # Create Meet link if requested
+        if create_meet:
+            user = conn.execute(
+                'SELECT google_calendar_refresh_token FROM users WHERE id = ?',
+                (request.user_id,)
+            ).fetchone()
+            if user and user['google_calendar_refresh_token']:
+                from google_calendar import create_meet_event
+                summary = f"Chess lesson — {student['student_name']}"
+                meet_link = create_meet_event(
+                    user['google_calendar_refresh_token'],
+                    summary, scheduled_at, duration,
+                )
+
         cursor = conn.execute('''
-            INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, notes)
-            VALUES (?, ?, ?, ?) RETURNING id
-        ''', (student_id, scheduled_at, duration, notes))
+            INSERT INTO coach_lessons (student_id, scheduled_at, duration_minutes, notes, meet_link)
+            VALUES (?, ?, ?, ?, ?) RETURNING id
+        ''', (student_id, scheduled_at, duration, notes, meet_link))
         lesson_id = cursor.fetchone()['id']
 
-    return jsonify({'id': lesson_id}), 201
+    return jsonify({'id': lesson_id, 'meet_link': meet_link}), 201
 
 
 @coaches_bp.route('/api/coaches/lessons/<int:lesson_id>', methods=['PUT'])

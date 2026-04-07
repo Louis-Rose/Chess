@@ -405,6 +405,71 @@ def reset_role():
     return jsonify({'success': True})
 
 
+# ============= GOOGLE CALENDAR =============
+
+@auth_bp.route('/api/auth/google-calendar/status', methods=['GET'])
+@login_required
+def google_calendar_status():
+    """Check if the user has connected Google Calendar."""
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT google_calendar_refresh_token FROM users WHERE id = ?',
+            (request.user_id,)
+        ).fetchone()
+    connected = bool(row and row['google_calendar_refresh_token'])
+    return jsonify({'connected': connected})
+
+
+@auth_bp.route('/api/auth/google-calendar/connect', methods=['POST'])
+@login_required
+def google_calendar_connect():
+    """Start the Google Calendar OAuth flow. Returns the auth URL."""
+    from google_calendar import get_auth_url
+    state = str(request.user_id)
+    url = get_auth_url(state)
+    return jsonify({'auth_url': url})
+
+
+@auth_bp.route('/api/auth/google-calendar/callback', methods=['GET'])
+def google_calendar_callback():
+    """OAuth callback — exchanges code for tokens and stores refresh token."""
+    from google_calendar import exchange_code
+    code = request.args.get('code')
+    state = request.args.get('state')  # user_id
+    error = request.args.get('error')
+
+    if error or not code or not state:
+        return '<script>window.close()</script>', 200
+
+    try:
+        tokens = exchange_code(code)
+        user_id = int(state)
+        if tokens.get('refresh_token'):
+            with get_db() as conn:
+                conn.execute(
+                    'UPDATE users SET google_calendar_refresh_token = ? WHERE id = ?',
+                    (tokens['refresh_token'], user_id)
+                )
+            logger.info(f'[Calendar] Stored refresh token for user {user_id}')
+    except Exception as e:
+        logger.error(f'[Calendar] OAuth callback error: {e}')
+
+    # Close the popup window
+    return '<html><body><script>window.opener?.postMessage("calendar-connected","*");window.close()</script><p>Connected! You can close this window.</p></body></html>', 200
+
+
+@auth_bp.route('/api/auth/google-calendar/disconnect', methods=['POST'])
+@login_required
+def google_calendar_disconnect():
+    """Disconnect Google Calendar."""
+    with get_db() as conn:
+        conn.execute(
+            'UPDATE users SET google_calendar_refresh_token = NULL WHERE id = ?',
+            (request.user_id,)
+        )
+    return jsonify({'success': True})
+
+
 # ============= INVITE ROUTES =============
 
 @auth_bp.route('/api/invite/<token>', methods=['GET'])

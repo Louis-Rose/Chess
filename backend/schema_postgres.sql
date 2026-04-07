@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     cookie_consent TEXT,
     cookie_consent_at TIMESTAMP,
     cookie_refusal_count INTEGER DEFAULT 0,
+    google_calendar_refresh_token TEXT,
     registered_app TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -162,6 +163,7 @@ CREATE TABLE IF NOT EXISTS coach_lessons (
     paid INTEGER DEFAULT 0,
     pack_id INTEGER REFERENCES coach_packs(id) ON DELETE SET NULL,
     notes TEXT,
+    meet_link TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

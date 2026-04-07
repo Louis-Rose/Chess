@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pencil, Trash2, X, Link, Copy, Check, Plus, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, X, Link, Copy, Check, Plus, Clock, ChevronDown, ChevronRight, Video, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 import { StudentForm } from '../components/StudentForm';
@@ -41,6 +41,7 @@ interface Lesson {
   duration_minutes: number;
   status: string;
   notes: string | null;
+  meet_link: string | null;
   created_at: string;
 }
 
@@ -274,7 +275,43 @@ function LessonsSection({ studentId, upcoming, past, onRefresh }: {
   const [addDate, setAddDate] = useState('');
   const [addTime, setAddTime] = useState('');
   const [addDuration, setAddDuration] = useState('60');
+  const [createMeet, setCreateMeet] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState<boolean | null>(null);
   const [adding, setAdding] = useState(false);
+
+  // Check if Google Calendar is connected
+  useEffect(() => {
+    authFetch('/api/auth/google-calendar/status')
+      .then(r => r.json())
+      .then(d => setCalendarConnected(d.connected))
+      .catch(() => {});
+  }, []);
+
+  const handleConnectCalendar = async () => {
+    const res = await authFetch('/api/auth/google-calendar/connect', { method: 'POST' });
+    const data = await res.json();
+    if (data.auth_url) {
+      const popup = window.open(data.auth_url, 'google-calendar', 'width=500,height=600');
+      // Listen for the popup to close / send message
+      const onMessage = (e: MessageEvent) => {
+        if (e.data === 'calendar-connected') {
+          setCalendarConnected(true);
+          setCreateMeet(true);
+          window.removeEventListener('message', onMessage);
+        }
+      };
+      window.addEventListener('message', onMessage);
+      // Fallback: poll popup closed
+      const check = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(check);
+          authFetch('/api/auth/google-calendar/status')
+            .then(r => r.json())
+            .then(d => { setCalendarConnected(d.connected); if (d.connected) setCreateMeet(true); });
+        }
+      }, 1000);
+    }
+  };
 
   const handleAdd = async () => {
     if (!addDate || !addTime || adding) return;
@@ -284,7 +321,7 @@ function LessonsSection({ studentId, upcoming, past, onRefresh }: {
       await authFetch(`/api/coaches/students/${studentId}/lessons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduled_at, duration_minutes: parseInt(addDuration) }),
+        body: JSON.stringify({ scheduled_at, duration_minutes: parseInt(addDuration), create_meet: createMeet }),
       });
       setShowAddForm(false);
       setAddDate('');
@@ -334,6 +371,24 @@ function LessonsSection({ studentId, upcoming, past, onRefresh }: {
               </select>
             </div>
           </div>
+          {/* Google Meet toggle */}
+          <div className="flex items-center gap-3">
+            {calendarConnected ? (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={createMeet} onChange={e => setCreateMeet(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" />
+                <Video className="w-4 h-4 text-blue-400" />
+                <span className="text-sm text-slate-300">Create Google Meet link</span>
+              </label>
+            ) : calendarConnected === false ? (
+              <button onClick={handleConnectCalendar}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-colors">
+                <Video className="w-3.5 h-3.5" />
+                Connect Google Calendar for Meet links
+              </button>
+            ) : null}
+          </div>
+
           <div className="flex gap-2">
             <button onClick={handleAdd} disabled={!addDate || !addTime || adding}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
@@ -445,6 +500,7 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
           }`}>
             {lesson.status}
           </span>
+          {lesson.meet_link && <Video className="w-3.5 h-3.5 text-blue-400" />}
           {lesson.notes && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Has notes" />}
           {expanded ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
         </div>
@@ -452,6 +508,20 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
 
       {expanded && (
         <div className="border-t border-slate-700 px-4 py-3 space-y-3">
+          {/* Meet link */}
+          {lesson.meet_link && (
+            <a
+              href={lesson.meet_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600/10 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-600/20 transition-colors text-sm"
+            >
+              <Video className="w-4 h-4" />
+              Join Google Meet
+              <ExternalLink className="w-3 h-3 ml-auto" />
+            </a>
+          )}
+
           {/* Notes */}
           {editingNotes ? (
             <div className="space-y-2">
