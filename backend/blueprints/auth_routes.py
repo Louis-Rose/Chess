@@ -20,19 +20,32 @@ from auth import (
 from database import get_db
 from email_utils import send_admin_deletion_alert
 
-# ============= ROLE HELPER =============
-
-def _get_user_role(user_id):
-    """Get a user's role from the database."""
-    with get_db() as conn:
-        row = conn.execute('SELECT role FROM users WHERE id = ?', (user_id,)).fetchone()
-        return row['role'] if row else 'coach'
-
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth_routes', __name__)
 
 BLOCKED_EMAILS = set()
+INVITE_EXPIRY_DAYS = 30
+
+
+def _build_user_payload(user: dict) -> dict:
+    """Build the user payload dict returned by auth endpoints."""
+    payload = {
+        'id': user['id'],
+        'email': user['email'],
+        'name': user['name'],
+        'picture': user['picture'],
+        'role': user.get('role', 'coach'),
+        'is_admin': bool(user.get('is_admin')),
+        'cookie_consent': user.get('cookie_consent'),
+        'preferences': {
+            'chess_username': user['chess_username'],
+            'preferred_time_class': user['preferred_time_class']
+        }
+    }
+    if user['email'] in BLOCKED_EMAILS:
+        payload['_t'] = 1
+    return payload
 
 
 # ============= AUTH ROUTES =============
@@ -69,21 +82,7 @@ def google_auth():
         ''', (user_id,))
         user = dict(cursor.fetchone())
 
-    user_payload = {
-            'id': user['id'],
-            'email': user['email'],
-            'name': user['name'],
-            'picture': user['picture'],
-            'role': user.get('role', 'coach'),
-            'is_admin': bool(user.get('is_admin')),
-            'cookie_consent': user.get('cookie_consent'),
-            'preferences': {
-                'chess_username': user['chess_username'],
-                'preferred_time_class': user['preferred_time_class']
-            }
-    }
-    if user['email'] in BLOCKED_EMAILS:
-        user_payload['_t'] = 1
+    user_payload = _build_user_payload(user)
 
     response = make_response(jsonify({
         'user': user_payload,
@@ -206,21 +205,7 @@ def get_current_user_info():
 
         user = dict(row)
 
-    user_payload = {
-            'id': user['id'],
-            'email': user['email'],
-            'name': user['name'],
-            'picture': user['picture'],
-            'role': user.get('role', 'coach'),
-            'is_admin': bool(user.get('is_admin')),
-            'cookie_consent': user.get('cookie_consent'),
-            'preferences': {
-                'chess_username': user['chess_username'],
-                'preferred_time_class': user['preferred_time_class']
-            }
-    }
-    if user['email'] in BLOCKED_EMAILS:
-        user_payload['_t'] = 1
+    user_payload = _build_user_payload(user)
 
     return jsonify({ 'user': user_payload })
 
@@ -438,6 +423,11 @@ def get_invite_info(token):
         return jsonify({'error': 'Invite not found'}), 404
     if invite['accepted_at']:
         return jsonify({'error': 'Invite already used'}), 410
+    created = invite['created_at']
+    if isinstance(created, str):
+        created = datetime.fromisoformat(created)
+    if (datetime.utcnow() - created.replace(tzinfo=None)).days > INVITE_EXPIRY_DAYS:
+        return jsonify({'error': 'Invite has expired'}), 410
 
     return jsonify({
         'coach_name': invite['coach_name'],
@@ -466,6 +456,11 @@ def accept_invite(token):
             return jsonify({'error': 'Invite already used'}), 410
         if invite['linked_user_id']:
             return jsonify({'error': 'Student already has an account'}), 400
+        created = invite['created_at']
+        if isinstance(created, str):
+            created = datetime.fromisoformat(created)
+        if (datetime.utcnow() - created.replace(tzinfo=None)).days > INVITE_EXPIRY_DAYS:
+            return jsonify({'error': 'Invite has expired'}), 410
 
         # Link user to student record and set role
         conn.execute(
@@ -499,40 +494,44 @@ def get_conversations():
         user_role = role['role'] if role else 'coach'
 
         if user_role == 'coach':
-            # Get linked students (with or without messages)
             contacts = conn.execute('''
                 SELECT u.id, u.name, u.picture, cs.id AS student_id, cs.student_name,
-                    (SELECT content FROM messages
-                     WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
-                     ORDER BY created_at DESC LIMIT 1) AS last_message,
-                    (SELECT created_at FROM messages
-                     WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
-                     ORDER BY created_at DESC LIMIT 1) AS last_message_at,
-                    (SELECT COUNT(*) FROM messages
-                     WHERE sender_id = u.id AND receiver_id = ? AND read_at IS NULL) AS unread_count
+                    last_msg.content AS last_message, last_msg.created_at AS last_message_at,
+                    COALESCE(unread.cnt, 0) AS unread_count
                 FROM coach_students cs
                 JOIN users u ON cs.linked_user_id = u.id
+                LEFT JOIN LATERAL (
+                    SELECT content, created_at FROM messages
+                    WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
+                    ORDER BY created_at DESC LIMIT 1
+                ) last_msg ON true
+                LEFT JOIN LATERAL (
+                    SELECT COUNT(*) AS cnt FROM messages
+                    WHERE sender_id = u.id AND receiver_id = ? AND read_at IS NULL
+                ) unread ON true
                 WHERE cs.coach_user_id = ?
                 ORDER BY last_message_at DESC NULLS LAST
-            ''', (user_id, user_id, user_id, user_id, user_id, user_id)).fetchall()
+            ''', (user_id, user_id, user_id, user_id)).fetchall()
         else:
-            # Student: get their coach(es)
             contacts = conn.execute('''
                 SELECT u.id, u.name, u.picture, cp.display_name AS coach_display_name,
-                    (SELECT content FROM messages
-                     WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
-                     ORDER BY created_at DESC LIMIT 1) AS last_message,
-                    (SELECT created_at FROM messages
-                     WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
-                     ORDER BY created_at DESC LIMIT 1) AS last_message_at,
-                    (SELECT COUNT(*) FROM messages
-                     WHERE sender_id = u.id AND receiver_id = ? AND read_at IS NULL) AS unread_count
+                    last_msg.content AS last_message, last_msg.created_at AS last_message_at,
+                    COALESCE(unread.cnt, 0) AS unread_count
                 FROM coach_students cs
                 JOIN users u ON cs.coach_user_id = u.id
                 LEFT JOIN coach_profiles cp ON u.id = cp.user_id
+                LEFT JOIN LATERAL (
+                    SELECT content, created_at FROM messages
+                    WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
+                    ORDER BY created_at DESC LIMIT 1
+                ) last_msg ON true
+                LEFT JOIN LATERAL (
+                    SELECT COUNT(*) AS cnt FROM messages
+                    WHERE sender_id = u.id AND receiver_id = ? AND read_at IS NULL
+                ) unread ON true
                 WHERE cs.linked_user_id = ?
                 ORDER BY last_message_at DESC NULLS LAST
-            ''', (user_id, user_id, user_id, user_id, user_id, user_id)).fetchall()
+            ''', (user_id, user_id, user_id, user_id)).fetchall()
 
     result = []
     for c in contacts:
@@ -557,6 +556,15 @@ def get_messages(other_user_id):
     before = request.args.get('before')  # pagination cursor
 
     with get_db() as conn:
+        # Verify coach-student relationship
+        linked = conn.execute('''
+            SELECT 1 FROM coach_students
+            WHERE (coach_user_id = ? AND linked_user_id = ?)
+               OR (coach_user_id = ? AND linked_user_id = ?)
+        ''', (user_id, other_user_id, other_user_id, user_id)).fetchone()
+        if not linked:
+            return jsonify({'error': 'Not authorized'}), 403
+
         params = [user_id, other_user_id, user_id, other_user_id]
         query = '''
             SELECT id, sender_id, receiver_id, content, invoice_id, read_at, created_at

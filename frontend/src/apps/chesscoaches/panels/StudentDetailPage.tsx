@@ -72,15 +72,18 @@ export function StudentDetailPage() {
   const [editSaving, setEditSaving] = useState(false);
   const handleUpdate = async (form: StudentFormData) => {
     setEditSaving(true);
-    const res = await authFetch(`/api/coaches/students/${studentId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    if (!res.ok) return;
-    setEditing(false);
-    fetchStudent();
-    setEditSaving(false);
+    try {
+      const res = await authFetch(`/api/coaches/students/${studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) return;
+      setEditing(false);
+      fetchStudent();
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const handleDelete = async () => {

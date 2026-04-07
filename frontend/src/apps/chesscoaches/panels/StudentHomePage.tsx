@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { authFetch } from '../utils/authFetch';
 import { PanelShell } from '../components/PanelShell';
 
 interface DashboardData {
@@ -19,7 +20,7 @@ export function StudentHomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/student/dashboard', { credentials: 'include' })
+    authFetch('/api/student/dashboard')
       .then(r => r.json())
       .then(d => { if (!d.error) setData(d); })
       .catch(() => {})

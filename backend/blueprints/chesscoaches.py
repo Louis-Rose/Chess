@@ -1411,14 +1411,15 @@ def create_student_invite(student_id):
 @login_required
 def create_invoice():
     """Create an invoice and send it as a chat message to the student."""
+    ALLOWED_CURRENCIES = {'EUR', 'USD', 'GBP', 'CHF'}
     data = request.get_json()
     student_id = data.get('student_id')
     amount = data.get('amount')
-    currency = data.get('currency')
+    currency = (data.get('currency') or '').upper()
     description = (data.get('description') or '').strip()
 
-    if not student_id or not amount or not currency:
-        return jsonify({'error': 'student_id, amount, and currency are required'}), 400
+    if not student_id or not amount or currency not in ALLOWED_CURRENCIES:
+        return jsonify({'error': 'student_id, amount, and a valid currency are required'}), 400
     if amount <= 0:
         return jsonify({'error': 'Amount must be positive'}), 400
 
@@ -1453,8 +1454,18 @@ def create_invoice():
         # Link message back to invoice
         conn.execute('UPDATE invoices SET message_id = ? WHERE id = ?', (msg['id'], invoice_id))
 
+        # Build revolut link if coach has a revolut username
+        revolut_link = None
+        coach_profile = conn.execute(
+            'SELECT revolut_username FROM coach_profiles WHERE user_id = ?',
+            (request.user_id,)
+        ).fetchone()
+        if coach_profile and coach_profile['revolut_username']:
+            revolut_link = f"https://revolut.me/{coach_profile['revolut_username']}/{amount:.2f}{currency}"
+
     return jsonify({
         'invoice_id': invoice_id,
+        'revolut_link': revolut_link,
         'message': {
             'id': msg['id'],
             'sender_id': request.user_id,

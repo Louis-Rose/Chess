@@ -180,9 +180,11 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
     if (!showInvoiceForm) inputRef.current?.focus();
   }, [showInvoiceForm]);
 
-  // Fetch invoice details for invoice messages
+  // Fetch invoice details for invoice messages (ref avoids re-render loop)
+  const fetchedInvoiceIds = useRef<Set<number>>(new Set());
   const fetchInvoice = useCallback(async (invoiceId: number) => {
-    if (invoiceCache[invoiceId]) return;
+    if (fetchedInvoiceIds.current.has(invoiceId)) return;
+    fetchedInvoiceIds.current.add(invoiceId);
     try {
       const res = await authFetch(`/api/invoices/${invoiceId}`);
       if (res.ok) {
@@ -190,14 +192,13 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
         setInvoiceCache(prev => ({ ...prev, [invoiceId]: data }));
       }
     } catch { /* ignore */ }
-  }, [invoiceCache]);
+  }, []);
 
-  // Fetch all invoice details when messages load
   useEffect(() => {
     for (const m of messages) {
-      if (m.invoice_id && !invoiceCache[m.invoice_id]) fetchInvoice(m.invoice_id);
+      if (m.invoice_id) fetchInvoice(m.invoice_id);
     }
-  }, [messages, invoiceCache, fetchInvoice]);
+  }, [messages, fetchInvoice]);
 
   const handleSend = async () => {
     const content = text.trim();
@@ -397,11 +398,13 @@ function InvoiceForm({ studentId, onSent, onCancel }: {
   const [currency, setCurrency] = useState('EUR');
   const [description, setDescription] = useState('');
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     const num = parseFloat(amount);
     if (!num || num <= 0 || sending) return;
     setSending(true);
+    setError('');
     try {
       const res = await authFetch('/api/coaches/invoices', {
         method: 'POST',
@@ -410,8 +413,13 @@ function InvoiceForm({ studentId, onSent, onCancel }: {
       });
       if (res.ok) {
         const data = await res.json();
-        onSent(data.message, { id: data.invoice_id, amount: num, currency, description: description.trim() || null, status: 'pending', revolut_link: null, paid_at: null });
+        onSent(data.message, { id: data.invoice_id, amount: num, currency, description: description.trim() || null, status: 'pending', revolut_link: data.revolut_link || null, paid_at: null });
+      } else {
+        const err = await res.json();
+        setError(err.error || 'Failed to send invoice');
       }
+    } catch {
+      setError('Network error — please try again');
     } finally {
       setSending(false);
     }
@@ -446,6 +454,7 @@ function InvoiceForm({ studentId, onSent, onCancel }: {
         placeholder="Description (optional)"
         className="w-full bg-slate-700 text-slate-100 text-sm px-4 py-2 rounded-lg border border-slate-600 focus:outline-none focus:border-emerald-500"
       />
+      {error && <p className="text-red-400 text-xs">{error}</p>}
       <div className="flex items-center gap-2">
         <button
           onClick={handleSubmit}
