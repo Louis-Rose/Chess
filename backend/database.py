@@ -115,3 +115,31 @@ def init_db():
             """)
             conn.execute("CREATE INDEX idx_coach_bundle_offers_user ON coach_bundle_offers(user_id)")
             print("[Database] Created coach_bundle_offers table")
+
+        # Migration: Add role column to users
+        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'role'")
+        if not conn._cursor.fetchone():
+            conn.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'coach'")
+            print("[Database] Added role column to users")
+
+        # Migration: Add linked_user_id column to coach_students
+        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'coach_students' AND column_name = 'linked_user_id'")
+        if not conn._cursor.fetchone():
+            conn.execute("ALTER TABLE coach_students ADD COLUMN linked_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL")
+            print("[Database] Added linked_user_id column to coach_students")
+
+        # Migration: Create student_invites table
+        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'student_invites'")
+        if not conn._cursor.fetchone():
+            conn.execute("""
+                CREATE TABLE student_invites (
+                    id SERIAL PRIMARY KEY,
+                    coach_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+                    token TEXT UNIQUE NOT NULL,
+                    accepted_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_student_invites_token ON student_invites(token)")
+            print("[Database] Created student_invites table")

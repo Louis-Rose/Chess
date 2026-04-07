@@ -20,6 +20,14 @@ from auth import (
 from database import get_db
 from email_utils import send_admin_deletion_alert
 
+# ============= ROLE HELPER =============
+
+def _get_user_role(user_id):
+    """Get a user's role from the database."""
+    with get_db() as conn:
+        row = conn.execute('SELECT role FROM users WHERE id = ?', (user_id,)).fetchone()
+        return row['role'] if row else 'coach'
+
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth_routes', __name__)
@@ -66,6 +74,7 @@ def google_auth():
             'email': user['email'],
             'name': user['name'],
             'picture': user['picture'],
+            'role': user.get('role', 'coach'),
             'is_admin': bool(user.get('is_admin')),
             'cookie_consent': user.get('cookie_consent'),
             'preferences': {
@@ -202,6 +211,7 @@ def get_current_user_info():
             'email': user['email'],
             'name': user['name'],
             'picture': user['picture'],
+            'role': user.get('role', 'coach'),
             'is_admin': bool(user.get('is_admin')),
             'cookie_consent': user.get('cookie_consent'),
             'preferences': {
@@ -352,3 +362,119 @@ def activity_heartbeat():
     return jsonify({'success': True})
 
 
+# ============= INVITE ROUTES =============
+
+@auth_bp.route('/api/invite/<token>', methods=['GET'])
+def get_invite_info(token):
+    """Get invite details (no auth required — shown on the invite landing page)."""
+    with get_db() as conn:
+        invite = conn.execute('''
+            SELECT si.*, cs.student_name, u.name AS coach_name, u.picture AS coach_picture
+            FROM student_invites si
+            JOIN coach_students cs ON si.student_id = cs.id
+            JOIN users u ON si.coach_user_id = u.id
+            WHERE si.token = ?
+        ''', (token,)).fetchone()
+
+    if not invite:
+        return jsonify({'error': 'Invite not found'}), 404
+    if invite['accepted_at']:
+        return jsonify({'error': 'Invite already used'}), 410
+
+    return jsonify({
+        'coach_name': invite['coach_name'],
+        'coach_picture': invite['coach_picture'],
+        'student_name': invite['student_name'],
+    })
+
+
+@auth_bp.route('/api/invite/<token>/accept', methods=['POST'])
+@login_required
+def accept_invite(token):
+    """Accept an invite — links the current user as a student."""
+    user_id = request.user_id
+
+    with get_db() as conn:
+        invite = conn.execute('''
+            SELECT si.*, cs.student_name, cs.linked_user_id
+            FROM student_invites si
+            JOIN coach_students cs ON si.student_id = cs.id
+            WHERE si.token = ?
+        ''', (token,)).fetchone()
+
+        if not invite:
+            return jsonify({'error': 'Invite not found'}), 404
+        if invite['accepted_at']:
+            return jsonify({'error': 'Invite already used'}), 410
+        if invite['linked_user_id']:
+            return jsonify({'error': 'Student already has an account'}), 400
+
+        # Link user to student record and set role
+        conn.execute(
+            'UPDATE coach_students SET linked_user_id = ? WHERE id = ?',
+            (user_id, invite['student_id'])
+        )
+        conn.execute(
+            "UPDATE users SET role = 'student' WHERE id = ?",
+            (user_id,)
+        )
+        conn.execute(
+            'UPDATE student_invites SET accepted_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (invite['id'],)
+        )
+
+    return jsonify({'success': True, 'student_name': invite['student_name']})
+
+
+# ============= STUDENT ROUTES =============
+
+@auth_bp.route('/api/student/dashboard', methods=['GET'])
+@login_required
+def student_dashboard():
+    """Get the student's dashboard data (their coach, packs, lessons)."""
+    user_id = request.user_id
+
+    with get_db() as conn:
+        # Find the student record linked to this user
+        student = conn.execute('''
+            SELECT cs.*, u.name AS coach_name, u.picture AS coach_picture,
+                   cp.display_name AS coach_display_name, cp.city AS coach_city
+            FROM coach_students cs
+            JOIN users u ON cs.coach_user_id = u.id
+            LEFT JOIN coach_profiles cp ON cs.coach_user_id = cp.user_id
+            WHERE cs.linked_user_id = ?
+        ''', (user_id,)).fetchone()
+
+        if not student:
+            return jsonify({'error': 'No student record found'}), 404
+
+        # Get active packs
+        packs = conn.execute('''
+            SELECT id, total_lessons, lessons_done, price, currency, source, status, created_at
+            FROM coach_packs
+            WHERE student_id = ? AND status = 'active'
+            ORDER BY created_at DESC
+        ''', (student['id'],)).fetchall()
+
+        # Get recent lessons
+        lessons = conn.execute('''
+            SELECT id, scheduled_at, duration_minutes, status, created_at
+            FROM coach_lessons
+            WHERE student_id = ?
+            ORDER BY scheduled_at DESC
+            LIMIT 20
+        ''', (student['id'],)).fetchall()
+
+    return jsonify({
+        'student': {
+            'id': student['id'],
+            'name': student['student_name'],
+        },
+        'coach': {
+            'name': student['coach_display_name'] or student['coach_name'],
+            'picture': student['coach_picture'],
+            'city': student['coach_city'],
+        },
+        'packs': [dict(p) for p in packs],
+        'lessons': [dict(l) for l in lessons],
+    })

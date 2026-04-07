@@ -18,6 +18,7 @@ interface User {
   email: string;
   name: string;
   picture: string;
+  role: 'coach' | 'student';
   is_admin: boolean;
   _t?: number;
 }

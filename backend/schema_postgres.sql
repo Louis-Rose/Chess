@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     name TEXT,
     picture TEXT,
+    role TEXT DEFAULT 'coach',  -- 'coach' or 'student'
     is_admin INTEGER DEFAULT 0,
     sign_in_count INTEGER DEFAULT 0,
     session_count INTEGER DEFAULT 0,
@@ -112,6 +113,7 @@ CREATE TABLE IF NOT EXISTS device_usage (
 CREATE TABLE IF NOT EXISTS coach_students (
     id SERIAL PRIMARY KEY,
     coach_user_id INTEGER NOT NULL,
+    linked_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,  -- set when student accepts invite
     student_name TEXT NOT NULL,
     timezone TEXT DEFAULT 'UTC',
     currency TEXT,
@@ -123,6 +125,17 @@ CREATE TABLE IF NOT EXISTS coach_students (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Student invites (coach invites student to create an account)
+CREATE TABLE IF NOT EXISTS student_invites (
+    id SERIAL PRIMARY KEY,
+    coach_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    student_id INTEGER NOT NULL REFERENCES coach_students(id) ON DELETE CASCADE,
+    token TEXT UNIQUE NOT NULL,
+    accepted_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_student_invites_token ON student_invites(token);
 
 -- Lesson packs
 CREATE TABLE IF NOT EXISTS coach_packs (

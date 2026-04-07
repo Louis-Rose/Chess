@@ -12,20 +12,40 @@ import { AboutPanel } from './panels/AboutPanel';
 import { StudentDetailPage } from './panels/StudentDetailPage';
 import { PaymentsPanel } from './panels/PaymentsPanel';
 import { ProfilePage } from './panels/ProfilePage';
+import { StudentDashboard } from './panels/StudentDashboard';
+import { InvitePage } from './panels/InvitePage';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminPanel = lazy(() =>
   import('./panels/AdminPanel').then(m => ({ default: m.AdminPanel }))
 );
 
 export function ChessCoachesApp() {
+  const { user } = useAuth();
+
   useEffect(() => {
     document.title = 'LUMNA | Coaching Tools';
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) link.href = '/favicon.svg';
   }, []);
 
+  // Student role → student dashboard (no coach tools)
+  if (user?.role === 'student') {
+    return (
+      <Routes>
+        <Route index element={<StudentDashboard />} />
+        <Route path="invite/:token" element={<InvitePage />} />
+        <Route path="*" element={<StudentDashboard />} />
+      </Routes>
+    );
+  }
+
   return (
     <Routes>
+      {/* Invite page — accessible without auth (has its own layout) */}
+      <Route path="invite/:token" element={<InvitePage />} />
+
+      {/* Coach routes */}
       <Route element={<ChessCoachesLayout />}>
         <Route index element={<ScoresheetPanel />} />
         <Route path="profile" element={<ProfilePage />} />

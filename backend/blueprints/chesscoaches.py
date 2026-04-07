@@ -1,4 +1,5 @@
 import os
+import secrets
 import logging
 import requests as http_requests
 from flask import Blueprint, jsonify, request, Response
@@ -1369,6 +1370,39 @@ def get_student_detail(student_id):
         if not student:
             return jsonify({'error': 'Student not found'}), 404
     return jsonify({'student': dict(student)})
+
+
+@coaches_bp.route('/api/coaches/students/<int:student_id>/invite', methods=['POST'])
+@login_required
+def create_student_invite(student_id):
+    """Generate an invite link for a student to create their account."""
+    with get_db() as conn:
+        # Verify ownership
+        student = conn.execute(
+            'SELECT id, student_name, linked_user_id FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            (student_id, request.user_id)
+        ).fetchone()
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        if student['linked_user_id']:
+            return jsonify({'error': 'Student already has an account'}), 400
+
+        # Check for existing pending invite
+        existing = conn.execute(
+            'SELECT token FROM student_invites WHERE student_id = ? AND accepted_at IS NULL',
+            (student_id,)
+        ).fetchone()
+        if existing:
+            return jsonify({'token': existing['token']})
+
+        # Generate new invite
+        token = secrets.token_urlsafe(32)
+        conn.execute(
+            'INSERT INTO student_invites (coach_user_id, student_id, token) VALUES (?, ?, ?)',
+            (request.user_id, student_id, token)
+        )
+
+    return jsonify({'token': token}), 201
 
 
 # ── Coach Packs Management ──

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, X, Link, Copy, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 import { StudentForm } from '../components/StudentForm';
@@ -16,6 +16,7 @@ interface Student {
   source: string | null;
   chesscom_username: string | null;
   lichess_username: string | null;
+  linked_user_id: number | null;
   created_at: string;
 }
 
@@ -151,13 +152,24 @@ export function StudentDetailPage() {
                     </a>
                   )}
                 </div>
-                <button
-                  onClick={() => setEditing(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-200 text-xs rounded-lg transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  {t('coaches.students.editStudent')}
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-600 hover:border-slate-500 text-slate-400 hover:text-slate-200 text-xs rounded-lg transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    {t('coaches.students.editStudent')}
+                  </button>
+                  {!student.linked_user_id && (
+                    <InviteButton studentId={student.id} />
+                  )}
+                  {student.linked_user_id && (
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 text-emerald-400 text-xs">
+                      <Check className="w-3.5 h-3.5" />
+                      {t('coaches.students.accountLinked') || 'Account linked'}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </>
@@ -223,3 +235,52 @@ export function StudentDetailPage() {
   );
 }
 
+function InviteButton({ studentId }: { studentId: number }) {
+  const { t } = useLanguage();
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleInvite = async () => {
+    setLoading(true);
+    try {
+      const res = await authFetch(`/api/coaches/students/${studentId}/invite`, { method: 'POST' });
+      const data = await res.json();
+      if (data.token) {
+        setInviteToken(data.token);
+        const url = `${window.location.origin}/invite/${data.token}`;
+        try { await navigator.clipboard.writeText(url); setCopied(true); } catch {}
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (inviteToken) {
+    const url = `${window.location.origin}/invite/${inviteToken}`;
+    return (
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={async () => {
+            try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg transition-colors hover:bg-emerald-500/20"
+        >
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? (t('coaches.students.linkCopied') || 'Link copied!') : (t('coaches.students.copyInviteLink') || 'Copy invite link')}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleInvite}
+      disabled={loading}
+      className="flex items-center gap-1.5 px-3 py-1.5 border border-purple-500/30 bg-purple-500/10 text-purple-400 text-xs rounded-lg transition-colors hover:bg-purple-500/20 disabled:opacity-50"
+    >
+      <Link className="w-3.5 h-3.5" />
+      {loading ? '...' : (t('coaches.students.inviteToPlatform') || 'Invite to platform')}
+    </button>
+  );
+}
