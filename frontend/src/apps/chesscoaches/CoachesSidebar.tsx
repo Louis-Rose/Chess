@@ -4,30 +4,7 @@ import { SidebarShell } from '../../components/SidebarShell';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { LumnaBrand } from './components/LumnaBrand';
 import { LoginButton } from '../../components/LoginButton';
-
-function LanguageToggleInline() {
-  const { language, setLanguage } = useLanguage();
-  return (
-    <div className="relative flex bg-slate-700 rounded-md p-0.5">
-      <div
-        className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] bg-slate-500 rounded transition-all duration-200"
-        style={{ transform: language === 'en' ? 'translateX(0)' : 'translateX(100%)' }}
-      />
-      <button
-        onClick={() => setLanguage('en')}
-        className={`relative z-10 px-2 md:px-4 py-1 text-xs md:text-sm font-medium rounded transition-colors ${language === 'en' ? 'text-white' : 'text-slate-400'}`}
-      >
-        <span className="md:hidden">EN</span><span className="hidden md:inline">English</span>
-      </button>
-      <button
-        onClick={() => setLanguage('fr')}
-        className={`relative z-10 px-2 md:px-4 py-1 text-xs md:text-sm font-medium rounded transition-colors ${language === 'fr' ? 'text-white' : 'text-slate-400'}`}
-      >
-        <span className="md:hidden">FR</span><span className="hidden md:inline">Français</span>
-      </button>
-    </div>
-  );
-}
+import { LanguageToggle } from './components/LanguageToggle';
 
 export function CoachesSidebar() {
   const { t } = useLanguage();
@@ -50,7 +27,7 @@ export function CoachesSidebar() {
 
       {/* Language toggle + Google login */}
       <div className="flex justify-center px-6 mb-6">
-        <LanguageToggleInline />
+        <LanguageToggle />
       </div>
       <div className="h-px bg-slate-700 mx-3 mb-6" />
       <div className="flex flex-col items-center gap-4 px-6">

@@ -253,9 +253,9 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
       const formData = new FormData();
       formData.append('image', file);
       if (notation) formData.append('notation', notation);
-      console.log(`[Scoresheet] Uploading image: ${file.name} (${(file.size / 1024).toFixed(0)} KB, ${file.type})`);
+      if (import.meta.env.DEV) console.log(`[Scoresheet] Uploading image: ${file.name} (${(file.size / 1024).toFixed(0)} KB, ${file.type})`);
       const res = await fetch('/api/coaches/read-scoresheet', { method: 'POST', body: formData, signal });
-      console.log(`[Scoresheet] Upload complete, status: ${res.status}`);
+      if (import.meta.env.DEV) console.log(`[Scoresheet] Upload complete, status: ${res.status}`);
       if (!res.ok) {
         const text = await res.text();
         try { const json = JSON.parse(text); throw new Error(json.error || 'Analysis failed'); }
@@ -274,8 +274,8 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
           let payload;
-          try { payload = JSON.parse(line.slice(6)); } catch { console.warn('[Scoresheet] Failed to parse SSE line:', line); continue; }
-          console.log(`[Scoresheet] SSE event:`, payload.type, payload.model_id || '');
+          try { payload = JSON.parse(line.slice(6)); } catch { if (import.meta.env.DEV) console.warn('[Scoresheet] Failed to parse SSE line:', line); continue; }
+          if (import.meta.env.DEV) console.log(`[Scoresheet] SSE event:`, payload.type, payload.model_id || '');
           if (payload.type === 'models') {
             setScoresheet(prev => ({ ...prev, models: payload.models, startTime: Date.now() }));
           } else if (payload.type === 'azure_grid') {
@@ -284,7 +284,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
             // Store retry info — will be merged into modelResults when the final result arrives
             const { model_id, free_error, free_elapsed } = payload;
             retryInfoRef.current[model_id] = { free_error, free_elapsed };
-            console.log(`[Scoresheet] ${model_id} retrying after free key failed (${free_elapsed}s)`);
+            if (import.meta.env.DEV) console.log(`[Scoresheet] ${model_id} retrying after free key failed (${free_elapsed}s)`);
           } else if (payload.type === 'result') {
             const { model_id, name, result, error: err, elapsed, warnings, tier, retry } = payload;
             const retryInfo = retry || retryInfoRef.current[model_id] || undefined;
@@ -295,10 +295,10 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           }
         }
       }
-      console.log('[Scoresheet] SSE stream complete');
+      if (import.meta.env.DEV) console.log('[Scoresheet] SSE stream complete');
     } catch (e) {
-      if (signal.aborted) { console.log('[Scoresheet] Cancelled by user'); return; }
-      console.error('[Scoresheet] Error:', e);
+      if (signal.aborted) { if (import.meta.env.DEV) console.log('[Scoresheet] Cancelled by user'); return; }
+      if (import.meta.env.DEV) console.error('[Scoresheet] Error:', e);
       setScoresheet(prev => ({ ...prev, error: e instanceof Error ? e.message : 'Unknown error' }));
     } finally {
       setScoresheet(prev => ({ ...prev, analyzing: false }));
@@ -309,7 +309,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
   // const scoresheetAnalyzeAzure = useCallback(async (file: File, signal: AbortSignal) => { ... }, []);
 
   const scoresheetCancel = useCallback(() => {
-    console.log('[Scoresheet] Cancelling analysis...');
+    if (import.meta.env.DEV) console.log('[Scoresheet] Cancelling analysis...');
     if (scoresheetAnalyzeAbortRef.current) { scoresheetAnalyzeAbortRef.current.abort(); scoresheetAnalyzeAbortRef.current = null; }
     setScoresheet(prev => ({
       ...prev,

@@ -5,6 +5,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
+import { StudentForm } from '../components/StudentForm';
+import type { StudentFormData } from '../components/StudentForm';
 
 // ── Types ──
 
@@ -35,7 +37,7 @@ interface Pack {
 // ── Main Page ──
 
 export function StudentDetailPage() {
-  const { t, language: lang } = useLanguage();
+  const { t } = useLanguage();
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
 
@@ -66,14 +68,18 @@ export function StudentDetailPage() {
     Promise.all([fetchStudent(), fetchPacks()]).then(() => setLoading(false));
   }, [fetchStudent, fetchPacks]);
 
-  const handleUpdate = async (form: { student_name: string; source: string; chesscom_username: string; lichess_username: string }) => {
-    await authFetch(`/api/coaches/students/${studentId}`, {
+  const [editSaving, setEditSaving] = useState(false);
+  const handleUpdate = async (form: StudentFormData) => {
+    setEditSaving(true);
+    const res = await authFetch(`/api/coaches/students/${studentId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
+    if (!res.ok) return;
     setEditing(false);
     fetchStudent();
+    setEditSaving(false);
   };
 
   const handleDelete = async () => {
@@ -113,7 +119,17 @@ export function StudentDetailPage() {
 
       <div className="max-w-3xl mx-[5%] md:mx-auto mt-4 space-y-6">
         {editing ? (
-          <StudentEditForm student={student} onSave={handleUpdate} onCancel={() => setEditing(false)} lang={lang} />
+          <StudentForm
+            initial={{
+              student_name: student.student_name,
+              source: student.source || '',
+              chesscom_username: student.chesscom_username || '',
+              lichess_username: student.lichess_username || '',
+            }}
+            onSave={handleUpdate}
+            onCancel={() => setEditing(false)}
+            saving={editSaving}
+          />
         ) : (
           <>
             {/* Student info card */}
@@ -207,72 +223,3 @@ export function StudentDetailPage() {
   );
 }
 
-// ── Edit Form ──
-
-const SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
-
-function StudentEditForm({ student, onSave, onCancel, lang }: {
-  student: Student;
-  onSave: (data: { student_name: string; source: string; chesscom_username: string; lichess_username: string }) => void;
-  onCancel: () => void;
-  lang: string;
-}) {
-  const { t } = useLanguage();
-  const [form, setForm] = useState({
-    student_name: student.student_name,
-    source: student.source || '',
-    chesscom_username: student.chesscom_username || '',
-    lichess_username: student.lichess_username || '',
-  });
-  const [saving, setSaving] = useState(false);
-
-  const input = 'w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors';
-  const label = 'text-xs font-medium text-slate-400 mb-1';
-
-  const handleSave = async () => {
-    setSaving(true);
-    try { await onSave(form); } finally { setSaving(false); }
-  };
-
-  return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-3 max-w-sm mx-auto">
-      <div>
-        <div className={label}>{t('coaches.students.name')} *</div>
-        <input className={input} value={form.student_name} onChange={e => setForm({ ...form, student_name: e.target.value })} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
-      </div>
-      <div>
-        <div className={label}>{t('coaches.packs.source')}</div>
-        <select className={input} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
-          <option value=""></option>
-          {SOURCES.map(s => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
-      </div>
-      {form.source === 'chess.com' && (
-        <div>
-          <div className={label}>Chess.com username</div>
-          <input className={input} value={form.chesscom_username} onChange={e => setForm({ ...form, chesscom_username: e.target.value })} placeholder="e.g. MagnusCarlsen" />
-        </div>
-      )}
-      {form.source === 'lichess' && (
-        <div>
-          <div className={label}>Lichess username</div>
-          <input className={input} value={form.lichess_username} onChange={e => setForm({ ...form, lichess_username: e.target.value })} placeholder="e.g. DrNykterstein" />
-        </div>
-      )}
-      <div className="flex items-center justify-center gap-3 pt-1">
-        <button
-          onClick={handleSave}
-          disabled={!form.student_name.trim() || saving}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {saving ? '...' : t('coaches.students.save')}
-        </button>
-        <button onClick={onCancel} className="px-4 py-2 text-slate-400 hover:text-slate-200 text-sm transition-colors">
-          {t('coaches.students.cancel')}
-        </button>
-      </div>
-    </div>
-  );
-}

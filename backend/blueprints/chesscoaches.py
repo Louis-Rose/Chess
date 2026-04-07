@@ -1301,7 +1301,7 @@ def add_coach_student():
         cursor = conn.execute(
             '''INSERT INTO coach_students
                (coach_user_id, student_name, timezone, currency, source, chesscom_username, lichess_username, recurring_day, recurring_time)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id''',
             (request.user_id, name, data.get('timezone', 'UTC'),
              (data.get('currency') or '').strip() or None,
              (data.get('source') or '').strip() or None,
@@ -1309,7 +1309,7 @@ def add_coach_student():
              (data.get('lichess_username') or '').strip() or None,
              recurring_day, recurring_time)
         )
-        student_id = conn.execute('SELECT lastval() AS id').fetchone()['id']
+        student_id = cursor.fetchone()['id']
 
     return jsonify({'id': student_id, 'message': 'Student added'}), 201
 
@@ -1420,7 +1420,7 @@ def create_coach_pack(student_id):
 
         cursor = conn.execute(
             '''INSERT INTO coach_packs (student_id, total_lessons, lessons_done, lessons_paid, price, currency, source, note)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id''',
             (student_id, total,
              data.get('lessons_done', 0),
              data.get('lessons_paid', 0),
@@ -1429,7 +1429,7 @@ def create_coach_pack(student_id):
              (data.get('source') or '').strip() or None,
              (data.get('note') or '').strip() or None)
         )
-        pack_id = conn.execute('SELECT lastval() AS id').fetchone()['id']
+        pack_id = cursor.fetchone()['id']
 
     return jsonify({'id': pack_id, 'message': 'Pack created'}), 201
 
@@ -1555,8 +1555,7 @@ def get_profile():
         )
         bundles = [dict(row) for row in cursor.fetchall()]
 
-    # Get user name/picture for pre-fill
-    with get_db() as conn:
+        # Get user name/picture for pre-fill (same connection)
         cursor = conn.execute('SELECT name, picture FROM users WHERE id = ?', (user_id,))
         user = cursor.fetchone()
 

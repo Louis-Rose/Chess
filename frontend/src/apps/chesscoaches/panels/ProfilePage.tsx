@@ -83,21 +83,25 @@ export function ProfilePage() {
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
-    const tz = getTimezoneForCity(city);
-    await authFetch('/api/coaches/profile', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        display_name: displayName, city, timezone: tz, currency,
-        lesson_rate: lessonRate || null,
-        lesson_duration: lessonDuration,
-        chesscom_username: chesscom, lichess_username: lichess,
-        bundles: bundles.filter(b => b.lessons && b.price !== ''),
-      }),
-    });
-    setSaving(false);
-    setHasProfile(true);
-    setEditing(false);
+    try {
+      const tz = getTimezoneForCity(city);
+      const res = await authFetch('/api/coaches/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          display_name: displayName, city, timezone: tz, currency,
+          lesson_rate: lessonRate || null,
+          lesson_duration: lessonDuration,
+          chesscom_username: chesscom, lichess_username: lichess,
+          bundles: bundles.filter(b => b.lessons && b.price !== ''),
+        }),
+      });
+      if (!res.ok) return;
+      setHasProfile(true);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addBundle = () => setBundles(prev => [...prev, { lessons: '', price: '' }]);

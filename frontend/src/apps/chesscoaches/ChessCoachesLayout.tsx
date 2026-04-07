@@ -9,6 +9,7 @@ import { CoachesSidebar } from './CoachesSidebar';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { LumnaBrand, LumnaBrandSubtitle } from './components/LumnaBrand';
+import { LanguageToggle } from './components/LanguageToggle';
 
 export interface NavItem {
   path: string;
@@ -181,30 +182,6 @@ function CoachesNavSidebar() {
 
         <div className="h-px bg-slate-700" />
       </div>
-    </div>
-  );
-}
-
-function LanguageToggle() {
-  const { language, setLanguage } = useLanguage();
-  return (
-    <div className="relative flex bg-slate-700 rounded-md p-0.5">
-      <div
-        className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] bg-slate-500 rounded transition-transform duration-200"
-        style={{ transform: language === 'en' ? 'translateX(0)' : 'translateX(100%)' }}
-      />
-      <button
-        onClick={() => setLanguage('en')}
-        className={`relative z-10 px-2 py-1 text-xs md:text-sm font-medium rounded transition-colors ${language === 'en' ? 'text-white' : 'text-slate-400'}`}
-      >
-        <span className="md:hidden">EN</span><span className="hidden md:inline">English</span>
-      </button>
-      <button
-        onClick={() => setLanguage('fr')}
-        className={`relative z-10 px-2 py-1 text-xs md:text-sm font-medium rounded transition-colors ${language === 'fr' ? 'text-white' : 'text-slate-400'}`}
-      >
-        <span className="md:hidden">FR</span><span className="hidden md:inline">Français</span>
-      </button>
     </div>
   );
 }

@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ChevronRight, Users } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { PanelShell, btnPrimary, BTN_GHOST } from '../components/PanelShell';
+import { PanelShell, btnPrimary } from '../components/PanelShell';
+import { StudentForm, EMPTY_STUDENT_FORM } from '../components/StudentForm';
+import type { StudentFormData } from '../components/StudentForm';
 
 // ── Types ──
 
@@ -31,90 +33,6 @@ interface Lesson {
 }
 
 import { authFetch } from '../utils/authFetch';
-
-export function getTimezoneAbbr(tz: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-US', {
-      timeZone: tz, timeZoneName: 'short',
-    }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || tz;
-  } catch { return tz; }
-}
-
-// ── Student Form ──
-
-interface StudentFormData {
-  student_name: string;
-  source: string;
-  chesscom_username: string;
-  lichess_username: string;
-}
-
-const EMPTY_FORM: StudentFormData = {
-  student_name: '',
-  source: '',
-  chesscom_username: '',
-  lichess_username: '',
-};
-
-const SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
-
-function StudentForm({ initial, onSave, onCancel, saving, lang }: {
-  initial: StudentFormData;
-  onSave: (data: StudentFormData) => void;
-  onCancel: () => void;
-  saving: boolean;
-  lang: string;
-}) {
-  const { t } = useLanguage();
-  const [form, setForm] = useState(initial);
-
-  const input = 'w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors';
-  const label = 'text-xs font-medium text-slate-400 mb-1';
-
-  return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-3 max-w-sm mx-auto">
-      <div>
-        <div className={label}>{t('coaches.students.name')} *</div>
-        <input className={input} value={form.student_name} onChange={e => setForm({ ...form, student_name: e.target.value })} placeholder={lang === 'fr' ? 'Nom de l\'élève' : 'Student name'} />
-      </div>
-      <div>
-        <div className={label}>{t('coaches.packs.source')}</div>
-        <select className={input} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
-          <option value=""></option>
-          {SOURCES.map(s => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
-      </div>
-      {form.source === 'chess.com' && (
-        <div>
-          <div className={label}>Chess.com username</div>
-          <input className={input} value={form.chesscom_username} onChange={e => setForm({ ...form, chesscom_username: e.target.value })} placeholder="e.g. MagnusCarlsen" />
-        </div>
-      )}
-      {form.source === 'lichess' && (
-        <div>
-          <div className={label}>Lichess username</div>
-          <input className={input} value={form.lichess_username} onChange={e => setForm({ ...form, lichess_username: e.target.value })} placeholder="e.g. DrNykterstein" />
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex items-center justify-center gap-3 pt-1">
-        <button
-          onClick={() => onSave(form)}
-          disabled={!form.student_name.trim() || saving}
-          className={btnPrimary('purple')}
-        >
-          {saving ? '...' : t('coaches.students.save')}
-        </button>
-        <button onClick={onCancel} className={BTN_GHOST}>
-          {t('coaches.students.cancel')}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ── Student Card ──
 
@@ -146,7 +64,7 @@ function StudentCard({ student }: {
 // ── Main Panel ──
 
 export function StudentsPanel() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -215,11 +133,10 @@ export function StudentsPanel() {
         {/* Add student */}
         {showAddForm ? (
           <StudentForm
-            initial={EMPTY_FORM}
+            initial={EMPTY_STUDENT_FORM}
             onSave={handleAddStudent}
             onCancel={() => setShowAddForm(false)}
             saving={saving}
-            lang={language}
           />
         ) : (
           <button

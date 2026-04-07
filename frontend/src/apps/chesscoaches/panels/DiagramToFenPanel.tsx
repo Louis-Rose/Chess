@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Upload, ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
 import { UploadBox } from '../components/UploadBox';
+import { ImageZoomModal } from '../components/ImageZoomModal';
 import { Chess } from 'chess.js';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
@@ -108,12 +109,7 @@ export function DiagramToFenPanel() {
           )}
 
       {showImageModal && preview && (
-        <div
-          onClick={() => setShowImageModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1.5px] cursor-pointer"
-        >
-          <img src={preview} alt="Diagram" className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain" />
-        </div>
+        <ImageZoomModal src={preview} alt="Diagram" onClose={() => setShowImageModal(false)} />
       )}
     </PanelShell>
   );

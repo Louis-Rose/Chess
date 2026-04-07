@@ -255,7 +255,7 @@ def activity_heartbeat():
                 last_ping_time = datetime.fromisoformat(last_ping.replace('Z', '+00:00')) if isinstance(last_ping, str) else last_ping
                 minutes_since_last = (datetime.utcnow() - last_ping_time.replace(tzinfo=None)).total_seconds() / 60
                 is_new_session = minutes_since_last > 30
-            except:
+            except Exception:
                 is_new_session = True
 
         # Update session tracking
