@@ -16,7 +16,7 @@ interface DashboardData {
 
 export function StudentDashboard() {
   const { t } = useLanguage();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 

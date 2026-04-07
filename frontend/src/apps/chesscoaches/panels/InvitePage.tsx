@@ -1,7 +1,7 @@
 // Invite landing page — student clicks invite link, logs in, gets linked
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Check, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -18,8 +18,7 @@ interface InviteInfo {
 export function InvitePage() {
   const { token } = useParams<{ token: string }>();
   const { t } = useLanguage();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [loading, setLoading] = useState(true);

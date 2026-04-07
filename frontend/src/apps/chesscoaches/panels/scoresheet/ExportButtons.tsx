@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Clock, Check, ExternalLink } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { getCoachesPrefs, saveCoachesPrefs } from '../../contexts/CoachesDataContext';
