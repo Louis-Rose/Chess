@@ -8,7 +8,7 @@ import { Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle } from 'luci
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { getCoachesPrefs, saveCoachesPrefs } from '../contexts/CoachesDataContext';
+import { saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { PanelShell } from '../components/PanelShell';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { NAV_SECTIONS } from '../ChessCoachesLayout';
