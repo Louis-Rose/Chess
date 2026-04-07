@@ -12,6 +12,7 @@ import { AboutPanel } from './panels/AboutPanel';
 import { StudentDetailPage } from './panels/StudentDetailPage';
 import { PaymentsPanel } from './panels/PaymentsPanel';
 import { ProfilePage } from './panels/ProfilePage';
+import { MessagesPanel } from './panels/MessagesPanel';
 import { StudentDashboard } from './panels/StudentDashboard';
 import { InvitePage } from './panels/InvitePage';
 import { RoleSelectionPage } from './panels/RoleSelectionPage';
@@ -63,6 +64,7 @@ export function ChessCoachesApp() {
         <Route path="students" element={<StudentsPanel />} />
         <Route path="students/:studentId" element={<StudentDetailPage />} />
         <Route path="payments" element={<PaymentsPanel />} />
+        <Route path="messages" element={<MessagesPanel />} />
         <Route path="scoresheets" element={<ScoresheetReadPage />} />
         <Route path="mistakes" element={<MistakeFinderPanel />} />
         <Route path="diagram" element={<DiagramToFenPanel />} />

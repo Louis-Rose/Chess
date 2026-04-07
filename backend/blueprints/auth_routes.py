@@ -460,6 +460,144 @@ def accept_invite(token):
     return jsonify({'success': True, 'student_name': invite['student_name']})
 
 
+# ============= MESSAGING =============
+
+@auth_bp.route('/api/messages/conversations', methods=['GET'])
+@login_required
+def get_conversations():
+    """List conversations for the current user (coach sees students, student sees coach)."""
+    user_id = request.user_id
+
+    with get_db() as conn:
+        # Get all users this person has exchanged messages with, plus linked students/coaches
+        # For coaches: include all linked students even if no messages yet
+        role = conn.execute('SELECT role FROM users WHERE id = ?', (user_id,)).fetchone()
+        user_role = role['role'] if role else 'coach'
+
+        if user_role == 'coach':
+            # Get linked students (with or without messages)
+            contacts = conn.execute('''
+                SELECT u.id, u.name, u.picture, cs.student_name,
+                    (SELECT content FROM messages
+                     WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
+                     ORDER BY created_at DESC LIMIT 1) AS last_message,
+                    (SELECT created_at FROM messages
+                     WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
+                     ORDER BY created_at DESC LIMIT 1) AS last_message_at,
+                    (SELECT COUNT(*) FROM messages
+                     WHERE sender_id = u.id AND receiver_id = ? AND read_at IS NULL) AS unread_count
+                FROM coach_students cs
+                JOIN users u ON cs.linked_user_id = u.id
+                WHERE cs.coach_user_id = ?
+                ORDER BY last_message_at DESC NULLS LAST
+            ''', (user_id, user_id, user_id, user_id, user_id, user_id)).fetchall()
+        else:
+            # Student: get their coach(es)
+            contacts = conn.execute('''
+                SELECT u.id, u.name, u.picture, cp.display_name AS coach_display_name,
+                    (SELECT content FROM messages
+                     WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
+                     ORDER BY created_at DESC LIMIT 1) AS last_message,
+                    (SELECT created_at FROM messages
+                     WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
+                     ORDER BY created_at DESC LIMIT 1) AS last_message_at,
+                    (SELECT COUNT(*) FROM messages
+                     WHERE sender_id = u.id AND receiver_id = ? AND read_at IS NULL) AS unread_count
+                FROM coach_students cs
+                JOIN users u ON cs.coach_user_id = u.id
+                LEFT JOIN coach_profiles cp ON u.id = cp.user_id
+                WHERE cs.linked_user_id = ?
+                ORDER BY last_message_at DESC NULLS LAST
+            ''', (user_id, user_id, user_id, user_id, user_id, user_id)).fetchall()
+
+    result = []
+    for c in contacts:
+        result.append({
+            'user_id': c['id'],
+            'name': c.get('coach_display_name') or c.get('student_name') or c['name'],
+            'picture': c['picture'],
+            'last_message': c['last_message'],
+            'last_message_at': c['last_message_at'].isoformat() if c['last_message_at'] else None,
+            'unread_count': c['unread_count'] or 0,
+        })
+
+    return jsonify({'conversations': result})
+
+
+@auth_bp.route('/api/messages/<int:other_user_id>', methods=['GET'])
+@login_required
+def get_messages(other_user_id):
+    """Get message history with a specific user."""
+    user_id = request.user_id
+    before = request.args.get('before')  # pagination cursor
+
+    with get_db() as conn:
+        params = [user_id, other_user_id, user_id, other_user_id]
+        query = '''
+            SELECT id, sender_id, receiver_id, content, read_at, created_at
+            FROM messages
+            WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
+        '''
+        if before:
+            query += ' AND created_at < ?'
+            params.append(before)
+        query += ' ORDER BY created_at DESC LIMIT 50'
+
+        rows = conn.execute(query, tuple(params)).fetchall()
+
+        # Mark unread messages from the other user as read
+        conn.execute('''
+            UPDATE messages SET read_at = CURRENT_TIMESTAMP
+            WHERE sender_id = ? AND receiver_id = ? AND read_at IS NULL
+        ''', (other_user_id, user_id))
+
+    messages = [{
+        'id': r['id'],
+        'sender_id': r['sender_id'],
+        'content': r['content'],
+        'read_at': r['read_at'].isoformat() if r['read_at'] else None,
+        'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+    } for r in reversed(rows)]  # reverse to chronological order
+
+    return jsonify({'messages': messages})
+
+
+@auth_bp.route('/api/messages/<int:other_user_id>', methods=['POST'])
+@login_required
+def send_message(other_user_id):
+    """Send a message to another user."""
+    user_id = request.user_id
+    data = request.get_json()
+    content = (data.get('content') or '').strip()
+    if not content:
+        return jsonify({'error': 'Message cannot be empty'}), 400
+    if len(content) > 5000:
+        return jsonify({'error': 'Message too long'}), 400
+
+    with get_db() as conn:
+        # Verify the other user exists and is linked (coach-student relationship)
+        linked = conn.execute('''
+            SELECT 1 FROM coach_students
+            WHERE (coach_user_id = ? AND linked_user_id = ?)
+               OR (coach_user_id = ? AND linked_user_id = ?)
+        ''', (user_id, other_user_id, other_user_id, user_id)).fetchone()
+        if not linked:
+            return jsonify({'error': 'Not authorized to message this user'}), 403
+
+        cursor = conn.execute('''
+            INSERT INTO messages (sender_id, receiver_id, content)
+            VALUES (?, ?, ?) RETURNING id, created_at
+        ''', (user_id, other_user_id, content))
+        row = cursor.fetchone()
+
+    return jsonify({
+        'id': row['id'],
+        'sender_id': user_id,
+        'content': content,
+        'created_at': row['created_at'].isoformat(),
+    }), 201
+
+
 # ============= STUDENT ROUTES =============
 
 @auth_bp.route('/api/student/dashboard', methods=['GET'])
@@ -504,6 +642,7 @@ def student_dashboard():
             'id': student['id'],
             'name': student['student_name'],
         },
+        'coach_user_id': student['coach_user_id'],
         'coach': {
             'name': student['coach_display_name'] or student['coach_name'],
             'picture': student['coach_picture'],

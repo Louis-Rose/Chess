@@ -15,6 +15,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Coaches
     'coaches.title': 'AI-Powered Suite for Chess Coaches',
     'coaches.navHome': 'Home',
+    'coaches.navMessages': 'Messages',
     'coaches.navProfile': 'My Coach Profile',
     'coaches.navCalendar': 'My Calendar',
     'coaches.profile.name': 'Name',
@@ -297,6 +298,7 @@ const translations: Record<Language, Record<string, string>> = {
     // Coaches
     'coaches.title': 'Suite IA pour entra\u00EEneurs d\'\u00E9checs',
     'coaches.navHome': 'Accueil',
+    'coaches.navMessages': 'Messages',
     'coaches.navProfile': 'Mon Profil Coach',
     'coaches.navCalendar': 'Mon calendrier',
     'coaches.profile.name': 'Nom',

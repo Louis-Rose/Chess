@@ -143,3 +143,21 @@ def init_db():
             """)
             conn.execute("CREATE INDEX idx_student_invites_token ON student_invites(token)")
             print("[Database] Created student_invites table")
+
+        # Migration: Create messages table
+        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'messages'")
+        if not conn._cursor.fetchone():
+            conn.execute("""
+                CREATE TABLE messages (
+                    id SERIAL PRIMARY KEY,
+                    sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    content TEXT NOT NULL,
+                    read_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_messages_sender ON messages(sender_id)")
+            conn.execute("CREATE INDEX idx_messages_receiver ON messages(receiver_id)")
+            conn.execute("CREATE INDEX idx_messages_conversation ON messages(sender_id, receiver_id, created_at)")
+            print("[Database] Created messages table")
