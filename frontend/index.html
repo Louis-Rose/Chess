@@ -26,6 +26,11 @@
       })();
     </script>
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- Preload Google Identity Services so login button renders instantly -->
+    <link rel="preconnect" href="https://accounts.google.com" />
+    <link rel="preconnect" href="https://apis.google.com" />
+    <script src="https://accounts.google.com/gsi/client" async></script>
   </head>
   <body>
     <div id="root"></div>
