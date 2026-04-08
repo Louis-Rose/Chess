@@ -34,28 +34,28 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
 
   return (
     <div className="max-w-4xl mx-[5%] md:mx-auto mb-4 mt-4">
-      <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-5">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Sparkles className="w-5 h-5 text-blue-400" />
+      <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-11 h-11 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Sparkles className="w-6 h-6 text-blue-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-slate-100 mb-2">
+            <h3 className="text-lg font-semibold text-slate-100 mb-3">
               {t(isStudent ? 'coaches.onboarding.welcome.student' : 'coaches.onboarding.welcome.coach')}
             </h3>
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               {steps.map((step, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="flex items-center gap-3">
                   {step.done ? (
-                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                      <Check className="w-3 h-3 text-emerald-400" />
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
                     </div>
                   ) : (
-                    <div className="w-5 h-5 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[10px] text-white font-bold">{remainingSteps.indexOf(step) + 1}</span>
+                    <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs text-white font-bold">{remainingSteps.indexOf(step) + 1}</span>
                     </div>
                   )}
-                  <span className={`text-sm ${step.done ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                  <span className={`text-base ${step.done ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
                     {step.before}
                     <button
                       onClick={() => navigate(step.path)}
