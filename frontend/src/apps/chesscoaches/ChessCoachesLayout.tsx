@@ -18,6 +18,7 @@ export interface NavItem {
   hoverColor: string;   // tailwind border-* color for card hover
   bgColor: string;       // tailwind bg-* color for card icon badge
   hidden?: boolean;      // true = route exists but not shown in sidebar/home
+  comingSoon?: boolean;  // true = shown but greyed out and not clickable
   roles?: ('coach' | 'student')[];  // which roles see this item (default: all)
 }
 
@@ -40,7 +41,7 @@ export const NAV_SECTIONS: NavSection[] = [
     titleKey: 'coaches.sectionAITools',
     items: [
       { path: '/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', roles: ['coach'] },
-      { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
+      { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', comingSoon: true, roles: ['coach'] },
       { path: '/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', hidden: true, roles: ['coach'] },
     ],
   },
@@ -164,20 +165,30 @@ function CoachesNavSidebar() {
                 <div className="text-xs font-bold text-slate-300 uppercase tracking-wider px-3 pt-2 pb-1 text-center">
                   {t(titleKey)}
                 </div>
-                {enabledItems.map(({ path, labelKey, icon: Icon }) => (
-                  <NavLink
-                    key={path}
-                    to={path}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                      }`
-                    }
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    {t(labelKey)}
-                  </NavLink>
-                ))}
+                {enabledItems.map(({ path, labelKey, icon: Icon, comingSoon }) =>
+                  comingSoon ? (
+                    <span
+                      key={path}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-600 cursor-default"
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {t(labelKey)}
+                    </span>
+                  ) : (
+                    <NavLink
+                      key={path}
+                      to={path}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                        }`
+                      }
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {t(labelKey)}
+                    </NavLink>
+                  )
+                )}
               </div>
             );
           })}

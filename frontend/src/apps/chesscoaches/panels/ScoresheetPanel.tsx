@@ -25,17 +25,20 @@ export function ScoresheetPanel() {
               </div>
               <div className="p-4">
                 <div className="flex flex-wrap justify-center gap-4">
-                  {visibleItems.map(({ path, labelKey, icon: Icon, bgColor, hoverColor }) => (
+                  {visibleItems.map(({ path, labelKey, icon: Icon, bgColor, hoverColor, comingSoon }) => (
                     <div
                       key={path}
-                      onClick={() => navigate(path)}
-                      className={`relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[100px] flex items-center w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)] ${hoverColor} hover:bg-slate-750 transition-colors cursor-pointer`}
+                      onClick={comingSoon ? undefined : () => navigate(path)}
+                      className={`relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[100px] flex items-center w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)] ${comingSoon ? 'opacity-50 cursor-default' : `${hoverColor} hover:bg-slate-750 cursor-pointer`} transition-colors`}
                     >
-                      <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <div className={`w-10 h-10 ${comingSoon ? 'bg-slate-600' : bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
                         <Icon className="w-5 h-5 text-white" />
                       </div>
-                      <span className="text-base font-semibold text-slate-100 ml-4">{t(labelKey)}</span>
-                      <ChevronRight className="w-5 h-5 text-slate-400 absolute top-3 right-3" />
+                      <div className="ml-4">
+                        <span className="text-base font-semibold text-slate-100">{t(labelKey)}</span>
+                        {comingSoon && <p className="text-xs text-slate-400 mt-0.5">{t('coaches.comingSoon')}</p>}
+                      </div>
+                      {!comingSoon && <ChevronRight className="w-5 h-5 text-slate-400 absolute top-3 right-3" />}
                     </div>
                   ))}
                 </div>
