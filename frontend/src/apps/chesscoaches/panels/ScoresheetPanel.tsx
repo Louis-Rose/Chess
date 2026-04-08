@@ -212,6 +212,10 @@ export function ScoresheetPanel() {
         {NAV_SECTIONS.map(({ titleKey, items }) => {
           const visibleItems = items.filter(i => !i.hidden);
           if (visibleItems.length === 0) return null;
+          // Determine which card to highlight based on onboarding progress
+          const highlightPath = onboarding && !onboarding.has_lessons
+            ? (!onboarding.has_profile ? '/profile' : !onboarding.has_students ? '/students' : '/schedule')
+            : null;
           return (
             <div key={titleKey} className="rounded-xl border border-slate-700 overflow-hidden">
               <div className="border-b border-slate-700 bg-slate-800/50 py-3">
@@ -221,11 +225,13 @@ export function ScoresheetPanel() {
               </div>
               <div className="p-4">
                 <div className="flex flex-wrap justify-center gap-4">
-                  {visibleItems.map(({ path, labelKey, icon: Icon, bgColor, hoverColor, comingSoon }) => (
+                  {visibleItems.map(({ path, labelKey, icon: Icon, bgColor, hoverColor, comingSoon }) => {
+                    const isHighlighted = path === highlightPath;
+                    return (
                     <div
                       key={path}
                       onClick={comingSoon ? undefined : () => navigate(path)}
-                      className={`relative bg-slate-800 border border-slate-700 rounded-xl p-5 h-[100px] flex items-center w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)] ${comingSoon ? 'opacity-50 cursor-default' : `${hoverColor} hover:bg-slate-750 cursor-pointer`} transition-colors`}
+                      className={`relative bg-slate-800 rounded-xl p-5 h-[100px] flex items-center w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)] ${comingSoon ? 'opacity-50 cursor-default border border-slate-700' : isHighlighted ? 'border-2 border-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.3)] cursor-pointer' : `border border-slate-700 ${hoverColor} hover:bg-slate-750 cursor-pointer`} transition-colors`}
                     >
                       <div className={`w-10 h-10 ${comingSoon ? 'bg-slate-600' : bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
                         <Icon className="w-5 h-5 text-white" />
@@ -236,7 +242,8 @@ export function ScoresheetPanel() {
                       </div>
                       {!comingSoon && <ChevronRight className="w-5 h-5 text-slate-400 absolute top-3 right-3" />}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

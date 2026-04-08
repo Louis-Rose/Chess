@@ -32,7 +32,6 @@ export function ProfilePage() {
   const [phone, setPhone] = useState('');
   const [chesscom, setChesscom] = useState('');
   const [lichess, setLichess] = useState('');
-  const [revolut, setRevolut] = useState('');
   const [bundles, setBundles] = useState<BundleOffer[]>([]);
 
   useEffect(() => {
@@ -49,7 +48,6 @@ export function ProfilePage() {
         setPhone(data.phone_number || '');
         setChesscom(data.chesscom_username || '');
         setLichess(data.lichess_username || '');
-        setRevolut(data.revolut_username || '');
         setBundles(data.bundles?.length ? data.bundles.map((b: { lessons: number; price: number }) => ({ lessons: b.lessons, price: b.price })) : []);
         const hasSaved = !!(data.display_name || data.city || data.currency);
         setHasProfile(hasSaved);
@@ -99,7 +97,7 @@ export function ProfilePage() {
           email, phone_number: phone,
           lesson_rate: lessonRate || null,
           lesson_duration: lessonDuration,
-          chesscom_username: chesscom, lichess_username: lichess, revolut_username: revolut,
+          chesscom_username: chesscom, lichess_username: lichess,
           bundles: bundles.filter(b => b.lessons && b.price !== ''),
         }),
       });
@@ -111,11 +109,13 @@ export function ProfilePage() {
     }
   };
 
-  const addBundle = () => setBundles(prev => [...prev, { lessons: '', price: '' }]);
-  const removeBundle = (i: number) => setBundles(prev => prev.filter((_, idx) => idx !== i));
-  const updateBundle = (i: number, field: 'lessons' | 'price', value: string) => {
-    setBundles(prev => prev.map((b, idx) => idx === i ? { ...b, [field]: value === '' ? '' : Number(value) } : b));
+  const bundle = bundles[0] || null;
+  const setBundle = (field: 'lessons' | 'price', value: string) => {
+    const val = value === '' ? '' : Number(value.replace(/[^0-9.]/g, ''));
+    if (bundles.length === 0) setBundles([{ lessons: '', price: '', [field]: val }]);
+    else setBundles([{ ...bundles[0], [field]: val }]);
   };
+  const clearBundle = () => setBundles([]);
 
   if (loading) {
     return (
@@ -150,11 +150,10 @@ export function ProfilePage() {
               <InfoRow label={t('coaches.profile.phone')} value={phone || '—'} />
             </div>
 
-            {(chesscom || lichess || revolut) && (
+            {(chesscom || lichess) && (
               <div className="grid grid-cols-2 gap-4">
                 {chesscom && <InfoRow label={t('coaches.profile.chesscomUsername')} value={chesscom} />}
                 {lichess && <InfoRow label={t('coaches.profile.lichessUsername')} value={lichess} />}
-                {revolut && <InfoRow label="Revolut" value={revolut} />}
               </div>
             )}
 
@@ -167,20 +166,12 @@ export function ProfilePage() {
               <InfoRow label={t('coaches.profile.rate')} value={lessonRate !== '' ? `${currSymbol}${lessonRate}` : '—'} />
             </div>
 
-            {bundles.length > 0 && (
-              <div className="rounded-lg border border-slate-600/50 overflow-hidden">
-                <div className="px-4 py-2 bg-slate-700/30 border-b border-slate-600/50">
-                  <label className="block text-sm text-slate-300 font-medium text-center">{t('coaches.profile.bundles')}</label>
-                </div>
-                <div className="p-4 space-y-2">
-                  {bundles.filter(b => b.lessons && b.price !== '').map((b, i) => (
-                    <div key={i} className="flex items-center gap-2 justify-center">
-                      <div className="w-24 bg-slate-700/50 text-slate-100 text-sm rounded-lg px-3 py-2 border border-slate-600/50 text-center">{b.lessons}</div>
-                      <span className="text-slate-400 text-sm">{t('coaches.profile.forWord')}</span>
-                      <div className="w-24 bg-slate-700/50 text-slate-100 text-sm rounded-lg px-3 py-2 border border-slate-600/50 text-center">{currSymbol}{b.price}</div>
-                    </div>
-                  ))}
-                </div>
+            {bundle && bundle.lessons && bundle.price !== '' && (
+              <div className="flex items-center gap-2 justify-center">
+                <span className="text-sm text-slate-300 font-medium">{t('coaches.profile.bundles')}:</span>
+                <span className="text-sm text-slate-100">{bundle.lessons} {t('coaches.profile.lessonsLabel')}</span>
+                <span className="text-slate-400 text-sm">{t('coaches.profile.forWord')}</span>
+                <span className="text-sm text-slate-100">{currSymbol}{bundle.price}</span>
               </div>
             )}
           </div>
@@ -234,7 +225,7 @@ export function ProfilePage() {
 
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('coaches.profile.email')}>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={INPUT} placeholder={user?.email || ''} />
+              <input type="email" value={email} readOnly className={`${INPUT} opacity-60 cursor-not-allowed`} />
             </Field>
             <Field label={t('coaches.profile.phone')}>
               <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className={INPUT} placeholder="+33 6 12 34 56 78" />
@@ -249,10 +240,6 @@ export function ProfilePage() {
               <input value={lichess} onChange={e => setLichess(e.target.value)} className={INPUT} />
             </Field>
           </div>
-
-          <Field label="Revolut username">
-            <input value={revolut} onChange={e => setRevolut(e.target.value)} className={INPUT} placeholder="e.g. louisrose" />
-          </Field>
 
           <div className="border-t border-slate-700 pt-4">
             <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider text-center">{t('coaches.profile.pricingTitle')}</h3>
@@ -277,25 +264,24 @@ export function ProfilePage() {
               <label className="block text-sm text-slate-300 font-medium text-center">{t('coaches.profile.bundles')}</label>
             </div>
             <div className="p-4">
-              <div className="space-y-3 mb-3">
-                {bundles.map((b, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <Field label={i === 0 ? t('coaches.profile.bundleLessons') : ''} required={i === 0}>
-                      <input type="text" inputMode="numeric" value={b.lessons} onChange={e => updateBundle(i, 'lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' text-center'} placeholder="10" />
-                    </Field>
-                    <span className={`text-slate-400 text-sm pt-2 ${i === 0 ? 'mt-6' : ''}`}>{t('coaches.profile.forWord')}</span>
-                    <Field label={i === 0 ? t('coaches.profile.bundlePrice') : ''} required={i === 0}>
-                      <input type="text" inputMode="numeric" value={b.price} onChange={e => updateBundle(i, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' text-center'} placeholder="300" />
-                    </Field>
-                    <button onClick={() => removeBundle(i)} className={`text-slate-500 hover:text-red-400 transition-colors pt-2 ${i === 0 ? 'mt-6' : ''}`}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button onClick={addBundle} className="mx-auto flex items-center justify-center gap-1.5 px-6 py-1.5 border border-dashed border-slate-600 hover:border-emerald-500 text-slate-400 hover:text-emerald-400 text-xs font-medium rounded-lg transition-colors">
-                <Plus className="w-3.5 h-3.5" /> {t('coaches.profile.addBundle')}
-              </button>
+              {bundle ? (
+                <div className="flex items-end gap-2">
+                  <Field label={t('coaches.profile.bundleLessons')}>
+                    <input type="text" inputMode="numeric" value={bundle.lessons} onChange={e => setBundle('lessons', e.target.value.replace(/[^0-9]/g, ''))} className={INPUT + ' text-center'} placeholder="10" />
+                  </Field>
+                  <span className="text-slate-400 text-sm pb-2">{t('coaches.profile.forWord')}</span>
+                  <Field label={t('coaches.profile.bundlePrice')}>
+                    <input type="text" inputMode="numeric" value={bundle.price} onChange={e => setBundle('price', e.target.value.replace(/[^0-9.]/g, ''))} className={INPUT + ' text-center'} placeholder="300" />
+                  </Field>
+                  <button onClick={clearBundle} className="text-slate-500 hover:text-red-400 transition-colors pb-2">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setBundles([{ lessons: '', price: '' }])} className="mx-auto flex items-center justify-center gap-1.5 px-6 py-1.5 border border-dashed border-slate-600 hover:border-emerald-500 text-slate-400 hover:text-emerald-400 text-xs font-medium rounded-lg transition-colors">
+                  <Plus className="w-3.5 h-3.5" /> {t('coaches.profile.addBundle')}
+                </button>
+              )}
             </div>
           </div>
 
