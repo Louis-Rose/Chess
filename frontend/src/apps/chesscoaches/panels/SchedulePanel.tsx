@@ -205,7 +205,7 @@ export function SchedulePanel() {
                     );
                   })()}
 
-                  {days.map((day, dayIdx) => {
+                  {days.map((day) => {
                     const key = fmtDate(day);
                     const dayLessons = lessonsByDay[key] || [];
                     const isToday = key === fmtDate(today);
