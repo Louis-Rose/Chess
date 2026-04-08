@@ -17,6 +17,8 @@ import type { Lesson } from '../components/LessonsSection';
 interface Student {
   id: number;
   student_name: string;
+  email: string | null;
+  phone_number: string | null;
   source: string | null;
   chesscom_username: string | null;
   lichess_username: string | null;
