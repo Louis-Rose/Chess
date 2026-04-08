@@ -17,8 +17,8 @@ export function CoachesSidebar() {
       <div className="h-px bg-slate-700 mx-3 mb-4" />
 
       {/* Description */}
-      <div className="px-6 pb-6">
-        <span className="text-slate-300 text-sm md:text-lg leading-relaxed text-center block">
+      <div className="px-6 pb-6 h-[6.5rem] md:h-[7.5rem] flex items-center">
+        <span className="text-slate-300 text-sm md:text-lg leading-relaxed text-center block w-full">
           {t('coaches.onboardingDescription')}
         </span>
       </div>
