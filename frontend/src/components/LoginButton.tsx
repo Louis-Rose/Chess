@@ -1,47 +1,82 @@
-import { GoogleLogin } from '@react-oauth/google';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useState } from 'react';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: Record<string, unknown>) => void;
+          renderButton: (el: HTMLElement, config: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+}
+
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | 'large' }) {
   const { login } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const enRef = useRef<HTMLDivElement>(null);
+  const frRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
 
-  const handleSuccess = async (credential: string | undefined) => {
+  const handleCredential = useCallback(async (response: { credential?: string }) => {
     setError(null);
     try {
-      if (credential) {
-        await login(credential);
+      if (response.credential) {
+        await login(response.credential);
         navigate('/');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }
-  };
+  }, [login, navigate]);
 
-  const handleError = () => setError('Google login failed');
+  useEffect(() => {
+    if (initializedRef.current) return;
+
+    const render = () => {
+      const g = window.google;
+      if (!g || !enRef.current || !frRef.current) return;
+
+      g.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: handleCredential,
+      });
+
+      const btnConfig = { size, theme: 'outline', text: 'signin', shape: 'rectangular' };
+
+      g.accounts.id.renderButton(enRef.current, { ...btnConfig, locale: 'en' });
+      g.accounts.id.renderButton(frRef.current, { ...btnConfig, locale: 'fr' });
+
+      initializedRef.current = true;
+    };
+
+    // SDK may already be loaded (preloaded in index.html)
+    if (window.google) {
+      render();
+    } else {
+      // Poll until ready
+      const interval = setInterval(() => {
+        if (window.google) { clearInterval(interval); render(); }
+      }, 50);
+      return () => clearInterval(interval);
+    }
+  }, [handleCredential, size]);
 
   const h = size === 'large' ? 'h-[56px] min-h-[56px] max-h-[56px]' : 'h-[48px] min-h-[48px] max-h-[48px]';
 
   return (
     <div className={`relative ${h} flex items-center justify-center overflow-hidden`}>
-      {/* Render both locales, show only the active one */}
-      {(['en', 'fr'] as const).map(lang => (
-        <div key={lang} className={language === lang ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'}>
-          <GoogleLogin
-            locale={lang}
-            onSuccess={cr => handleSuccess(cr.credential)}
-            onError={handleError}
-            size={size}
-            theme="outline"
-            text="signin"
-            shape="rectangular"
-          />
-        </div>
-      ))}
+      <div ref={enRef} className={language === 'en' ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'} />
+      <div ref={frRef} className={language === 'fr' ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'} />
       {error && (
         <div className="absolute top-full mt-2 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
           {error}
