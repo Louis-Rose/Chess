@@ -2,56 +2,46 @@ import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 
 export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | 'large' }) {
   const { login } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [visible, setVisible] = useState(true);
-  const prevLang = useRef(language);
 
-  // Detect language change synchronously during render
-  if (prevLang.current !== language) {
-    prevLang.current = language;
-    setVisible(false);
-  }
-
-  // Re-show after Google SDK has time to reinitialize
-  useEffect(() => {
-    if (!visible) {
-      const timer = setTimeout(() => setVisible(true), 800);
-      return () => clearTimeout(timer);
+  const handleSuccess = async (credential: string | undefined) => {
+    setError(null);
+    try {
+      if (credential) {
+        await login(credential);
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     }
-  }, [visible]);
+  };
+
+  const handleError = () => setError('Google login failed');
+
+  const h = size === 'large' ? 'h-[56px] min-h-[56px] max-h-[56px]' : 'h-[48px] min-h-[48px] max-h-[48px]';
 
   return (
-    <div className={`relative ${size === 'large' ? 'h-[56px] min-h-[56px] max-h-[56px]' : 'h-[48px] min-h-[48px] max-h-[48px]'} flex items-center justify-center overflow-hidden`}>
-      <div className={visible ? 'opacity-100' : 'opacity-0'}>
-        <GoogleLogin
-          key={language}
-          locale={language === 'fr' ? 'fr' : 'en'}
-          onSuccess={async (credentialResponse) => {
-            setError(null);
-            try {
-              if (credentialResponse.credential) {
-                await login(credentialResponse.credential);
-                navigate('/');
-              }
-            } catch (err) {
-              setError(err instanceof Error ? err.message : 'Login failed');
-            }
-          }}
-          onError={() => {
-            setError('Google login failed');
-          }}
-          size={size}
-          theme="outline"
-          text="signin"
-          shape="rectangular"
-        />
-      </div>
+    <div className={`relative ${h} flex items-center justify-center overflow-hidden`}>
+      {/* Render both locales, show only the active one */}
+      {(['en', 'fr'] as const).map(lang => (
+        <div key={lang} className={language === lang ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'}>
+          <GoogleLogin
+            locale={lang}
+            onSuccess={cr => handleSuccess(cr.credential)}
+            onError={handleError}
+            size={size}
+            theme="outline"
+            text="signin"
+            shape="rectangular"
+          />
+        </div>
+      ))}
       {error && (
         <div className="absolute top-full mt-2 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
           {error}
