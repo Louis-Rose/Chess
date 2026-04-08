@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Sparkles, Check } from 'lucide-react';
+import { ChevronRight, Sparkles, Check, Users, GraduationCap } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { NAV_SECTIONS } from '../ChessCoachesLayout';
@@ -77,17 +77,132 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
   );
 }
 
+function InlineRoleSelection() {
+  const { t } = useLanguage();
+  const { user, setUser } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [showInviteInput, setShowInviteInput] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [error, setError] = useState('');
+
+  const selectCoach = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/set-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ role: 'coach' }),
+      });
+      if (res.ok && user) setUser({ ...user, role: 'coach' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectStudent = async () => {
+    if (user?.is_admin) {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/auth/debug-student', { method: 'POST', credentials: 'include' });
+        if (res.ok && user) { setUser({ ...user, role: 'student' }); return; }
+      } finally { setLoading(false); }
+    }
+    setShowInviteInput(true);
+  };
+
+  const submitInviteCode = async () => {
+    const code = inviteCode.trim();
+    if (!code) return;
+    const token = code.includes('/invite/') ? code.split('/invite/').pop()! : code;
+    setLoading(true);
+    setError('');
+    try {
+      const roleRes = await fetch('/api/auth/set-role', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ role: 'student' }),
+      });
+      if (!roleRes.ok) { setError('Failed to set role'); return; }
+      const inviteRes = await fetch(`/api/invite/${token}/accept`, { method: 'POST', credentials: 'include' });
+      const data = await inviteRes.json();
+      if (!inviteRes.ok) { setError(data.error || 'Invalid invite code'); return; }
+      if (user) setUser({ ...user, role: 'student' });
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="max-w-md mx-auto text-center py-12">
+      {showInviteInput ? (
+        <div className="space-y-4">
+          <p className="text-slate-200 text-lg">{t('coaches.roleSelection.enterInvite')}</p>
+          <input
+            value={inviteCode}
+            onChange={e => setInviteCode(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && submitInviteCode()}
+            placeholder={t('coaches.roleSelection.invitePlaceholder')}
+            className="w-full bg-slate-700 text-slate-100 text-sm px-4 py-3 rounded-xl border border-slate-600 focus:border-purple-500 focus:outline-none text-center"
+            autoFocus
+          />
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          <div className="flex gap-3 justify-center">
+            <button onClick={submitInviteCode} disabled={loading || !inviteCode.trim()}
+              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors">
+              {loading ? '...' : t('coaches.roleSelection.join')}
+            </button>
+            <button onClick={() => { setShowInviteInput(false); setError(''); }}
+              className="px-6 py-2.5 text-slate-400 hover:text-slate-200 text-sm transition-colors">
+              {t('coaches.roleSelection.back')}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-slate-200 text-xl">{t('coaches.roleSelection.question')}</p>
+          <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+            <button onClick={selectCoach} disabled={loading}
+              className="flex flex-col items-center gap-3 p-6 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50">
+              <div className="w-14 h-14 rounded-full bg-blue-600/20 flex items-center justify-center">
+                <Users className="w-7 h-7 text-blue-400" />
+              </div>
+              <p className="text-slate-100 font-medium text-lg">{t('coaches.roleSelection.coach')}</p>
+            </button>
+            <button onClick={selectStudent} disabled={loading}
+              className="flex flex-col items-center gap-3 p-6 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-purple-500/50 hover:bg-slate-700 transition-all disabled:opacity-50">
+              <div className="w-14 h-14 rounded-full bg-purple-600/20 flex items-center justify-center">
+                <GraduationCap className="w-7 h-7 text-purple-400" />
+              </div>
+              <p className="text-slate-100 font-medium text-lg">{t('coaches.roleSelection.student')}</p>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ScoresheetPanel() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
 
   useEffect(() => {
-    authFetch('/api/coaches/onboarding')
-      .then(r => r.json())
-      .then(setOnboarding)
-      .catch(() => {});
-  }, []);
+    if (user?.role) {
+      authFetch('/api/coaches/onboarding')
+        .then(r => r.json())
+        .then(setOnboarding)
+        .catch(() => {});
+    }
+  }, [user?.role]);
+
+  // Role not yet chosen — show inline selection
+  if (user && user.role === null) {
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
+        <InlineRoleSelection />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">

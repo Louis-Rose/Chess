@@ -32,16 +32,6 @@ export function ChessCoachesApp() {
     if (link) link.href = '/favicon.svg';
   }, []);
 
-  // New user — needs to pick role
-  if (user && user.role === null) {
-    return (
-      <Routes>
-        <Route path="invite/:token" element={<InvitePage />} />
-        <Route path="*" element={<RoleSelectionPage />} />
-      </Routes>
-    );
-  }
-
   const isStudent = user?.role === 'student';
 
   return (
