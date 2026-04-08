@@ -418,7 +418,16 @@ def reset_role():
         if not row or not row['is_admin']:
             return jsonify({'error': 'Admin only'}), 403
         conn.execute("UPDATE users SET role = NULL WHERE id = ?", (request.user_id,))
-    logger.warning(f'[Debug] User {request.user_id} used reset-role')
+        # Delete lessons (via cascade from students), students, profile, and bundles
+        conn.execute("""
+            DELETE FROM coach_lessons WHERE student_id IN (
+                SELECT id FROM coach_students WHERE coach_user_id = ?
+            )
+        """, (request.user_id,))
+        conn.execute("DELETE FROM coach_students WHERE coach_user_id = ?", (request.user_id,))
+        conn.execute("DELETE FROM coach_profiles WHERE user_id = ?", (request.user_id,))
+        conn.execute("DELETE FROM coach_bundle_offers WHERE user_id = ?", (request.user_id,))
+    logger.warning(f'[Debug] User {request.user_id} used reset-role (wiped students/lessons/profile)')
     return jsonify({'success': True})
 
 
