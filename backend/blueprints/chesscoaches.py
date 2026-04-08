@@ -1473,6 +1473,34 @@ def delete_lesson(lesson_id):
     return jsonify({'success': True})
 
 
+@coaches_bp.route('/api/coaches/schedule', methods=['GET'])
+@login_required
+def get_coach_schedule():
+    """Get all lessons for the coach within a date range (default: current week)."""
+    from datetime import datetime, timedelta
+    start = request.args.get('start')
+    end = request.args.get('end')
+    if not start or not end:
+        today = datetime.now()
+        monday = today - timedelta(days=today.weekday())
+        start = monday.strftime('%Y-%m-%d')
+        end = (monday + timedelta(days=7)).strftime('%Y-%m-%d')
+
+    with get_db() as conn:
+        lessons = conn.execute('''
+            SELECT cl.id, cl.scheduled_at, cl.duration_minutes, cl.status, cl.notes, cl.meet_link,
+                   cs.id AS student_id, cs.student_name
+            FROM coach_lessons cl
+            JOIN coach_students cs ON cl.student_id = cs.id
+            WHERE cs.coach_user_id = ?
+              AND cl.scheduled_at >= ?
+              AND cl.scheduled_at < ?
+            ORDER BY cl.scheduled_at
+        ''', (request.user_id, start, end)).fetchall()
+
+    return jsonify({'lessons': [dict(l) for l in lessons]})
+
+
 @coaches_bp.route('/api/coaches/students/<int:student_id>/invite', methods=['POST'])
 @login_required
 def create_student_invite(student_id):

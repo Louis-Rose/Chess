@@ -13,6 +13,7 @@ import { StudentDetailPage } from './panels/StudentDetailPage';
 import { PaymentsPanel } from './panels/PaymentsPanel';
 import { ProfilePage } from './panels/ProfilePage';
 import { MessagesPanel } from './panels/MessagesPanel';
+import { SchedulePanel } from './panels/SchedulePanel';
 import { StudentHomePage } from './panels/StudentHomePage';
 import { InvitePage } from './panels/InvitePage';
 import { RoleSelectionPage } from './panels/RoleSelectionPage';
@@ -51,6 +52,7 @@ export function ChessCoachesApp() {
       {/* Shared layout — sidebar filters visibility by role */}
       <Route element={<ChessCoachesLayout />}>
         <Route index element={isStudent ? <StudentHomePage /> : <ScoresheetPanel />} />
+        <Route path="schedule" element={<SchedulePanel />} />
         <Route path="messages" element={<MessagesPanel />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="students" element={<StudentsPanel />} />
