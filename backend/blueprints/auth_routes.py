@@ -579,6 +579,19 @@ def accept_invite(token):
 
 # ============= MESSAGING =============
 
+@auth_bp.route('/api/messages/unread-count', methods=['GET'])
+@login_required
+def get_unread_count():
+    """Get total unread message count for the current user."""
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT COUNT(*) AS cnt FROM messages WHERE receiver_id = ? AND read_at IS NULL',
+            (request.user_id,)
+        ).fetchone()
+    return jsonify({'count': row['cnt'] if row else 0})
+
+
+
 @auth_bp.route('/api/messages/conversations', methods=['GET'])
 @login_required
 def get_conversations():

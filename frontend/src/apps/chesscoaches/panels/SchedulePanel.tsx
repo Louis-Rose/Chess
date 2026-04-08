@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Video } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
@@ -17,6 +17,18 @@ interface ScheduleLesson {
   student_id: number;
   student_name: string;
   student_timezone: string | null;
+}
+
+interface StudentOption {
+  id: number;
+  student_name: string;
+}
+
+interface NewEventState {
+  date: string;       // YYYY-MM-DD
+  hour: number;       // 0-23
+  minute: number;     // 0 or 30
+  dayIdx: number;     // column index for positioning
 }
 
 function getMonday(d: Date): Date {
@@ -49,12 +61,154 @@ const START_HOUR = 7;
 const END_HOUR = 22;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 
+// ── Create Event Popup ──
+
+function CreateEventPopup({ event, students, locale, onClose, onCreated }: {
+  event: NewEventState;
+  students: StudentOption[];
+  locale: string;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const { t } = useLanguage();
+  const [studentId, setStudentId] = useState<number | ''>('');
+  const [time, setTime] = useState(`${String(event.hour).padStart(2, '0')}:${String(event.minute).padStart(2, '0')}`);
+  const [duration, setDuration] = useState('60');
+  const [createMeet, setCreateMeet] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    authFetch('/api/auth/google-calendar/status')
+      .then(r => r.json())
+      .then(d => setCalendarConnected(d.connected))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  const d = new Date(`${event.date}T${time}:00`);
+  const dateLabel = d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+  const endTime = new Date(d.getTime() + parseInt(duration) * 60000);
+  const timeRange = `${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} – ${endTime.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
+
+  const handleSave = async () => {
+    if (!studentId || saving) return;
+    setSaving(true);
+    try {
+      const scheduled_at = `${event.date}T${time}:00`;
+      const res = await authFetch(`/api/coaches/students/${studentId}/lessons`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduled_at, duration_minutes: parseInt(duration), create_meet: createMeet }),
+      });
+      if (res.ok) {
+        onCreated();
+        onClose();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div ref={popupRef}
+      className="absolute z-30 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-72 animate-in fade-in zoom-in-95 duration-150"
+      style={{
+        left: `calc(${(event.dayIdx / 7) * 100}% + ${100 / 7 / 2}% - 144px)`,
+        top: Math.min((event.hour - START_HOUR + event.minute / 60) * HOUR_HEIGHT, TOTAL_HOURS * HOUR_HEIGHT - 320),
+      }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <span className="text-sm font-semibold text-slate-100">{t('coaches.calendar.newLesson')}</span>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="px-4 pb-4 space-y-3">
+        {/* Student selector */}
+        <div className="flex items-center gap-2.5">
+          <Users className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <select
+            value={studentId}
+            onChange={e => setStudentId(e.target.value ? Number(e.target.value) : '')}
+            className="flex-1 bg-slate-700 text-slate-100 text-sm rounded-lg px-2.5 py-1.5 border border-slate-600 focus:border-blue-500 focus:outline-none"
+            autoFocus
+          >
+            <option value="">{t('coaches.calendar.selectStudent')}</option>
+            {students.map(s => (
+              <option key={s.id} value={s.id}>{s.student_name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Date & time */}
+        <div className="flex items-center gap-2.5">
+          <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-slate-200 capitalize">{dateLabel}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <input type="time" value={time} onChange={e => setTime(e.target.value)}
+                className="bg-slate-700 text-slate-100 text-xs rounded px-2 py-1 border border-slate-600 focus:border-blue-500 focus:outline-none w-24" />
+              <span className="text-slate-500 text-xs">–</span>
+              <span className="text-xs text-slate-400">{timeRange.split('–')[1]?.trim()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Duration */}
+        <div className="flex items-center gap-2.5 pl-6">
+          <select value={duration} onChange={e => setDuration(e.target.value)}
+            className="bg-slate-700 text-slate-100 text-xs rounded-lg px-2.5 py-1.5 border border-slate-600 focus:border-blue-500 focus:outline-none">
+            <option value="60">1 hour</option>
+            <option value="90">1h30</option>
+            <option value="120">2 hours</option>
+          </select>
+        </div>
+
+        {/* Google Meet */}
+        {calendarConnected && (
+          <div className="flex items-center gap-2.5">
+            <VideoIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={createMeet} onChange={e => setCreateMeet(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span className="text-sm text-slate-300">Google Meet</span>
+            </label>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <button onClick={handleSave} disabled={!studentId || saving}
+            className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors">
+            {saving ? '...' : t('coaches.calendar.save')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ──
+
 export function SchedulePanel() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [lessons, setLessons] = useState<ScheduleLesson[]>([]);
   const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState<StudentOption[]>([]);
+  const [newEvent, setNewEvent] = useState<NewEventState | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const fetchSchedule = useCallback(async () => {
@@ -71,10 +225,18 @@ export function SchedulePanel() {
 
   useEffect(() => { fetchSchedule(); }, [fetchSchedule]);
 
+  // Fetch students list once
+  useEffect(() => {
+    authFetch('/api/coaches/students')
+      .then(r => r.json())
+      .then(data => setStudents((data.students || []).map((s: StudentOption) => ({ id: s.id, student_name: s.student_name }))))
+      .catch(() => {});
+  }, []);
+
   // Scroll to 8am on mount
   useEffect(() => {
     if (!loading && gridRef.current) {
-      gridRef.current.scrollTop = HOUR_HEIGHT; // 1 hour below START_HOUR (=8am)
+      gridRef.current.scrollTop = HOUR_HEIGHT;
     }
   }, [loading]);
 
@@ -94,6 +256,26 @@ export function SchedulePanel() {
     const key = l.scheduled_at.slice(0, 10);
     if (lessonsByDay[key]) lessonsByDay[key].push(l);
   }
+
+  // Click on empty grid area → open create popup
+  const handleGridClick = (dayIdx: number, e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const rawHour = START_HOUR + y / HOUR_HEIGHT;
+    const hour = Math.floor(rawHour);
+    const minute = Math.round((rawHour - hour) * 60 / 30) * 30;
+    const adjustedHour = minute === 60 ? hour + 1 : hour;
+    const adjustedMinute = minute === 60 ? 0 : minute;
+
+    if (adjustedHour < START_HOUR || adjustedHour >= END_HOUR) return;
+
+    setNewEvent({
+      date: fmtDate(days[dayIdx]),
+      hour: adjustedHour,
+      minute: adjustedMinute,
+      dayIdx,
+    });
+  };
 
   return (
     <PanelShell title={t('coaches.calendar.title')}>
@@ -133,7 +315,6 @@ export function SchedulePanel() {
           <>
             {/* Day headers */}
             <div className="flex border-b border-slate-700">
-              {/* Time gutter */}
               <div className="w-14 flex-shrink-0" />
               {days.map(day => {
                 const key = fmtDate(day);
@@ -158,7 +339,7 @@ export function SchedulePanel() {
             {/* Time grid */}
             <div ref={gridRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 240px)' }}>
               <div className="relative flex" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
-                {/* Hour labels + grid lines */}
+                {/* Hour labels */}
                 <div className="w-14 flex-shrink-0 relative">
                   {Array.from({ length: TOTAL_HOURS }, (_, i) => (
                     <div
@@ -206,7 +387,18 @@ export function SchedulePanel() {
                     );
                   })()}
 
-                  {days.map((day) => {
+                  {/* Create event popup */}
+                  {newEvent && (
+                    <CreateEventPopup
+                      event={newEvent}
+                      students={students}
+                      locale={locale}
+                      onClose={() => setNewEvent(null)}
+                      onCreated={fetchSchedule}
+                    />
+                  )}
+
+                  {days.map((day, dayIdx) => {
                     const key = fmtDate(day);
                     const dayLessons = lessonsByDay[key] || [];
                     const isToday = key === fmtDate(today);
@@ -214,7 +406,8 @@ export function SchedulePanel() {
                     return (
                       <div
                         key={key}
-                        className={`flex-1 relative border-l min-w-0 ${
+                        onClick={e => handleGridClick(dayIdx, e)}
+                        className={`flex-1 relative border-l min-w-0 cursor-pointer ${
                           isToday ? 'border-l-blue-500/30 bg-blue-500/[0.03]' : 'border-l-slate-700/50'
                         }`}
                       >
@@ -244,7 +437,7 @@ export function SchedulePanel() {
                           return (
                             <div
                               key={l.id}
-                              onClick={() => navigate(`/students/${l.student_id}`)}
+                              onClick={e => { e.stopPropagation(); navigate(`/students/${l.student_id}`); }}
                               className={`absolute left-0.5 right-0.5 rounded border cursor-pointer transition-colors overflow-hidden z-10 ${colors}`}
                               style={{ top, height }}
                             >

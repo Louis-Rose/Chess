@@ -34,8 +34,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { path: '/profile', labelKey: 'coaches.navProfile', icon: UserCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', roles: ['coach'] },
       { path: '/schedule', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', roles: ['coach'] },
       { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
-      { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
       { path: '/messages', labelKey: 'coaches.navMessages', icon: MessageCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
+      { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
     ],
   },
   {
@@ -52,7 +52,20 @@ function CoachesNavSidebar() {
   const { t } = useLanguage();
   const { user, logout } = useAuth();
   const [showPlayerMenu, setShowPlayerMenu] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const playerMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = () =>
+      fetch('/api/messages/unread-count', { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => setUnreadCount(d.count || 0))
+        .catch(() => {});
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Pick the largest font where the longest name part fits on one line
   // Available text width: sidebar 256px - card padding 24px - pl-14 (56px) = 176px
@@ -186,7 +199,12 @@ function CoachesNavSidebar() {
                       }
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" />
-                      {t(labelKey)}
+                      <span className="flex-1">{t(labelKey)}</span>
+                      {path === '/messages' && unreadCount > 0 && (
+                        <span className="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
                     </NavLink>
                   )
                 )}
