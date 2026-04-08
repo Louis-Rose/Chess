@@ -156,22 +156,22 @@ function InlineRoleSelection() {
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          <p className="text-slate-200 text-xl">{t('coaches.roleSelection.question')}</p>
-          <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+        <div className="max-w-lg mx-auto rounded-xl border border-slate-700 bg-slate-800/50 p-8">
+          <h2 className="text-xl font-semibold text-slate-100 text-center mb-6">{t('coaches.roleSelection.question')}</h2>
+          <div className="grid grid-cols-2 gap-6">
             <button onClick={selectCoach} disabled={loading}
-              className="flex flex-col items-center gap-3 p-6 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50">
-              <div className="w-14 h-14 rounded-full bg-blue-600/20 flex items-center justify-center">
-                <Users className="w-7 h-7 text-blue-400" />
+              className="flex flex-col items-center gap-4 p-8 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50">
+              <div className="w-20 h-20 rounded-full bg-blue-600/20 flex items-center justify-center">
+                <Users className="w-10 h-10 text-blue-400" />
               </div>
-              <p className="text-slate-100 font-medium text-lg">{t('coaches.roleSelection.coach')}</p>
+              <p className="text-slate-100 font-semibold text-xl">{t('coaches.roleSelection.coach')}</p>
             </button>
             <button onClick={selectStudent} disabled={loading}
-              className="flex flex-col items-center gap-3 p-6 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-purple-500/50 hover:bg-slate-700 transition-all disabled:opacity-50">
-              <div className="w-14 h-14 rounded-full bg-purple-600/20 flex items-center justify-center">
-                <GraduationCap className="w-7 h-7 text-purple-400" />
+              className="flex flex-col items-center gap-4 p-8 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-purple-500/50 hover:bg-slate-700 transition-all disabled:opacity-50">
+              <div className="w-20 h-20 rounded-full bg-purple-600/20 flex items-center justify-center">
+                <GraduationCap className="w-10 h-10 text-purple-400" />
               </div>
-              <p className="text-slate-100 font-medium text-lg">{t('coaches.roleSelection.student')}</p>
+              <p className="text-slate-100 font-semibold text-xl">{t('coaches.roleSelection.student')}</p>
             </button>
           </div>
         </div>
