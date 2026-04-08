@@ -121,6 +121,8 @@ CREATE TABLE IF NOT EXISTS coach_students (
     source TEXT,
     chesscom_username TEXT,
     lichess_username TEXT,
+    email TEXT,
+    phone_number TEXT,
     recurring_day INTEGER,
     recurring_time TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -209,6 +211,8 @@ CREATE TABLE IF NOT EXISTS coach_profiles (
     chesscom_username TEXT,
     lichess_username TEXT,
     revolut_username TEXT,
+    email TEXT,
+    phone_number TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -6,6 +6,8 @@ export const STUDENT_SOURCES = ['chess.com', 'lichess', 'superprof', 'my website
 
 export interface StudentFormData {
   student_name: string;
+  email: string;
+  phone_number: string;
   source: string;
   chesscom_username: string;
   lichess_username: string;
@@ -13,6 +15,8 @@ export interface StudentFormData {
 
 export const EMPTY_STUDENT_FORM: StudentFormData = {
   student_name: '',
+  email: '',
+  phone_number: '',
   source: '',
   chesscom_username: '',
   lichess_username: '',
@@ -35,6 +39,14 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
       <div>
         <div className={label}>{t('coaches.students.name')} *</div>
         <input className={input} value={form.student_name} onChange={e => setForm({ ...form, student_name: e.target.value })} placeholder={t('coaches.students.name')} />
+      </div>
+      <div>
+        <div className={label}>{t('coaches.students.email')}</div>
+        <input type="email" className={input} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="student@email.com" />
+      </div>
+      <div>
+        <div className={label}>{t('coaches.students.phone')}</div>
+        <input type="tel" className={input} value={form.phone_number} onChange={e => setForm({ ...form, phone_number: e.target.value })} placeholder="+33 6 12 34 56 78" />
       </div>
       <div>
         <div className={label}>{t('coaches.packs.source')}</div>

@@ -1295,14 +1295,16 @@ def add_coach_student():
     with get_db() as conn:
         cursor = conn.execute(
             '''INSERT INTO coach_students
-               (coach_user_id, student_name, timezone, currency, source, chesscom_username, lichess_username, recurring_day, recurring_time)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id''',
+               (coach_user_id, student_name, timezone, currency, source, chesscom_username, lichess_username, recurring_day, recurring_time, email, phone_number)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id''',
             (request.user_id, name, data.get('timezone', 'UTC'),
              (data.get('currency') or '').strip() or None,
              (data.get('source') or '').strip() or None,
              (data.get('chesscom_username') or '').strip() or None,
              (data.get('lichess_username') or '').strip() or None,
-             recurring_day, recurring_time)
+             recurring_day, recurring_time,
+             (data.get('email') or '').strip() or None,
+             (data.get('phone_number') or '').strip() or None)
         )
         student_id = cursor.fetchone()['id']
 
@@ -1315,7 +1317,7 @@ def update_coach_student(student_id):
     """Update a student's details."""
     data = request.get_json()
 
-    allowed = ['student_name', 'timezone', 'currency', 'source', 'chesscom_username', 'lichess_username', 'recurring_day', 'recurring_time']
+    allowed = ['student_name', 'timezone', 'currency', 'source', 'chesscom_username', 'lichess_username', 'recurring_day', 'recurring_time', 'email', 'phone_number']
     sets = []
     vals = []
     for field in allowed:
@@ -1846,14 +1848,15 @@ def get_profile():
         )
         bundles = [dict(row) for row in cursor.fetchall()]
 
-        # Get user name/picture for pre-fill (same connection)
-        cursor = conn.execute('SELECT name, picture FROM users WHERE id = ?', (user_id,))
+        # Get user name/picture/email for pre-fill (same connection)
+        cursor = conn.execute('SELECT name, picture, email FROM users WHERE id = ?', (user_id,))
         user = cursor.fetchone()
 
     result = dict(profile) if profile else {}
     result['bundles'] = bundles
     result['google_name'] = user['name'] if user else None
     result['picture'] = user['picture'] if user else None
+    result['google_email'] = user['email'] if user else None
     return jsonify(result)
 
 
@@ -1873,13 +1876,15 @@ def update_profile():
     chesscom_username = (data.get('chesscom_username') or '').strip() or None
     lichess_username = (data.get('lichess_username') or '').strip() or None
     revolut_username = (data.get('revolut_username') or '').strip() or None
+    email = (data.get('email') or '').strip() or None
+    phone_number = (data.get('phone_number') or '').strip() or None
     bundles = data.get('bundles', [])
 
     with get_db() as conn:
         # Upsert profile
         conn.execute('''
-            INSERT INTO coach_profiles (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username, revolut_username, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            INSERT INTO coach_profiles (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username, revolut_username, email, phone_number, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT (user_id) DO UPDATE SET
                 display_name = EXCLUDED.display_name,
                 city = EXCLUDED.city,
@@ -1890,8 +1895,10 @@ def update_profile():
                 chesscom_username = EXCLUDED.chesscom_username,
                 lichess_username = EXCLUDED.lichess_username,
                 revolut_username = EXCLUDED.revolut_username,
+                email = EXCLUDED.email,
+                phone_number = EXCLUDED.phone_number,
                 updated_at = CURRENT_TIMESTAMP
-        ''', (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username, revolut_username))
+        ''', (user_id, display_name, city, timezone, currency, lesson_rate, lesson_duration, chesscom_username, lichess_username, revolut_username, email, phone_number))
 
         # Replace bundle offers
         conn.execute('DELETE FROM coach_bundle_offers WHERE user_id = ?', (user_id,))

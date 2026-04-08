@@ -216,3 +216,19 @@ def init_db():
         if not _column_exists(conn, 'users', 'google_calendar_refresh_token'):
             conn.execute("ALTER TABLE users ADD COLUMN google_calendar_refresh_token TEXT")
             logger.info("Added google_calendar_refresh_token column to users")
+
+        # Migration: Add email and phone_number to coach_profiles
+        if not _column_exists(conn, 'coach_profiles', 'email'):
+            conn.execute("ALTER TABLE coach_profiles ADD COLUMN email TEXT")
+            logger.info("Added email column to coach_profiles")
+        if not _column_exists(conn, 'coach_profiles', 'phone_number'):
+            conn.execute("ALTER TABLE coach_profiles ADD COLUMN phone_number TEXT")
+            logger.info("Added phone_number column to coach_profiles")
+
+        # Migration: Add email and phone_number to coach_students
+        if not _column_exists(conn, 'coach_students', 'email'):
+            conn.execute("ALTER TABLE coach_students ADD COLUMN email TEXT")
+            logger.info("Added email column to coach_students")
+        if not _column_exists(conn, 'coach_students', 'phone_number'):
+            conn.execute("ALTER TABLE coach_students ADD COLUMN phone_number TEXT")
+            logger.info("Added phone_number column to coach_students")

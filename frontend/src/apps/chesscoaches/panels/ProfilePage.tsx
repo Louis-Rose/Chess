@@ -28,6 +28,8 @@ export function ProfilePage() {
   const [currency, setCurrency] = useState('');
   const [lessonRate, setLessonRate] = useState<number | ''>('');
   const [lessonDuration, setLessonDuration] = useState(0);
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [chesscom, setChesscom] = useState('');
   const [lichess, setLichess] = useState('');
   const [revolut, setRevolut] = useState('');
@@ -43,6 +45,8 @@ export function ProfilePage() {
         setCurrency(data.currency || '');
         setLessonRate(data.lesson_rate ?? '');
         setLessonDuration(data.lesson_duration || 0);
+        setEmail(data.email || data.google_email || '');
+        setPhone(data.phone_number || '');
         setChesscom(data.chesscom_username || '');
         setLichess(data.lichess_username || '');
         setRevolut(data.revolut_username || '');
@@ -92,6 +96,7 @@ export function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           display_name: displayName, city, timezone: tz, currency,
+          email, phone_number: phone,
           lesson_rate: lessonRate || null,
           lesson_duration: lessonDuration,
           chesscom_username: chesscom, lichess_username: lichess, revolut_username: revolut,
@@ -139,6 +144,11 @@ export function ProfilePage() {
             <InfoRow label={t('coaches.profile.name')} value={displayName} />
             <InfoRow label={t('coaches.profile.city')} value={city ? `${city} (${cityTimezone})` : '—'} />
             <InfoRow label={t('coaches.profile.currency')} value={currency ? `${currName} (${currSymbol})` : '—'} />
+
+            <div className="grid grid-cols-2 gap-4">
+              <InfoRow label={t('coaches.profile.email')} value={email || '—'} />
+              <InfoRow label={t('coaches.profile.phone')} value={phone || '—'} />
+            </div>
 
             {(chesscom || lichess || revolut) && (
               <div className="grid grid-cols-2 gap-4">
@@ -221,6 +231,15 @@ export function ProfilePage() {
               ))}
             </select>
           </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label={t('coaches.profile.email')}>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={INPUT} placeholder={user?.email || ''} />
+            </Field>
+            <Field label={t('coaches.profile.phone')}>
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className={INPUT} placeholder="+33 6 12 34 56 78" />
+            </Field>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Field label={t('coaches.profile.chesscomUsername')}>

@@ -136,6 +136,8 @@ export function StudentDetailPage() {
           <StudentForm
             initial={{
               student_name: student.student_name,
+              email: student.email || '',
+              phone_number: student.phone_number || '',
               source: student.source || '',
               chesscom_username: student.chesscom_username || '',
               lichess_username: student.lichess_username || '',
@@ -158,6 +160,14 @@ export function StudentDetailPage() {
                 {student.lichess_username && (
                   <a href={`https://lichess.org/@/${student.lichess_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
                     {student.lichess_username} (Lichess)
+                  </a>
+                )}
+                {student.email && (
+                  <span className="text-sm text-slate-400 mt-0.5 block">{student.email}</span>
+                )}
+                {student.phone_number && (
+                  <a href={`https://wa.me/${student.phone_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors mt-0.5 block">
+                    {student.phone_number} (WhatsApp)
                   </a>
                 )}
               </div>
