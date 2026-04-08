@@ -1835,6 +1835,39 @@ def import_pgn_to_lichess_study(study_id):
         return jsonify({'error': 'Failed to import PGN to Lichess study'}), 502
 
 
+# ── Onboarding ──
+
+@coaches_bp.route('/api/coaches/onboarding', methods=['GET'])
+@login_required
+def get_onboarding_status():
+    """Check what onboarding steps the coach has completed."""
+    with get_db() as conn:
+        profile = conn.execute(
+            'SELECT display_name, city, currency FROM coach_profiles WHERE user_id = ?',
+            (request.user_id,)
+        ).fetchone()
+        has_profile = bool(profile and profile['display_name'] and profile['city'] and profile['currency'])
+
+        student = conn.execute(
+            'SELECT id FROM coach_students WHERE coach_user_id = ? LIMIT 1',
+            (request.user_id,)
+        ).fetchone()
+        has_students = bool(student)
+
+        lesson = conn.execute('''
+            SELECT cl.id FROM coach_lessons cl
+            JOIN coach_students cs ON cl.student_id = cs.id
+            WHERE cs.coach_user_id = ? LIMIT 1
+        ''', (request.user_id,)).fetchone()
+        has_lessons = bool(lesson)
+
+    return jsonify({
+        'has_profile': has_profile,
+        'has_students': has_students,
+        'has_lessons': has_lessons,
+    })
+
+
 # ── Coach Profile ──
 
 @coaches_bp.route('/api/coaches/profile', methods=['GET'])

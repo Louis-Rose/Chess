@@ -1,17 +1,98 @@
-// Coaches home — card grid grouped by section
+// Coaches home — card grid grouped by section + onboarding banner
 
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Sparkles, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { NAV_SECTIONS } from '../ChessCoachesLayout';
+import { authFetch } from '../utils/authFetch';
+
+interface OnboardingStatus {
+  has_profile: boolean;
+  has_students: boolean;
+  has_lessons: boolean;
+}
+
+function OnboardingBanner({ status }: { status: OnboardingStatus }) {
+  const { t } = useLanguage();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // All done → no banner
+  if (status.has_lessons) return null;
+
+  const isStudent = user?.role === 'student';
+  const steps = [
+    { done: status.has_profile, label: t('coaches.onboarding.step.profile'), path: '/profile' },
+    { done: status.has_students, label: t('coaches.onboarding.step.students'), path: '/students' },
+    { done: status.has_lessons, label: t('coaches.onboarding.step.calendar'), path: '/schedule' },
+  ];
+
+  // Filter out completed steps (but always show the next uncompleted one)
+  const remainingSteps = steps.filter(s => !s.done);
+
+  return (
+    <div className="max-w-4xl mx-[5%] md:mx-auto mb-4">
+      <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-5">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Sparkles className="w-5 h-5 text-blue-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-semibold text-slate-100 mb-2">
+              {t(isStudent ? 'coaches.onboarding.welcome.student' : 'coaches.onboarding.welcome.coach')}
+            </h3>
+            <div className="space-y-1.5">
+              {steps.map((step, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  {step.done ? (
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <Check className="w-3 h-3 text-emerald-400" />
+                    </div>
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] text-slate-500 font-bold">{remainingSteps.indexOf(step) + 1}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => navigate(step.path)}
+                    className={`text-sm transition-colors ${
+                      step.done
+                        ? 'text-slate-500 line-through'
+                        : 'text-slate-200 hover:text-blue-400'
+                    }`}
+                  >
+                    {step.label}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ScoresheetPanel() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+
+  useEffect(() => {
+    authFetch('/api/coaches/onboarding')
+      .then(r => r.json())
+      .then(setOnboarding)
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
       <p className="text-slate-200 text-lg text-center mt-4 mb-4">{t('coaches.homePrompt')}</p>
+
+      {onboarding && <OnboardingBanner status={onboarding} />}
+
       <div className="max-w-4xl mx-[5%] md:mx-auto space-y-4 w-full">
         {NAV_SECTIONS.map(({ titleKey, items }) => {
           const visibleItems = items.filter(i => !i.hidden);
