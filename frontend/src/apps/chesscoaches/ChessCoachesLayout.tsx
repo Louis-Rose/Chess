@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, RotateCcw, CalendarDays } from 'lucide-react';
+import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, RotateCcw, CalendarDays, AlertTriangle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider, saveCoachesPrefs } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
@@ -123,9 +123,9 @@ function CoachesNavSidebar() {
                       await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
                       await logout();
                     }}
-                    className="w-full px-3 py-2.5 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-xs transition-colors border-t border-slate-700"
+                    className="w-full px-3 py-2.5 text-red-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-sm transition-colors border-t border-slate-700"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
+                    <AlertTriangle className="w-4 h-4" />
                     Reset &amp; log out
                   </button>
                 )}
