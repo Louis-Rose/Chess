@@ -126,3 +126,30 @@ const TOP_CURRENCIES = [
 ];
 
 export const CURRENCY_LIST = TOP_CURRENCIES.sort((a, b) => a.localeCompare(b));
+
+// Flag emoji → phone prefix
+const FLAG_PHONE: Record<string, string> = {
+  '\u{1F1FA}\u{1F1F8}': '+1', '\u{1F1E8}\u{1F1E6}': '+1', '\u{1F1F2}\u{1F1FD}': '+52',
+  '\u{1F1E7}\u{1F1F7}': '+55', '\u{1F1E6}\u{1F1F7}': '+54', '\u{1F1F5}\u{1F1EA}': '+51',
+  '\u{1F1E8}\u{1F1F4}': '+57', '\u{1F1E8}\u{1F1F1}': '+56',
+  '\u{1F1EC}\u{1F1E7}': '+44', '\u{1F1EB}\u{1F1F7}': '+33', '\u{1F1E9}\u{1F1EA}': '+49',
+  '\u{1F1EA}\u{1F1F8}': '+34', '\u{1F1EE}\u{1F1F9}': '+39', '\u{1F1F3}\u{1F1F1}': '+31',
+  '\u{1F1E7}\u{1F1EA}': '+32', '\u{1F1E8}\u{1F1ED}': '+41', '\u{1F1E6}\u{1F1F9}': '+43',
+  '\u{1F1E8}\u{1F1FF}': '+420', '\u{1F1F5}\u{1F1F1}': '+48', '\u{1F1ED}\u{1F1FA}': '+36',
+  '\u{1F1F5}\u{1F1F9}': '+351', '\u{1F1EE}\u{1F1EA}': '+353', '\u{1F1E9}\u{1F1F0}': '+45',
+  '\u{1F1F8}\u{1F1EA}': '+46', '\u{1F1F3}\u{1F1F4}': '+47', '\u{1F1EB}\u{1F1EE}': '+358',
+  '\u{1F1EC}\u{1F1F7}': '+30', '\u{1F1F7}\u{1F1FA}': '+7', '\u{1F1F9}\u{1F1F7}': '+90',
+  '\u{1F1FA}\u{1F1E6}': '+380',
+  '\u{1F1E6}\u{1F1EA}': '+971', '\u{1F1F8}\u{1F1E6}': '+966', '\u{1F1EE}\u{1F1F1}': '+972',
+  '\u{1F1EA}\u{1F1EC}': '+20', '\u{1F1F3}\u{1F1EC}': '+234', '\u{1F1F0}\u{1F1EA}': '+254',
+  '\u{1F1FF}\u{1F1E6}': '+27', '\u{1F1F2}\u{1F1E6}': '+212',
+  '\u{1F1EE}\u{1F1F3}': '+91', '\u{1F1E8}\u{1F1F3}': '+86', '\u{1F1ED}\u{1F1F0}': '+852',
+  '\u{1F1EF}\u{1F1F5}': '+81', '\u{1F1F0}\u{1F1F7}': '+82', '\u{1F1F8}\u{1F1EC}': '+65',
+  '\u{1F1F9}\u{1F1ED}': '+66', '\u{1F1EE}\u{1F1E9}': '+62',
+  '\u{1F1E6}\u{1F1FA}': '+61', '\u{1F1F3}\u{1F1FF}': '+64',
+};
+
+export function getPhonePrefixForCity(city: string): string {
+  const entry = CITY_TIMEZONES.find(([c]) => c === city);
+  return entry ? FLAG_PHONE[entry[2]] || '' : '';
+}

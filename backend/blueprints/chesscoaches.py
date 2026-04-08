@@ -1295,9 +1295,11 @@ def add_coach_student():
     with get_db() as conn:
         cursor = conn.execute(
             '''INSERT INTO coach_students
-               (coach_user_id, student_name, timezone, currency, source, chesscom_username, lichess_username, recurring_day, recurring_time, email, phone_number)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id''',
-            (request.user_id, name, data.get('timezone', 'UTC'),
+               (coach_user_id, student_name, city, timezone, currency, source, chesscom_username, lichess_username, recurring_day, recurring_time, email, phone_number)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id''',
+            (request.user_id, name,
+             (data.get('city') or '').strip() or None,
+             data.get('timezone', 'UTC'),
              (data.get('currency') or '').strip() or None,
              (data.get('source') or '').strip() or None,
              (data.get('chesscom_username') or '').strip() or None,
@@ -1317,7 +1319,7 @@ def update_coach_student(student_id):
     """Update a student's details."""
     data = request.get_json()
 
-    allowed = ['student_name', 'timezone', 'currency', 'source', 'chesscom_username', 'lichess_username', 'recurring_day', 'recurring_time', 'email', 'phone_number']
+    allowed = ['student_name', 'city', 'timezone', 'currency', 'source', 'chesscom_username', 'lichess_username', 'recurring_day', 'recurring_time', 'email', 'phone_number']
     sets = []
     vals = []
     for field in allowed:

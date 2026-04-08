@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS coach_students (
     coach_user_id INTEGER NOT NULL,
     linked_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,  -- set when student accepts invite
     student_name TEXT NOT NULL,
+    city TEXT,
     timezone TEXT DEFAULT 'UTC',
     currency TEXT,
     source TEXT,

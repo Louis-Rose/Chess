@@ -19,6 +19,8 @@ interface Student {
   student_name: string;
   email: string | null;
   phone_number: string | null;
+  city: string | null;
+  timezone: string;
   source: string | null;
   chesscom_username: string | null;
   lichess_username: string | null;
@@ -140,6 +142,8 @@ export function StudentDetailPage() {
               student_name: student.student_name,
               email: student.email || '',
               phone_number: student.phone_number || '',
+              city: student.city || '',
+              timezone: student.timezone || 'UTC',
               source: student.source || '',
               chesscom_username: student.chesscom_username || '',
               lichess_username: student.lichess_username || '',

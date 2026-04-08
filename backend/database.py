@@ -232,3 +232,8 @@ def init_db():
         if not _column_exists(conn, 'coach_students', 'phone_number'):
             conn.execute("ALTER TABLE coach_students ADD COLUMN phone_number TEXT")
             logger.info("Added phone_number column to coach_students")
+
+        # Migration: Add city column to coach_students
+        if not _column_exists(conn, 'coach_students', 'city'):
+            conn.execute("ALTER TABLE coach_students ADD COLUMN city TEXT")
+            logger.info("Added city column to coach_students")
