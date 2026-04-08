@@ -16,7 +16,6 @@ import { MessagesPanel } from './panels/MessagesPanel';
 import { SchedulePanel } from './panels/SchedulePanel';
 import { StudentHomePage } from './panels/StudentHomePage';
 import { InvitePage } from './panels/InvitePage';
-import { RoleSelectionPage } from './panels/RoleSelectionPage';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AdminPanel = lazy(() =>
