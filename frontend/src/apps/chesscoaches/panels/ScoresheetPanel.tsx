@@ -24,16 +24,15 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
 
   const isStudent = user?.role === 'student';
   const steps = [
-    { done: status.has_profile, label: t('coaches.onboarding.step.profile'), path: '/profile' },
-    { done: status.has_students, label: t('coaches.onboarding.step.students'), path: '/students' },
-    { done: status.has_lessons, label: t('coaches.onboarding.step.calendar'), path: '/schedule' },
+    { done: status.has_profile, before: t('coaches.onboarding.step.profile.before'), link: t('coaches.onboarding.step.profile.link'), after: '', path: '/profile' },
+    { done: status.has_students, before: t('coaches.onboarding.step.students.before'), link: t('coaches.onboarding.step.students.link'), after: '', path: '/students' },
+    { done: status.has_lessons, before: t('coaches.onboarding.step.calendar.before'), link: t('coaches.onboarding.step.calendar.link'), after: '', path: '/schedule' },
   ];
 
-  // Filter out completed steps (but always show the next uncompleted one)
   const remainingSteps = steps.filter(s => !s.done);
 
   return (
-    <div className="max-w-4xl mx-[5%] md:mx-auto mb-4">
+    <div className="max-w-4xl mx-[5%] md:mx-auto mb-4 mt-4">
       <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-5">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -51,20 +50,22 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
                       <Check className="w-3 h-3 text-emerald-400" />
                     </div>
                   ) : (
-                    <div className="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[10px] text-slate-500 font-bold">{remainingSteps.indexOf(step) + 1}</span>
+                    <div className="w-5 h-5 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] text-white font-bold">{remainingSteps.indexOf(step) + 1}</span>
                     </div>
                   )}
-                  <button
-                    onClick={() => navigate(step.path)}
-                    className={`text-sm transition-colors ${
-                      step.done
-                        ? 'text-slate-500 line-through'
-                        : 'text-slate-200 hover:text-blue-400'
-                    }`}
-                  >
-                    {step.label}
-                  </button>
+                  <span className={`text-sm ${step.done ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                    {step.before}
+                    <button
+                      onClick={() => navigate(step.path)}
+                      className={`font-semibold underline underline-offset-2 transition-colors ${
+                        step.done ? 'text-slate-500' : 'text-blue-400 hover:text-blue-300'
+                      }`}
+                    >
+                      {step.link}
+                    </button>
+                    {step.after}
+                  </span>
                 </div>
               ))}
             </div>
