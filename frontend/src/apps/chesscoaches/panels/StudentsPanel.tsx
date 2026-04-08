@@ -7,6 +7,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell, btnPrimary } from '../components/PanelShell';
 import { StudentForm, EMPTY_STUDENT_FORM } from '../components/StudentForm';
 import type { StudentFormData } from '../components/StudentForm';
+import { Avatar } from '../components/Avatar';
 
 // ── Types ──
 
@@ -47,9 +48,7 @@ function StudentCard({ student }: {
       onClick={() => navigate(`/students/${student.id}`)}
     >
       <div className="flex items-center gap-3 p-4">
-        <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold text-sm flex-shrink-0">
-          {student.student_name.charAt(0).toUpperCase()}
-        </div>
+        <Avatar name={student.student_name} size="lg" />
 
         <div className="flex-1 min-w-0">
           <span className="text-slate-100 font-medium text-sm truncate block">{student.student_name}</span>

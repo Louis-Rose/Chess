@@ -2,26 +2,26 @@ import os
 import jwt
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import request, jsonify, make_response
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from database import get_db
+from config import IS_PRODUCTION
 
 # Configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', 'dev-secret-change-in-production')
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
 REFRESH_TOKEN_EXPIRES = timedelta(days=7)
-IS_PRODUCTION = os.environ.get('FLASK_ENV') == 'prod'
 
 
 def create_access_token(user_id: int) -> str:
     """Create a short-lived access token."""
     payload = {
         'user_id': user_id,
-        'exp': datetime.utcnow() + ACCESS_TOKEN_EXPIRES,
+        'exp': datetime.now(timezone.utc) + ACCESS_TOKEN_EXPIRES,
         'type': 'access'
     }
     return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
@@ -31,7 +31,7 @@ def create_refresh_token(user_id: int) -> tuple:
     """Create a refresh token and store its hash."""
     token = secrets.token_urlsafe(32)
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-    expires_at = datetime.utcnow() + REFRESH_TOKEN_EXPIRES
+    expires_at = datetime.now(timezone.utc) + REFRESH_TOKEN_EXPIRES
 
     with get_db() as conn:
         conn.execute(
@@ -162,26 +162,16 @@ def login_optional(f):
 
 def admin_required(f):
     """Decorator for endpoints that require admin privileges."""
-    CHESS_ADMIN_USERNAMES = {'akyrosu'}
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user_id = get_current_user()
-        if user_id is not None:
-            # JWT auth path
-            with get_db() as conn:
-                cursor = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
-                row = cursor.fetchone()
-                if not row or not row['is_admin']:
-                    return jsonify({'error': 'Admin privileges required'}), 403
-            request.user_id = user_id
-            return f(*args, **kwargs)
-
-        # Fallback: chess username admin (for chess app without Google login)
-        chess_admin = request.headers.get('X-Chess-Admin', '').lower()
-        if chess_admin in CHESS_ADMIN_USERNAMES:
-            request.user_id = None
-            return f(*args, **kwargs)
-
-        return jsonify({'error': 'Authentication required'}), 401
+        if user_id is None:
+            return jsonify({'error': 'Authentication required'}), 401
+        with get_db() as conn:
+            cursor = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
+            row = cursor.fetchone()
+            if not row or not row['is_admin']:
+                return jsonify({'error': 'Admin privileges required'}), 403
+        request.user_id = user_id
+        return f(*args, **kwargs)
     return decorated_function

@@ -6,6 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
+import { Avatar } from '../components/Avatar';
 
 interface Conversation {
   user_id: number;
@@ -105,13 +106,7 @@ export function MessagesPanel() {
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-blue-500/50 transition-colors text-left"
               >
                 <div className="flex items-center gap-3">
-                  {c.picture ? (
-                    <img src={c.picture} alt="" className="w-10 h-10 rounded-full" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold text-sm">
-                      {c.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar name={c.name} picture={c.picture} size="lg" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-100 font-medium text-sm">{c.name}</span>
@@ -241,13 +236,7 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
         <button onClick={onBack} className="text-slate-400 hover:text-slate-200 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        {conversation.picture ? (
-          <img src={conversation.picture} alt="" className="w-8 h-8 rounded-full" />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold text-xs">
-            {conversation.name.charAt(0).toUpperCase()}
-          </div>
-        )}
+        <Avatar name={conversation.name} picture={conversation.picture} size="md" />
         <span className="text-slate-100 font-medium flex-1">{conversation.name}</span>
         {isCoach && conversation.student_id && (
           <button

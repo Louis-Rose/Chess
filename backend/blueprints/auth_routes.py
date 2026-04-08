@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import secrets as py_secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, make_response, request
 
@@ -26,10 +26,10 @@ logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth_routes', __name__)
 
+from config import IS_PRODUCTION, APP_ORIGIN
+
 BLOCKED_EMAILS = set()
 INVITE_EXPIRY_DAYS = 30
-IS_PRODUCTION = os.environ.get('FLASK_ENV') == 'prod'
-APP_ORIGIN = 'https://lumna.co' if IS_PRODUCTION else 'http://localhost:5173'
 
 # Temp store for OAuth state tokens (maps token → user_id, short-lived)
 _oauth_states: dict[str, int] = {}
@@ -40,7 +40,7 @@ def _is_invite_expired(invite: dict) -> bool:
     created = invite['created_at']
     if isinstance(created, str):
         created = datetime.fromisoformat(created)
-    return (datetime.utcnow() - created.replace(tzinfo=None)).days > INVITE_EXPIRY_DAYS
+    return (datetime.now(timezone.utc) - created.replace(tzinfo=timezone.utc)).days > INVITE_EXPIRY_DAYS
 
 
 def _build_user_payload(user: dict) -> dict:
@@ -130,7 +130,7 @@ def refresh_auth():
         expires_at = row['expires_at']
         if isinstance(expires_at, str):
             expires_at = datetime.fromisoformat(expires_at)
-        if expires_at.replace(tzinfo=None) < datetime.utcnow():
+        if expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
             # Delete expired token
             conn.execute('DELETE FROM refresh_tokens WHERE token_hash = ?', (token_hash,))
             return jsonify({'error': 'Refresh token expired'}), 401
@@ -263,7 +263,7 @@ def activity_heartbeat():
         if last_ping:
             try:
                 last_ping_time = datetime.fromisoformat(last_ping.replace('Z', '+00:00')) if isinstance(last_ping, str) else last_ping
-                minutes_since_last = (datetime.utcnow() - last_ping_time.replace(tzinfo=None)).total_seconds() / 60
+                minutes_since_last = (datetime.now(timezone.utc) - last_ping_time.replace(tzinfo=timezone.utc)).total_seconds() / 60
                 is_new_session = minutes_since_last > 30
             except Exception:
                 is_new_session = True

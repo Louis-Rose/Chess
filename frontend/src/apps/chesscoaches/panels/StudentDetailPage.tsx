@@ -7,6 +7,8 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 import { StudentForm } from '../components/StudentForm';
 import { LessonsSection } from '../components/LessonsSection';
+import { CreditBar } from '../components/CreditBar';
+import { Avatar } from '../components/Avatar';
 import type { StudentFormData } from '../components/StudentForm';
 import type { Lesson } from '../components/LessonsSection';
 
@@ -145,9 +147,7 @@ export function StudentDetailPage() {
         ) : (
           <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
             <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold text-xl flex-shrink-0">
-                {student.student_name.charAt(0).toUpperCase()}
-              </div>
+              <Avatar name={student.student_name} size="xl" />
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl font-bold text-slate-100">{student.student_name}</h1>
                 {student.chesscom_username && (
@@ -184,7 +184,6 @@ export function StudentDetailPage() {
         {/* Active pack credit meter */}
         {packs.filter(p => p.status === 'active').map(p => {
           const remaining = p.total_lessons - p.consumed;
-          const pct = p.total_lessons > 0 ? Math.min((p.consumed / p.total_lessons) * 100, 100) : 0;
           return (
             <div key={p.id} className="bg-slate-800 border border-slate-700 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
@@ -202,9 +201,7 @@ export function StudentDetailPage() {
                   {remaining} {t('coaches.packs.remaining')}
                 </span>
               </div>
-              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${remaining <= 0 ? 'bg-slate-500' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }} />
-              </div>
+              <CreditBar consumed={p.consumed} total={p.total_lessons} />
               <div className="text-xs text-slate-500 mt-1">
                 {p.consumed} {t('coaches.packs.used')} {t('coaches.packs.of')} {p.total_lessons}
               </div>

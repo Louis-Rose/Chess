@@ -38,10 +38,7 @@ def send_admin_deletion_alert(user_name: str, user_email: str, deletion_type: st
 
     # Build subject based on deletion type
     type_labels = {
-        'transaction': 'Transaction Deleted',
-        'account': 'Investment Account Deleted',
         'user_account': 'User Account Deleted',
-        'bulk_replace': 'Portfolio Replaced (Bulk Import)',
     }
     subject = f"[LUMNA Admin] {type_labels.get(deletion_type, 'Data Deleted')} - {user_name}"
 
@@ -55,10 +52,7 @@ def send_admin_deletion_alert(user_name: str, user_email: str, deletion_type: st
 
     # Severity color based on deletion type
     severity_colors = {
-        'transaction': '#f59e0b',  # amber
-        'account': '#f97316',       # orange
         'user_account': '#ef4444',  # red
-        'bulk_replace': '#8b5cf6',  # purple
     }
     severity_color = severity_colors.get(deletion_type, '#6b7280')
 

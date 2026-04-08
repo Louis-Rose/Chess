@@ -10,10 +10,11 @@ from googleapiclient.discovery import build
 
 logger = logging.getLogger(__name__)
 
+from config import APP_ORIGIN
+
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
-IS_PRODUCTION = os.environ.get('FLASK_ENV') == 'prod'
-BASE_URL = 'https://lumna.co' if IS_PRODUCTION else 'http://localhost:5173'
+BASE_URL = APP_ORIGIN
 REDIRECT_URI = f'{BASE_URL}/api/auth/google-calendar/callback'
 SCOPES = ['https://www.googleapis.com/auth/calendar.events']
 

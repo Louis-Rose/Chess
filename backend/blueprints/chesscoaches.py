@@ -1,10 +1,23 @@
+import hashlib
+import json as json_module
+import math
 import os
+import queue
+import re
 import secrets
 import logging
+import threading
+import time as time_module
+import uuid
+
+import chess
 import requests as http_requests
 from flask import Blueprint, jsonify, request, Response
 from auth import login_required, admin_required, get_current_user
 from database import get_db
+
+# Sentinel for signaling thread completion in SSE queues
+_THREAD_DONE = object()
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +35,6 @@ MIME_TO_EXT = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp',
 
 def _azure_di_poll(result_url, key, max_iterations=60):
     """Poll Azure Document Intelligence for results. Returns result JSON or raises."""
-    import time as time_module
     poll_headers = {'Ocp-Apim-Subscription-Key': key}
     for _ in range(max_iterations):
         time_module.sleep(1)
@@ -59,18 +71,13 @@ def _extract_usage_tokens(response):
 
 def _sse_response(result_queue, threads, total_threads, initial_data, feature_name):
     """Create an SSE streaming Response from a result queue and threads."""
-    import json as json_module
-    import queue
-
-    THREAD_DONE = "THREAD_DONE"
-
     def generate():
         yield f"data: {json_module.dumps(initial_data)}\n\n"
         threads_done = 0
         while threads_done < total_threads:
             try:
                 item = result_queue.get(timeout=300)
-                if item is THREAD_DONE:
+                if item is _THREAD_DONE:
                     threads_done += 1
                     continue
                 yield f"data: {json_module.dumps(item)}\n\n"
@@ -102,7 +109,6 @@ def _get_user_surname(user_id):
 
 def _next_upload_number(user_dir, feature, surname):
     """Find the next available number for {feature}_{surname}_{N} naming."""
-    import re
     prefix = f"{feature}_{surname}_"
     max_n = 0
     if os.path.isdir(user_dir):
@@ -115,7 +121,6 @@ def _next_upload_number(user_dir, feature, surname):
 
 def _save_upload(user_id, request_id, image_bytes, mime_type, feature='scoresheet'):
     """Persist an uploaded image to disk under data/scoresheet_uploads/<user_id>/. Skips duplicates by content hash."""
-    import hashlib
     try:
         user_dir = os.path.join(UPLOAD_DIR, str(user_id))
         os.makedirs(user_dir, exist_ok=True)
@@ -233,7 +238,6 @@ def _scoresheet_french_to_english(san):
 
 def _scoresheet_clean_san(san):
     """Clean up common OCR artifacts from a SAN move."""
-    import re
     # Strip trailing/leading dots, commas, spaces
     san = san.strip(' .,;:')
     # Fix l/I misread as digit 1 at the end of a move (before optional +/#)
@@ -248,7 +252,6 @@ def _scoresheet_clean_san(san):
 
 def _scoresheet_normalize_castling(san):
     """Normalize common castling variants to standard O-O / O-O-O."""
-    import re
     stripped = san.replace('-', '').replace(' ', '')
     if re.fullmatch(r'[oO0]{3}', stripped):
         return 'O-O-O'
@@ -259,7 +262,6 @@ def _scoresheet_normalize_castling(san):
 
 def _scoresheet_push_san(board, san):
     """Try to push a SAN move, tolerating castling variants, missing/extra 'x', and OCR artifacts."""
-    import chess
     # Clean OCR artifacts first
     san = _scoresheet_clean_san(san)
     # Normalize castling
@@ -274,7 +276,6 @@ def _scoresheet_push_san(board, san):
     if 'x' in san:
         alt = san.replace('x', '')
     else:
-        import re
         alt = re.sub(r'([A-Za-z\d])([a-h]\d)', r'\1x\2', san, count=1)
     if alt != san:
         try:
@@ -295,8 +296,6 @@ def _scoresheet_push_san(board, san):
 
 def _scoresheet_diagnose_illegal(board, san):
     """Diagnose why a SAN move is illegal. Returns a human-readable reason."""
-    import chess
-    import re
     cleaned = _scoresheet_clean_san(san)
     # Check for ambiguous piece moves (e.g., Nd2 when Nbd2/Nfd2 needed)
     piece_match = re.match(r'^([KQRBN])', cleaned)
@@ -333,7 +332,6 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False, notation=None):
     """Validate moves with python-chess, adding legality flags.
     If stop_at_illegal, truncate after the first illegal move.
     If notation is non-English, translate piece letters before validation."""
-    import chess
     needs_translation = notation in _NOTATION_TO_ENGLISH
     board = chess.Board()
     for i, move in enumerate(moves):
@@ -386,7 +384,6 @@ def _scoresheet_validate_moves(moves, stop_at_illegal=False, notation=None):
 
 def _scoresheet_parse_response(response_text):
     """Parse Gemini response text into a dict, handling markdown fences and malformed JSON."""
-    import json as json_module
     text = response_text.strip()
     if text.startswith('```'):
         text = text.split('\n', 1)[1]
@@ -408,7 +405,6 @@ def _scoresheet_parse_response(response_text):
 
 def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid', user_id=None, retry_free_error=None, retry_free_elapsed=None):
     """Log a Gemini API call to the api_usage table. Retries on DB lock."""
-    import time as _t
     for attempt in range(3):
         try:
             with get_db() as conn:
@@ -420,7 +416,7 @@ def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, erro
             return
         except Exception as e:
             if attempt < 2:
-                _t.sleep(0.5)
+                time_module.sleep(0.5)
             else:
                 logger.error(f"[API Usage] Failed to log after 3 attempts: {e}")
 
@@ -432,7 +428,6 @@ _PAID_ONLY_MODELS = {'gemini-3.1-pro-preview'}
 def _gemini_generate(client_free, client_paid, model_id, contents, config=None, on_retry=None):
     """Try free API key first, fall back to paid on any error. Returns (response, billing_tier, retry_info).
     retry_info is None if no retry, or a dict with error/elapsed details if free key failed."""
-    import time as _t
     kwargs = {'model': model_id, 'contents': contents}
     if config:
         kwargs['config'] = config
@@ -442,11 +437,11 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None, 
         return client_paid.models.generate_content(**kwargs), 'paid', None
 
     # Try free key first, fall back to paid on any failure
-    free_start = _t.time()
+    free_start = time_module.time()
     try:
         return client_free.models.generate_content(**kwargs), 'free', None
     except Exception as e:
-        free_elapsed = round(_t.time() - free_start)
+        free_elapsed = round(time_module.time() - free_start)
         error_type = type(e).__name__
         logger.info(f"[Gemini] Free key failed for {model_id} ({error_type}) after {free_elapsed}s, falling back to paid key")
         retry_info = {'free_error': f'{error_type}: {e}', 'free_elapsed': free_elapsed}
@@ -459,7 +454,6 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None, 
 @login_required
 def auto_crop():
     """Use Azure Document Intelligence to detect rotation angle and document bounds."""
-    import time as time_module
 
     image_file = request.files.get('image')
     if not image_file:
@@ -522,7 +516,6 @@ def auto_crop():
                 max_y = max(max_y, y)
 
     # Compute angle from table cell polygons (vertical edges)
-    import math
     tables = analyze_result.get('tables', [])
     table_angle = None
     if tables:
@@ -577,9 +570,19 @@ SCORESHEET_MODELS = [
     {"id": "gemini-3.1-flash-lite-preview", "name": "Reader 3"},
 ]
 
+_avg_cache: dict = {}
+_avg_cache_ts: float = 0
+_AVG_CACHE_TTL = 120  # seconds
+
+
 def _get_model_avg_elapsed(user_id=None):
-    """Get average elapsed seconds per model for scoresheet reads (rounded up), optionally filtered by user."""
-    import math
+    """Get average elapsed seconds per model for scoresheet reads (rounded up), optionally filtered by user.
+    Results are cached for 2 minutes per user_id key."""
+    global _avg_cache, _avg_cache_ts
+    now = time_module.time()
+    key = user_id
+    if key in _avg_cache and (now - _avg_cache_ts) <= _AVG_CACHE_TTL:
+        return _avg_cache[key]
     try:
         with get_db() as conn:
             if user_id:
@@ -597,7 +600,10 @@ def _get_model_avg_elapsed(user_id=None):
                        WHERE feature = 'scoresheet' AND error IS NULL AND elapsed_seconds > 0
                        GROUP BY model_id"""
                 ).fetchall()
-            return {r['model_id']: int(math.ceil(r['avg_elapsed'])) for r in rows}
+            result = {r['model_id']: int(math.ceil(r['avg_elapsed'])) for r in rows}
+            _avg_cache[key] = result
+            _avg_cache_ts = now
+            return result
     except Exception:
         return {}
 
@@ -652,10 +658,6 @@ def reread_scoresheet():
     """Re-read a scoresheet from a given position after user confirms moves."""
     from google import genai
     from google.genai import types
-    import chess
-    import json as json_module
-    import time as time_module
-    import uuid
 
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
@@ -791,16 +793,14 @@ Return ONLY a JSON object:
 @coaches_bp.route('/api/coaches/read-scoresheet-azure', methods=['POST'])
 def read_scoresheet_azure():
     """Read scoresheet using Azure Document Intelligence (layout model with table detection)."""
-    import time as time_module
 
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided"}), 400
 
-    import uuid as uuid_module
     image_file = request.files['image']
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
-    _save_upload(get_current_user(), uuid_module.uuid4().hex[:12], image_bytes, mime_type, 'scoresheet_azure')
+    _save_upload(get_current_user(), uuid.uuid4().hex[:12], image_bytes, mime_type, 'scoresheet_azure')
 
     endpoint = os.environ.get('AZURE_DI_ENDPOINT', '').rstrip('/')
     key = os.environ.get('AZURE_DI_KEY')
@@ -942,10 +942,6 @@ rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"""
 def read_diagram():
     """Analyze a chess diagram image with multiple Gemini models in parallel, streaming results via SSE."""
     from google.genai import types
-    import threading
-    import queue
-    import time as time_module
-    import uuid
 
     logger.info("[Diagram] Request received")
 
@@ -965,7 +961,7 @@ def read_diagram():
     mime_type = image_file.content_type or 'image/jpeg'
     logger.info(f"[Diagram] Image: {len(image_bytes)} bytes, {mime_type}")
 
-    THREAD_DONE = "THREAD_DONE"
+
     req_id = uuid.uuid4().hex[:12]
     uid = get_current_user()
     _save_upload(uid, req_id, image_bytes, mime_type, 'diagram')
@@ -999,7 +995,7 @@ def read_diagram():
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
             _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier='paid')
         finally:
-            result_queue.put(THREAD_DONE)
+            result_queue.put(_THREAD_DONE)
 
     threads = []
     for m in SCORESHEET_MODELS:
@@ -1015,10 +1011,6 @@ def read_diagram():
 def read_scoresheet():
     """Analyze a scoresheet image with multiple Gemini models in parallel, streaming results via SSE."""
     from google.genai import types
-    import threading
-    import queue
-    import time as time_module
-    import uuid
 
     logger.info("[Scoresheet] Request received")
 
@@ -1039,7 +1031,7 @@ def read_scoresheet():
     user_notation = request.form.get('notation')  # User-selected notation language
     logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}, notation={user_notation or 'auto'}")
 
-    THREAD_DONE = "THREAD_DONE"
+
     req_id = uuid.uuid4().hex[:12]
     uid = get_current_user()
     _save_upload(uid, req_id, image_bytes, mime_type, 'scoresheet')
@@ -1094,7 +1086,7 @@ def read_scoresheet():
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
             _log_api_usage('scoresheet', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier='paid')
         finally:
-            result_queue.put(THREAD_DONE)
+            result_queue.put(_THREAD_DONE)
 
     # Azure DI thread for precise grid coordinates
     def run_azure_grid():
@@ -1103,7 +1095,7 @@ def read_scoresheet():
         di_key = os.environ.get('AZURE_DI_KEY')
         if not endpoint or not di_key:
             logger.info("[Scoresheet] Azure DI not configured, skipping grid detection")
-            result_queue.put(THREAD_DONE)
+            result_queue.put(_THREAD_DONE)
             return
         try:
             analyze_url = f"{endpoint}/documentintelligence/documentModels/prebuilt-layout:analyze?api-version=2024-11-30"
@@ -1111,24 +1103,24 @@ def read_scoresheet():
             resp = http_requests.post(analyze_url, headers=headers, data=image_bytes, timeout=30)
             if resp.status_code != 202:
                 logger.warning(f"[Scoresheet] Azure DI submit failed: {resp.status_code}")
-                result_queue.put(THREAD_DONE)
+                result_queue.put(_THREAD_DONE)
                 return
             result_url = resp.headers.get('Operation-Location')
             if not result_url:
-                result_queue.put(THREAD_DONE)
+                result_queue.put(_THREAD_DONE)
                 return
             try:
                 result_json = _azure_di_poll(result_url, di_key)
             except Exception as poll_err:
                 logger.warning(f"[Scoresheet] Azure DI polling: {poll_err}")
-                result_queue.put(THREAD_DONE)
+                result_queue.put(_THREAD_DONE)
                 return
 
             analyze_result = result_json.get('analyzeResult', {})
             tables = analyze_result.get('tables', [])
             pages = analyze_result.get('pages', [])
             if not tables or not pages:
-                result_queue.put(THREAD_DONE)
+                result_queue.put(_THREAD_DONE)
                 return
 
             # Get page dimensions for normalization
@@ -1140,7 +1132,7 @@ def read_scoresheet():
             table = max(tables, key=lambda t: t.get('rowCount', 0) * t.get('columnCount', 0))
             cells = table.get('cells', [])
             if not cells:
-                result_queue.put(THREAD_DONE)
+                result_queue.put(_THREAD_DONE)
                 return
 
             # Extract bounding box per cell as normalized fractions
@@ -1162,7 +1154,7 @@ def read_scoresheet():
                 }
 
             if not cell_bounds:
-                result_queue.put(THREAD_DONE)
+                result_queue.put(_THREAD_DONE)
                 return
 
             # Compute grid: top, bottom, column dividers, tilt
@@ -1202,7 +1194,6 @@ def read_scoresheet():
                 dx = (last['x1'] + last['x2']) / 2 - (first['x1'] + first['x2']) / 2
                 dy = (last['y1'] + last['y2']) / 2 - (first['y1'] + first['y2']) / 2
                 if dx > 0:
-                    import math
                     tilt = round(math.degrees(math.atan2(dy, dx)), 2)
 
             # Build per-cell bounds for direct lookup: { "row-col": {x1,y1,x2,y2} }
@@ -1218,7 +1209,6 @@ def read_scoresheet():
                 if content:
                     cell_content[(cell['rowIndex'], cell['columnIndex'])] = content
 
-            import re
             first_move_row = 0
             row_count = table.get('rowCount', 0)
             # Header keywords that indicate a non-move row (case-insensitive)
@@ -1258,7 +1248,7 @@ def read_scoresheet():
         except Exception as e:
             logger.error(f"[Scoresheet] Azure DI grid detection failed: {e}")
         finally:
-            result_queue.put(THREAD_DONE)
+            result_queue.put(_THREAD_DONE)
 
     threads = []
     for m in SCORESHEET_MODELS:
@@ -1772,11 +1762,10 @@ def get_lichess_studies():
         if resp.status_code == 404:
             return jsonify({'studies': []})
         resp.raise_for_status()
-        import json as _json
         studies = []
         for line in resp.iter_lines():
             if line:
-                obj = _json.loads(line)
+                obj = json_module.loads(line)
                 studies.append({'id': obj['id'], 'name': obj['name']})
         return jsonify({'studies': studies})
     except http_requests.RequestException as e:

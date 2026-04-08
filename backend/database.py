@@ -9,11 +9,14 @@ Environment variables:
 - DB_PASSWORD: Database password (required)
 """
 
+import logging
 import os
 from contextlib import contextmanager
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
+logger = logging.getLogger(__name__)
 
 # Database configuration
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
@@ -22,7 +25,7 @@ DB_NAME = os.environ.get('DB_NAME', 'lumna')
 DB_USER = os.environ.get('DB_USER', 'lumna')
 DB_PASSWORD = os.environ.get('DB_PASSWORD')
 
-print(f"[Database] Using PostgreSQL at {DB_HOST}:{DB_PORT}/{DB_NAME}")
+logger.info("Using PostgreSQL at %s:%s/%s", DB_HOST, DB_PORT, DB_NAME)
 
 
 def get_db_connection():
@@ -77,14 +80,26 @@ class _ConnectionWrapper:
         self._conn.rollback()
 
 
+def _table_exists(conn, name: str) -> bool:
+    return bool(conn.execute(
+        "SELECT 1 FROM information_schema.tables WHERE table_name = %s", (name,)
+    ).fetchone())
+
+
+def _column_exists(conn, table: str, column: str) -> bool:
+    return bool(conn.execute(
+        "SELECT 1 FROM information_schema.columns WHERE table_name = %s AND column_name = %s",
+        (table, column)
+    ).fetchone())
+
+
 def init_db():
     """Run pending migrations. Schema is created by schema_postgres.sql via Docker init."""
     # New migrations go here temporarily, then get folded into the schema file
     # once they've run in production.
     with get_db() as conn:
         # Migration: Create coach_profiles table
-        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'coach_profiles'")
-        if not conn._cursor.fetchone():
+        if not _table_exists(conn, 'coach_profiles'):
             conn.execute("""
                 CREATE TABLE coach_profiles (
                     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -99,11 +114,10 @@ def init_db():
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            print("[Database] Created coach_profiles table")
+            logger.info("Created coach_profiles table")
 
         # Migration: Create coach_bundle_offers table
-        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'coach_bundle_offers'")
-        if not conn._cursor.fetchone():
+        if not _table_exists(conn, 'coach_bundle_offers'):
             conn.execute("""
                 CREATE TABLE coach_bundle_offers (
                     id SERIAL PRIMARY KEY,
@@ -114,23 +128,20 @@ def init_db():
                 )
             """)
             conn.execute("CREATE INDEX idx_coach_bundle_offers_user ON coach_bundle_offers(user_id)")
-            print("[Database] Created coach_bundle_offers table")
+            logger.info("Created coach_bundle_offers table")
 
         # Migration: Add role column to users
-        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'role'")
-        if not conn._cursor.fetchone():
+        if not _column_exists(conn, 'users', 'role'):
             conn.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'coach'")
-            print("[Database] Added role column to users")
+            logger.info("Added role column to users")
 
         # Migration: Add linked_user_id column to coach_students
-        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'coach_students' AND column_name = 'linked_user_id'")
-        if not conn._cursor.fetchone():
+        if not _column_exists(conn, 'coach_students', 'linked_user_id'):
             conn.execute("ALTER TABLE coach_students ADD COLUMN linked_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL")
-            print("[Database] Added linked_user_id column to coach_students")
+            logger.info("Added linked_user_id column to coach_students")
 
         # Migration: Create student_invites table
-        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'student_invites'")
-        if not conn._cursor.fetchone():
+        if not _table_exists(conn, 'student_invites'):
             conn.execute("""
                 CREATE TABLE student_invites (
                     id SERIAL PRIMARY KEY,
@@ -142,11 +153,10 @@ def init_db():
                 )
             """)
             conn.execute("CREATE INDEX idx_student_invites_token ON student_invites(token)")
-            print("[Database] Created student_invites table")
+            logger.info("Created student_invites table")
 
         # Migration: Create messages table
-        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'messages'")
-        if not conn._cursor.fetchone():
+        if not _table_exists(conn, 'messages'):
             conn.execute("""
                 CREATE TABLE messages (
                     id SERIAL PRIMARY KEY,
@@ -160,11 +170,10 @@ def init_db():
             conn.execute("CREATE INDEX idx_messages_sender ON messages(sender_id)")
             conn.execute("CREATE INDEX idx_messages_receiver ON messages(receiver_id)")
             conn.execute("CREATE INDEX idx_messages_conversation ON messages(sender_id, receiver_id, created_at)")
-            print("[Database] Created messages table")
+            logger.info("Created messages table")
 
         # Migration: Create invoices table
-        conn.execute("SELECT table_name FROM information_schema.tables WHERE table_name = 'invoices'")
-        if not conn._cursor.fetchone():
+        if not _table_exists(conn, 'invoices'):
             conn.execute("""
                 CREATE TABLE invoices (
                     id SERIAL PRIMARY KEY,
@@ -181,34 +190,29 @@ def init_db():
             """)
             conn.execute("CREATE INDEX idx_invoices_student ON invoices(student_id)")
             conn.execute("CREATE INDEX idx_invoices_coach ON invoices(coach_user_id)")
-            print("[Database] Created invoices table")
+            logger.info("Created invoices table")
 
         # Migration: Add invoice_id to messages
-        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'invoice_id'")
-        if not conn._cursor.fetchone():
+        if not _column_exists(conn, 'messages', 'invoice_id'):
             conn.execute("ALTER TABLE messages ADD COLUMN invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL")
-            print("[Database] Added invoice_id column to messages")
+            logger.info("Added invoice_id column to messages")
 
         # Migration: Add revolut_username to coach_profiles
-        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'coach_profiles' AND column_name = 'revolut_username'")
-        if not conn._cursor.fetchone():
+        if not _column_exists(conn, 'coach_profiles', 'revolut_username'):
             conn.execute("ALTER TABLE coach_profiles ADD COLUMN revolut_username TEXT")
-            print("[Database] Added revolut_username column to coach_profiles")
+            logger.info("Added revolut_username column to coach_profiles")
 
         # Migration: Add notes column to coach_lessons
-        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'coach_lessons' AND column_name = 'notes'")
-        if not conn._cursor.fetchone():
+        if not _column_exists(conn, 'coach_lessons', 'notes'):
             conn.execute("ALTER TABLE coach_lessons ADD COLUMN notes TEXT")
-            print("[Database] Added notes column to coach_lessons")
+            logger.info("Added notes column to coach_lessons")
 
         # Migration: Add meet_link to coach_lessons
-        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'coach_lessons' AND column_name = 'meet_link'")
-        if not conn._cursor.fetchone():
+        if not _column_exists(conn, 'coach_lessons', 'meet_link'):
             conn.execute("ALTER TABLE coach_lessons ADD COLUMN meet_link TEXT")
-            print("[Database] Added meet_link column to coach_lessons")
+            logger.info("Added meet_link column to coach_lessons")
 
         # Migration: Add google_calendar_refresh_token to users
-        conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'google_calendar_refresh_token'")
-        if not conn._cursor.fetchone():
+        if not _column_exists(conn, 'users', 'google_calendar_refresh_token'):
             conn.execute("ALTER TABLE users ADD COLUMN google_calendar_refresh_token TEXT")
-            print("[Database] Added google_calendar_refresh_token column to users")
+            logger.info("Added google_calendar_refresh_token column to users")

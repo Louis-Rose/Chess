@@ -2,6 +2,7 @@
 
 import logging
 import os
+import subprocess
 
 from flask import Blueprint, jsonify, request, send_file
 
@@ -361,7 +362,6 @@ def get_coach_students():
 @admin_required
 def get_codelines():
     """Count lines of code in the codebase (admin only)."""
-    import subprocess
     base = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     result = subprocess.run(
         ['find', base, '-type', 'f',

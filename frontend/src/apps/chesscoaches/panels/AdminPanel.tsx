@@ -12,6 +12,7 @@ import { saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { PanelShell } from '../components/PanelShell';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { NAV_SECTIONS } from '../ChessCoachesLayout';
+import { Avatar } from '../components/Avatar';
 
 interface AdminUser {
   id: number;
@@ -535,13 +536,7 @@ export function AdminPanel() {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          {u.picture ? (
-                            <img src={u.picture} alt="" className="w-6 h-6 rounded-full" />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300">
-                              {(u.name || u.email).charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                          <Avatar name={u.name || u.email} picture={u.picture} size="sm+" />
                           <div className="min-w-0">
                             <p className="text-slate-200 truncate">{u.name || u.email}</p>
                             <p className="text-slate-500 text-xs truncate">{u.email}</p>
@@ -710,13 +705,7 @@ export function AdminPanel() {
             {studentsData.map(coach => (
               <div key={coach.coach_user_id} className="rounded-lg border border-slate-700 overflow-hidden">
                 <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50">
-                  {coach.coach_picture ? (
-                    <img src={coach.coach_picture} alt="" className="w-5 h-5 rounded-full" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300">
-                      {(coach.coach_name || '?').charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar name={coach.coach_name || '?'} picture={coach.coach_picture} size="sm" />
                   <h4 className="text-sm font-medium text-slate-300">{coach.coach_name}</h4>
                   <span className="text-xs text-slate-500">({coach.students.length} students)</span>
                 </div>
@@ -884,13 +873,7 @@ export function AdminPanel() {
                               </td>
                               <td className="px-2 py-1 text-slate-400">
                                 <div className="flex items-center gap-1">
-                                  {inv.user_picture ? (
-                                    <img src={inv.user_picture} alt="" className="w-4 h-4 rounded-full" />
-                                  ) : (
-                                    <div className="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-[8px] text-slate-300">
-                                      {(inv.user_name || '?').charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
+                                  <Avatar name={inv.user_name || '?'} picture={inv.user_picture} size="xs" />
                                   <span className="truncate max-w-[80px]">{inv.user_name?.split(' ')[0] || '—'}</span>
                                 </div>
                               </td>

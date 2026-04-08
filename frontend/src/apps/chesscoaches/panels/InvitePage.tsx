@@ -8,6 +8,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { LumnaBrand } from '../components/LumnaBrand';
 import { LoginButton } from '../../../components/LoginButton';
 import { LanguageToggle } from '../components/LanguageToggle';
+import { Avatar } from '../components/Avatar';
 
 interface InviteInfo {
   coach_name: string;
@@ -105,13 +106,7 @@ export function InvitePage() {
           <div className="space-y-6">
             {/* Coach info */}
             <div className="space-y-3">
-              {invite.coach_picture ? (
-                <img src={invite.coach_picture} alt="" className="w-16 h-16 rounded-full mx-auto" />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-purple-600/20 flex items-center justify-center mx-auto text-purple-400 font-bold text-2xl">
-                  {invite.coach_name.charAt(0).toUpperCase()}
-                </div>
-              )}
+              <Avatar name={invite.coach_name} picture={invite.coach_picture} size="2xl" className="mx-auto" />
               <div>
                 <p className="text-slate-200 text-lg font-medium">
                   {invite.coach_name}

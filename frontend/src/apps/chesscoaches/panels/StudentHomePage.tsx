@@ -5,6 +5,8 @@ import { Clock } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 import { PanelShell } from '../components/PanelShell';
+import { CreditBar } from '../components/CreditBar';
+import { Avatar } from '../components/Avatar';
 
 interface DashboardData {
   student: { id: number; name: string };
@@ -52,13 +54,7 @@ export function StudentHomePage() {
       <div className="max-w-xl mx-auto space-y-6">
         {/* Coach card */}
         <div className="bg-slate-700/50 rounded-xl p-4 flex items-center gap-4">
-          {data.coach.picture ? (
-            <img src={data.coach.picture} alt="" className="w-14 h-14 rounded-full" />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold text-xl">
-              {data.coach.name.charAt(0).toUpperCase()}
-            </div>
-          )}
+          <Avatar name={data.coach.name} picture={data.coach.picture} size="xl" />
           <div>
             <p className="text-slate-400 text-xs">{t('coaches.studentDashboard.coachLabel')}</p>
             <p className="text-slate-100 font-medium text-lg">{data.coach.name}</p>
@@ -74,7 +70,6 @@ export function StudentHomePage() {
             </h2>
             {data.packs.map(p => {
               const remaining = p.total_lessons - p.consumed;
-              const pct = p.total_lessons > 0 ? Math.min((p.consumed / p.total_lessons) * 100, 100) : 0;
               return (
                 <div key={p.id} className="bg-slate-700/50 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -85,12 +80,7 @@ export function StudentHomePage() {
                       {remaining} {t('coaches.packs.remaining')}
                     </span>
                   </div>
-                  <div className="h-2 bg-slate-600 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${remaining <= 0 ? 'bg-slate-500' : 'bg-emerald-500'}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+                  <CreditBar consumed={p.consumed} total={p.total_lessons} />
                   <div className="text-xs text-slate-500 mt-1">
                     {p.consumed} {t('coaches.packs.used')} {t('coaches.packs.of')} {p.total_lessons}
                   </div>
