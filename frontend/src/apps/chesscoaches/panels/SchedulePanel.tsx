@@ -16,6 +16,7 @@ interface ScheduleLesson {
   meet_link: string | null;
   student_id: number;
   student_name: string;
+  student_timezone: string | null;
 }
 
 function getMonday(d: Date): Date {
@@ -226,6 +227,20 @@ export function SchedulePanel() {
                           const colors = STATUS_BG[l.status] || STATUS_BG.scheduled;
                           const timeStr = start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 
+                          // Student's local time in their timezone
+                          const studentTz = l.student_timezone && l.student_timezone !== 'UTC' ? l.student_timezone : null;
+                          let studentTimeLabel = '';
+                          if (studentTz) {
+                            try {
+                              const studentTime = start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: studentTz });
+                              const tzAbbr = new Intl.DateTimeFormat(locale, { timeZone: studentTz, timeZoneName: 'short' })
+                                .formatToParts(start).find(p => p.type === 'timeZoneName')?.value || '';
+                              if (studentTime !== timeStr) {
+                                studentTimeLabel = `${studentTime} ${tzAbbr}`;
+                              }
+                            } catch { /* invalid tz */ }
+                          }
+
                           return (
                             <div
                               key={l.id}
@@ -251,9 +266,14 @@ export function SchedulePanel() {
                                   )}
                                 </div>
                                 {height >= 40 && (
-                                  <span className="text-[10px] text-white/70 tabular-nums">
-                                    {timeStr}
-                                  </span>
+                                  <div>
+                                    <span className="text-[10px] text-white/70 tabular-nums">{timeStr}</span>
+                                    {studentTimeLabel && (
+                                      <span className="text-[10px] text-white/50 tabular-nums ml-1">
+                                        ({studentTimeLabel})
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                                 {height >= 56 && l.notes && (
                                   <p className="text-[10px] text-white/60 line-clamp-1 mt-0.5">{l.notes}</p>

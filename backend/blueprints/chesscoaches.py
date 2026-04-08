@@ -1491,7 +1491,7 @@ def get_coach_schedule():
     with get_db() as conn:
         lessons = conn.execute('''
             SELECT cl.id, cl.scheduled_at, cl.duration_minutes, cl.status, cl.notes, cl.meet_link,
-                   cs.id AS student_id, cs.student_name
+                   cs.id AS student_id, cs.student_name, cs.timezone AS student_timezone
             FROM coach_lessons cl
             JOIN coach_students cs ON cl.student_id = cs.id
             WHERE cs.coach_user_id = ?
