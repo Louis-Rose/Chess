@@ -23,6 +23,7 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const enRef = useRef<HTMLDivElement>(null);
   const frRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
@@ -57,13 +58,25 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
       g.accounts.id.renderButton(frRef.current, { ...btnConfig, locale: 'fr' });
 
       initializedRef.current = true;
+
+      // Watch for the iframe to reach its final size, then reveal
+      const observer = new MutationObserver(() => {
+        const iframe = enRef.current?.querySelector('iframe') || frRef.current?.querySelector('iframe');
+        if (iframe && iframe.offsetHeight > 40) {
+          setReady(true);
+          observer.disconnect();
+        }
+      });
+      observer.observe(enRef.current, { childList: true, subtree: true, attributes: true });
+      observer.observe(frRef.current, { childList: true, subtree: true, attributes: true });
+
+      // Fallback: show after 1.5s no matter what
+      setTimeout(() => { setReady(true); observer.disconnect(); }, 1500);
     };
 
-    // SDK may already be loaded (preloaded in index.html)
     if (window.google) {
       render();
     } else {
-      // Poll until ready
       const interval = setInterval(() => {
         if (window.google) { clearInterval(interval); render(); }
       }, 50);
@@ -74,7 +87,7 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
   const h = size === 'large' ? 'h-[56px] min-h-[56px] max-h-[56px]' : 'h-[48px] min-h-[48px] max-h-[48px]';
 
   return (
-    <div className={`relative ${h} flex items-center justify-center overflow-hidden`}>
+    <div className={`relative ${h} flex items-center justify-center overflow-hidden transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}>
       <div ref={enRef} className={language === 'en' ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'} />
       <div ref={frRef} className={language === 'fr' ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'} />
       {error && (
