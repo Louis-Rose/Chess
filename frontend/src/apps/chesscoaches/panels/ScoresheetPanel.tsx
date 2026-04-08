@@ -89,8 +89,6 @@ export function ScoresheetPanel() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
-      <p className="text-slate-200 text-lg text-center mt-4 mb-4">{t('coaches.homePrompt')}</p>
-
       {onboarding && <OnboardingBanner status={onboarding} />}
 
       <div className="max-w-4xl mx-[5%] md:mx-auto space-y-4 w-full">
