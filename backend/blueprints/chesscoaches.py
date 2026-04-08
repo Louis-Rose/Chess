@@ -1439,6 +1439,10 @@ def update_lesson(lesson_id):
         if not lesson or lesson['coach_user_id'] != request.user_id:
             return jsonify({'error': 'Lesson not found'}), 404
 
+        VALID_STATUSES = {'scheduled', 'done', 'cancelled', 'tbd'}
+        if 'status' in data and data['status'] not in VALID_STATUSES:
+            return jsonify({'error': f'Invalid status. Must be one of: {", ".join(VALID_STATUSES)}'}), 400
+
         allowed = ['scheduled_at', 'duration_minutes', 'status', 'notes']
         sets = []
         vals = []

@@ -15,6 +15,8 @@ export interface Lesson {
   created_at: string;
 }
 
+const PAST_STATUSES = ['done', 'cancelled', 'tbd'] as const;
+
 export function LessonsSection({ studentId, upcoming, past, onRefresh }: {
   studentId: number;
   upcoming: Lesson[];
@@ -86,14 +88,14 @@ export function LessonsSection({ studentId, upcoming, past, onRefresh }: {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
-          {t('coaches.lessons.title') || 'Lessons'}
+          {t('coaches.lessons.title')}
         </h2>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          {t('coaches.lessons.add') || 'Add lesson'}
+          {t('coaches.lessons.add')}
         </button>
       </div>
 
@@ -152,7 +154,7 @@ export function LessonsSection({ studentId, upcoming, past, onRefresh }: {
       {upcoming.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs text-blue-400 font-medium uppercase tracking-wider">
-            {t('coaches.lessons.upcoming') || 'Upcoming'}
+            {t('coaches.lessons.upcoming')}
           </h3>
           {upcoming.map(l => (
             <LessonCard key={l.id} lesson={l} variant="upcoming" onRefresh={onRefresh} />
@@ -163,7 +165,7 @@ export function LessonsSection({ studentId, upcoming, past, onRefresh }: {
       {past.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs text-slate-400 font-medium uppercase tracking-wider">
-            {t('coaches.lessons.past') || 'Past lessons'}
+            {t('coaches.lessons.past')}
           </h3>
           {past.map(l => (
             <LessonCard key={l.id} lesson={l} variant="past" onRefresh={onRefresh} />
@@ -174,14 +176,29 @@ export function LessonsSection({ studentId, upcoming, past, onRefresh }: {
       {upcoming.length === 0 && past.length === 0 && (
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 text-center">
           <Clock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-          <p className="text-slate-500 text-sm">{t('coaches.lessons.empty') || 'No lessons yet'}</p>
+          <p className="text-slate-500 text-sm">{t('coaches.lessons.empty')}</p>
         </div>
       )}
     </div>
   );
 }
 
+const STATUS_BADGE: Record<string, string> = {
+  scheduled: 'bg-blue-500/15 text-blue-400',
+  done: 'bg-emerald-500/15 text-emerald-400',
+  cancelled: 'bg-red-500/15 text-red-400',
+  tbd: 'bg-amber-500/15 text-amber-400',
+};
+
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  scheduled: 'coaches.lessons.status.scheduled',
+  done: 'coaches.lessons.status.done',
+  cancelled: 'coaches.lessons.status.cancelled',
+  tbd: 'coaches.lessons.status.tbd',
+};
+
 function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: 'upcoming' | 'past'; onRefresh: () => void }) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState(lesson.notes || '');
@@ -206,11 +223,11 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
     }
   };
 
-  const handleMarkCompleted = async () => {
+  const handleSetStatus = async (status: string) => {
     const res = await authFetch(`/api/coaches/lessons/${lesson.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'completed' }),
+      body: JSON.stringify({ status }),
     });
     if (res.ok) onRefresh();
   };
@@ -219,6 +236,9 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
     const res = await authFetch(`/api/coaches/lessons/${lesson.id}`, { method: 'DELETE' });
     if (res.ok) onRefresh();
   };
+
+  const badgeClass = STATUS_BADGE[lesson.status] || 'bg-slate-600 text-slate-400';
+  const statusLabel = t(STATUS_LABEL_KEYS[lesson.status] || '') || lesson.status;
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
@@ -235,13 +255,8 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            lesson.status === 'completed' ? 'bg-emerald-500/15 text-emerald-400' :
-            lesson.status === 'scheduled' ? 'bg-blue-500/15 text-blue-400' :
-            lesson.status === 'cancelled' ? 'bg-red-500/15 text-red-400' :
-            'bg-slate-600 text-slate-400'
-          }`}>
-            {lesson.status}
+          <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>
+            {statusLabel}
           </span>
           {lesson.meet_link && <Video className="w-3.5 h-3.5 text-blue-400" />}
           {lesson.notes && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Has notes" />}
@@ -303,11 +318,24 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
           )}
 
           <div className="flex items-center gap-2 pt-1 border-t border-slate-700/50">
-            {lesson.status === 'scheduled' && (
-              <button onClick={handleMarkCompleted}
-                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-lg transition-colors">
-                <Check className="w-3 h-3" /> Mark completed
-              </button>
+            {variant === 'past' && (
+              <div className="flex items-center gap-1">
+                {PAST_STATUSES.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => handleSetStatus(s)}
+                    disabled={lesson.status === s}
+                    className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                      lesson.status === s
+                        ? `${STATUS_BADGE[s]} font-medium`
+                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {s === 'done' && <Check className="w-3 h-3 inline mr-1" />}
+                    {t(STATUS_LABEL_KEYS[s])}
+                  </button>
+                ))}
+              </div>
             )}
             <button onClick={handleDelete}
               className="flex items-center gap-1 px-3 py-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors ml-auto">

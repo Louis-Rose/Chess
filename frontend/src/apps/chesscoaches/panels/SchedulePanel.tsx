@@ -39,9 +39,9 @@ function fmtDate(d: Date): string {
 
 const STATUS_BG: Record<string, string> = {
   scheduled: 'bg-blue-500/80 hover:bg-blue-500/90 border-blue-400/50',
-  completed: 'bg-emerald-500/70 hover:bg-emerald-500/80 border-emerald-400/50',
+  done: 'bg-emerald-500/70 hover:bg-emerald-500/80 border-emerald-400/50',
   cancelled: 'bg-slate-600/50 hover:bg-slate-600/60 border-slate-500/50 opacity-50',
-  rescheduled: 'bg-amber-500/70 hover:bg-amber-500/80 border-amber-400/50',
+  tbd: 'bg-amber-500/70 hover:bg-amber-500/80 border-amber-400/50',
 };
 
 const HOUR_HEIGHT = 60; // px per hour

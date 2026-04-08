@@ -117,7 +117,7 @@ export function StudentDetailPage() {
 
   const now = new Date();
   const upcoming = lessons.filter(l => new Date(l.scheduled_at) >= now && l.status === 'scheduled');
-  const past = lessons.filter(l => new Date(l.scheduled_at) < now || l.status === 'completed');
+  const past = lessons.filter(l => new Date(l.scheduled_at) < now || l.status !== 'scheduled');
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
