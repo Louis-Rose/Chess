@@ -112,14 +112,14 @@ export function StudentsPanel() {
               </div>
             ))}
           </div>
-        ) : students.length === 0 ? (
+        ) : students.length === 0 && !showAddForm ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-purple-600/10 flex items-center justify-center mb-4">
               <Users className="w-8 h-8 text-purple-400" />
             </div>
             <p className="text-slate-200 text-lg whitespace-pre-line">{t('coaches.students.empty')}</p>
           </div>
-        ) : (
+        ) : students.length > 0 ? (
           <div className="space-y-2">
             {students
               .sort((a, b) => a.student_name.localeCompare(b.student_name))
@@ -127,7 +127,7 @@ export function StudentsPanel() {
                 <StudentCard key={s.id} student={s} />
               ))}
           </div>
-        )}
+        ) : null}
 
         {/* Add student */}
         {showAddForm ? (
