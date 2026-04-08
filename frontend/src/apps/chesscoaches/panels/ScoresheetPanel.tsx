@@ -23,8 +23,9 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
   if (status.has_lessons) return null;
 
   const isStudent = user?.role === 'student';
+  const role = isStudent ? 'student' : 'coach';
   const steps = [
-    { done: status.has_profile, before: t('coaches.onboarding.step.profile.before'), link: t('coaches.onboarding.step.profile.link'), after: '', path: '/profile' },
+    { done: status.has_profile, before: t(`coaches.onboarding.step.profile.before.${role}`), link: t(`coaches.onboarding.step.profile.link.${role}`), after: '', path: '/profile' },
     { done: status.has_students, before: t('coaches.onboarding.step.students.before'), link: t('coaches.onboarding.step.students.link'), after: '', path: '/students' },
     { done: status.has_lessons, before: t('coaches.onboarding.step.calendar.before'), link: t('coaches.onboarding.step.calendar.link'), after: '', path: '/schedule' },
   ];

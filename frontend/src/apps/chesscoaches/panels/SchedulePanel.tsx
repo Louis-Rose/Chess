@@ -337,7 +337,6 @@ function LessonDetailPopup({ lesson, locale, onClose, onUpdated }: {
 
 export function SchedulePanel() {
   const { t, language } = useLanguage();
-  const navigate = useNavigate();
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [lessons, setLessons] = useState<ScheduleLesson[]>([]);
   const [loading, setLoading] = useState(true);
