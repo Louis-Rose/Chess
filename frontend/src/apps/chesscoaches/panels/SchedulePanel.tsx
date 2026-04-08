@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon, Check, Ban, HelpCircle, ExternalLink, Trash2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
@@ -199,6 +199,140 @@ function CreateEventPopup({ event, students, locale, onClose, onCreated }: {
   );
 }
 
+// ── Lesson Detail Popup ──
+
+const STATUS_OPTIONS = [
+  { value: 'done', icon: Check, label: 'coaches.lessons.status.done', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+  { value: 'cancelled', icon: Ban, label: 'coaches.lessons.status.cancelled', color: 'bg-red-500/15 text-red-400 border-red-500/30' },
+  { value: 'tbd', icon: HelpCircle, label: 'coaches.lessons.status.tbd', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+] as const;
+
+function LessonDetailPopup({ lesson, locale, onClose, onUpdated }: {
+  lesson: ScheduleLesson;
+  locale: string;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState(lesson.status);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  const d = new Date(lesson.scheduled_at);
+  const dateLabel = d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+  const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  const endTime = new Date(d.getTime() + lesson.duration_minutes * 60000);
+  const endStr = endTime.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  const isPast = d < new Date();
+
+  const handleSetStatus = async (newStatus: string) => {
+    setStatus(newStatus);
+    await authFetch(`/api/coaches/lessons/${lesson.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    onUpdated();
+  };
+
+  const handleDelete = async () => {
+    await authFetch(`/api/coaches/lessons/${lesson.id}`, { method: 'DELETE' });
+    onClose();
+    onUpdated();
+  };
+
+  // Position near the lesson block
+  const startH = d.getHours() + d.getMinutes() / 60;
+  const top = Math.min((startH - START_HOUR) * HOUR_HEIGHT, TOTAL_HOURS * HOUR_HEIGHT - 280);
+
+  return (
+    <div ref={popupRef}
+      className="absolute z-30 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-72 animate-in fade-in zoom-in-95 duration-150"
+      style={{ left: '50%', transform: 'translateX(-50%)', top }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+        <span className="text-sm font-semibold text-slate-100">{lesson.student_name}</span>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="px-4 pb-4 space-y-3">
+        {/* Date & time */}
+        <div className="flex items-center gap-2.5">
+          <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <div>
+            <p className="text-sm text-slate-200 capitalize">{dateLabel}</p>
+            <p className="text-xs text-slate-400">{timeStr} – {endStr} ({lesson.duration_minutes}min)</p>
+          </div>
+        </div>
+
+        {/* Meet link */}
+        {lesson.meet_link && (
+          <a
+            href={lesson.meet_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-600/20 transition-colors text-xs"
+          >
+            <Video className="w-3.5 h-3.5" />
+            Google Meet
+            <ExternalLink className="w-3 h-3 ml-auto" />
+          </a>
+        )}
+
+        {/* Status toggle (for past lessons) */}
+        {isPast && (
+          <div>
+            <p className="text-xs text-slate-500 mb-1.5">{t('coaches.calendar.lessonStatus')}</p>
+            <div className="flex gap-1.5">
+              {STATUS_OPTIONS.map(opt => {
+                const active = status === opt.value;
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleSetStatus(opt.value)}
+                    className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      active ? opt.color : 'border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {t(opt.label)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-1 border-t border-slate-700/50">
+          <button
+            onClick={() => { onClose(); navigate(`/students/${lesson.student_id}`); }}
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            {t('coaches.calendar.viewStudent')}
+          </button>
+          <button onClick={handleDelete}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-400 transition-colors">
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ──
 
 export function SchedulePanel() {
@@ -209,6 +343,7 @@ export function SchedulePanel() {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [newEvent, setNewEvent] = useState<NewEventState | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<ScheduleLesson | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const fetchSchedule = useCallback(async () => {
@@ -269,6 +404,7 @@ export function SchedulePanel() {
 
     if (adjustedHour < START_HOUR || adjustedHour >= END_HOUR) return;
 
+    setSelectedLesson(null);
     setNewEvent({
       date: fmtDate(days[dayIdx]),
       hour: adjustedHour,
@@ -398,6 +534,16 @@ export function SchedulePanel() {
                     />
                   )}
 
+                  {/* Lesson detail popup */}
+                  {selectedLesson && (
+                    <LessonDetailPopup
+                      lesson={selectedLesson}
+                      locale={locale}
+                      onClose={() => setSelectedLesson(null)}
+                      onUpdated={fetchSchedule}
+                    />
+                  )}
+
                   {days.map((day, dayIdx) => {
                     const key = fmtDate(day);
                     const dayLessons = lessonsByDay[key] || [];
@@ -437,7 +583,7 @@ export function SchedulePanel() {
                           return (
                             <div
                               key={l.id}
-                              onClick={e => { e.stopPropagation(); navigate(`/students/${l.student_id}`); }}
+                              onClick={e => { e.stopPropagation(); setSelectedLesson(l); setNewEvent(null); }}
                               className={`absolute left-0.5 right-0.5 rounded border cursor-pointer transition-colors overflow-hidden z-10 ${colors}`}
                               style={{ top, height }}
                             >
