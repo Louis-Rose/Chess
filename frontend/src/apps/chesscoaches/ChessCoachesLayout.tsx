@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, RotateCcw, CalendarDays, AlertTriangle } from 'lucide-react';
+import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, CalendarDays, AlertTriangle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider, saveCoachesPrefs } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
