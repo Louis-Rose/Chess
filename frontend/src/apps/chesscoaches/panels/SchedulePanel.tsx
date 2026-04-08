@@ -140,13 +140,13 @@ export function SchedulePanel() {
                 const isToday = key === fmtDate(today);
                 return (
                   <div key={key} className="flex-1 text-center py-2 min-w-0">
-                    <div className={`text-xs uppercase tracking-wider ${isToday ? 'text-blue-400' : 'text-slate-500'}`}>
+                    <div className={`text-xs uppercase tracking-wider ${isToday ? 'text-blue-400' : 'text-slate-300'}`}>
                       {day.toLocaleDateString(locale, { weekday: 'short' })}
                     </div>
                     <div className={`text-lg font-bold mt-0.5 ${
                       isToday
                         ? 'w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mx-auto'
-                        : 'text-slate-300'
+                        : 'text-slate-100'
                     }`}>
                       {day.getDate()}
                     </div>
@@ -163,7 +163,7 @@ export function SchedulePanel() {
                   {Array.from({ length: TOTAL_HOURS }, (_, i) => (
                     <div
                       key={i}
-                      className="absolute w-full text-right pr-2 text-xs text-slate-500 tabular-nums"
+                      className="absolute w-full text-right pr-2 text-xs text-slate-300 tabular-nums"
                       style={{ top: i * HOUR_HEIGHT - 8 }}
                     >
                       {String(START_HOUR + i).padStart(2, '0')}:00
