@@ -1,7 +1,7 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
 import { useState, useRef } from 'react';
-import { Upload, ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
+import { ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
 import { UploadBox } from '../components/UploadBox';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { Chess } from 'chess.js';
@@ -43,23 +43,16 @@ export function DiagramToFenPanel() {
             />
           ) : (
             <div className="space-y-4">
-              <div className="flex justify-center gap-2">
-                <button
-                  onClick={() => { diagramClear(); fileRef.current?.click(); }}
-                  className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
-                >
-                  <Upload className="w-4 h-4" />
-                  {t('coaches.replaceImage')}
-                </button>
-                {(models.length > 0 || analyzing) && (
+              {(models.length > 0 || analyzing) && (
+                <div className="flex justify-center">
                   <button
                     onClick={diagramClear}
                     className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
-                )}
-              </div>
+                </div>
+              )}
               <img
                 src={preview}
                 alt="Diagram"
