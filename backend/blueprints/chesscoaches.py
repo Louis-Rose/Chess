@@ -575,12 +575,13 @@ _avg_cache_ts: float = 0
 _AVG_CACHE_TTL = 120  # seconds
 
 
-def _get_model_avg_elapsed(user_id=None):
-    """Get average elapsed seconds per model for scoresheet reads (rounded up), optionally filtered by user.
-    Results are cached for 2 minutes per user_id key."""
+def _get_model_avg_elapsed(feature, user_id=None):
+    """Get average elapsed seconds per model for a given feature (rounded up),
+    optionally filtered by user. Results are cached for 2 minutes per
+    (user_id, feature) key."""
     global _avg_cache, _avg_cache_ts
     now = time_module.time()
-    key = user_id
+    key = (user_id, feature)
     if key in _avg_cache and (now - _avg_cache_ts) <= _AVG_CACHE_TTL:
         return _avg_cache[key]
     try:
@@ -589,16 +590,17 @@ def _get_model_avg_elapsed(user_id=None):
                 rows = conn.execute(
                     """SELECT model_id, AVG(elapsed_seconds) as avg_elapsed
                        FROM api_usage
-                       WHERE feature = 'scoresheet' AND error IS NULL AND elapsed_seconds > 0 AND user_id = ?
+                       WHERE feature = ? AND error IS NULL AND elapsed_seconds > 0 AND user_id = ?
                        GROUP BY model_id""",
-                    (user_id,)
+                    (feature, user_id)
                 ).fetchall()
             else:
                 rows = conn.execute(
                     """SELECT model_id, AVG(elapsed_seconds) as avg_elapsed
                        FROM api_usage
-                       WHERE feature = 'scoresheet' AND error IS NULL AND elapsed_seconds > 0
-                       GROUP BY model_id"""
+                       WHERE feature = ? AND error IS NULL AND elapsed_seconds > 0
+                       GROUP BY model_id""",
+                    (feature,)
                 ).fetchall()
             result = {r['model_id']: int(math.ceil(r['avg_elapsed'])) for r in rows}
             _avg_cache[key] = result
@@ -607,9 +609,9 @@ def _get_model_avg_elapsed(user_id=None):
     except Exception:
         return {}
 
-def _enrich_models_with_avg(user_id=None):
-    """Return SCORESHEET_MODELS with avg_elapsed field added."""
-    avgs = _get_model_avg_elapsed(user_id)
+def _enrich_models_with_avg(feature, user_id=None):
+    """Return SCORESHEET_MODELS with avg_elapsed field added for the given feature."""
+    avgs = _get_model_avg_elapsed(feature, user_id)
     return [{**m, "avg_elapsed": avgs.get(m["id"])} for m in SCORESHEET_MODELS]
 
 _NOTATION_PIECES = {
@@ -1027,7 +1029,7 @@ def read_diagram():
         threads.append(t)
 
     return _sse_response(result_queue, threads, len(SCORESHEET_MODELS),
-                         {'type': 'models', 'models': _enrich_models_with_avg(uid)}, 'Diagram')
+                         {'type': 'models', 'models': _enrich_models_with_avg('diagram', uid)}, 'Diagram')
 
 
 @coaches_bp.route('/api/coaches/read-scoresheet', methods=['POST'])
@@ -1291,7 +1293,7 @@ def read_scoresheet():
     total_threads = len(SCORESHEET_MODELS) + 1
 
     return _sse_response(result_queue, threads, total_threads,
-                         {'type': 'models', 'models': _enrich_models_with_avg(uid)}, 'Scoresheet')
+                         {'type': 'models', 'models': _enrich_models_with_avg('scoresheet', uid)}, 'Scoresheet')
 
 
 # ── Coach Students Management ──
