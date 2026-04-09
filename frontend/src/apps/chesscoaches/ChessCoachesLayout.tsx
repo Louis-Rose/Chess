@@ -34,7 +34,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { path: '/profile', labelKey: 'coaches.navProfile', icon: UserCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', roles: ['coach'] },
       { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
       { path: '/schedule', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', roles: ['coach'] },
-      { path: '/messages', labelKey: 'coaches.navMessages', icon: MessageCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600' },
+      { path: '/messages', labelKey: 'coaches.navMessages', icon: MessageCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', roles: ['coach', 'student'] },
       { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
     ],
   },
