@@ -1,5 +1,6 @@
 """Admin routes blueprint — analytics, user management, and maintenance endpoints."""
 
+import hashlib
 import logging
 import os
 import subprocess
@@ -434,23 +435,57 @@ def delete_user():
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'scoresheet_uploads')
 
 
+def _file_md5(path: str) -> str:
+    h = hashlib.md5()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+# Hash of the frontend-bundled sample scoresheet everyone tries once.
+# Computed lazily on first use, cached in module scope.
+_SAMPLE_HASH: tuple[str, int] | None = None  # (md5, size)
+
+
+def _sample_fingerprint() -> tuple[str, int] | None:
+    global _SAMPLE_HASH
+    if _SAMPLE_HASH is not None:
+        return _SAMPLE_HASH
+    # frontend/public/sample_scoresheet.jpeg lives in the built frontend dist/
+    candidates = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'frontend', 'public', 'sample_scoresheet.jpeg'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'frontend', 'dist', 'sample_scoresheet.jpeg'),
+    ]
+    for p in candidates:
+        if os.path.isfile(p):
+            _SAMPLE_HASH = (_file_md5(p), os.path.getsize(p))
+            return _SAMPLE_HASH
+    return None
+
+
 @admin_bp.route('/api/admin/user-uploads/<int:user_id>', methods=['GET'])
 @admin_required
 def list_user_uploads(user_id):
-    """List all uploaded images for a given user."""
+    """List all uploaded images for a given user (excluding the shared sample scoresheet)."""
     user_dir = os.path.join(UPLOAD_DIR, str(user_id))
     if not os.path.isdir(user_dir):
         return jsonify({'uploads': []})
+    sample = _sample_fingerprint()
     files = []
     for fname in sorted(os.listdir(user_dir)):
         fpath = os.path.join(user_dir, fname)
-        if os.path.isfile(fpath):
-            stat = os.stat(fpath)
-            files.append({
-                'filename': fname,
-                'size': stat.st_size,
-                'created_at': stat.st_mtime,
-            })
+        if not os.path.isfile(fpath):
+            continue
+        stat = os.stat(fpath)
+        # Skip the sample scoresheet everyone tries on onboarding
+        if sample and stat.st_size == sample[1] and _file_md5(fpath) == sample[0]:
+            continue
+        files.append({
+            'filename': fname,
+            'size': stat.st_size,
+            'created_at': stat.st_mtime,
+        })
     return jsonify({'uploads': files})
 
 
