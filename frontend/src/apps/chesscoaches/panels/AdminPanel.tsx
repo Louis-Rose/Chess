@@ -1017,19 +1017,30 @@ function CodelinesBadge() {
     queryKey: ['admin-codelines'],
     queryFn: async () => {
       const res = await axios.get('/api/admin/codelines');
-      return res.data.lines as number;
+      return res.data as { lines: number; by_lang: Record<string, number> };
     },
   });
   if (!data) return null;
+  const breakdown = Object.entries(data.by_lang)
+    .sort(([, a], [, b]) => b - a)
+    .map(([lang, count]) => ({ lang, count, pct: data.lines ? (count / data.lines) * 100 : 0 }));
   return (
     <div className="rounded-lg border border-slate-700 overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50">
         <h3 className="text-sm font-medium text-slate-300">Codebase</h3>
       </div>
-      <div className="px-4 py-3 flex items-baseline gap-2">
-        <span className="font-mono text-2xl font-bold text-slate-100">{data.toLocaleString()}</span>
-        <span className="text-sm text-slate-400">lines of code</span>
-        <span className="text-xs text-slate-500 ml-auto">py + ts + tsx + css + html</span>
+      <div className="px-4 py-3">
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-2xl font-bold text-slate-100">{data.lines.toLocaleString()}</span>
+          <span className="text-sm text-slate-400">lines of code</span>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+          {breakdown.map(({ lang, pct }) => (
+            <span key={lang}>
+              <span className="text-slate-400">{lang}</span> {pct.toFixed(1)}%
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

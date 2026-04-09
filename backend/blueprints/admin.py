@@ -361,7 +361,7 @@ def get_coach_students():
 @admin_bp.route('/api/admin/codelines', methods=['GET'])
 @admin_required
 def get_codelines():
-    """Count lines of code in the codebase (admin only)."""
+    """Count lines of code in the codebase, broken down by language (admin only)."""
     base = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     result = subprocess.run(
         ['find', base, '-type', 'f',
@@ -371,15 +371,21 @@ def get_codelines():
          '!', '-path', '*/.venv/*', '!', '-path', '*/__pycache__/*', '!', '-path', '*/venv/*'],
         capture_output=True, text=True, timeout=10
     )
-    total = 0
-    for line in result.stdout.strip().split('\n'):
-        if line:
-            try:
-                with open(line) as f:
-                    total += sum(1 for _ in f)
-            except Exception:
-                pass
-    return jsonify({'lines': total})
+    by_lang: dict[str, int] = {}
+    for path in result.stdout.strip().split('\n'):
+        if not path:
+            continue
+        ext = os.path.splitext(path)[1].lstrip('.').lower()
+        if not ext:
+            continue
+        try:
+            with open(path) as f:
+                count = sum(1 for _ in f)
+        except Exception:
+            continue
+        by_lang[ext] = by_lang.get(ext, 0) + count
+    total = sum(by_lang.values())
+    return jsonify({'lines': total, 'by_lang': by_lang})
 
 
 @admin_bp.route('/api/admin/delete-user', methods=['POST'])
