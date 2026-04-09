@@ -107,6 +107,7 @@ interface ApiUsageResponse {
   by_feature: { feature: string; call_count: number; invocation_count?: number; total_input: number; total_output: number; cost_usd: number }[];
   invocations: ApiInvocation[];
   daily_invocations: { feature: string; date: string; count: number }[];
+  daily_invocations_by_user: { feature: string; date: string; user_id: number; user_name: string | null; user_picture: string | null; count: number }[];
   total_cost_usd: number;
   pricing: Record<string, { input: number; output: number }>;
 }
@@ -182,11 +183,12 @@ const PAGE_TO_API_FEATURES: Record<string, string[]> = {
   mistakes: ['mistakes'],
 };
 
+const LAUNCH_DATE = '2026-03-23';
+
 // Enabled features — derived from NAV_SECTIONS with same filter as sidebar
-const ENABLED_FEATURE_FILTER = (path: string) => ['/scoresheets', '/payments', '/students'].includes(path);
 const COACH_FEATURES: { id: string; labelKey: string }[] = NAV_SECTIONS
   .flatMap(s => s.items)
-  .filter(({ path }) => ENABLED_FEATURE_FILTER(path))
+  .filter(({ path }) => ['/scoresheets', '/payments', '/students'].includes(path))
   .map(({ path, labelKey }) => ({ id: path.slice(1), labelKey }));
 
 export function AdminPanel() {
@@ -273,7 +275,7 @@ export function AdminPanel() {
   const { data: apiUsage } = useQuery({
     queryKey: ['admin-api-usage', userIdsParam],
     queryFn: async (): Promise<ApiUsageResponse> => {
-      if (nothingSelected) return { history: [], by_model: [], by_feature: [], invocations: [], daily_invocations: [], total_cost_usd: 0, pricing: {} };
+      if (nothingSelected) return { history: [], by_model: [], by_feature: [], invocations: [], daily_invocations: [], daily_invocations_by_user: [], total_cost_usd: 0, pricing: {} };
       const params: Record<string, string> = {};
       if (userIdsParam) params.user_ids = userIdsParam;
       const response = await axios.get('/api/admin/api-usage', { params });
@@ -309,9 +311,8 @@ export function AdminPanel() {
 
   // Build chart data from time spent days (fills gaps so chart has no holes)
   const buildChartData = (days: TimeSpentDay[] | undefined): ClickableBarDatum[] => {
-    const LAUNCH = '2026-03-23';
     const today = new Date().toISOString().split('T')[0];
-    const start = new Date(LAUNCH);
+    const start = new Date(LAUNCH_DATE);
     const end = new Date(today);
     const byDate: Record<string, TimeSpentDay> = {};
     (days || []).forEach(d => { byDate[d.activity_date] = d; });
@@ -363,7 +364,7 @@ export function AdminPanel() {
     const apiFeatures = PAGE_TO_API_FEATURES[selectedFeature];
     if (apiFeatures) apiFeatures.forEach(f => selectedApiFeatures.add(f));
     if (selectedApiFeatures.size === 0) {
-      return { ...apiUsage, by_feature: [], by_model: [], invocations: [], daily_invocations: [], total_cost_usd: 0 };
+      return { ...apiUsage, by_feature: [], by_model: [], invocations: [], daily_invocations: [], daily_invocations_by_user: [], total_cost_usd: 0 };
     }
     return {
       ...apiUsage,
@@ -371,42 +372,41 @@ export function AdminPanel() {
       by_model: apiUsage.by_model,
       invocations: apiUsage.invocations.filter(i => selectedApiFeatures.has(i.feature)),
       daily_invocations: apiUsage.daily_invocations.filter(d => selectedApiFeatures.has(d.feature)),
+      daily_invocations_by_user: apiUsage.daily_invocations_by_user.filter(d => selectedApiFeatures.has(d.feature)),
       total_cost_usd: apiUsage.by_feature
         .filter(f => selectedApiFeatures.has(f.feature))
         .reduce((sum, f) => sum + f.cost_usd, 0),
     };
   }, [apiUsage, selectedFeature]);
 
-  // Cumulative daily invocation chart data with per-user breakdown
+  // Cumulative daily invocation chart data with per-user breakdown.
+  // Bar totals and per-user breakdown both come from server aggregates so
+  // the expanded panel doesn't under-count once history exceeds 100 rows.
   const invocationChartData = useMemo((): ClickableBarDatum[] => {
     const daily = filteredApiUsage?.daily_invocations;
     if (!daily || daily.length === 0) return [];
-    const LAUNCH = '2026-03-23';
     const today = new Date().toISOString().split('T')[0];
     const byDate: Record<string, number> = {};
     daily.forEach(d => { byDate[d.date] = (byDate[d.date] || 0) + d.count; });
 
-    // Aggregate per-user counts per day from invocations list
     const byDateUser: Record<string, Map<number, ClickableBarUser>> = {};
-    (filteredApiUsage?.invocations || []).forEach(inv => {
-      if (inv.user_id == null) return;
-      const date = inv.created_at.split('T')[0];
-      if (!byDateUser[date]) byDateUser[date] = new Map();
-      const existing = byDateUser[date].get(inv.user_id);
+    (filteredApiUsage?.daily_invocations_by_user || []).forEach(row => {
+      if (!byDateUser[row.date]) byDateUser[row.date] = new Map();
+      const existing = byDateUser[row.date].get(row.user_id);
       if (existing) {
-        existing.value += 1;
+        existing.value += row.count;
       } else {
-        byDateUser[date].set(inv.user_id, {
-          user_id: inv.user_id,
-          name: inv.user_name || '—',
-          picture: inv.user_picture,
-          value: 1,
+        byDateUser[row.date].set(row.user_id, {
+          user_id: row.user_id,
+          name: row.user_name || '—',
+          picture: row.user_picture,
+          value: row.count,
         });
       }
     });
 
     const result: ClickableBarDatum[] = [];
-    const cur = new Date(LAUNCH);
+    const cur = new Date(LAUNCH_DATE);
     const end = new Date(today);
     while (cur <= end) {
       const key = cur.toISOString().split('T')[0];
@@ -421,7 +421,7 @@ export function AdminPanel() {
       cur.setDate(cur.getDate() + 1);
     }
     return result;
-  }, [filteredApiUsage?.daily_invocations, filteredApiUsage?.invocations, language]);
+  }, [filteredApiUsage?.daily_invocations, filteredApiUsage?.daily_invocations_by_user, language]);
 
   // Fetch uploads for all users who have invocations
   const invocationUserIds = useMemo(() => {

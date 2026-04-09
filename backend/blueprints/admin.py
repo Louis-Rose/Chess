@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 admin_bp = Blueprint('admin', __name__)
 
+COACHES_LAUNCH_DATE = '2026-03-23'
+
 # ── Gemini pricing per 1M tokens (USD) ──
 GEMINI_PRICING = {
     'gemini-3-flash-preview':         {'input': 0.50, 'output': 3.00},
@@ -36,8 +38,6 @@ def _serialize_datetimes(d, fields=('created_at', 'updated_at'), utc_fields=('la
 @admin_required
 def list_coach_users():
     """List users who registered via the coaches app (admin only)."""
-    # Only count activity from when the coaches app launched
-    COACHES_LAUNCH_DATE = '2026-03-23'
     with get_db() as conn:
         cursor = conn.execute('''
             SELECT u.id, u.email, u.name, u.picture, u.is_admin,
@@ -87,7 +87,6 @@ def list_coach_users():
 @admin_required
 def get_coach_time_spent():
     """Get daily time spent stats for coaches app users only (from launch date)."""
-    COACHES_LAUNCH_DATE = '2026-03-23'
     user_ids_raw = request.args.get('user_ids', '')
     user_ids = [int(x) for x in user_ids_raw.split(',') if x.strip().isdigit()] if user_ids_raw else []
     pages_raw = request.args.get('pages', '')
@@ -303,18 +302,21 @@ def get_api_usage():
     # Compute total cost
     total_cost = sum(m['cost_usd'] for m in by_model)
 
-    # Daily successful invocation counts (grouped by feature and date)
+    # Daily successful invocation counts (grouped by feature and date),
+    # plus a per-user breakdown so the admin chart can expand a day into
+    # a user list without being capped by the 100-row `invocations` list.
     with get_db() as conn:
         cursor = conn.execute(f'''
-            SELECT feature,
-                   MIN(created_at) as invocation_date,
-                   COUNT(*) as total_count,
-                   SUM(CASE WHEN error IS NULL THEN 1 ELSE 0 END) as success_count
-            FROM api_usage
-            WHERE request_id IS NOT NULL {user_filter}
-            GROUP BY feature, request_id
+            SELECT a.feature, a.user_id, u.name as user_name, u.picture as user_picture,
+                   MIN(a.created_at) as invocation_date,
+                   SUM(CASE WHEN a.error IS NULL THEN 1 ELSE 0 END) as success_count
+            FROM api_usage a
+            LEFT JOIN users u ON a.user_id = u.id
+            WHERE a.request_id IS NOT NULL {user_filter.replace('user_id', 'a.user_id')}
+            GROUP BY a.feature, a.request_id, a.user_id, u.name, u.picture
         ''', user_params)
         daily_agg: dict = {}
+        daily_user_agg: dict = {}
         for r in cursor.fetchall():
             row = dict(r)
             # Only count invocations where at least one model succeeded
@@ -323,10 +325,27 @@ def get_api_usage():
             inv_date = str(row['invocation_date'])[:10]
             key = (row['feature'], inv_date)
             daily_agg[key] = daily_agg.get(key, 0) + 1
+            if row['user_id'] is None:
+                continue
+            uk = (row['feature'], inv_date, row['user_id'])
+            if uk not in daily_user_agg:
+                daily_user_agg[uk] = {
+                    'feature': row['feature'],
+                    'date': inv_date,
+                    'user_id': row['user_id'],
+                    'user_name': row['user_name'],
+                    'user_picture': row['user_picture'],
+                    'count': 0,
+                }
+            daily_user_agg[uk]['count'] += 1
         daily_invocations = [
             {'feature': f, 'date': d, 'count': c}
             for (f, d), c in sorted(daily_agg.items())
         ]
+        daily_invocations_by_user = sorted(
+            daily_user_agg.values(),
+            key=lambda r: (r['date'], r['feature'], -r['count']),
+        )
 
     return jsonify({
         'history': rows,
@@ -334,6 +353,7 @@ def get_api_usage():
         'by_feature': by_feature,
         'invocations': invocations,
         'daily_invocations': daily_invocations,
+        'daily_invocations_by_user': daily_invocations_by_user,
         'total_cost_usd': round(total_cost, 6),
         'pricing': GEMINI_PRICING,
     })
