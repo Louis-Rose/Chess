@@ -232,7 +232,9 @@ function CoachesNavSidebar() {
           })}
         </nav>
 
-        <div className="h-px bg-slate-700" />
+        {/* Extra top margin when the nav is empty (no role yet) so the
+            space below Home matches the 8px gap above it. */}
+        <div className={`h-px bg-slate-700 ${!user?.role ? 'mt-1.5' : ''}`} />
       </div>
     </div>
   );
