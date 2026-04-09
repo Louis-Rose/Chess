@@ -309,14 +309,14 @@ export function AdminPanel() {
   }, [data?.users, sortColumn, sortDirection]);
 
   // Build chart data from time spent days (fills gaps so chart has no holes)
-  const buildChartData = (days: TimeSpentDay[] | undefined) => {
+  const buildChartData = (days: TimeSpentDay[] | undefined): ClickableBarDatum[] => {
     const LAUNCH = '2026-03-23';
     const today = new Date().toISOString().split('T')[0];
     const start = new Date(LAUNCH);
     const end = new Date(today);
     const byDate: Record<string, TimeSpentDay> = {};
     (days || []).forEach(d => { byDate[d.activity_date] = d; });
-    const result: { date: string; label: string; minutes: number; by_user: TimeSpentUser[] }[] = [];
+    const result: ClickableBarDatum[] = [];
     const cur = new Date(start);
     while (cur <= end) {
       const key = cur.toISOString().split('T')[0];
@@ -324,8 +324,13 @@ export function AdminPanel() {
       result.push({
         date: key,
         label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long' }),
-        minutes: Math.round((day?.total_seconds || 0) / 60),
-        by_user: day?.by_user || [],
+        value: Math.round((day?.total_seconds || 0) / 60),
+        by_user: (day?.by_user || []).map(u => ({
+          user_id: u.user_id,
+          name: u.name,
+          picture: u.picture,
+          value: u.seconds,
+        })),
       });
       cur.setDate(cur.getDate() + 1);
     }
@@ -373,32 +378,51 @@ export function AdminPanel() {
     };
   }, [apiUsage, selectedFeature]);
 
-  // Cumulative daily invocation chart data
-  const invocationChartData = useMemo(() => {
+  // Cumulative daily invocation chart data with per-user breakdown
+  const invocationChartData = useMemo((): ClickableBarDatum[] => {
     const daily = filteredApiUsage?.daily_invocations;
     if (!daily || daily.length === 0) return [];
     const LAUNCH = '2026-03-23';
     const today = new Date().toISOString().split('T')[0];
     const byDate: Record<string, number> = {};
     daily.forEach(d => { byDate[d.date] = (byDate[d.date] || 0) + d.count; });
-    const result: { date: string; label: string; count: number; cumulative: number }[] = [];
+
+    // Aggregate per-user counts per day from invocations list
+    const byDateUser: Record<string, Map<number, ClickableBarUser>> = {};
+    (filteredApiUsage?.invocations || []).forEach(inv => {
+      if (inv.user_id == null) return;
+      const date = inv.created_at.split('T')[0];
+      if (!byDateUser[date]) byDateUser[date] = new Map();
+      const existing = byDateUser[date].get(inv.user_id);
+      if (existing) {
+        existing.value += 1;
+      } else {
+        byDateUser[date].set(inv.user_id, {
+          user_id: inv.user_id,
+          name: inv.user_name || '—',
+          picture: inv.user_picture,
+          value: 1,
+        });
+      }
+    });
+
+    const result: ClickableBarDatum[] = [];
     const cur = new Date(LAUNCH);
     const end = new Date(today);
-    let cumulative = 0;
     while (cur <= end) {
       const key = cur.toISOString().split('T')[0];
       const count = byDate[key] || 0;
-      cumulative += count;
+      const users = byDateUser[key] ? [...byDateUser[key].values()].sort((a, b) => b.value - a.value) : [];
       result.push({
         date: key,
         label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long' }),
-        count,
-        cumulative,
+        value: count,
+        by_user: users,
       });
       cur.setDate(cur.getDate() + 1);
     }
     return result;
-  }, [filteredApiUsage?.daily_invocations, language]);
+  }, [filteredApiUsage?.daily_invocations, filteredApiUsage?.invocations, language]);
 
   // Fetch uploads for all users who have invocations
   const invocationUserIds = useMemo(() => {
@@ -595,7 +619,20 @@ export function AdminPanel() {
             </div>
             {!chartCollapsed && (
               <div className="p-4">
-                <DailyTimeChart data={chartData} color="#16a34a" />
+                <ClickableBarChart
+                  data={chartData}
+                  color="#16a34a"
+                  yTicks={(() => {
+                    const max = Math.max(0, ...chartData.map(d => d.value));
+                    const ceil = Math.max(60, Math.ceil(max / 60) * 60);
+                    return Array.from({ length: ceil / 30 + 1 }, (_, i) => i * 30);
+                  })()}
+                  yDomain={[0, (max: number) => Math.max(60, Math.ceil(max / 60) * 60)]}
+                  tooltipUnit="min"
+                  tooltipLabel={t('coaches.admin.time')}
+                  formatUserValue={(v) => formatDuration(v)}
+                  formatDayValue={(v) => `${v} min`}
+                />
               </div>
             )}
           </div>
@@ -628,7 +665,15 @@ export function AdminPanel() {
               </h3>
             </div>
             <div className="p-4">
-              <DailyTimeChart data={featureChartData} color="#8b5cf6" height={180} />
+              <ClickableBarChart
+                data={featureChartData}
+                color="#8b5cf6"
+                height={180}
+                tooltipUnit="min"
+                tooltipLabel={t('coaches.admin.time')}
+                formatUserValue={(v) => formatDuration(v)}
+                formatDayValue={(v) => `${v} min`}
+              />
             </div>
           </div>
         )}
@@ -764,20 +809,15 @@ export function AdminPanel() {
             {invocationChartData.length > 0 && (
               <div>
                 <h4 className="text-xs text-slate-500 mb-2">Images processed</h4>
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={invocationChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
-                    <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} allowDecimals={false} />
-                    <Tooltip
-                      cursor={false}
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                      labelStyle={{ color: '#e2e8f0' }}
-                      formatter={(value) => [`${value}`, 'Images']}
-                    />
-                    <Bar dataKey="count" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} name="Day" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ClickableBarChart
+                  data={invocationChartData}
+                  color="#8b5cf6"
+                  height={160}
+                  tooltipUnit=""
+                  tooltipLabel="Images"
+                  formatUserValue={(v) => `${v}`}
+                  formatDayValue={(v) => `${v} images`}
+                />
               </div>
             )}
 
@@ -996,22 +1036,51 @@ export function AdminPanel() {
   );
 }
 
-interface DailyChartDatum {
-  date: string;
-  label: string;
-  minutes: number;
-  by_user: TimeSpentUser[];
+interface ClickableBarUser {
+  user_id: number;
+  name: string;
+  picture: string | null;
+  value: number;
 }
 
-function DailyTimeChart({ data, color, height = 200 }: { data: DailyChartDatum[]; color: string; height?: number }) {
-  const { t } = useLanguage();
-  const [expandedDate, setExpandedDate] = useState<string | null>(null);
+interface ClickableBarDatum {
+  date: string;
+  label: string;
+  value: number;
+  by_user: ClickableBarUser[];
+}
 
+interface ClickableBarChartProps {
+  data: ClickableBarDatum[];
+  color: string;
+  height?: number;
+  yTicks?: number[];
+  yDomain?: [number | string, number | string | ((max: number) => number)];
+  tooltipUnit: string;
+  tooltipLabel: string;
+  formatUserValue: (v: number) => string;
+  formatDayValue: (v: number) => string;
+}
+
+function ClickableBarChart({
+  data,
+  color,
+  height = 200,
+  yTicks,
+  yDomain,
+  tooltipUnit,
+  tooltipLabel,
+  formatUserValue,
+  formatDayValue,
+}: ClickableBarChartProps) {
+  const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const expandedDay = expandedDate ? data.find(d => d.date === expandedDate) : null;
 
-  const handleBarClick = (payload: { date: string } | undefined) => {
-    if (!payload) return;
-    setExpandedDate(d => (d === payload.date ? null : payload.date));
+  const handleBarClick = (payload: unknown) => {
+    const p = payload as { date?: string; payload?: { date?: string } } | undefined;
+    const date = p?.date ?? p?.payload?.date;
+    if (!date) return;
+    setExpandedDate(d => (d === date ? null : date));
   };
 
   return (
@@ -1022,26 +1091,22 @@ function DailyTimeChart({ data, color, height = 200 }: { data: DailyChartDatum[]
           <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
           <YAxis
             tick={{ fill: '#e2e8f0', fontSize: 13 }}
-            ticks={(() => {
-              const max = Math.max(0, ...data.map(d => d.minutes));
-              const ceil = Math.max(60, Math.ceil(max / 60) * 60);
-              return Array.from({ length: ceil / 30 + 1 }, (_, i) => i * 30);
-            })()}
-            domain={[0, (max: number) => Math.max(60, Math.ceil(max / 60) * 60)]}
             allowDecimals={false}
+            {...(yTicks ? { ticks: yTicks } : {})}
+            {...(yDomain ? { domain: yDomain } : {})}
           />
           <Tooltip
             cursor={false}
             contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
             labelStyle={{ color: '#e2e8f0' }}
-            formatter={(value) => [`${value} min`, t('coaches.admin.time')]}
+            formatter={(value) => [`${value} ${tooltipUnit}`, tooltipLabel]}
           />
           <Bar
-            dataKey="minutes"
+            dataKey="value"
             fill={color}
             radius={[2, 2, 0, 0]}
             activeBar={false}
-            onClick={(p: unknown) => handleBarClick(p as { date: string } | undefined)}
+            onClick={handleBarClick}
             style={{ cursor: 'pointer' }}
           />
         </BarChart>
@@ -1049,7 +1114,7 @@ function DailyTimeChart({ data, color, height = 200 }: { data: DailyChartDatum[]
       {expandedDay && (
         <div className="mt-3 rounded-lg border border-slate-700 bg-slate-800/50 overflow-hidden">
           <div className="px-3 py-2 bg-slate-700/40 flex items-center justify-between">
-            <h4 className="text-xs font-medium text-slate-300">{expandedDay.label} — {expandedDay.minutes} min</h4>
+            <h4 className="text-xs font-medium text-slate-300">{expandedDay.label} — {formatDayValue(expandedDay.value)}</h4>
             <button onClick={() => setExpandedDate(null)} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
           </div>
           {expandedDay.by_user.length === 0 ? (
@@ -1060,7 +1125,7 @@ function DailyTimeChart({ data, color, height = 200 }: { data: DailyChartDatum[]
                 <div key={u.user_id} className="flex items-center gap-3 px-3 py-2">
                   <Avatar name={u.name || '?'} picture={u.picture} size="sm" />
                   <span className="flex-1 text-sm text-slate-200 truncate">{u.name || '—'}</span>
-                  <span className="text-sm font-mono text-slate-400">{formatDuration(u.seconds)}</span>
+                  <span className="text-sm font-mono text-slate-400">{formatUserValue(u.value)}</span>
                 </div>
               ))}
             </div>

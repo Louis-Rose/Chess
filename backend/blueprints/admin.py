@@ -110,7 +110,7 @@ def get_coach_time_spent():
                 FROM page_daily_activity a
                 JOIN users u ON a.user_id = u.id
                 WHERE {' AND '.join(conditions)}
-                GROUP BY a.activity_date, a.user_id
+                GROUP BY a.activity_date, a.user_id, u.name, u.picture
                 ORDER BY a.activity_date ASC, seconds DESC
             ''', params)
         elif user_ids:
@@ -120,7 +120,7 @@ def get_coach_time_spent():
                 FROM user_activity a
                 JOIN users u ON a.user_id = u.id
                 WHERE u.registered_app = 'coaches' AND a.activity_date >= ? AND u.id IN ({placeholders})
-                GROUP BY a.activity_date, a.user_id
+                GROUP BY a.activity_date, a.user_id, u.name, u.picture
                 ORDER BY a.activity_date ASC, seconds DESC
             ''', (COACHES_LAUNCH_DATE, *user_ids))
         else:
@@ -129,7 +129,7 @@ def get_coach_time_spent():
                 FROM user_activity a
                 JOIN users u ON a.user_id = u.id
                 WHERE u.registered_app = 'coaches' AND a.activity_date >= ?
-                GROUP BY a.activity_date, a.user_id
+                GROUP BY a.activity_date, a.user_id, u.name, u.picture
                 ORDER BY a.activity_date ASC, seconds DESC
             ''', (COACHES_LAUNCH_DATE,))
 
