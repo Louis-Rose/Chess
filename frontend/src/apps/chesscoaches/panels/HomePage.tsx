@@ -58,7 +58,7 @@ function RoleSelectionView() {
             <div className="w-24 h-24 rounded-full bg-blue-600/20 flex items-center justify-center">
               <Users className="w-12 h-12 text-blue-400" />
             </div>
-            <p className="text-slate-100 font-semibold text-2xl">{t('coaches.roleSelection.coach')}</p>
+            <p className="text-slate-100 font-semibold text-xl">{t('coaches.roleSelection.coach')}</p>
           </button>
           <div
             aria-disabled="true"
@@ -67,7 +67,7 @@ function RoleSelectionView() {
             <div className="w-24 h-24 rounded-full bg-purple-600/10 flex items-center justify-center">
               <GraduationCap className="w-12 h-12 text-purple-400/60" />
             </div>
-            <p className="text-slate-300 font-semibold text-2xl">{t('coaches.roleSelection.student')}</p>
+            <p className="text-slate-300 font-semibold text-xl">{t('coaches.roleSelection.student')}</p>
             <p className="text-slate-400 text-sm">{t('coaches.comingSoon')}</p>
           </div>
         </div>
