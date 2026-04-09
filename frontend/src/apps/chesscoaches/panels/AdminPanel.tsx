@@ -978,15 +978,16 @@ export function AdminPanel() {
               </div>
             )}
 
-            {/* All uploads by user */}
+            {/* All uploads by user (hide the sample scoresheet everyone processes) */}
             {allUploadsData && [...allUploadsData.entries()].map(([uid, uploads]) => {
-              if (uploads.length === 0) return null;
+              const realUploads = uploads.filter(f => f.filename !== 'sample_scoresheet.jpeg');
+              if (realUploads.length === 0) return null;
               const userName = data?.users.find(u => u.id === uid)?.name || `User ${uid}`;
               return (
                 <div key={uid}>
-                  <h4 className="text-base font-semibold text-white mb-2">{userName} <span className="text-slate-500 font-normal">({uploads.length})</span></h4>
+                  <h4 className="text-base font-semibold text-white mb-2">{userName} <span className="text-white font-normal">({realUploads.length})</span></h4>
                   <div className="flex gap-2 flex-wrap">
-                    {uploads.map(file => {
+                    {realUploads.map(file => {
                       const imgUrl = `/api/admin/user-uploads/${uid}/${file.filename}`;
                       return (
                         <div key={file.filename} className="flex flex-col items-center gap-1 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors p-1 group relative">
