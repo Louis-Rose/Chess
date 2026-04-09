@@ -10,7 +10,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 export interface DiagramModelResult {
   name: string;
-  fen?: string;
+  fens?: string[];
   error?: string;
   elapsed: number;
 }
@@ -393,10 +393,14 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           if (payload.type === 'models') {
             setDiagram(prev => ({ ...prev, models: payload.models }));
           } else if (payload.type === 'result') {
-            const { model_id, name, fen, error: err, elapsed } = payload;
+            const { model_id, name, fens, fen, error: err, elapsed } = payload;
+            // Backwards-compat: tolerate old single-fen payloads
+            const fensArr: string[] | undefined = Array.isArray(fens)
+              ? fens
+              : (typeof fen === 'string' && fen ? [fen] : undefined);
             setDiagram(prev => ({
               ...prev,
-              modelResults: { ...prev.modelResults, [model_id]: { name, fen, error: err, elapsed } },
+              modelResults: { ...prev.modelResults, [model_id]: { name, fens: fensArr, error: err, elapsed } },
             }));
           }
         }

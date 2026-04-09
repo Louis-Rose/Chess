@@ -95,7 +95,7 @@ export function DiagramToFenPanel() {
                       <FenResultCard
                         key={m.id}
                         name={mr?.name || m.name}
-                        fen={mr?.fen}
+                        fens={mr?.fens}
                         error={mr?.error}
                         elapsed={mr?.elapsed}
                         loading={!mr}
@@ -114,28 +114,7 @@ export function DiagramToFenPanel() {
   );
 }
 
-function FenResultCard({ name, fen, error, elapsed, loading }: DiagramModelResult & { loading: boolean }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    if (!fen) return;
-    try { await navigator.clipboard.writeText(fen); }
-    catch {
-      const ta = document.createElement('textarea');
-      ta.value = fen;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const validFen = fen && (() => {
-    try { new Chess(fen); return true; } catch { return false; }
-  })();
-
+function FenResultCard({ name, fens, error, elapsed, loading }: DiagramModelResult & { loading: boolean }) {
   return (
     <div className="bg-slate-700/50 rounded-xl overflow-hidden w-full">
       <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
@@ -154,23 +133,58 @@ function FenResultCard({ name, fen, error, elapsed, loading }: DiagramModelResul
         </div>
       ) : error ? (
         <p className="text-red-400 text-center py-4 px-3 text-xs">{error}</p>
-      ) : fen ? (
-        <div className="p-3 space-y-3">
-          <div className="bg-slate-800 rounded-lg px-3 py-2">
-            <p className="text-slate-400 text-[10px] mb-1">FEN</p>
-            <p className="text-slate-100 font-mono text-xs break-all select-all">{fen}</p>
-          </div>
-
-          {validFen && <StaticBoard fen={fen} />}
-
-          <button
-            onClick={handleCopy}
-            className="w-full px-2 py-2 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5 rounded-lg"
-          >
-            {copied ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy FEN</>}
-          </button>
+      ) : fens && fens.length > 0 ? (
+        <div className="p-3 space-y-4">
+          {fens.map((fen, i) => (
+            <FenEntry key={i} fen={fen} index={i} total={fens.length} />
+          ))}
         </div>
-      ) : null}
+      ) : (
+        <p className="text-slate-500 text-center py-4 px-3 text-xs">No diagram detected</p>
+      )}
+    </div>
+  );
+}
+
+function FenEntry({ fen, index, total }: { fen: string; index: number; total: number }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try { await navigator.clipboard.writeText(fen); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = fen;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const validFen = (() => {
+    try { new Chess(fen); return true; } catch { return false; }
+  })();
+
+  return (
+    <div className="space-y-3">
+      {total > 1 && (
+        <p className="text-slate-400 text-[11px] font-medium">Diagram {index + 1} / {total}</p>
+      )}
+      <div className="bg-slate-800 rounded-lg px-3 py-2">
+        <p className="text-slate-400 text-[10px] mb-1">FEN</p>
+        <p className="text-slate-100 font-mono text-xs break-all select-all">{fen}</p>
+      </div>
+
+      {validFen && <StaticBoard fen={fen} />}
+
+      <button
+        onClick={handleCopy}
+        className="w-full px-2 py-2 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5 rounded-lg"
+      >
+        {copied ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy FEN</>}
+      </button>
     </div>
   );
 }

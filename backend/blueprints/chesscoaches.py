@@ -921,21 +921,25 @@ def read_scoresheet_azure():
     })
 
 
-DIAGRAM_READ_PROMPT = """You are analyzing a chess diagram image (screenshot, photo, or printed diagram).
+DIAGRAM_READ_PROMPT = """You are analyzing a chess image that may contain ONE OR SEVERAL chess diagrams (screenshot, photo, or printed page).
 
-Extract the position and return ONLY the FEN string (Forsyth-Edwards Notation).
+Detect every chess diagram in the image and extract its position as a FEN string (Forsyth-Edwards Notation).
 
-Rules:
-- Return ONLY the FEN string, nothing else — no explanation, no markdown, no quotes
+Return ONLY a JSON array of FEN strings, in reading order (left-to-right, top-to-bottom). No markdown, no commentary, no code fences.
+- If the image contains one diagram, return an array with one FEN: ["..."]
+- If it contains several, return them all: ["fen1", "fen2", "fen3"]
+- If no diagram is detected, return: []
+
+FEN rules:
 - Include all 6 FEN fields: piece placement, active color, castling, en passant, halfmove clock, fullmove number
 - If you cannot determine active color, castling rights, or en passant, use reasonable defaults: "w KQkq - 0 1"
 - Be careful distinguishing pieces: K (King), Q (Queen), R (Rook), B (Bishop), N (Knight), P (pawn)
 - White pieces are uppercase (KQRBNP), black pieces are lowercase (kqrbnp)
-- Read the board from rank 8 (top) to rank 1 (bottom), file a (left) to file h (right)
+- Read each board from rank 8 (top) to rank 1 (bottom), file a (left) to file h (right)
 - Empty squares are represented by digits (1-8) counting consecutive empties
 
-Example output:
-rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"""
+Example output for a page with two diagrams:
+["rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"]"""
 
 
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
@@ -983,11 +987,30 @@ def read_diagram():
             )
             elapsed = round(time_module.time() - start)
             in_tok, out_tok, think_tok = _extract_usage_tokens(response)
-            fen = response.text.strip().strip('`').strip()
-            if fen.startswith('fen\n'):
-                fen = fen[4:].strip()
-            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {fen[:80]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
-            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "fen": fen, "elapsed": elapsed})
+            raw = response.text.strip()
+            # Strip common markdown code fences (```json ... ``` or ``` ... ```)
+            if raw.startswith('```'):
+                raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+                if raw.endswith('```'):
+                    raw = raw[:-3]
+                raw = raw.strip()
+            if raw.startswith('json\n'):
+                raw = raw[5:].strip()
+            try:
+                parsed = json_module.loads(raw)
+                if isinstance(parsed, list):
+                    fens = [str(f).strip() for f in parsed if str(f).strip()]
+                elif isinstance(parsed, str):
+                    fens = [parsed.strip()] if parsed.strip() else []
+                else:
+                    fens = []
+            except (json_module.JSONDecodeError, ValueError):
+                # Fallback: treat raw text as a single FEN (backwards-compatible)
+                fallback = raw.strip('`').strip()
+                fens = [fallback] if fallback else []
+            preview = (fens[0][:80] if fens else '(no diagrams)')
+            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {len(fens)} diagram(s), first={preview} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
+            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "fens": fens, "elapsed": elapsed})
             _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
         except Exception as e:
             elapsed = round(time_module.time() - start)
