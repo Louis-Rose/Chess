@@ -3,8 +3,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { ImageIcon, FileText, Clock, Check, X } from 'lucide-react';
+import { ImageIcon, FileText, Clock, Check } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
+import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
 import { UploadBox } from '../components/UploadBox';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -370,54 +371,31 @@ export function ScoresheetReadPage() {
                 const modelPct = models.length > 0 ? Math.round((finishedCount / models.length) * 75) : 0;
                 const pct = preparingImage ? 0 : 25 + modelPct;
                 const maxAvg = Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3) + 5; // +5s for auto-crop phase
-                return (
-                  <div className="flex justify-center">
-                    <div className="relative bg-slate-700/40 rounded-xl p-4 min-w-[300px] max-w-[400px] w-full">
-                        <button
-                          onClick={() => scoresheetClear()}
-                          className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-600/80 hover:bg-red-600 text-slate-300 text-xs transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                          {allDone ? t('coaches.startFresh') : t('coaches.stopProcessing')}
-                        </button>
-                      <div className="flex items-center mb-1.5">
-                        <span className="text-sm text-slate-300 inline-flex items-center gap-1.5">
-                          {!allDone && <Clock className="w-3.5 h-3.5 animate-spin" />}
-                          {t('coaches.processing')}
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ease-out ${allDone ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <div className="text-center mt-1">
-                        <span className={`text-sm font-medium ${allDone ? 'text-emerald-500' : 'text-blue-500'}`}>{pct}%</span>
-                      </div>
-                      <div className="text-center mt-0.5">
-                        <span className="text-xs text-slate-400">
-                          {liveGlobalElapsed}s{!allDone && maxAvg > 0 ? <> / ~{maxAvg}s <span className="inline-block w-0 overflow-visible whitespace-nowrap">(estimated)</span></> : ''}
-                        </span>
-                      </div>
-                      {preparingImage ? (
-                        <p className="text-center text-blue-400 text-sm mt-2 animate-pulse">{t('coaches.autoCropping')}</p>
-                      ) : !allDone ? (
-                        <div className="text-center mt-2">
-                          <p className="text-blue-400 text-sm">{t('coaches.waitProcessing')}</p>
-                        </div>
-                      ) : unresolvedCountRef.current > 0 ? (
-                        <div className="text-center text-emerald-500 text-sm mt-2">
-                          <p>{t('coaches.processingDone1')}</p>
-                          <p>{unresolvedCountRef.current === 1 ? t('coaches.processingDone2_one') : t('coaches.processingDone2_other').replace('{count}', String(unresolvedCountRef.current))}</p>
-                          <p>{t('coaches.processingDone3')}</p>
-                          <p>{t('coaches.processingDone4')} {t('coaches.processingDone5')}</p>
-                        </div>
-                      ) : (
-                        <p className="text-center text-emerald-500 text-sm mt-2">{t('coaches.allMovesVerified')}</p>
-                      )}
-                    </div>
+                const statusNode = preparingImage ? (
+                  <p className="text-center text-blue-400 text-sm animate-pulse">{t('coaches.autoCropping')}</p>
+                ) : !allDone ? (
+                  <p className="text-center text-blue-400 text-sm">{t('coaches.waitProcessing')}</p>
+                ) : unresolvedCountRef.current > 0 ? (
+                  <div className="text-center text-emerald-500 text-sm">
+                    <p>{t('coaches.processingDone1')}</p>
+                    <p>{unresolvedCountRef.current === 1 ? t('coaches.processingDone2_one') : t('coaches.processingDone2_other').replace('{count}', String(unresolvedCountRef.current))}</p>
+                    <p>{t('coaches.processingDone3')}</p>
+                    <p>{t('coaches.processingDone4')} {t('coaches.processingDone5')}</p>
                   </div>
+                ) : (
+                  <p className="text-center text-emerald-500 text-sm">{t('coaches.allMovesVerified')}</p>
+                );
+                return (
+                  <ProcessingProgressBar
+                    title={t('coaches.processing')}
+                    pct={pct}
+                    elapsedSec={liveGlobalElapsed}
+                    maxAvgSec={maxAvg}
+                    allDone={allDone}
+                    onCancel={() => scoresheetClear()}
+                    cancelLabel={allDone ? t('coaches.startFresh') : t('coaches.stopProcessing')}
+                    statusNode={statusNode}
+                  />
                 );
               })()}
 

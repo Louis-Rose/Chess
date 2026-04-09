@@ -1,8 +1,9 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
+import { ImageIcon, Clock, Copy, Check } from 'lucide-react';
 import { ImageZoomModal } from '../components/ImageZoomModal';
+import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
 import { Chess } from 'chess.js';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
@@ -14,7 +15,17 @@ export function DiagramToFenPanel() {
   const { t } = useLanguage();
   const fileRef = useRef<HTMLInputElement>(null);
   const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
-  const { preview, models, modelResults, analyzing, error } = diagram;
+  const { preview, models, modelResults, analyzing, startTime, error } = diagram;
+  const [liveElapsed, setLiveElapsed] = useState(0);
+
+  // Tick the elapsed counter while analysis is running
+  useEffect(() => {
+    if (!startTime) { setLiveElapsed(0); return; }
+    const tick = () => setLiveElapsed(Math.round((Date.now() - startTime) / 1000));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [startTime, analyzing]);
   const [showImageModal, setShowImageModal] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -84,16 +95,6 @@ export function DiagramToFenPanel() {
             </div>
           ) : (
             <div className="space-y-4">
-              {(models.length > 0 || analyzing) && (
-                <div className="flex justify-center">
-                  <button
-                    onClick={diagramClear}
-                    className="bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
               <img
                 src={preview}
                 alt="Diagram"
@@ -114,12 +115,27 @@ export function DiagramToFenPanel() {
                 </div>
               )}
 
-              {analyzing && (
-                <div className="flex items-center justify-center gap-2 text-slate-400 animate-pulse py-4">
-                  <Clock className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">{t('coaches.diagram.analyzing')}</span>
-                </div>
-              )}
+              {(analyzing || models.length > 0) && (() => {
+                const finishedCount = models.filter(m => !!modelResults[m.id]).length;
+                const allDone = !analyzing && models.length > 0 && finishedCount === models.length;
+                const pct = models.length === 0
+                  ? 5
+                  : Math.round((finishedCount / models.length) * 100);
+                const maxAvg = models.length > 0
+                  ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3)
+                  : 0;
+                return (
+                  <ProcessingProgressBar
+                    title={t('coaches.diagram.analyzing')}
+                    pct={pct}
+                    elapsedSec={liveElapsed}
+                    maxAvgSec={maxAvg}
+                    allDone={allDone}
+                    onCancel={diagramClear}
+                    cancelLabel={allDone ? t('coaches.startFresh') : t('coaches.stopProcessing')}
+                  />
+                );
+              })()}
 
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 

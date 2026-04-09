@@ -21,11 +21,12 @@ export interface DiagramState {
   models: { id: string; name: string; avg_elapsed?: number | null }[];
   modelResults: Record<string, DiagramModelResult>;
   analyzing: boolean;
+  startTime: number | null;
   error: string;
 }
 
 const DIAGRAM_INITIAL: DiagramState = {
-  preview: null, imageFile: null, models: [], modelResults: {}, analyzing: false, error: '',
+  preview: null, imageFile: null, models: [], modelResults: {}, analyzing: false, startTime: null, error: '',
 };
 
 // ── Scoresheet types ──
@@ -358,7 +359,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     const file = diagram.imageFile;
     if (!file) return;
 
-    setDiagram(prev => ({ ...prev, error: '', modelResults: {}, models: [], analyzing: true }));
+    setDiagram(prev => ({ ...prev, error: '', modelResults: {}, models: [], analyzing: true, startTime: Date.now() }));
 
     try {
       const formData = new FormData();
