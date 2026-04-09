@@ -17,9 +17,17 @@ function App() {
     posthog.capture('$pageview');
   }, [location.pathname]);
 
-  // Sync language from user profile (server-persisted) on login
+  // Reconcile language on login.
+  // localStorage['language'] is only set after an explicit user toggle
+  // (initial fallback to navigator.language is kept in memory only), so
+  // its presence means the user made a choice — in that case, local wins
+  // and we push it to the server. Otherwise, hydrate from server.
   useEffect(() => {
-    if (user?.language && user.language !== language) {
+    if (!user) return;
+    const localLang = localStorage.getItem('language') as 'en' | 'fr' | null;
+    if (localLang) {
+      if (localLang !== user.language) setLanguage(localLang);
+    } else if (user.language && user.language !== language) {
       setLanguage(user.language);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
