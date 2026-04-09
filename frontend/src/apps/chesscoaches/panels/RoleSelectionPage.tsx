@@ -130,7 +130,7 @@ export function RoleSelectionPage() {
               </button>
               <button
                 onClick={() => { setShowInviteInput(false); setError(''); }}
-                className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-xl transition-colors"
+                className="px-6 py-2.5 border border-slate-500 bg-slate-700/60 hover:bg-slate-600 hover:border-slate-400 text-slate-200 text-sm font-medium rounded-xl transition-colors"
               >
                 {t('coaches.roleSelection.back') || 'Back'}
               </button>
