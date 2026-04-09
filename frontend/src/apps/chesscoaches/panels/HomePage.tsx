@@ -151,15 +151,12 @@ interface OnboardingStatus {
 
 function OnboardingBanner({ status }: { status: OnboardingStatus }) {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   if (status.has_lessons) return null;
 
-  const isStudent = user?.role === 'student';
-  const role = isStudent ? 'student' : 'coach';
   const steps = [
-    { done: status.has_profile, before: t(`coaches.onboarding.step.profile.before.${role}`), link: t(`coaches.onboarding.step.profile.link.${role}`), after: '', path: '/profile' },
+    { done: status.has_profile, before: t('coaches.onboarding.step.profile.before.coach'), link: t('coaches.onboarding.step.profile.link.coach'), after: '', path: '/profile' },
     { done: status.has_students, before: t('coaches.onboarding.step.students.before'), link: t('coaches.onboarding.step.students.link'), after: '', path: '/students' },
     { done: status.has_lessons, before: t('coaches.onboarding.step.calendar.before'), link: t('coaches.onboarding.step.calendar.link'), after: '', path: '/schedule' },
   ];
@@ -175,7 +172,7 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-slate-100 mb-3">
-              {t(isStudent ? 'coaches.onboarding.welcome.student' : 'coaches.onboarding.welcome.coach')}
+              {t('coaches.onboarding.welcome.coach')}
             </h3>
             <div className="space-y-2.5">
               {steps.map((step, i) => (
