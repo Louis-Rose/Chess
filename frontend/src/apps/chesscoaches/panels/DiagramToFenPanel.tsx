@@ -18,9 +18,10 @@ export function DiagramToFenPanel() {
   const { preview, models, modelResults, analyzing, startTime, error } = diagram;
   const [liveElapsed, setLiveElapsed] = useState(0);
 
-  // Tick the elapsed counter while analysis is running
+  // Tick the elapsed counter while analysis is running; freeze on completion
   useEffect(() => {
     if (!startTime) { setLiveElapsed(0); return; }
+    if (!analyzing) return; // analysis finished — leave liveElapsed at its last value
     const tick = () => setLiveElapsed(Math.round((Date.now() - startTime) / 1000));
     tick();
     const id = setInterval(tick, 1000);
