@@ -294,18 +294,18 @@ function MobilePlayerButton() {
 
 function CoachesHeader() {
   return (
-    <div className="bg-slate-900 border-b border-slate-700 -mx-2 md:-mx-8 px-4 md:px-8 py-3 mb-2">
+    <div className="relative bg-slate-900 border-b border-slate-700 -mx-2 md:-mx-8 px-4 md:px-8 py-3 mb-2">
       <div className="flex flex-col items-center">
         <div className="relative flex items-center justify-center w-full">
           <div className="absolute left-0">
             <MobilePlayerButton />
           </div>
           <LumnaBrand hideSubtitle />
-          <div className="absolute right-0">
-            <LanguageToggle />
-          </div>
         </div>
         <LumnaBrandSubtitle />
+      </div>
+      <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2">
+        <LanguageToggle />
       </div>
     </div>
   );
