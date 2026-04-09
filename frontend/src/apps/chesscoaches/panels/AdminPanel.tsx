@@ -1164,11 +1164,11 @@ function CodelinesBadge() {
         <h3 className="text-sm font-medium text-slate-300">Codebase</h3>
       </div>
       <div className="px-4 py-3">
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-baseline justify-center gap-2">
           <span className="font-mono text-2xl font-bold text-slate-100">{data.lines.toLocaleString()}</span>
-          <span className="text-sm text-slate-400">lines of code</span>
+          <span className="text-base text-slate-400">lines of code</span>
         </div>
-        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+        <div className="mt-2 flex flex-wrap justify-center gap-x-6 gap-y-1 text-base">
           {breakdown.map(({ lang, pct }) => (
             <span key={lang}>
               <span className={`font-semibold ${LANG_COLORS[lang] ?? 'text-slate-300'}`}>{lang}</span>{' '}
