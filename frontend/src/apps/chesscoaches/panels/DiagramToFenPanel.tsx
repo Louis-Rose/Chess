@@ -96,26 +96,6 @@ export function DiagramToFenPanel() {
             </div>
           ) : (
             <div className="space-y-4">
-              <img
-                src={preview}
-                alt="Diagram"
-                className={`rounded-xl mx-auto cursor-pointer hover:opacity-90 transition-all ${
-                  !analyzing && models.length === 0 ? 'max-h-[65vh]' : 'max-h-80'
-                }`}
-                onClick={() => setShowImageModal(true)}
-              />
-
-              {!analyzing && models.length === 0 && (
-                <div className="flex justify-center">
-                  <button
-                    onClick={diagramAnalyze}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
-                  >
-                    {t('coaches.diagram.analyze')}
-                  </button>
-                </div>
-              )}
-
               {(analyzing || models.length > 0) && (() => {
                 const finishedCount = models.filter(m => !!modelResults[m.id]).length;
                 const allDone = !analyzing && models.length > 0 && finishedCount === models.length;
@@ -137,6 +117,26 @@ export function DiagramToFenPanel() {
                   />
                 );
               })()}
+
+              <img
+                src={preview}
+                alt="Diagram"
+                className={`rounded-xl mx-auto cursor-pointer hover:opacity-90 transition-all ${
+                  !analyzing && models.length === 0 ? 'max-h-[65vh]' : 'max-h-80'
+                }`}
+                onClick={() => setShowImageModal(true)}
+              />
+
+              {!analyzing && models.length === 0 && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={diagramAnalyze}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
+                  >
+                    {t('coaches.diagram.analyze')}
+                  </button>
+                </div>
+              )}
 
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
