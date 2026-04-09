@@ -3,7 +3,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ChessCoachesLayout } from './ChessCoachesLayout';
-import { ScoresheetPanel } from './panels/ScoresheetPanel';
+import { HomePage } from './panels/HomePage';
 import { ScoresheetReadPage } from './panels/ScoresheetReadPage';
 import { StudentsPanel } from './panels/StudentsPanel';
 import { MistakeFinderPanel } from './panels/MistakeFinderPanel';
@@ -14,7 +14,6 @@ import { PaymentsPanel } from './panels/PaymentsPanel';
 import { ProfilePage } from './panels/ProfilePage';
 import { MessagesPanel } from './panels/MessagesPanel';
 import { SchedulePanel } from './panels/SchedulePanel';
-import { StudentHomePage } from './panels/StudentHomePage';
 import { InvitePage } from './panels/InvitePage';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -31,8 +30,6 @@ export function ChessCoachesApp() {
     if (link) link.href = '/favicon.svg';
   }, []);
 
-  const isStudent = user?.role === 'student';
-
   return (
     <Routes>
       {/* Invite page — accessible without auth (has its own layout) */}
@@ -40,7 +37,7 @@ export function ChessCoachesApp() {
 
       {/* Shared layout — sidebar filters visibility by role */}
       <Route element={<ChessCoachesLayout />}>
-        <Route index element={isStudent ? <StudentHomePage /> : <ScoresheetPanel />} />
+        <Route index element={<HomePage role={user?.role ?? null} />} />
         <Route path="schedule" element={<SchedulePanel />} />
         <Route path="messages" element={<MessagesPanel />} />
         <Route path="profile" element={<ProfilePage />} />
