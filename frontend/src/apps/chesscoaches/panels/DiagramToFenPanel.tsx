@@ -100,7 +100,7 @@ export function DiagramToFenPanel() {
                 const finishedCount = models.filter(m => !!modelResults[m.id]).length;
                 const allDone = !analyzing && models.length > 0 && finishedCount === models.length;
                 const pct = models.length === 0
-                  ? 5
+                  ? 0
                   : Math.round((finishedCount / models.length) * 100);
                 const maxAvg = models.length > 0
                   ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3)
