@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 type Language = 'en' | 'fr';
 
@@ -686,6 +686,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     const browserLang = navigator.language || navigator.languages?.[0] || '';
     return browserLang.startsWith('fr') ? 'fr' : 'en';
   });
+
+  // Keep <html lang> in sync so Google Sign-In (and other locale-aware libs) pick up our language
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
