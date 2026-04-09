@@ -20,6 +20,7 @@ interface User {
   picture: string;
   role: 'coach' | 'student' | null;
   is_admin: boolean;
+  language?: 'en' | 'fr' | null;
   _t?: number;
 }
 

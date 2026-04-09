@@ -10,14 +10,16 @@ export function LanguageToggle({ className }: { className?: string }) {
       />
       <button
         onClick={() => setLanguage('en')}
-        className={`relative z-10 px-2 md:px-4 py-1 text-xs md:text-sm font-medium rounded transition-colors ${language === 'en' ? 'text-white' : 'text-slate-400'}`}
+        className={`relative z-10 px-2 md:px-4 py-1 text-xs md:text-sm font-medium rounded transition-colors flex items-center gap-1.5 ${language === 'en' ? 'text-white' : 'text-slate-400'}`}
       >
+        <span aria-hidden>🇬🇧</span>
         <span className="md:hidden">EN</span><span className="hidden md:inline">English</span>
       </button>
       <button
         onClick={() => setLanguage('fr')}
-        className={`relative z-10 px-2 md:px-4 py-1 text-xs md:text-sm font-medium rounded transition-colors ${language === 'fr' ? 'text-white' : 'text-slate-400'}`}
+        className={`relative z-10 px-2 md:px-4 py-1 text-xs md:text-sm font-medium rounded transition-colors flex items-center gap-1.5 ${language === 'fr' ? 'text-white' : 'text-slate-400'}`}
       >
+        <span aria-hidden>🇫🇷</span>
         <span className="md:hidden">FR</span><span className="hidden md:inline">Français</span>
       </button>
     </div>

@@ -696,6 +696,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('language', lang);
+    // Fire-and-forget server persistence (requires auth; silently fails if not logged in)
+    fetch('/api/auth/language', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ language: lang }),
+    }).catch(() => {});
   };
 
   const t = (key: string): string => {

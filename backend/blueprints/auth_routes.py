@@ -53,6 +53,7 @@ def _build_user_payload(user: dict) -> dict:
         'role': user.get('role', 'coach'),
         'is_admin': bool(user.get('is_admin')),
         'cookie_consent': user.get('cookie_consent'),
+        'language': user.get('language'),
         'preferences': {
             'chess_username': user['chess_username'],
             'preferred_time_class': user['preferred_time_class']
@@ -90,9 +91,10 @@ def google_auth():
     # Get user data for response
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.*, up.chess_username, up.preferred_time_class
+            SELECT u.*, up.chess_username, up.preferred_time_class, lu.language
             FROM users u
             LEFT JOIN user_preferences up ON u.id = up.user_id
+            LEFT JOIN language_usage lu ON u.id = lu.user_id
             WHERE u.id = ?
         ''', (user_id,))
         user = dict(cursor.fetchone())
@@ -198,6 +200,25 @@ def delete_user_account():
     return response
 
 
+@auth_bp.route('/api/auth/language', methods=['POST'])
+@login_required
+def set_user_language():
+    """Persist the user's language preference (immediate, not via heartbeat)."""
+    data = request.get_json() or {}
+    language = data.get('language')
+    if language not in ('en', 'fr'):
+        return jsonify({'error': 'Invalid language'}), 400
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO language_usage (user_id, language, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+                language = excluded.language,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (request.user_id, language))
+    return jsonify({'ok': True})
+
+
 @auth_bp.route('/api/auth/me', methods=['GET'])
 def get_current_user_info():
     """Get current user info if authenticated."""
@@ -208,9 +229,10 @@ def get_current_user_info():
 
     with get_db() as conn:
         cursor = conn.execute('''
-            SELECT u.*, up.chess_username, up.preferred_time_class
+            SELECT u.*, up.chess_username, up.preferred_time_class, lu.language
             FROM users u
             LEFT JOIN user_preferences up ON u.id = up.user_id
+            LEFT JOIN language_usage lu ON u.id = lu.user_id
             WHERE u.id = ?
         ''', (user_id,))
         row = cursor.fetchone()
