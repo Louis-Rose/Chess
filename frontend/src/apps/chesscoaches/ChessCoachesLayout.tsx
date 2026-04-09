@@ -168,6 +168,8 @@ function CoachesNavSidebar() {
           </div>
         )}
 
+        <div className="h-px bg-slate-700 my-1.5" />
+
         {/* Navigation */}
         <nav className="flex flex-col gap-0.5">
           <NavLink
