@@ -93,7 +93,7 @@ function CoachesNavSidebar() {
   }, []);
 
   return (
-    <div className="hidden md:flex w-56 2xl:w-64 bg-slate-900 border-r border-slate-700 h-screen flex-col flex-shrink-0">
+    <div className="hidden md:flex w-56 2xl:w-64 bg-slate-900 h-screen flex-col flex-shrink-0">
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
         {/* User card */}
         {user ? (
