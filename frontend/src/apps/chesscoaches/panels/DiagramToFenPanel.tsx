@@ -9,7 +9,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
-import type { DiagramModelResult } from '../contexts/CoachesDataContext';
+import type { DiagramModelResult, DiagramExtract } from '../contexts/CoachesDataContext';
 
 export function DiagramToFenPanel() {
   const { t } = useLanguage();
@@ -181,8 +181,8 @@ function ResultsView({ models, modelResults }: ResultsViewProps) {
 
   const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
   const mr = selectedModel ? modelResults[selectedModel.id] : undefined;
-  const fens = mr?.fens ?? [];
-  const diagramCount = fens.length;
+  const diagrams = mr?.diagrams ?? [];
+  const diagramCount = diagrams.length;
 
   // Clamp diagram index when the selected reader changes
   useEffect(() => {
@@ -242,7 +242,7 @@ function ResultsView({ models, modelResults }: ResultsViewProps) {
           <p className="text-red-400 text-center py-4 px-3 text-xs">{mr.error}</p>
         ) : diagramCount > 0 ? (
           <div className="p-3">
-            <FenEntry fen={fens[selectedDiagramIdx] ?? fens[0]} />
+            <FenEntry diagram={diagrams[selectedDiagramIdx] ?? diagrams[0]} />
           </div>
         ) : (
           <p className="text-slate-500 text-center py-4 px-3 text-xs">{t('coaches.diagram.noneDetected')}</p>
@@ -252,9 +252,10 @@ function ResultsView({ models, modelResults }: ResultsViewProps) {
   );
 }
 
-function FenEntry({ fen }: { fen: string }) {
+function FenEntry({ diagram }: { diagram: DiagramExtract }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
+  const { fen, white_player, black_player } = diagram;
 
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(fen); }
@@ -274,8 +275,37 @@ function FenEntry({ fen }: { fen: string }) {
     try { new Chess(fen); return true; } catch { return false; }
   })();
 
+  // Pull "w" or "b" out of the FEN's active color field
+  const activeColor = fen.split(' ')[1];
+  const sideToMoveLabel =
+    activeColor === 'b' ? t('coaches.diagram.blackToPlay') : t('coaches.diagram.whiteToPlay');
+  const hasPlayers = !!(white_player || black_player);
+
   return (
     <div className="space-y-3">
+      {hasPlayers && (
+        <p className="text-center text-slate-200 text-sm font-medium">
+          <span className="text-slate-100">{white_player || '—'}</span>
+          <span className="text-slate-500 mx-2">vs</span>
+          <span className="text-slate-100">{black_player || '—'}</span>
+        </p>
+      )}
+
+      <div className="flex justify-center">
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+            activeColor === 'b'
+              ? 'bg-slate-900 border-slate-600 text-slate-100'
+              : 'bg-slate-100 border-slate-300 text-slate-900'
+          }`}
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${activeColor === 'b' ? 'bg-slate-100' : 'bg-slate-900'}`}
+          />
+          {sideToMoveLabel}
+        </span>
+      </div>
+
       <div className="bg-slate-800 rounded-lg px-3 py-2">
         <p className="text-slate-400 text-[10px] mb-1">FEN</p>
         <p className="text-slate-100 font-mono text-xs break-all select-all">{fen}</p>

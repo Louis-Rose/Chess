@@ -8,9 +8,15 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 // ── Diagram types ──
 
+export interface DiagramExtract {
+  fen: string;
+  white_player?: string;
+  black_player?: string;
+}
+
 export interface DiagramModelResult {
   name: string;
-  fens?: string[];
+  diagrams?: DiagramExtract[];
   error?: string;
   elapsed: number;
 }
@@ -394,10 +400,10 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           if (payload.type === 'models') {
             setDiagram(prev => ({ ...prev, models: payload.models }));
           } else if (payload.type === 'result') {
-            const { model_id, name, fens, error: err, elapsed } = payload;
+            const { model_id, name, diagrams, error: err, elapsed } = payload;
             setDiagram(prev => ({
               ...prev,
-              modelResults: { ...prev.modelResults, [model_id]: { name, fens, error: err, elapsed } },
+              modelResults: { ...prev.modelResults, [model_id]: { name, diagrams, error: err, elapsed } },
             }));
           }
         }
