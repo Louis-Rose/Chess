@@ -40,7 +40,6 @@ export function DiagramToFenPanel() {
               onClick={() => fileRef.current?.click()}
               icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
               title={t('coaches.diagram.uploadPrompt')}
-              hint={t('coaches.diagram.uploadHint')}
             />
           ) : (
             <div className="space-y-4">
