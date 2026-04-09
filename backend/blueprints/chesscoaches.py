@@ -1029,12 +1029,17 @@ def read_scoresheet():
     image_bytes = image_file.read()
     mime_type = image_file.content_type or 'image/jpeg'
     user_notation = request.form.get('notation')  # User-selected notation language
-    logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}, notation={user_notation or 'auto'}")
+    # The frontend uses the filename 'sample_scoresheet.jpeg' (or .jpg after canvas
+    # re-encode in processImage) whenever the user processes the bundled demo file.
+    # We don't want to store or display those copies in the admin panel.
+    is_sample = (image_file.filename or '').lower().startswith('sample_scoresheet')
+    logger.info(f"[Scoresheet] Image: {len(image_bytes)} bytes, {mime_type}, notation={user_notation or 'auto'}, sample={is_sample}")
 
 
     req_id = uuid.uuid4().hex[:12]
     uid = get_current_user()
-    _save_upload(uid, req_id, image_bytes, mime_type, 'scoresheet')
+    if not is_sample:
+        _save_upload(uid, req_id, image_bytes, mime_type, 'scoresheet')
 
     result_queue = queue.Queue()
 
