@@ -393,14 +393,10 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           if (payload.type === 'models') {
             setDiagram(prev => ({ ...prev, models: payload.models }));
           } else if (payload.type === 'result') {
-            const { model_id, name, fens, fen, error: err, elapsed } = payload;
-            // Backwards-compat: tolerate old single-fen payloads
-            const fensArr: string[] | undefined = Array.isArray(fens)
-              ? fens
-              : (typeof fen === 'string' && fen ? [fen] : undefined);
+            const { model_id, name, fens, error: err, elapsed } = payload;
             setDiagram(prev => ({
               ...prev,
-              modelResults: { ...prev.modelResults, [model_id]: { name, fens: fensArr, error: err, elapsed } },
+              modelResults: { ...prev.modelResults, [model_id]: { name, fens, error: err, elapsed } },
             }));
           }
         }

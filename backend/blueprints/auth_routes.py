@@ -43,6 +43,17 @@ def _is_invite_expired(invite: dict) -> bool:
     return (datetime.now(timezone.utc) - created.replace(tzinfo=timezone.utc)).days > INVITE_EXPIRY_DAYS
 
 
+def _upsert_language(conn, user_id: int, language: str) -> None:
+    """Upsert the user's language preference into language_usage."""
+    conn.execute('''
+        INSERT INTO language_usage (user_id, language, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET
+            language = excluded.language,
+            updated_at = CURRENT_TIMESTAMP
+    ''', (user_id, language))
+
+
 def _build_user_payload(user: dict) -> dict:
     """Build the user payload dict returned by auth endpoints."""
     payload = {
@@ -93,13 +104,7 @@ def google_auth():
     client_language = data.get('language')
     if client_language in ('en', 'fr'):
         with get_db() as conn:
-            conn.execute('''
-                INSERT INTO language_usage (user_id, language, updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(user_id) DO UPDATE SET
-                    language = excluded.language,
-                    updated_at = CURRENT_TIMESTAMP
-            ''', (user_id, client_language))
+            _upsert_language(conn, user_id, client_language)
 
     # Get user data for response
     with get_db() as conn:
@@ -222,13 +227,7 @@ def set_user_language():
     if language not in ('en', 'fr'):
         return jsonify({'error': 'Invalid language'}), 400
     with get_db() as conn:
-        conn.execute('''
-            INSERT INTO language_usage (user_id, language, updated_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(user_id) DO UPDATE SET
-                language = excluded.language,
-                updated_at = CURRENT_TIMESTAMP
-        ''', (request.user_id, language))
+        _upsert_language(conn, request.user_id, language)
     return jsonify({'ok': True})
 
 
@@ -353,13 +352,7 @@ def activity_heartbeat():
 
         # Track language preference (if provided)
         if language:
-            conn.execute('''
-                INSERT INTO language_usage (user_id, language, updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(user_id) DO UPDATE SET
-                    language = excluded.language,
-                    updated_at = CURRENT_TIMESTAMP
-            ''', (request.user_id, language))
+            _upsert_language(conn, request.user_id, language)
 
         # Track device usage seconds (if provided)
         if device_type in ('mobile', 'desktop'):

@@ -17,19 +17,12 @@ function App() {
     posthog.capture('$pageview');
   }, [location.pathname]);
 
-  // Reconcile language on login.
-  // localStorage['language'] is only set after an explicit user toggle
-  // (initial fallback to navigator.language is kept in memory only), so
-  // its presence means the user made a choice — in that case, local wins
-  // and we push it to the server. Otherwise, hydrate from server.
+  // Hydrate language from the server for returning users (page refresh with
+  // valid session). On a fresh login, login() already sends the pre-login
+  // language atomically so user.language is already correct — nothing to do.
   useEffect(() => {
-    if (!user) return;
-    const localLang = localStorage.getItem('language') as 'en' | 'fr' | null;
-    if (localLang) {
-      if (localLang !== user.language) setLanguage(localLang);
-    } else if (user.language && user.language !== language) {
-      setLanguage(user.language);
-    }
+    if (!user?.language) return;
+    if (user.language !== language) setLanguage(user.language);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?.language]);
 
