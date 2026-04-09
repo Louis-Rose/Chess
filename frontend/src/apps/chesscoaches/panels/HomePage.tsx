@@ -29,9 +29,6 @@ function RoleSelectionView() {
   const { t } = useLanguage();
   const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [showInviteInput, setShowInviteInput] = useState(false);
-  const [inviteCode, setInviteCode] = useState('');
-  const [error, setError] = useState('');
 
   const selectCoach = async () => {
     setLoading(true);
@@ -48,93 +45,33 @@ function RoleSelectionView() {
     }
   };
 
-  const selectStudent = async () => {
-    if (user?.is_admin) {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/auth/debug-student', { method: 'POST', credentials: 'include' });
-        if (res.ok && user) { setUser({ ...user, role: 'student' }); return; }
-      } finally { setLoading(false); }
-    }
-    setShowInviteInput(true);
-  };
-
-  const submitInviteCode = async () => {
-    const code = inviteCode.trim();
-    if (!code) return;
-    const token = code.includes('/invite/') ? code.split('/invite/').pop()! : code;
-    setLoading(true);
-    setError('');
-    try {
-      const roleRes = await fetch('/api/auth/set-role', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', body: JSON.stringify({ role: 'student' }),
-      });
-      if (!roleRes.ok) { setError('Failed to set role'); return; }
-      const inviteRes = await fetch(`/api/invite/${token}/accept`, { method: 'POST', credentials: 'include' });
-      const data = await inviteRes.json();
-      if (!inviteRes.ok) { setError(data.error || 'Invalid invite code'); return; }
-      if (user) setUser({ ...user, role: 'student' });
-    } finally { setLoading(false); }
-  };
-
   return (
     <div className="max-w-md mx-auto text-center py-12">
-      {showInviteInput ? (
-        <div className="space-y-4">
-          <p className="text-slate-200 text-lg">{t('coaches.roleSelection.enterInvite')}</p>
-          <input
-            value={inviteCode}
-            onChange={e => setInviteCode(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && submitInviteCode()}
-            placeholder={t('coaches.roleSelection.invitePlaceholder')}
-            className="w-full bg-slate-700 text-slate-100 text-sm px-4 py-3 rounded-xl border border-slate-600 focus:border-purple-500 focus:outline-none text-center"
-            autoFocus
-          />
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={submitInviteCode}
-              disabled={loading || !inviteCode.trim()}
-              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
-            >
-              {loading ? '...' : t('coaches.roleSelection.join')}
-            </button>
-            <button
-              onClick={() => { setShowInviteInput(false); setError(''); }}
-              className="px-6 py-2.5 border border-slate-500 bg-slate-700/60 hover:bg-slate-600 hover:border-slate-400 text-slate-200 text-sm font-medium rounded-xl transition-colors"
-            >
-              {t('coaches.roleSelection.back')}
-            </button>
+      <div className="max-w-lg mx-auto rounded-xl border border-slate-700 bg-slate-800/50 p-8">
+        <h2 className="text-xl font-semibold text-slate-100 text-center mb-6">{t('coaches.roleSelection.question')}</h2>
+        <div className="grid grid-cols-2 gap-6">
+          <button
+            onClick={selectCoach}
+            disabled={loading}
+            className="flex flex-col items-center gap-4 p-8 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50"
+          >
+            <div className="w-20 h-20 rounded-full bg-blue-600/20 flex items-center justify-center">
+              <Users className="w-10 h-10 text-blue-400" />
+            </div>
+            <p className="text-slate-100 font-semibold text-xl">{t('coaches.roleSelection.coach')}</p>
+          </button>
+          <div
+            aria-disabled="true"
+            className="flex flex-col items-center gap-4 p-8 bg-slate-700/30 border border-slate-700 rounded-xl opacity-50 cursor-not-allowed select-none"
+          >
+            <div className="w-20 h-20 rounded-full bg-purple-600/10 flex items-center justify-center">
+              <GraduationCap className="w-10 h-10 text-purple-400/60" />
+            </div>
+            <p className="text-slate-300 font-semibold text-xl">{t('coaches.roleSelection.student')}</p>
+            <p className="text-slate-400 text-sm">{t('coaches.comingSoon')}</p>
           </div>
         </div>
-      ) : (
-        <div className="max-w-lg mx-auto rounded-xl border border-slate-700 bg-slate-800/50 p-8">
-          <h2 className="text-xl font-semibold text-slate-100 text-center mb-6">{t('coaches.roleSelection.question')}</h2>
-          <div className="grid grid-cols-2 gap-6">
-            <button
-              onClick={selectCoach}
-              disabled={loading}
-              className="flex flex-col items-center gap-4 p-8 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50"
-            >
-              <div className="w-20 h-20 rounded-full bg-blue-600/20 flex items-center justify-center">
-                <Users className="w-10 h-10 text-blue-400" />
-              </div>
-              <p className="text-slate-100 font-semibold text-xl">{t('coaches.roleSelection.coach')}</p>
-            </button>
-            <button
-              onClick={selectStudent}
-              disabled={loading}
-              className="flex flex-col items-center gap-4 p-8 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-purple-500/50 hover:bg-slate-700 transition-all disabled:opacity-50"
-            >
-              <div className="w-20 h-20 rounded-full bg-purple-600/20 flex items-center justify-center">
-                <GraduationCap className="w-10 h-10 text-purple-400" />
-              </div>
-              <p className="text-slate-100 font-semibold text-xl">{t('coaches.roleSelection.student')}</p>
-            </button>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
