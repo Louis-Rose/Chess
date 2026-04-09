@@ -49,7 +49,7 @@ export function DiagramToFenPanel() {
   }, [preview, uploadFromFile]);
 
   return (
-    <PanelShell title={t('coaches.navDiagram')}>
+    <PanelShell title={t('coaches.navDiagram')} onBack={preview ? diagramClear : undefined}>
           <input
             ref={fileRef}
             type="file"
