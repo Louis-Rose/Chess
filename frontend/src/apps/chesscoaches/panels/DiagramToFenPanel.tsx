@@ -217,9 +217,13 @@ function FenEntry({ fen, index, total }: { fen: string; index: number; total: nu
 
       <button
         onClick={handleCopy}
-        className="w-full px-2 py-2 text-center text-xs text-slate-400 hover:bg-slate-600/40 hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5 rounded-lg"
+        className={`w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center justify-center gap-2 ${
+          copied
+            ? 'bg-emerald-600 border-emerald-500 text-white'
+            : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500'
+        }`}
       >
-        {copied ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy FEN</>}
+        {copied ? <><Check className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy FEN</>}
       </button>
     </div>
   );
