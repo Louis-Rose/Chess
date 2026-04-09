@@ -26,6 +26,8 @@ export function DiagramToFenPanel() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset the input so the same file can be picked again after a clear
+    e.target.value = '';
     if (file) uploadFromFile(file);
   };
 
