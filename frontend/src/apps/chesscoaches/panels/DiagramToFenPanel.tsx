@@ -60,9 +60,10 @@ export function DiagramToFenPanel() {
 
           {!preview ? (
             <div className="max-w-2xl mx-auto space-y-4">
-              <p className="text-slate-400 text-sm text-center px-2">
-                {t('coaches.diagram.explainer')}
-              </p>
+              <div className="text-white text-lg text-center px-2 space-y-1">
+                <p>{t('coaches.diagram.explainer')}</p>
+                <p>{t('coaches.diagram.explainerNote')}</p>
+              </div>
               <div
                 onClick={() => fileRef.current?.click()}
                 onDrop={handleDrop}
