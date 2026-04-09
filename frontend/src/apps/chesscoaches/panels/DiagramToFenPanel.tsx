@@ -124,21 +124,7 @@ export function DiagramToFenPanel() {
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
               {models.length > 0 && (
-                <div className="flex flex-col gap-4 items-center max-w-xl mx-auto">
-                  {models.map((m) => {
-                    const mr = modelResults[m.id];
-                    return (
-                      <FenResultCard
-                        key={m.id}
-                        name={mr?.name || m.name}
-                        fens={mr?.fens}
-                        error={mr?.error}
-                        elapsed={mr?.elapsed}
-                        loading={!mr}
-                      />
-                    );
-                  })}
-                </div>
+                <ResultsView models={models} modelResults={modelResults} />
               )}
             </div>
           )}
@@ -150,39 +136,104 @@ export function DiagramToFenPanel() {
   );
 }
 
-function FenResultCard({ name, fens, error, elapsed, loading }: DiagramModelResult & { loading: boolean }) {
+interface ResultsViewProps {
+  models: { id: string; name: string }[];
+  modelResults: Record<string, DiagramModelResult>;
+}
+
+function ResultsView({ models, modelResults }: ResultsViewProps) {
+  const { t } = useLanguage();
+  const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
+  const [selectedDiagramIdx, setSelectedDiagramIdx] = useState(0);
+
+  // Ensure the selected model is always one that still exists
+  useEffect(() => {
+    if (!models.some(m => m.id === selectedModelId)) {
+      setSelectedModelId(models[0]?.id || '');
+      setSelectedDiagramIdx(0);
+    }
+  }, [models, selectedModelId]);
+
+  const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
+  const mr = selectedModel ? modelResults[selectedModel.id] : undefined;
+  const fens = mr?.fens ?? [];
+  const diagramCount = fens.length;
+
+  // Clamp diagram index when the selected reader changes
+  useEffect(() => {
+    if (diagramCount > 0 && selectedDiagramIdx >= diagramCount) {
+      setSelectedDiagramIdx(0);
+    }
+  }, [diagramCount, selectedDiagramIdx]);
+
+  const selectClass =
+    'bg-slate-800 border border-slate-600 text-slate-100 text-sm rounded-lg px-3 py-2 hover:border-slate-500 focus:border-blue-500 focus:outline-none';
+
   return (
-    <div className="bg-slate-700/50 rounded-xl overflow-hidden w-full">
-      <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
-        <span className="text-slate-100 font-medium text-xs">{name}</span>
-        {elapsed !== undefined && (
-          <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3 text-slate-400" />
-            <span className="text-slate-400 text-xs">{elapsed}s</span>
-          </div>
-        )}
+    <div className="max-w-xl mx-auto space-y-4">
+      <div className="flex flex-wrap justify-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-slate-300">
+          <span>{t('coaches.diagram.readerLabel')}</span>
+          <select
+            value={selectedModelId}
+            onChange={e => setSelectedModelId(e.target.value)}
+            className={selectClass}
+          >
+            {models.map(m => (
+              <option key={m.id} value={m.id}>
+                {modelResults[m.id]?.name || m.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className={`flex items-center gap-2 text-sm text-slate-300 ${diagramCount <= 1 ? 'opacity-50' : ''}`}>
+          <span>{t('coaches.diagram.diagramLabel')}</span>
+          <select
+            value={selectedDiagramIdx}
+            onChange={e => setSelectedDiagramIdx(Number(e.target.value))}
+            disabled={diagramCount <= 1}
+            className={selectClass}
+          >
+            {Array.from({ length: Math.max(diagramCount, 1) }, (_, i) => (
+              <option key={i} value={i}>
+                {i + 1} / {Math.max(diagramCount, 1)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <span className="text-slate-500 text-xs animate-pulse">Analyzing diagram...</span>
+      <div className="bg-slate-700/50 rounded-xl overflow-hidden">
+        <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
+          <span className="text-slate-100 font-medium text-xs">{mr?.name || selectedModel?.name}</span>
+          {mr?.elapsed !== undefined && (
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3 text-slate-400" />
+              <span className="text-slate-400 text-xs">{mr.elapsed}s</span>
+            </div>
+          )}
         </div>
-      ) : error ? (
-        <p className="text-red-400 text-center py-4 px-3 text-xs">{error}</p>
-      ) : fens && fens.length > 0 ? (
-        <div className="p-3 space-y-4">
-          {fens.map((fen, i) => (
-            <FenEntry key={i} fen={fen} index={i} total={fens.length} />
-          ))}
-        </div>
-      ) : (
-        <p className="text-slate-500 text-center py-4 px-3 text-xs">No diagram detected</p>
-      )}
+
+        {!mr ? (
+          <div className="flex items-center justify-center py-12">
+            <span className="text-slate-500 text-xs animate-pulse">{t('coaches.diagram.analyzing')}</span>
+          </div>
+        ) : mr.error ? (
+          <p className="text-red-400 text-center py-4 px-3 text-xs">{mr.error}</p>
+        ) : diagramCount > 0 ? (
+          <div className="p-3">
+            <FenEntry fen={fens[selectedDiagramIdx] ?? fens[0]} />
+          </div>
+        ) : (
+          <p className="text-slate-500 text-center py-4 px-3 text-xs">{t('coaches.diagram.noneDetected')}</p>
+        )}
+      </div>
     </div>
   );
 }
 
-function FenEntry({ fen, index, total }: { fen: string; index: number; total: number }) {
+function FenEntry({ fen }: { fen: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -205,9 +256,6 @@ function FenEntry({ fen, index, total }: { fen: string; index: number; total: nu
 
   return (
     <div className="space-y-3">
-      {total > 1 && (
-        <p className="text-slate-400 text-[11px] font-medium">Diagram {index + 1} / {total}</p>
-      )}
       <div className="bg-slate-800 rounded-lg px-3 py-2">
         <p className="text-slate-400 text-[10px] mb-1">FEN</p>
         <p className="text-slate-100 font-mono text-xs break-all select-all">{fen}</p>
