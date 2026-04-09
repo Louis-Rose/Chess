@@ -197,36 +197,30 @@ function ResultsView({ models, modelResults }: ResultsViewProps) {
   return (
     <div className="max-w-xl mx-auto space-y-4">
       <div className="flex flex-wrap justify-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-slate-300">
-          <span>{t('coaches.diagram.readerLabel')}</span>
-          <select
-            value={selectedModelId}
-            onChange={e => setSelectedModelId(e.target.value)}
-            className={selectClass}
-          >
-            {models.map(m => (
-              <option key={m.id} value={m.id}>
-                {localizeReaderName(modelResults[m.id]?.name || m.name, readerLabel)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <select
+          value={selectedModelId}
+          onChange={e => setSelectedModelId(e.target.value)}
+          className={selectClass}
+        >
+          {models.map(m => (
+            <option key={m.id} value={m.id}>
+              {localizeReaderName(modelResults[m.id]?.name || m.name, readerLabel)}
+            </option>
+          ))}
+        </select>
 
-        <label className={`flex items-center gap-2 text-sm text-slate-300 ${diagramCount <= 1 ? 'opacity-50' : ''}`}>
-          <span>{t('coaches.diagram.diagramLabel')}</span>
-          <select
-            value={selectedDiagramIdx}
-            onChange={e => setSelectedDiagramIdx(Number(e.target.value))}
-            disabled={diagramCount <= 1}
-            className={selectClass}
-          >
-            {Array.from({ length: Math.max(diagramCount, 1) }, (_, i) => (
-              <option key={i} value={i}>
-                {i + 1} / {Math.max(diagramCount, 1)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <select
+          value={selectedDiagramIdx}
+          onChange={e => setSelectedDiagramIdx(Number(e.target.value))}
+          disabled={diagramCount <= 1}
+          className={`${selectClass} ${diagramCount <= 1 ? 'opacity-50' : ''}`}
+        >
+          {Array.from({ length: Math.max(diagramCount, 1) }, (_, i) => (
+            <option key={i} value={i}>
+              {t('coaches.diagram.diagramLabel')} {i + 1} / {Math.max(diagramCount, 1)}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="bg-slate-700/50 rounded-xl overflow-hidden">
