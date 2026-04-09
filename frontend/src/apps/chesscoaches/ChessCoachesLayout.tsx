@@ -51,6 +51,7 @@ export const NAV_SECTIONS: NavSection[] = [
 function CoachesNavSidebar() {
   const { t } = useLanguage();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [showPlayerMenu, setShowPlayerMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const playerMenuRef = useRef<HTMLDivElement>(null);
@@ -122,6 +123,15 @@ function CoachesNavSidebar() {
             </button>
             {showPlayerMenu && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                {user.is_admin && (
+                  <button
+                    onClick={() => { setShowPlayerMenu(false); navigate('/admin'); }}
+                    className="w-full px-3 py-2.5 text-amber-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-sm transition-colors border-b border-slate-700"
+                  >
+                    <Shield className="w-4 h-4" />
+                    {t('coaches.navAdmin')}
+                  </button>
+                )}
                 <button
                   onClick={async () => {
                     setShowPlayerMenu(false);
@@ -219,23 +229,6 @@ function CoachesNavSidebar() {
             );
           })}
         </nav>
-
-        {user?.is_admin && (
-          <>
-            <div className="h-px bg-slate-700" />
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                }`
-              }
-            >
-              <Shield className="w-4 h-4 flex-shrink-0" />
-              {t('coaches.navAdmin')}
-            </NavLink>
-          </>
-        )}
 
         <div className="h-px bg-slate-700" />
       </div>
