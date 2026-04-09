@@ -276,11 +276,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (credential: string) => {
+    // Send the language the user picked on the login screen so the
+    // server can store it atomically and return it in the user payload.
+    const preLoginLang = localStorage.getItem('language');
     const response = await fetch('/api/auth/google', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ credential, registered_app: 'coaches' })
+      body: JSON.stringify({
+        credential,
+        registered_app: 'coaches',
+        ...(preLoginLang === 'en' || preLoginLang === 'fr' ? { language: preLoginLang } : {}),
+      })
     });
 
     if (!response.ok) {

@@ -88,6 +88,19 @@ def google_auth():
     access_token = create_access_token(user_id)
     refresh_token, _ = create_refresh_token(user_id)
 
+    # If the client passed a language preference (chosen on the login screen),
+    # persist it immediately so the returned user payload reflects it.
+    client_language = data.get('language')
+    if client_language in ('en', 'fr'):
+        with get_db() as conn:
+            conn.execute('''
+                INSERT INTO language_usage (user_id, language, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    language = excluded.language,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (user_id, client_language))
+
     # Get user data for response
     with get_db() as conn:
         cursor = conn.execute('''
