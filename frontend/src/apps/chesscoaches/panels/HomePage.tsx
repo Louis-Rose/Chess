@@ -59,6 +59,8 @@ function RoleSelectionView() {
               <Users className="w-12 h-12 text-blue-400" />
             </div>
             <p className="text-slate-100 font-semibold text-xl">{t('coaches.roleSelection.coach')}</p>
+            {/* Invisible spacer to mirror the student tile's "Coming soon" line height */}
+            <p aria-hidden="true" className="text-sm invisible">{t('coaches.comingSoon')}</p>
           </button>
           <div
             aria-disabled="true"
