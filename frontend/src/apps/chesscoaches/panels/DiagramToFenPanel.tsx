@@ -158,8 +158,16 @@ interface ResultsViewProps {
   modelResults: Record<string, DiagramModelResult>;
 }
 
+// Translate backend reader names like "Reader 1" → "Lecteur 1" (FR)
+function localizeReaderName(name: string | undefined, readerLabel: string): string {
+  if (!name) return '';
+  const match = name.match(/^Reader\s+(\d+)$/);
+  return match ? `${readerLabel} ${match[1]}` : name;
+}
+
 function ResultsView({ models, modelResults }: ResultsViewProps) {
   const { t } = useLanguage();
+  const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
   const [selectedDiagramIdx, setSelectedDiagramIdx] = useState(0);
 
@@ -198,7 +206,7 @@ function ResultsView({ models, modelResults }: ResultsViewProps) {
           >
             {models.map(m => (
               <option key={m.id} value={m.id}>
-                {modelResults[m.id]?.name || m.name}
+                {localizeReaderName(modelResults[m.id]?.name || m.name, readerLabel)}
               </option>
             ))}
           </select>
@@ -223,7 +231,7 @@ function ResultsView({ models, modelResults }: ResultsViewProps) {
 
       <div className="bg-slate-700/50 rounded-xl overflow-hidden">
         <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
-          <span className="text-slate-100 font-medium text-xs">{mr?.name || selectedModel?.name}</span>
+          <span className="text-slate-100 font-medium text-xs">{localizeReaderName(mr?.name || selectedModel?.name, readerLabel)}</span>
           {mr?.elapsed !== undefined && (
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-slate-400" />
@@ -251,6 +259,7 @@ function ResultsView({ models, modelResults }: ResultsViewProps) {
 }
 
 function FenEntry({ fen }: { fen: string }) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -288,7 +297,7 @@ function FenEntry({ fen }: { fen: string }) {
             : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500'
         }`}
       >
-        {copied ? <><Check className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy FEN</>}
+        {copied ? <><Check className="w-4 h-4" /> {t('coaches.diagram.copied')}</> : <><Copy className="w-4 h-4" /> {t('coaches.diagram.copyFen')}</>}
       </button>
     </div>
   );
