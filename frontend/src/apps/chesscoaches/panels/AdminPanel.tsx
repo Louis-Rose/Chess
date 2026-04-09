@@ -8,7 +8,6 @@ import { Loader2, ChevronUp, ChevronDown, Clock, Cpu, AlertTriangle } from 'luci
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { saveCoachesPrefs } from '../contexts/CoachesDataContext';
 import { PanelShell } from '../components/PanelShell';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { NAV_SECTIONS } from '../ChessCoachesLayout';
@@ -1018,12 +1017,6 @@ export function AdminPanel() {
           </div>
         )}
 
-        {/* Debug Tools */}
-        <div className="rounded-lg border border-slate-700 p-4">
-          <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3">Debug Tools</h3>
-          <ResetFirstTimeUser />
-        </div>
-
       </div>
       {zoomedImageSrc && (
         <ImageZoomModal
@@ -1181,24 +1174,3 @@ function CodelinesBadge() {
   );
 }
 
-function ResetFirstTimeUser() {
-  const { logout } = useAuth();
-  return (
-    <label className="flex items-center justify-between">
-      <div>
-        <span className="text-sm text-slate-200">Reset to first-time user</span>
-        <p className="text-xs text-slate-500">Resets scoresheet + role, then logs out</p>
-      </div>
-      <button
-        onClick={async () => {
-          saveCoachesPrefs({ scoresheet_success: false });
-          await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
-          await logout();
-        }}
-        className="px-3 py-1 text-xs rounded-lg bg-slate-600 hover:bg-slate-500 text-slate-300 transition-colors"
-      >
-        Reset & log out
-      </button>
-    </label>
-  );
-}
