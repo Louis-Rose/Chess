@@ -97,7 +97,9 @@ export function DiagramToFenPanel() {
               <img
                 src={preview}
                 alt="Diagram"
-                className="rounded-xl max-h-80 mx-auto cursor-pointer hover:opacity-90 transition-opacity"
+                className={`rounded-xl mx-auto cursor-pointer hover:opacity-90 transition-all ${
+                  !analyzing && models.length === 0 ? 'max-h-[65vh]' : 'max-h-80'
+                }`}
                 onClick={() => setShowImageModal(true)}
               />
 
