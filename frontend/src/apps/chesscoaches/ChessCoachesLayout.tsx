@@ -329,9 +329,11 @@ function CoachesLayoutInner() {
       ) : (
         <>
           <CoachesNavSidebar />
-          <main className="relative flex-1 px-2 pb-8 md:px-8 md:pb-8 overflow-y-auto overflow-x-hidden overscroll-y-contain bg-[#1e2d3d]" style={{ scrollbarGutter: 'stable' }}>
+          <main className="relative flex-1 px-2 pb-8 md:px-8 md:pb-8 overflow-y-auto overflow-x-hidden overscroll-y-contain bg-[#1e2d3d] flex flex-col" style={{ scrollbarGutter: 'stable' }}>
             <CoachesHeader />
-            <Outlet />
+            <div className="flex-1 border-l border-slate-700 -ml-2 md:-ml-8 pl-2 md:pl-8 -mt-2 pt-2">
+              <Outlet />
+            </div>
           </main>
         </>
       )}
