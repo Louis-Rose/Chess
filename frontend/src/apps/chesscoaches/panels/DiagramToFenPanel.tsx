@@ -1,8 +1,7 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { ImageIcon, Clock, Copy, Check, X } from 'lucide-react';
-import { UploadBox } from '../components/UploadBox';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { Chess } from 'chess.js';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -17,13 +16,37 @@ export function DiagramToFenPanel() {
   const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
   const { preview, models, modelResults, analyzing, error } = diagram;
   const [showImageModal, setShowImageModal] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFromFile = useCallback(async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
     const { file: compressed, preview: dataUrl } = await compressImage(file);
     diagramSetImage(compressed, dataUrl);
+  }, [diagramSetImage]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFromFile(file);
   };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFromFile(file);
+  };
+
+  // Paste-from-clipboard support — only active while the empty state is showing
+  useEffect(() => {
+    if (preview) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items || []).find(i => i.type.startsWith('image/'));
+      const file = item?.getAsFile();
+      if (file) uploadFromFile(file);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [preview, uploadFromFile]);
 
   return (
     <PanelShell title={t('coaches.navDiagram')}>
@@ -36,11 +59,26 @@ export function DiagramToFenPanel() {
           />
 
           {!preview ? (
-            <UploadBox
-              onClick={() => fileRef.current?.click()}
-              icon={<ImageIcon className="w-10 h-10 text-slate-400" />}
-              title={t('coaches.diagram.uploadPrompt')}
-            />
+            <div className="max-w-2xl mx-auto space-y-4">
+              <p className="text-slate-400 text-sm text-center px-2">
+                {t('coaches.diagram.explainer')}
+              </p>
+              <div
+                onClick={() => fileRef.current?.click()}
+                onDrop={handleDrop}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                className={`border-2 border-dashed rounded-xl min-h-[50vh] flex flex-col items-center justify-center gap-4 cursor-pointer transition-colors ${
+                  dragOver
+                    ? 'border-blue-500 bg-blue-500/5'
+                    : 'border-slate-600 hover:border-blue-500 hover:bg-slate-800/30'
+                }`}
+              >
+                <ImageIcon className="w-16 h-16 text-slate-400" />
+                <p className="text-slate-200 font-medium text-lg">{t('coaches.diagram.uploadPrompt')}</p>
+                <p className="text-slate-500 text-sm">{t('coaches.diagram.dropHint')}</p>
+              </div>
+            </div>
           ) : (
             <div className="space-y-4">
               {(models.length > 0 || analyzing) && (
