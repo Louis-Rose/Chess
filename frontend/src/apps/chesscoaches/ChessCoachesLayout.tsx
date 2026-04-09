@@ -112,7 +112,11 @@ function CoachesNavSidebar() {
                 )}
                 <div className="w-full text-center pl-14">
                   <p className={`text-white font-medium break-words ${nameFontClass}`}>{user.name}</p>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-blue-400">{user.role === 'student' ? t('coaches.roleLabel.student') : t('coaches.roleLabel.coach')}</p>
+                  {user.role && (
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-blue-400">
+                      {user.role === 'student' ? t('coaches.roleLabel.student') : t('coaches.roleLabel.coach')}
+                    </p>
+                  )}
                 </div>
               </div>
             </button>
@@ -170,8 +174,11 @@ function CoachesNavSidebar() {
           </NavLink>
 
           {NAV_SECTIONS.map(({ titleKey, items }) => {
-            const userRole = user?.role || 'coach';
-            const enabledItems = items.filter(i => !i.hidden && (!i.roles || i.roles.includes(userRole)));
+            // No role yet → hide every role-gated item; role-agnostic items stay visible.
+            const userRole = user?.role;
+            const enabledItems = items.filter(i =>
+              !i.hidden && (!i.roles || (userRole && i.roles.includes(userRole)))
+            );
             if (enabledItems.length === 0) return null;
             return (
               <div key={titleKey}>
