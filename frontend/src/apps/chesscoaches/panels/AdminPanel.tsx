@@ -1012,6 +1012,16 @@ export function AdminPanel() {
   );
 }
 
+const LANG_COLORS: Record<string, string> = {
+  tsx: 'text-sky-400',
+  ts: 'text-blue-400',
+  js: 'text-yellow-400',
+  jsx: 'text-cyan-400',
+  py: 'text-emerald-400',
+  html: 'text-orange-400',
+  css: 'text-pink-400',
+};
+
 function CodelinesBadge() {
   const { data } = useQuery({
     queryKey: ['admin-codelines'],
@@ -1034,10 +1044,11 @@ function CodelinesBadge() {
           <span className="font-mono text-2xl font-bold text-slate-100">{data.lines.toLocaleString()}</span>
           <span className="text-sm text-slate-400">lines of code</span>
         </div>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
           {breakdown.map(({ lang, pct }) => (
             <span key={lang}>
-              <span className="text-slate-400">{lang}</span> {pct.toFixed(1)}%
+              <span className={`font-semibold ${LANG_COLORS[lang] ?? 'text-slate-300'}`}>{lang}</span>{' '}
+              <span className="text-slate-400">{pct.toFixed(1)}%</span>
             </span>
           ))}
         </div>
