@@ -46,28 +46,28 @@ function RoleSelectionView() {
   };
 
   return (
-    <div className="max-w-md mx-auto text-center py-12">
-      <div className="max-w-lg mx-auto rounded-xl border border-slate-700 bg-slate-800/50 p-8">
+    <div className="max-w-2xl mx-auto text-center py-12 px-4">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-8">
         <h2 className="text-xl font-semibold text-slate-100 text-center mb-6">{t('coaches.roleSelection.question')}</h2>
         <div className="grid grid-cols-2 gap-6">
           <button
             onClick={selectCoach}
             disabled={loading}
-            className="flex flex-col items-center gap-4 p-8 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50"
+            className="aspect-square flex flex-col items-center justify-center gap-5 p-6 bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50"
           >
-            <div className="w-20 h-20 rounded-full bg-blue-600/20 flex items-center justify-center">
-              <Users className="w-10 h-10 text-blue-400" />
+            <div className="w-24 h-24 rounded-full bg-blue-600/20 flex items-center justify-center">
+              <Users className="w-12 h-12 text-blue-400" />
             </div>
-            <p className="text-slate-100 font-semibold text-xl">{t('coaches.roleSelection.coach')}</p>
+            <p className="text-slate-100 font-semibold text-2xl">{t('coaches.roleSelection.coach')}</p>
           </button>
           <div
             aria-disabled="true"
-            className="flex flex-col items-center gap-4 p-8 bg-slate-700/30 border border-slate-700 rounded-xl opacity-50 cursor-not-allowed select-none"
+            className="aspect-square flex flex-col items-center justify-center gap-5 p-6 bg-slate-700/30 border border-slate-700 rounded-xl opacity-50 cursor-not-allowed select-none"
           >
-            <div className="w-20 h-20 rounded-full bg-purple-600/10 flex items-center justify-center">
-              <GraduationCap className="w-10 h-10 text-purple-400/60" />
+            <div className="w-24 h-24 rounded-full bg-purple-600/10 flex items-center justify-center">
+              <GraduationCap className="w-12 h-12 text-purple-400/60" />
             </div>
-            <p className="text-slate-300 font-semibold text-xl">{t('coaches.roleSelection.student')}</p>
+            <p className="text-slate-300 font-semibold text-2xl">{t('coaches.roleSelection.student')}</p>
             <p className="text-slate-400 text-sm">{t('coaches.comingSoon')}</p>
           </div>
         </div>
