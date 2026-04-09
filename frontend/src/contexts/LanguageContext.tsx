@@ -11,6 +11,7 @@ interface LanguageContextType {
 const translations: Record<Language, Record<string, string>> = {
   en: {
     'chess.logout': 'Log out',
+    'chess.resetAndLogout': 'Reset & log out',
 
     // Coaches
     'coaches.title': 'AI-Powered Suite for Chess Coaches',
@@ -340,6 +341,7 @@ const translations: Record<Language, Record<string, string>> = {
   },
   fr: {
     'chess.logout': 'Se déconnecter',
+    'chess.resetAndLogout': 'Réinitialiser et se déconnecter',
 
     // Coaches
     'coaches.title': 'Suite IA pour entra\u00EEneurs d\'\u00E9checs',

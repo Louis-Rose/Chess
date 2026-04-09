@@ -139,7 +139,7 @@ function CoachesNavSidebar() {
                     className="w-full px-3 py-2.5 text-red-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-sm transition-colors border-t border-slate-700"
                   >
                     <AlertTriangle className="w-4 h-4" />
-                    Reset &amp; log out
+                    {t('chess.resetAndLogout')}
                   </button>
                 )}
               </div>
