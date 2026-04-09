@@ -35,9 +35,17 @@ interface AdminUsersResponse {
   total: number;
 }
 
+interface TimeSpentUser {
+  user_id: number;
+  name: string;
+  picture: string | null;
+  seconds: number;
+}
+
 interface TimeSpentDay {
   activity_date: string;
   total_seconds: number;
+  by_user?: TimeSpentUser[];
 }
 
 interface ApiUsageRow {
@@ -306,16 +314,18 @@ export function AdminPanel() {
     const today = new Date().toISOString().split('T')[0];
     const start = new Date(LAUNCH);
     const end = new Date(today);
-    const byDate: Record<string, number> = {};
-    (days || []).forEach(d => { byDate[d.activity_date] = d.total_seconds; });
-    const result: { date: string; label: string; minutes: number }[] = [];
+    const byDate: Record<string, TimeSpentDay> = {};
+    (days || []).forEach(d => { byDate[d.activity_date] = d; });
+    const result: { date: string; label: string; minutes: number; by_user: TimeSpentUser[] }[] = [];
     const cur = new Date(start);
     while (cur <= end) {
       const key = cur.toISOString().split('T')[0];
+      const day = byDate[key];
       result.push({
         date: key,
         label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long' }),
-        minutes: Math.round((byDate[key] || 0) / 60),
+        minutes: Math.round((day?.total_seconds || 0) / 60),
+        by_user: day?.by_user || [],
       });
       cur.setDate(cur.getDate() + 1);
     }
@@ -585,20 +595,7 @@ export function AdminPanel() {
             </div>
             {!chartCollapsed && (
               <div className="p-4">
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
-                    <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} ticks={(() => { const max = Math.max(...chartData.map(d => d.minutes)); const ceil = Math.max(60, Math.ceil(max / 60) * 60); return Array.from({ length: ceil / 30 + 1 }, (_, i) => i * 30); })()} domain={[0, (max: number) => Math.max(60, Math.ceil(max / 60) * 60)]} />
-                    <Tooltip
-                      cursor={false}
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                      labelStyle={{ color: '#e2e8f0' }}
-                      formatter={(value) => [`${value} min`, t('coaches.admin.time')]}
-                    />
-                    <Bar dataKey="minutes" fill="#16a34a" radius={[2, 2, 0, 0]} activeBar={false} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <DailyTimeChart data={chartData} color="#16a34a" />
               </div>
             )}
           </div>
@@ -631,20 +628,7 @@ export function AdminPanel() {
               </h3>
             </div>
             <div className="p-4">
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={featureChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
-                  <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} allowDecimals={false} />
-                  <Tooltip
-                    cursor={false}
-                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                    labelStyle={{ color: '#e2e8f0' }}
-                    formatter={(value) => [`${value} min`, t('coaches.admin.time')]}
-                  />
-                  <Bar dataKey="minutes" fill="#8b5cf6" radius={[2, 2, 0, 0]} activeBar={false} />
-                </BarChart>
-              </ResponsiveContainer>
+              <DailyTimeChart data={featureChartData} color="#8b5cf6" height={180} />
             </div>
           </div>
         )}
@@ -1009,6 +993,81 @@ export function AdminPanel() {
         />
       )}
     </PanelShell>
+  );
+}
+
+interface DailyChartDatum {
+  date: string;
+  label: string;
+  minutes: number;
+  by_user: TimeSpentUser[];
+}
+
+function DailyTimeChart({ data, color, height = 200 }: { data: DailyChartDatum[]; color: string; height?: number }) {
+  const { t } = useLanguage();
+  const [expandedDate, setExpandedDate] = useState<string | null>(null);
+
+  const expandedDay = expandedDate ? data.find(d => d.date === expandedDate) : null;
+
+  const handleBarClick = (payload: { date: string } | undefined) => {
+    if (!payload) return;
+    setExpandedDate(d => (d === payload.date ? null : payload.date));
+  };
+
+  return (
+    <div>
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+          <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+          <YAxis
+            tick={{ fill: '#e2e8f0', fontSize: 13 }}
+            ticks={(() => {
+              const max = Math.max(0, ...data.map(d => d.minutes));
+              const ceil = Math.max(60, Math.ceil(max / 60) * 60);
+              return Array.from({ length: ceil / 30 + 1 }, (_, i) => i * 30);
+            })()}
+            domain={[0, (max: number) => Math.max(60, Math.ceil(max / 60) * 60)]}
+            allowDecimals={false}
+          />
+          <Tooltip
+            cursor={false}
+            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+            labelStyle={{ color: '#e2e8f0' }}
+            formatter={(value) => [`${value} min`, t('coaches.admin.time')]}
+          />
+          <Bar
+            dataKey="minutes"
+            fill={color}
+            radius={[2, 2, 0, 0]}
+            activeBar={false}
+            onClick={(p: unknown) => handleBarClick(p as { date: string } | undefined)}
+            style={{ cursor: 'pointer' }}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+      {expandedDay && (
+        <div className="mt-3 rounded-lg border border-slate-700 bg-slate-800/50 overflow-hidden">
+          <div className="px-3 py-2 bg-slate-700/40 flex items-center justify-between">
+            <h4 className="text-xs font-medium text-slate-300">{expandedDay.label} — {expandedDay.minutes} min</h4>
+            <button onClick={() => setExpandedDate(null)} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
+          </div>
+          {expandedDay.by_user.length === 0 ? (
+            <div className="px-3 py-3 text-xs text-slate-500">No activity</div>
+          ) : (
+            <div className="divide-y divide-slate-700/50">
+              {expandedDay.by_user.map(u => (
+                <div key={u.user_id} className="flex items-center gap-3 px-3 py-2">
+                  <Avatar name={u.name || '?'} picture={u.picture} size="sm" />
+                  <span className="flex-1 text-sm text-slate-200 truncate">{u.name || '—'}</span>
+                  <span className="text-sm font-mono text-slate-400">{formatDuration(u.seconds)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

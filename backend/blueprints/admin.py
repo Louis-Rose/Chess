@@ -106,33 +106,48 @@ def get_coach_time_spent():
                 conditions.append(f'u.id IN ({user_ph})')
                 params.extend(user_ids)
             cursor = conn.execute(f'''
-                SELECT a.activity_date, SUM(a.seconds) as total_seconds
+                SELECT a.activity_date, a.user_id, u.name, u.picture, SUM(a.seconds) as seconds
                 FROM page_daily_activity a
                 JOIN users u ON a.user_id = u.id
                 WHERE {' AND '.join(conditions)}
-                GROUP BY a.activity_date
-                ORDER BY a.activity_date ASC
+                GROUP BY a.activity_date, a.user_id
+                ORDER BY a.activity_date ASC, seconds DESC
             ''', params)
         elif user_ids:
             placeholders = ','.join(['?' for _ in user_ids])
             cursor = conn.execute(f'''
-                SELECT a.activity_date, SUM(a.seconds) as total_seconds
+                SELECT a.activity_date, a.user_id, u.name, u.picture, SUM(a.seconds) as seconds
                 FROM user_activity a
                 JOIN users u ON a.user_id = u.id
                 WHERE u.registered_app = 'coaches' AND a.activity_date >= ? AND u.id IN ({placeholders})
-                GROUP BY a.activity_date
-                ORDER BY a.activity_date ASC
+                GROUP BY a.activity_date, a.user_id
+                ORDER BY a.activity_date ASC, seconds DESC
             ''', (COACHES_LAUNCH_DATE, *user_ids))
         else:
             cursor = conn.execute('''
-                SELECT a.activity_date, SUM(a.seconds) as total_seconds
+                SELECT a.activity_date, a.user_id, u.name, u.picture, SUM(a.seconds) as seconds
                 FROM user_activity a
                 JOIN users u ON a.user_id = u.id
                 WHERE u.registered_app = 'coaches' AND a.activity_date >= ?
-                GROUP BY a.activity_date
-                ORDER BY a.activity_date ASC
+                GROUP BY a.activity_date, a.user_id
+                ORDER BY a.activity_date ASC, seconds DESC
             ''', (COACHES_LAUNCH_DATE,))
-        daily_stats = [dict(row) for row in cursor.fetchall()]
+
+        # Aggregate per-day with per-user breakdown
+        by_date: dict = {}
+        for row in cursor.fetchall():
+            r = dict(row)
+            d = r['activity_date']
+            if d not in by_date:
+                by_date[d] = {'activity_date': d, 'total_seconds': 0, 'by_user': []}
+            by_date[d]['total_seconds'] += r['seconds'] or 0
+            by_date[d]['by_user'].append({
+                'user_id': r['user_id'],
+                'name': r['name'],
+                'picture': r['picture'],
+                'seconds': r['seconds'] or 0,
+            })
+        daily_stats = sorted(by_date.values(), key=lambda d: d['activity_date'])
 
     return jsonify({'daily_stats': daily_stats})
 
