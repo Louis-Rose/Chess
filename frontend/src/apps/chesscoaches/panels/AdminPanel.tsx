@@ -1084,7 +1084,7 @@ function ClickableBarChart({
   };
 
   return (
-    <div>
+    <div className="[&_*:focus]:outline-none">
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
