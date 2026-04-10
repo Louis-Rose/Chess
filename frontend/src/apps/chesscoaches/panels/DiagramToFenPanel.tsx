@@ -141,7 +141,7 @@ export function DiagramToFenPanel() {
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
               {models.length > 0 && (
-                <ResultsView models={models} modelResults={modelResults} />
+                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} />
               )}
             </div>
           )}
@@ -156,6 +156,7 @@ export function DiagramToFenPanel() {
 interface ResultsViewProps {
   models: { id: string; name: string }[];
   modelResults: Record<string, DiagramModelResult>;
+  analyzing: boolean;
 }
 
 // Translate backend reader names like "Reader 1" → "Lecteur 1" (FR)
@@ -165,7 +166,7 @@ function localizeReaderName(name: string | undefined, readerLabel: string): stri
   return match ? `${readerLabel} ${match[1]}` : name;
 }
 
-function ResultsView({ models, modelResults }: ResultsViewProps) {
+function ResultsView({ models, modelResults, analyzing }: ResultsViewProps) {
   const { t } = useLanguage();
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
