@@ -743,7 +743,7 @@ export function AdminPanel() {
                     <ResponsiveContainer width="100%" height={180}>
                       <BarChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+                        <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 11 }} angle={-45} textAnchor="end" height={60} interval={0} />
                         <YAxis tick={{ fill: '#e2e8f0', fontSize: 13 }} allowDecimals={false} />
                         <Tooltip
                           cursor={false}
@@ -1111,7 +1111,7 @@ function ClickableBarChart({
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 13 }} />
+          <XAxis dataKey="label" tick={{ fill: '#e2e8f0', fontSize: 11 }} angle={-45} textAnchor="end" height={60} interval={0} />
           <YAxis
             tick={{ fill: '#e2e8f0', fontSize: 13 }}
             allowDecimals={false}
