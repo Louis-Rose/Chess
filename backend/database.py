@@ -225,6 +225,11 @@ def init_db():
             conn.execute("ALTER TABLE coach_profiles ADD COLUMN phone_number TEXT")
             logger.info("Added phone_number column to coach_profiles")
 
+        # Migration: Add lichess_token to coach_profiles
+        if not _column_exists(conn, 'coach_profiles', 'lichess_token'):
+            conn.execute("ALTER TABLE coach_profiles ADD COLUMN lichess_token TEXT")
+            logger.info("Added lichess_token column to coach_profiles")
+
         # Migration: Add email and phone_number to coach_students
         if not _column_exists(conn, 'coach_students', 'email'):
             conn.execute("ALTER TABLE coach_students ADD COLUMN email TEXT")

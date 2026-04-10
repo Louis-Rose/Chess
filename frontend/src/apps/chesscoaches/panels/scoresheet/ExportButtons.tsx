@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Clock, Check, ExternalLink } from 'lucide-react';
+import { Clock, Check, ExternalLink, Key } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import { getCoachesPrefs, saveCoachesPrefs } from '../../contexts/CoachesDataContext';
 import { normalizeMoves, buildPgn } from './utils';
@@ -45,6 +45,8 @@ export function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegal
   );
 }
 
+const LICHESS_TOKEN_URL = 'https://lichess.org/account/oauth/token/create?scopes[]=study:write&description=LUMNA';
+
 export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalClick, fen, chapterName: customChapterName }: {
   moves?: Move[];
   meta?: ConsensusMeta;
@@ -56,14 +58,16 @@ export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onI
 }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
-  const [usernameInput, setUsernameInput] = useState('');
-  const [needsUsername, setNeedsUsername] = useState(false);
+  const [needsToken, setNeedsToken] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+  const [savingToken, setSavingToken] = useState(false);
   const [studies, setStudies] = useState<{ id: string; name: string }[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [success, setSuccess] = useState<{ studyId: string; studyName: string } | null>(null);
   const [error, setError] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [lichessUsername, setLichessUsername] = useState('');
+  const tokenInputRef = useRef<HTMLInputElement>(null);
 
   const fetchStudies = useCallback(async (username: string) => {
     setLoading(true);
@@ -81,36 +85,74 @@ export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onI
     }
   }, []);
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
     if (hasIllegalMoves) { onIllegalClick?.(); return; }
     setSuccess(null);
     setError('');
-    const prefs = getCoachesPrefs();
-    if (prefs.lichess_username) {
-      setOpen(true);
-      setNeedsUsername(false);
-      fetchStudies(prefs.lichess_username);
-    } else {
-      setOpen(true);
-      setNeedsUsername(true);
-      setUsernameInput('');
-      setTimeout(() => inputRef.current?.focus(), 50);
+    setOpen(true);
+
+    // Check if user has a token
+    try {
+      const res = await fetch('/api/coaches/lichess/token', { credentials: 'include' });
+      const json = await res.json();
+      if (json.has_token) {
+        // Has token — get username from prefs and fetch studies
+        const prefs = getCoachesPrefs();
+        if (prefs.lichess_username) {
+          setLichessUsername(prefs.lichess_username);
+          setNeedsToken(false);
+          fetchStudies(prefs.lichess_username);
+        } else {
+          // Token exists but no username cached — shouldn't happen, re-prompt
+          setNeedsToken(true);
+        }
+      } else {
+        setNeedsToken(true);
+        setTimeout(() => tokenInputRef.current?.focus(), 50);
+      }
+    } catch {
+      setNeedsToken(true);
     }
   };
 
-  const handleSaveUsername = () => {
-    const trimmed = usernameInput.trim();
+  const handleSaveToken = async () => {
+    const trimmed = tokenInput.trim();
     if (!trimmed) return;
-    saveCoachesPrefs({ lichess_username: trimmed });
-    setNeedsUsername(false);
-    fetchStudies(trimmed);
+    setSavingToken(true);
+    setError('');
+    try {
+      const res = await fetch('/api/coaches/lichess/token', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token: trimmed }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      // Token validated — save username and fetch studies
+      const username = json.username;
+      saveCoachesPrefs({ lichess_username: username });
+      setLichessUsername(username);
+      setNeedsToken(false);
+      setTokenInput('');
+      fetchStudies(username);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+    } finally {
+      setSavingToken(false);
+    }
   };
 
-  const handleChangeUser = () => {
-    setNeedsUsername(true);
+  const handleDisconnect = async () => {
+    try {
+      await fetch('/api/coaches/lichess/token', { method: 'DELETE', credentials: 'include' });
+    } catch { /* ignore */ }
+    saveCoachesPrefs({ lichess_username: null });
+    setLichessUsername('');
     setStudies(null);
-    setUsernameInput(getCoachesPrefs().lichess_username || '');
-    setTimeout(() => inputRef.current?.focus(), 50);
+    setNeedsToken(true);
+    setTokenInput('');
+    setTimeout(() => tokenInputRef.current?.focus(), 50);
   };
 
   const handleSelectStudy = async (study: { id: string; name: string }) => {
@@ -141,9 +183,10 @@ export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onI
     setOpen(false);
     setStudies(null);
     setError('');
-    setNeedsUsername(false);
+    setNeedsToken(false);
     setSuccess(null);
     setImporting(false);
+    setTokenInput('');
   };
 
   return (
@@ -178,24 +221,38 @@ export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onI
                   {t('coaches.lichess.openStudy')} <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
-            ) : needsUsername ? (
+            ) : needsToken ? (
               <>
-                <div className="text-slate-200 text-sm font-medium mb-1">{t('coaches.lichess.usernamePrompt')}</div>
-                <div className="text-slate-500 text-xs mb-3">{t('coaches.lichess.usernameHint')}</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Key className="w-4 h-4 text-slate-400" />
+                  <div className="text-slate-200 text-sm font-medium">{t('coaches.lichess.tokenPrompt')}</div>
+                </div>
+                <div className="text-slate-500 text-xs mb-3">{t('coaches.lichess.tokenHint')}</div>
+                <a
+                  href={LICHESS_TOKEN_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 w-full mb-3 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs py-2 rounded-lg transition-colors border border-slate-600"
+                >
+                  {t('coaches.lichess.generateToken')} <ExternalLink className="w-3 h-3" />
+                </a>
                 <input
-                  ref={inputRef}
-                  value={usernameInput}
-                  onChange={e => setUsernameInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveUsername()}
-                  placeholder="username"
-                  className="w-full bg-slate-700 text-slate-100 text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none"
+                  ref={tokenInputRef}
+                  value={tokenInput}
+                  onChange={e => setTokenInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSaveToken()}
+                  placeholder={t('coaches.lichess.tokenPlaceholder')}
+                  className="w-full bg-slate-700 text-slate-100 text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none font-mono text-xs"
+                  type="password"
                 />
+                {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
                 <div className="flex gap-2 mt-3">
                   <button
-                    onClick={handleSaveUsername}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors"
+                    onClick={handleSaveToken}
+                    disabled={savingToken || !tokenInput.trim()}
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1.5 rounded-lg transition-colors disabled:opacity-50"
                   >
-                    {t('coaches.lichess.save')}
+                    {savingToken ? t('coaches.lichess.verifying') : t('coaches.lichess.connect')}
                   </button>
                   <button
                     onClick={handleClose}
@@ -210,10 +267,10 @@ export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onI
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-slate-200 text-sm font-medium">{t('coaches.lichess.selectStudy')}</div>
                   <button
-                    onClick={handleChangeUser}
+                    onClick={handleDisconnect}
                     className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
                   >
-                    {getCoachesPrefs().lichess_username} · {t('coaches.lichess.changeUser')}
+                    {lichessUsername} · {t('coaches.lichess.disconnect')}
                   </button>
                 </div>
                 {loading && (

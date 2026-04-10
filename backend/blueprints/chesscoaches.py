@@ -1840,7 +1840,15 @@ def get_lichess_studies():
     username = request.args.get('username', '').strip()
     if not username:
         return jsonify({'error': 'Lichess username required'}), 400
-    token = os.environ.get('LICHESS_TOKEN', '')
+    # Use per-user token, fall back to global token
+    user_id = request.user_id
+    token = None
+    with get_db() as conn:
+        row = conn.execute('SELECT lichess_token FROM coach_profiles WHERE user_id = ?', (user_id,)).fetchone()
+        if row and row['lichess_token']:
+            token = row['lichess_token']
+    if not token:
+        token = os.environ.get('LICHESS_TOKEN', '')
     headers = {'Accept': 'application/x-ndjson'}
     if token:
         headers['Authorization'] = f'Bearer {token}'
@@ -1870,7 +1878,15 @@ def import_pgn_to_lichess_study(study_id):
     data = request.get_json()
     if not data or not data.get('pgn'):
         return jsonify({'error': 'PGN required'}), 400
-    token = os.environ.get('LICHESS_TOKEN', '')
+    # Use per-user token, fall back to global token
+    user_id = request.user_id
+    token = None
+    with get_db() as conn:
+        row = conn.execute('SELECT lichess_token FROM coach_profiles WHERE user_id = ?', (user_id,)).fetchone()
+        if row and row['lichess_token']:
+            token = row['lichess_token']
+    if not token:
+        token = os.environ.get('LICHESS_TOKEN', '')
     if not token:
         return jsonify({'error': 'Lichess token not configured'}), 500
     headers = {'Authorization': f'Bearer {token}'}
@@ -1889,6 +1905,60 @@ def import_pgn_to_lichess_study(study_id):
     except http_requests.RequestException as e:
         logger.error(f'Lichess import-pgn error: {e}')
         return jsonify({'error': 'Failed to import PGN to Lichess study'}), 502
+
+
+# ── Lichess Token ──
+
+@coaches_bp.route('/api/coaches/lichess/token', methods=['GET'])
+@login_required
+def get_lichess_token():
+    """Check if the user has a Lichess token saved."""
+    user_id = request.user_id
+    with get_db() as conn:
+        row = conn.execute('SELECT lichess_token FROM coach_profiles WHERE user_id = ?', (user_id,)).fetchone()
+    has_token = bool(row and row['lichess_token'])
+    return jsonify({'has_token': has_token})
+
+
+@coaches_bp.route('/api/coaches/lichess/token', methods=['PUT'])
+@login_required
+def save_lichess_token():
+    """Save a Lichess personal access token for the user."""
+    user_id = request.user_id
+    data = request.get_json()
+    token = (data.get('token') or '').strip()
+    if not token:
+        return jsonify({'error': 'Token required'}), 400
+    # Validate token against Lichess
+    try:
+        resp = http_requests.get('https://lichess.org/api/account',
+                                 headers={'Authorization': f'Bearer {token}'}, timeout=10)
+        if resp.status_code == 401:
+            return jsonify({'error': 'Invalid token'}), 400
+        resp.raise_for_status()
+        lichess_user = resp.json().get('username', '')
+    except http_requests.RequestException:
+        return jsonify({'error': 'Could not verify token with Lichess'}), 502
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO coach_profiles (user_id, lichess_token, lichess_username, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id) DO UPDATE SET
+                lichess_token = EXCLUDED.lichess_token,
+                lichess_username = EXCLUDED.lichess_username,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (user_id, token, lichess_user))
+    return jsonify({'success': True, 'username': lichess_user})
+
+
+@coaches_bp.route('/api/coaches/lichess/token', methods=['DELETE'])
+@login_required
+def delete_lichess_token():
+    """Remove the user's Lichess token."""
+    user_id = request.user_id
+    with get_db() as conn:
+        conn.execute('UPDATE coach_profiles SET lichess_token = NULL WHERE user_id = ?', (user_id,))
+    return jsonify({'success': True})
 
 
 # ── Onboarding ──
