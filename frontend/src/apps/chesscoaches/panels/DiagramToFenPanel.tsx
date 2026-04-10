@@ -12,6 +12,47 @@ import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
 import type { DiagramModelResult, DiagramExtract } from '../contexts/CoachesDataContext';
 
+const REGION_COLORS = [
+  'rgba(99,102,241,0.7)',   // indigo
+  'rgba(168,85,247,0.7)',   // purple
+  'rgba(20,184,166,0.7)',   // teal
+  'rgba(245,158,11,0.7)',   // amber
+  'rgba(239,68,68,0.7)',    // red
+  'rgba(34,197,94,0.7)',    // green
+  'rgba(59,130,246,0.7)',   // blue
+  'rgba(236,72,153,0.7)',   // pink
+];
+
+function RegionOverlay({ regions }: { regions: { x: number; y: number; width: number; height: number }[] }) {
+  return (
+    <>
+      {regions.map((r, i) => {
+        const color = REGION_COLORS[i % REGION_COLORS.length];
+        return (
+          <div
+            key={i}
+            className="absolute rounded pointer-events-none"
+            style={{
+              left: `${r.x}%`,
+              top: `${r.y}%`,
+              width: `${r.width}%`,
+              height: `${r.height}%`,
+              border: `2px solid ${color}`,
+            }}
+          >
+            <span
+              className="absolute top-1 left-1 text-[10px] font-bold leading-none px-1 rounded"
+              style={{ color, backgroundColor: 'rgba(15,23,42,0.7)' }}
+            >
+              {i + 1}
+            </span>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 export function DiagramToFenPanel() {
   const { t } = useLanguage();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -130,24 +171,7 @@ export function DiagramToFenPanel() {
                   }`}
                   onClick={() => setShowImageModal(true)}
                 />
-                {regions && regions.length > 0 && (
-                  <>
-                    {regions.map((r, i) => (
-                      <div
-                        key={i}
-                        className="absolute border-2 border-blue-400/70 rounded pointer-events-none"
-                        style={{
-                          left: `${r.x}%`,
-                          top: `${r.y}%`,
-                          width: `${r.width}%`,
-                          height: `${r.height}%`,
-                        }}
-                      >
-                        <span className="absolute -top-4 left-1 text-[10px] text-blue-400 font-bold">{i + 1}</span>
-                      </div>
-                    ))}
-                  </>
-                )}
+                {regions && regions.length > 0 && <RegionOverlay regions={regions} />}
               </div>
               </div>
 
@@ -175,24 +199,7 @@ export function DiagramToFenPanel() {
           src={preview}
           alt="Diagram"
           onClose={() => setShowImageModal(false)}
-          overlay={regions && regions.length > 0 ? (
-            <>
-              {regions.map((r, i) => (
-                <div
-                  key={i}
-                  className="absolute border-2 border-blue-400/70 rounded pointer-events-none"
-                  style={{
-                    left: `${r.x}%`,
-                    top: `${r.y}%`,
-                    width: `${r.width}%`,
-                    height: `${r.height}%`,
-                  }}
-                >
-                  <span className="absolute -top-5 left-1 text-xs text-blue-400 font-bold">{i + 1}</span>
-                </div>
-              ))}
-            </>
-          ) : undefined}
+          overlay={regions && regions.length > 0 ? <RegionOverlay regions={regions} /> : undefined}
         />
       )}
     </PanelShell>
