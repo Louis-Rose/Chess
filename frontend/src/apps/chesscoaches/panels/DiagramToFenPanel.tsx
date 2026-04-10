@@ -5,7 +5,7 @@ import { ImageIcon, Clock, Copy, Check } from 'lucide-react';
 import { LichessStudyButton } from './scoresheet/ExportButtons';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
-import { Chess } from 'chess.js';
+
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
@@ -389,10 +389,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const validFen = (() => {
-    try { new Chess(editedFen); return true; } catch { return false; }
-  })();
 
   const activeColor = editedFen.split(' ')[1];
   const sideToMoveLabel =
