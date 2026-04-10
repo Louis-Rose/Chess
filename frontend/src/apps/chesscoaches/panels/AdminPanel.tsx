@@ -374,11 +374,43 @@ export function AdminPanel() {
     if (selectedApiFeatures.size === 0) {
       return { ...apiUsage, by_feature: [], by_model: [], invocations: [], daily_invocations: [], daily_invocations_by_user: [], total_cost_usd: 0 };
     }
+    const filteredInvocations = apiUsage.invocations.filter(i => selectedApiFeatures.has(i.feature));
+    // Recompute by_model from filtered invocations
+    const modelMap = new Map<string, ApiUsageByModel>();
+    for (const inv of filteredInvocations) {
+      for (const m of inv.models) {
+        const existing = modelMap.get(m.model_id);
+        if (existing) {
+          existing.call_count += 1;
+          existing.paid_count += m.billing_tier === 'paid' ? 1 : 0;
+          existing.free_count += m.billing_tier === 'free' ? 1 : 0;
+          existing.total_input += m.input_tokens;
+          existing.total_output += m.output_tokens;
+          existing.total_thinking += m.thinking_tokens || 0;
+          existing.error_count += m.error ? 1 : 0;
+          existing.cost_usd += m.cost_usd;
+          existing.avg_elapsed = Math.round(((existing.avg_elapsed * (existing.call_count - 1)) + m.elapsed_seconds) / existing.call_count);
+        } else {
+          modelMap.set(m.model_id, {
+            model_id: m.model_id,
+            call_count: 1,
+            paid_count: m.billing_tier === 'paid' ? 1 : 0,
+            free_count: m.billing_tier === 'free' ? 1 : 0,
+            total_input: m.input_tokens,
+            total_output: m.output_tokens,
+            total_thinking: m.thinking_tokens || 0,
+            error_count: m.error ? 1 : 0,
+            avg_elapsed: m.elapsed_seconds,
+            cost_usd: m.cost_usd,
+          });
+        }
+      }
+    }
     return {
       ...apiUsage,
       by_feature: apiUsage.by_feature.filter(f => selectedApiFeatures.has(f.feature)),
-      by_model: apiUsage.by_model,
-      invocations: apiUsage.invocations.filter(i => selectedApiFeatures.has(i.feature)),
+      by_model: [...modelMap.values()],
+      invocations: filteredInvocations,
       daily_invocations: apiUsage.daily_invocations.filter(d => selectedApiFeatures.has(d.feature)),
       daily_invocations_by_user: apiUsage.daily_invocations_by_user.filter(d => selectedApiFeatures.has(d.feature)),
       total_cost_usd: apiUsage.by_feature
@@ -1010,13 +1042,17 @@ export function AdminPanel() {
 
             {/* All uploads by user (backend excludes the shared sample scoresheet) */}
             {allUploadsData && [...allUploadsData.entries()].map(([uid, uploads]) => {
-              if (uploads.length === 0) return null;
+              const featurePrefixes = selectedFeature ? (PAGE_TO_API_FEATURES[selectedFeature] || []) : [];
+              const filtered = featurePrefixes.length > 0
+                ? uploads.filter(f => featurePrefixes.some(p => f.filename.toLowerCase().startsWith(p)))
+                : uploads;
+              if (filtered.length === 0) return null;
               const userName = data?.users.find(u => u.id === uid)?.name || `User ${uid}`;
               return (
                 <div key={uid}>
-                  <h4 className="text-base font-semibold text-white mb-2">{userName} <span className="text-white font-normal">({uploads.length})</span></h4>
+                  <h4 className="text-base font-semibold text-white mb-2">{userName} <span className="text-white font-normal">({filtered.length})</span></h4>
                   <div className="flex gap-2 flex-wrap">
-                    {uploads.map(file => {
+                    {filtered.map(file => {
                       const imgUrl = `/api/admin/user-uploads/${uid}/${file.filename}`;
                       return (
                         <div key={file.filename} className="flex flex-col items-center gap-1 rounded border border-slate-600 hover:border-blue-500 overflow-hidden transition-colors p-1 group relative">
