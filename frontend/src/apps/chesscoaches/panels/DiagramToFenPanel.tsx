@@ -10,7 +10,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
-import type { DiagramModelResult, DiagramExtract, DiagramRegion } from '../contexts/CoachesDataContext';
+import type { DiagramModelResult, DiagramExtract } from '../contexts/CoachesDataContext';
 
 export function DiagramToFenPanel() {
   const { t } = useLanguage();
