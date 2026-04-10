@@ -395,8 +395,9 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let streamDone = false;
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -409,6 +410,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           const payload = JSON.parse(line.slice(6));
 
           if (payload.type === 'done') {
+            streamDone = true;
             reader.cancel();
             break;
           } else if (payload.type === 'models') {
