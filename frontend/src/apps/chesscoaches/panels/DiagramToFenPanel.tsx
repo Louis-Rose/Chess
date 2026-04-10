@@ -53,6 +53,27 @@ function RegionOverlay({ regions }: { regions: { x: number; y: number; width: nu
   );
 }
 
+function CroppedRegion({ src, region }: { src: string; region: { x: number; y: number; width: number; height: number } }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const sx = Math.round(region.x / 100 * img.width);
+      const sy = Math.round(region.y / 100 * img.height);
+      const sw = Math.round(region.width / 100 * img.width);
+      const sh = Math.round(region.height / 100 * img.height);
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    };
+    img.src = src;
+  }, [src, region]);
+  return <canvas ref={canvasRef} className="mx-auto rounded-lg border border-slate-600 max-w-[400px] w-full" />;
+}
+
 export function DiagramToFenPanel() {
   const { t } = useLanguage();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -341,32 +362,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 
   return (
     <div className="space-y-3">
-      {previewSrc && region && (() => {
-        // Scale factor: how much bigger the full image is vs the visible region
-        const scaleX = 100 / region.width;
-        const scaleY = 100 / region.height;
-        return (
-          <div
-            className="relative mx-auto overflow-hidden rounded-lg border border-slate-600"
-            style={{
-              maxWidth: '400px',
-              paddingBottom: `${region.height / region.width * 100}%`, // aspect ratio via padding
-            }}
-          >
-            <img
-              src={previewSrc}
-              alt="Diagram region"
-              className="absolute top-0 left-0"
-              style={{
-                width: `${scaleX * 100}%`,
-                height: `${scaleY * 100}%`,
-                marginLeft: `-${region.x * scaleX}%`,
-                marginTop: `-${region.y * scaleY}%`,
-              }}
-            />
-          </div>
-        );
-      })()}
+      {previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
       {validFen && <StaticBoard fen={fen} />}
 
       {hasPlayers && (
