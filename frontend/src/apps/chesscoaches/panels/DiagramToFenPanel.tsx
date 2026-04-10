@@ -120,7 +120,7 @@ export function DiagramToFenPanel() {
                 );
               })()}
 
-              <div className="relative mx-auto inline-block">
+              <div className="relative mx-auto w-fit">
                 <img
                   src={preview}
                   alt="Diagram"
