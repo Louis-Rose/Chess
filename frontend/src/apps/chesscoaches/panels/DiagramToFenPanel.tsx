@@ -288,11 +288,13 @@ function FenEntry({ diagram }: { diagram: DiagramExtract }) {
       {validFen && <StaticBoard fen={fen} />}
 
       {hasPlayers && (
-        <p className="text-center text-slate-200 text-sm font-medium">
+        <div className="flex items-center justify-center gap-2 text-sm font-medium">
+          <span className="w-3 h-3 rounded-full bg-white border border-slate-400 inline-block" />
           <span className="text-slate-100">{white_player || '—'}</span>
-          <span className="text-slate-500 mx-2">vs</span>
+          <span className="text-slate-500 mx-1">vs</span>
           <span className="text-slate-100">{black_player || '—'}</span>
-        </p>
+          <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-500 inline-block" />
+        </div>
       )}
 
       <div className="flex justify-center">
