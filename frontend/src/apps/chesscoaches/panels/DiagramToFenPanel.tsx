@@ -165,7 +165,7 @@ export function DiagramToFenPanel() {
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
               {models.length > 0 && (
-                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} previewSrc={preview} />
+                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} previewSrc={preview} totalRegions={regionCount} />
               )}
             </div>
           )}
@@ -204,6 +204,7 @@ interface ResultsViewProps {
   modelResults: Record<string, DiagramModelResult>;
   analyzing: boolean;
   previewSrc?: string;
+  totalRegions?: number;
 }
 
 // Translate backend reader names like "Reader 1" → "Lecteur 1" (FR)
@@ -213,7 +214,7 @@ function localizeReaderName(name: string | undefined, readerLabel: string): stri
   return match ? `${readerLabel} ${match[1]}` : name;
 }
 
-function ResultsView({ models, modelResults, analyzing, previewSrc }: ResultsViewProps) {
+function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions }: ResultsViewProps) {
   const { t } = useLanguage();
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
@@ -262,12 +263,12 @@ function ResultsView({ models, modelResults, analyzing, previewSrc }: ResultsVie
         <select
           value={selectedDiagramIdx}
           onChange={e => setSelectedDiagramIdx(Number(e.target.value))}
-          disabled={diagramCount <= 1}
-          className={`${selectClass} ${diagramCount <= 1 ? 'opacity-50' : ''}`}
+          disabled={diagramCount <= 1 && !totalRegions}
+          className={`${selectClass} ${diagramCount <= 1 && !totalRegions ? 'opacity-50' : ''}`}
         >
-          {Array.from({ length: Math.max(diagramCount, 1) }, (_, i) => (
-            <option key={i} value={i}>
-              {t('coaches.diagram.diagramLabel')} {i + 1} / {analyzing ? '?' : Math.max(diagramCount, 1)}
+          {Array.from({ length: totalRegions || Math.max(diagramCount, 1) }, (_, i) => (
+            <option key={i} value={i} disabled={i >= diagramCount}>
+              {t('coaches.diagram.diagramLabel')} {i + 1} / {totalRegions || (analyzing ? '?' : Math.max(diagramCount, 1))}
             </option>
           ))}
         </select>
