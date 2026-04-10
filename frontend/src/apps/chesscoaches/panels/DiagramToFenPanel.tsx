@@ -305,9 +305,6 @@ function FenEntry({ diagram }: { diagram: DiagramExtract }) {
               : 'bg-slate-100 border-slate-300 text-slate-900'
           }`}
         >
-          <span
-            className={`w-2 h-2 rounded-full ${activeColor === 'b' ? 'bg-slate-100' : 'bg-slate-900'}`}
-          />
           {sideToMoveLabel}
         </span>
       </div>
