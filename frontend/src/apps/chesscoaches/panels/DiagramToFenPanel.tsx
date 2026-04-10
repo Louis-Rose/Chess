@@ -1,6 +1,6 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { ImageIcon, Clock, Copy, Check } from 'lucide-react';
 import { LichessStudyButton } from './scoresheet/ExportButtons';
 import { ImageZoomModal } from '../components/ImageZoomModal';
@@ -331,16 +331,56 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
   );
 }
 
+function boardToFenPlacement(board: (string | null)[][]): string {
+  return board.map(row => {
+    let s = '';
+    let empty = 0;
+    for (const sq of row) {
+      if (!sq) { empty++; }
+      else { if (empty) { s += empty; empty = 0; } s += sq; }
+    }
+    if (empty) s += empty;
+    return s;
+  }).join('/');
+}
+
+function fenToBoard(fen: string): (string | null)[][] {
+  const rows = fen.split(' ')[0].split('/');
+  return rows.map(row => {
+    const squares: (string | null)[] = [];
+    for (const ch of row) {
+      if (ch >= '1' && ch <= '8') for (let i = 0; i < parseInt(ch); i++) squares.push(null);
+      else squares.push(ch);
+    }
+    return squares;
+  });
+}
+
+function rebuildFen(oldFen: string, newPlacement: string): string {
+  const parts = oldFen.split(' ');
+  parts[0] = newPlacement;
+  return parts.join(' ');
+}
+
 function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc?: string }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
-  const { fen, white_player, black_player, region } = diagram;
+  const { white_player, black_player, region } = diagram;
+  const [editedFen, setEditedFen] = useState(diagram.fen);
+  const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
+
+  // Reset edited FEN when diagram changes
+  useEffect(() => { setEditedFen(diagram.fen); setSelectedPiece(null); }, [diagram.fen]);
+
+  const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
+    setEditedFen(prev => rebuildFen(prev, boardToFenPlacement(newBoard)));
+  }, []);
 
   const handleCopy = async () => {
-    try { await navigator.clipboard.writeText(fen); }
+    try { await navigator.clipboard.writeText(editedFen); }
     catch {
       const ta = document.createElement('textarea');
-      ta.value = fen;
+      ta.value = editedFen;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
@@ -351,19 +391,53 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   };
 
   const validFen = (() => {
-    try { new Chess(fen); return true; } catch { return false; }
+    try { new Chess(editedFen); return true; } catch { return false; }
   })();
 
-  // Pull "w" or "b" out of the FEN's active color field
-  const activeColor = fen.split(' ')[1];
+  const activeColor = editedFen.split(' ')[1];
   const sideToMoveLabel =
     activeColor === 'b' ? t('coaches.diagram.blackToPlay') : t('coaches.diagram.whiteToPlay');
   const hasPlayers = !!(white_player || black_player);
 
+  const PIECE_PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P', 'k', 'q', 'r', 'b', 'n', 'p'];
+
   return (
     <div className="space-y-3">
       {previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
-      {validFen && <StaticBoard fen={fen} />}
+      <EditableBoard fen={editedFen} selectedPiece={selectedPiece} onChange={handleBoardChange} />
+
+      {/* Piece palette */}
+      <div className="flex justify-center gap-1">
+        <button
+          onClick={() => setSelectedPiece(null)}
+          className={`w-8 h-8 rounded border transition-colors flex items-center justify-center text-xs ${
+            selectedPiece === null ? 'border-blue-500 bg-blue-500/20 text-blue-400' : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
+          }`}
+          title={t('coaches.diagram.movePiece')}
+        >
+          ✥
+        </button>
+        {PIECE_PALETTE.map(p => (
+          <button
+            key={p}
+            onClick={() => setSelectedPiece(selectedPiece === p ? null : p)}
+            className={`w-8 h-8 rounded border transition-colors ${
+              selectedPiece === p ? 'border-blue-500 bg-blue-500/20' : 'border-slate-600 bg-slate-800 hover:border-slate-500'
+            }`}
+          >
+            <img src={pieceImageUrl(p)} alt={p} className="w-6 h-6 mx-auto" draggable={false} />
+          </button>
+        ))}
+        <button
+          onClick={() => setSelectedPiece('ERASE')}
+          className={`w-8 h-8 rounded border transition-colors flex items-center justify-center text-xs ${
+            selectedPiece === 'ERASE' ? 'border-red-500 bg-red-500/20 text-red-400' : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
+          }`}
+          title={t('coaches.diagram.erasePiece')}
+        >
+          ✕
+        </button>
+      </div>
 
       {hasPlayers && (
         <div className="flex items-center justify-center gap-2 text-sm font-medium">
@@ -398,7 +472,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         {copied ? <><Check className="w-4 h-4" /> {t('coaches.diagram.copied')}</> : <><Copy className="w-4 h-4" /> {t('coaches.diagram.copyFen')}</>}
       </button>
       <LichessStudyButton
-        fen={fen}
+        fen={editedFen}
         chapterName={[white_player, black_player].filter(Boolean).join(' vs ') || 'Diagram'}
       />
     </div>
@@ -407,28 +481,65 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 
 import { pieceImageUrl, BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
 
-function StaticBoard({ fen }: { fen: string }) {
-  const rows = fen.split(' ')[0].split('/');
-  const board: (string | null)[][] = rows.map(row => {
-    const squares: (string | null)[] = [];
-    for (const ch of row) {
-      if (ch >= '1' && ch <= '8') for (let i = 0; i < parseInt(ch); i++) squares.push(null);
-      else squares.push(ch);
+function EditableBoard({ fen, selectedPiece, onChange }: { fen: string; selectedPiece: string | null; onChange: (board: (string | null)[][]) => void }) {
+  const board = useMemo(() => fenToBoard(fen), [fen]);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
+
+  const handleSquareClick = useCallback((r: number, c: number) => {
+    if (dragging) return;
+    const newBoard = board.map(row => [...row]);
+    if (selectedPiece === 'ERASE') {
+      newBoard[r][c] = null;
+      onChange(newBoard);
+    } else if (selectedPiece) {
+      newBoard[r][c] = selectedPiece;
+      onChange(newBoard);
     }
-    return squares;
-  });
+  }, [board, selectedPiece, onChange, dragging]);
+
+  // Drag: only when no piece is selected in palette (move mode)
+  const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
+    if (selectedPiece) return; // palette mode, not drag mode
+    e.preventDefault();
+    setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
+  }, [selectedPiece]);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: PointerEvent) => setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
+    const onUp = (e: PointerEvent) => {
+      if (!boardRef.current || !dragging) { setDragging(null); return; }
+      const rect = boardRef.current.getBoundingClientRect();
+      const sqSize = rect.width / 8;
+      const toC = Math.floor((e.clientX - rect.left) / sqSize);
+      const toR = Math.floor((e.clientY - rect.top) / sqSize);
+      if (toR >= 0 && toR < 8 && toC >= 0 && toC < 8 && (toR !== dragging.fromR || toC !== dragging.fromC)) {
+        const newBoard = board.map(row => [...row]);
+        newBoard[dragging.fromR][dragging.fromC] = null;
+        newBoard[toR][toC] = dragging.piece;
+        onChange(newBoard);
+      }
+      setDragging(null);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    return () => { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); };
+  }, [dragging, board, onChange]);
 
   return (
     <div className="mx-auto rounded-lg overflow-hidden shadow-lg" style={{ maxWidth: 400 }}>
-      <div className="grid grid-cols-8 grid-rows-8 aspect-square">
+      <div ref={boardRef} className="grid grid-cols-8 grid-rows-8 aspect-square">
         {board.map((row, r) =>
           row.map((piece, c) => {
             const isLight = (r + c) % 2 === 0;
+            const isDragSource = dragging && dragging.fromR === r && dragging.fromC === c;
             return (
               <div
                 key={`${r}-${c}`}
-                className="relative select-none"
+                className={`relative select-none ${selectedPiece ? 'cursor-pointer' : ''}`}
                 style={{ backgroundColor: isLight ? LIGHT : DARK }}
+                onClick={() => handleSquareClick(r, c)}
               >
                 {c === 0 && (
                   <span className="absolute top-0.5 left-0.5 text-[0.6rem] font-bold leading-none pointer-events-none" style={{ color: isLight ? DARK : LIGHT }}>
@@ -440,12 +551,13 @@ function StaticBoard({ fen }: { fen: string }) {
                     {'abcdefgh'[c]}
                   </span>
                 )}
-                {piece && (
+                {piece && !isDragSource && (
                   <img
                     src={pieceImageUrl(piece)}
                     alt=""
-                    className="absolute inset-[5%] w-[90%] h-[90%] pointer-events-none"
+                    className={`absolute inset-[5%] w-[90%] h-[90%] ${!selectedPiece ? 'cursor-grab' : ''}`}
                     draggable={false}
+                    onPointerDown={e => handlePointerDown(e, piece, r, c)}
                   />
                 )}
               </div>
@@ -453,6 +565,15 @@ function StaticBoard({ fen }: { fen: string }) {
           })
         )}
       </div>
+      {dragging && (
+        <img
+          src={pieceImageUrl(dragging.piece)}
+          alt=""
+          className="fixed pointer-events-none z-50 w-12 h-12 -translate-x-1/2 -translate-y-1/2"
+          style={{ left: dragging.x, top: dragging.y }}
+          draggable={false}
+        />
+      )}
     </div>
   );
 }

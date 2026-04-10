@@ -138,6 +138,8 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.diagram.readerLabel': 'Reader',
     'coaches.diagram.diagramLabel': 'Diagram',
     'coaches.diagram.noneDetected': 'No diagram detected',
+    'coaches.diagram.movePiece': 'Move piece',
+    'coaches.diagram.erasePiece': 'Remove piece',
     'coaches.diagram.copyFen': 'Copy FEN',
 
     'coaches.diagram.copied': 'Copied!',
@@ -499,6 +501,8 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.diagram.readerLabel': 'Lecteur',
     'coaches.diagram.diagramLabel': 'Diagramme',
     'coaches.diagram.noneDetected': 'Aucun diagramme détecté',
+    'coaches.diagram.movePiece': 'Déplacer une pièce',
+    'coaches.diagram.erasePiece': 'Supprimer une pièce',
     'coaches.diagram.copyFen': 'Copier le FEN',
 
     'coaches.diagram.copied': 'Copié !',
