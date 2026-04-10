@@ -100,10 +100,10 @@ export function DiagramToFenPanel() {
               {(analyzing || models.length > 0) && (() => {
                 const finishedCount = models.filter(m => !!modelResults[m.id]?.elapsed).length;
                 const allDone = !analyzing && models.length > 0 && finishedCount === models.length;
-                // Progress: 10% for region detection, then 10-100% for reading each region
+                // Progress: 20% for region detection, then 20-100% for reading each region
                 const pct = regionCount
-                  ? Math.round(10 + (regionsRead || 0) / regionCount * 90)
-                  : regions ? 10 : 0;
+                  ? Math.round(20 + (regionsRead || 0) / regionCount * 80)
+                  : regions ? 20 : 0;
                 const maxAvg = models.length > 0
                   ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3 * (regionCount || 1))
                   : 0;
