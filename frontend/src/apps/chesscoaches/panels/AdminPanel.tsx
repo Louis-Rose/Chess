@@ -231,13 +231,13 @@ export function AdminPanel() {
     enabled: !!user?.is_admin,
   });
 
-  // Select all users by default once data loads
+  // Select all users except current user by default once data loads
   useEffect(() => {
     if (data?.users && !usersInitialized) {
-      setSelectedUserIds(new Set(data.users.map(u => u.id)));
+      setSelectedUserIds(new Set(data.users.filter(u => u.id !== user?.id).map(u => u.id)));
       setUsersInitialized(true);
     }
-  }, [data?.users, usersInitialized]);
+  }, [data?.users, usersInitialized, user?.id]);
 
   // "all selected" = no filter (undefined), "none selected" = empty string sentinel to exclude everything
   const userIdsParam = useMemo(() => {
