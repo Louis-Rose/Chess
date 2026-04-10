@@ -481,6 +481,24 @@ export function AdminPanel() {
     return <Navigate to="/" replace />;
   }
 
+  const sortedInvocations = useMemo(() => {
+    if (!filteredApiUsage?.invocations) return [];
+    const invs = [...filteredApiUsage.invocations];
+    const dir = historySortDirection === 'asc' ? 1 : -1;
+    return invs.sort((a, b) => {
+      switch (historySortColumn) {
+        case 'created_at': return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        case 'user_name': return dir * (a.user_name || '').localeCompare(b.user_name || '');
+        case 'feature': return dir * a.feature.localeCompare(b.feature);
+        case 'model_count': return dir * (a.model_count - b.model_count);
+        case 'tokens': return dir * (((a.total_input || 0) + (a.total_output || 0)) - ((b.total_input || 0) + (b.total_output || 0)));
+        case 'elapsed_seconds': return dir * (a.elapsed_seconds - b.elapsed_seconds);
+        case 'cost_usd': return dir * (a.cost_usd - b.cost_usd);
+        default: return 0;
+      }
+    });
+  }, [filteredApiUsage?.invocations, historySortColumn, historySortDirection]);
+
   if (authLoading || isLoading) {
     return (
       <PanelShell title={t('coaches.navAdmin')}>
@@ -504,24 +522,6 @@ export function AdminPanel() {
       ? <ChevronUp className="w-3 h-3 inline ml-1" />
       : <ChevronDown className="w-3 h-3 inline ml-1" />;
   };
-
-  const sortedInvocations = useMemo(() => {
-    if (!filteredApiUsage?.invocations) return [];
-    const invs = [...filteredApiUsage.invocations];
-    const dir = historySortDirection === 'asc' ? 1 : -1;
-    return invs.sort((a, b) => {
-      switch (historySortColumn) {
-        case 'created_at': return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        case 'user_name': return dir * (a.user_name || '').localeCompare(b.user_name || '');
-        case 'feature': return dir * a.feature.localeCompare(b.feature);
-        case 'model_count': return dir * (a.model_count - b.model_count);
-        case 'tokens': return dir * (((a.total_input || 0) + (a.total_output || 0)) - ((b.total_input || 0) + (b.total_output || 0)));
-        case 'elapsed_seconds': return dir * (a.elapsed_seconds - b.elapsed_seconds);
-        case 'cost_usd': return dir * (a.cost_usd - b.cost_usd);
-        default: return 0;
-      }
-    });
-  }, [filteredApiUsage?.invocations, historySortColumn, historySortDirection]);
 
   return (
     <PanelShell title={t('coaches.navAdmin')}>
