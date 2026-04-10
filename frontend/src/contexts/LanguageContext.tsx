@@ -139,6 +139,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.diagram.diagramLabel': 'Diagram',
     'coaches.diagram.noneDetected': 'No diagram detected',
     'coaches.diagram.copyFen': 'Copy FEN',
+
     'coaches.diagram.copied': 'Copied!',
     'coaches.diagram.whiteToPlay': 'White to play',
     'coaches.diagram.blackToPlay': 'Black to play',
@@ -497,6 +498,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.diagram.diagramLabel': 'Diagramme',
     'coaches.diagram.noneDetected': 'Aucun diagramme détecté',
     'coaches.diagram.copyFen': 'Copier le FEN',
+
     'coaches.diagram.copied': 'Copié !',
     'coaches.diagram.whiteToPlay': 'Les Blancs jouent',
     'coaches.diagram.blackToPlay': 'Les Noirs jouent',

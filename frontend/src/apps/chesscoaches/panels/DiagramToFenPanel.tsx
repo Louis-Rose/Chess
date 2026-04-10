@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ImageIcon, Clock, Copy, Check } from 'lucide-react';
+import { LichessStudyButton } from './scoresheet/ExportButtons';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
 import { Chess } from 'chess.js';
@@ -284,6 +285,8 @@ function FenEntry({ diagram }: { diagram: DiagramExtract }) {
 
   return (
     <div className="space-y-3">
+      {validFen && <StaticBoard fen={fen} />}
+
       {hasPlayers && (
         <p className="text-center text-slate-200 text-sm font-medium">
           <span className="text-slate-100">{white_player || '—'}</span>
@@ -312,8 +315,6 @@ function FenEntry({ diagram }: { diagram: DiagramExtract }) {
         <p className="text-slate-100 font-mono text-xs break-all select-all">{fen}</p>
       </div>
 
-      {validFen && <StaticBoard fen={fen} />}
-
       <button
         onClick={handleCopy}
         className={`w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center justify-center gap-2 ${
@@ -324,6 +325,10 @@ function FenEntry({ diagram }: { diagram: DiagramExtract }) {
       >
         {copied ? <><Check className="w-4 h-4" /> {t('coaches.diagram.copied')}</> : <><Copy className="w-4 h-4" /> {t('coaches.diagram.copyFen')}</>}
       </button>
+      <LichessStudyButton
+        fen={fen}
+        chapterName={[white_player, black_player].filter(Boolean).join(' vs ') || 'Diagram'}
+      />
     </div>
   );
 }

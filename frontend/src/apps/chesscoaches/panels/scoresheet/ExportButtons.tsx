@@ -45,12 +45,14 @@ export function ChesscomAnalysisButton({ moves, meta, hasIllegalMoves, onIllegal
   );
 }
 
-export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalClick }: {
-  moves: Move[];
+export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onIllegalClick, fen, chapterName: customChapterName }: {
+  moves?: Move[];
   meta?: ConsensusMeta;
   fileName?: string | null;
   hasIllegalMoves?: boolean;
   onIllegalClick?: () => void;
+  fen?: string;
+  chapterName?: string;
 }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -114,8 +116,10 @@ export function LichessStudyButton({ moves, meta, fileName, hasIllegalMoves, onI
   const handleSelectStudy = async (study: { id: string; name: string }) => {
     setImporting(true);
     setError('');
-    const pgn = buildPgn(moves, meta);
-    const chapterName = fileName?.replace(/\.[^.]+$/, '') || [meta?.white, meta?.black].filter(Boolean).join(' vs ') || 'Scoresheet';
+    const pgn = fen
+      ? `[FEN "${fen}"]\n\n*`
+      : buildPgn(moves || [], meta);
+    const chapterName = customChapterName || fileName?.replace(/\.[^.]+$/, '') || [meta?.white, meta?.black].filter(Boolean).join(' vs ') || 'Scoresheet';
     try {
       const res = await fetch(`/api/coaches/lichess/studies/${study.id}/import-pgn`, {
         method: 'POST',
