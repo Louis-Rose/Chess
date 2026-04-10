@@ -341,28 +341,32 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 
   return (
     <div className="space-y-3">
-      {previewSrc && region && (
-        <div
-          className="relative mx-auto overflow-hidden rounded-lg border border-slate-600"
-          style={{
-            width: '100%',
-            maxWidth: '400px',
-            aspectRatio: `${region.width} / ${region.height}`,
-          }}
-        >
-          <img
-            src={previewSrc}
-            alt="Diagram region"
-            className="absolute"
+      {previewSrc && region && (() => {
+        // Scale factor: how much bigger the full image is vs the visible region
+        const scaleX = 100 / region.width;
+        const scaleY = 100 / region.height;
+        return (
+          <div
+            className="relative mx-auto overflow-hidden rounded-lg border border-slate-600"
             style={{
-              width: `${100 / (region.width / 100)}%`,
-              height: `${100 / (region.height / 100)}%`,
-              left: `-${region.x / region.width * 100}%`,
-              top: `-${region.y / region.height * 100}%`,
+              maxWidth: '400px',
+              paddingBottom: `${region.height / region.width * 100}%`, // aspect ratio via padding
             }}
-          />
-        </div>
-      )}
+          >
+            <img
+              src={previewSrc}
+              alt="Diagram region"
+              className="absolute top-0 left-0"
+              style={{
+                width: `${scaleX * 100}%`,
+                height: `${scaleY * 100}%`,
+                marginLeft: `-${region.x * scaleX}%`,
+                marginTop: `-${region.y * scaleY}%`,
+              }}
+            />
+          </div>
+        );
+      })()}
       {validFen && <StaticBoard fen={fen} />}
 
       {hasPlayers && (
