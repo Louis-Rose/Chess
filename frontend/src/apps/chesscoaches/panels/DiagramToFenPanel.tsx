@@ -309,11 +309,6 @@ function FenEntry({ diagram }: { diagram: DiagramExtract }) {
         </span>
       </div>
 
-      <div className="bg-slate-800 rounded-lg px-3 py-2">
-        <p className="text-slate-400 text-[10px] mb-1">FEN</p>
-        <p className="text-slate-100 font-mono text-xs break-all select-all">{fen}</p>
-      </div>
-
       <button
         onClick={handleCopy}
         className={`w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center justify-center gap-2 ${
