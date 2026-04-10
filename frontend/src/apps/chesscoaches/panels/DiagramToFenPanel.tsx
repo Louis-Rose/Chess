@@ -171,7 +171,29 @@ export function DiagramToFenPanel() {
           )}
 
       {showImageModal && preview && (
-        <ImageZoomModal src={preview} alt="Diagram" onClose={() => setShowImageModal(false)} />
+        <ImageZoomModal
+          src={preview}
+          alt="Diagram"
+          onClose={() => setShowImageModal(false)}
+          overlay={regions && regions.length > 0 ? (
+            <>
+              {regions.map((r, i) => (
+                <div
+                  key={i}
+                  className="absolute border-2 border-blue-400/70 rounded pointer-events-none"
+                  style={{
+                    left: `${r.x}%`,
+                    top: `${r.y}%`,
+                    width: `${r.width}%`,
+                    height: `${r.height}%`,
+                  }}
+                >
+                  <span className="absolute -top-5 left-1 text-xs text-blue-400 font-bold">{i + 1}</span>
+                </div>
+              ))}
+            </>
+          ) : undefined}
+        />
       )}
     </PanelShell>
   );
