@@ -41,8 +41,8 @@ function RegionOverlay({ regions }: { regions: { x: number; y: number; width: nu
             }}
           >
             <span
-              className="absolute top-1 left-1 text-[10px] font-bold leading-none px-1 rounded"
-              style={{ color, backgroundColor: 'rgba(15,23,42,0.7)' }}
+              className="absolute top-1 left-1 text-sm font-bold leading-none"
+              style={{ color }}
             >
               {i + 1}
             </span>

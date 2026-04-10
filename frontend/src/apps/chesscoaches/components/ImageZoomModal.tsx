@@ -34,11 +34,13 @@ export function ImageZoomModal({ src, alt = 'Image', onClose, overlay }: ImageZo
       onClick={handleBackdrop}
       className="fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/60 backdrop-blur-[2px] cursor-zoom-out overflow-auto p-4 flex"
     >
-      <div className="relative m-auto">
+      <div
+        className="relative m-auto"
+        onClick={(e) => { e.stopPropagation(); if (level < maxLevel) setLevel(prev => prev + 1); }}
+      >
         <img
           src={src}
           alt={alt}
-          onClick={(e) => { e.stopPropagation(); if (level < maxLevel) setLevel(prev => prev + 1); }}
           className={`rounded-xl object-contain ${level < maxLevel ? 'cursor-zoom-in' : 'cursor-default'} ${
             level === 1
               ? 'max-w-[90vw] max-h-[90vh]'
