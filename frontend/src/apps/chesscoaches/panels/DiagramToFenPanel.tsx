@@ -120,7 +120,8 @@ export function DiagramToFenPanel() {
                 );
               })()}
 
-              <div className="relative mx-auto w-fit">
+              <div className="flex justify-center">
+              <div className="relative">
                 <img
                   src={preview}
                   alt="Diagram"
@@ -147,6 +148,7 @@ export function DiagramToFenPanel() {
                     ))}
                   </>
                 )}
+              </div>
               </div>
 
               {!analyzing && models.length === 0 && (
