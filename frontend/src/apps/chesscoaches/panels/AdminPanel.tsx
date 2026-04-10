@@ -671,20 +671,17 @@ export function AdminPanel() {
         )}
 
         {/* Feature Dropdown */}
-        <div className="flex items-center gap-3">
+        <div className="flex justify-center">
           <select
             value={selectedFeature || ''}
             onChange={e => setSelectedFeature(e.target.value || null)}
-            className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 border border-slate-600 focus:outline-none focus:border-blue-500"
+            className="bg-slate-700 text-slate-200 text-base rounded-lg px-5 py-3 border border-slate-600 focus:outline-none focus:border-blue-500"
           >
             <option value="" disabled hidden>{t('coaches.admin.selectFeature')}</option>
             {COACH_FEATURES.map(f => (
               <option key={f.id} value={f.id}>{t(f.labelKey)}</option>
             ))}
           </select>
-          {selectedFeature && (
-            <span className="text-xs text-slate-500">{t('coaches.admin.showingDataFor')} {t(COACH_FEATURES.find(f => f.id === selectedFeature)?.labelKey || '')}</span>
-          )}
         </div>
 
         {/* Per-feature time spent sub-chart */}
