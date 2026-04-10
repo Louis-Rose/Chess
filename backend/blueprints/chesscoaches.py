@@ -570,6 +570,10 @@ SCORESHEET_MODELS = [
     {"id": "gemini-3.1-flash-lite-preview", "name": "Reader 3"},
 ]
 
+DIAGRAM_MODELS = [
+    {"id": "gemini-3.1-pro-preview", "name": "gemini-3.1-pro"},
+]
+
 _avg_cache: dict = {}
 _avg_cache_ts: float = 0
 _AVG_CACHE_TTL = 120  # seconds
@@ -610,9 +614,10 @@ def _get_model_avg_elapsed(feature, user_id=None):
         return {}
 
 def _enrich_models_with_avg(feature, user_id=None):
-    """Return SCORESHEET_MODELS with avg_elapsed field added for the given feature."""
+    """Return model list with avg_elapsed field added for the given feature."""
     avgs = _get_model_avg_elapsed(feature, user_id)
-    return [{**m, "avg_elapsed": avgs.get(m["id"])} for m in SCORESHEET_MODELS]
+    models = DIAGRAM_MODELS if feature == 'diagram' else SCORESHEET_MODELS
+    return [{**m, "avg_elapsed": avgs.get(m["id"])} for m in models]
 
 _NOTATION_PIECES = {
     'english': 'English piece letters (K, Q, R, B, N)',
@@ -1047,12 +1052,12 @@ def read_diagram():
             result_queue.put(_THREAD_DONE)
 
     threads = []
-    for m in SCORESHEET_MODELS:
+    for m in DIAGRAM_MODELS:
         t = threading.Thread(target=run_model, args=(m,))
         t.start()
         threads.append(t)
 
-    return _sse_response(result_queue, threads, len(SCORESHEET_MODELS),
+    return _sse_response(result_queue, threads, len(DIAGRAM_MODELS),
                          {'type': 'models', 'models': _enrich_models_with_avg('diagram', uid)}, 'Diagram')
 
 

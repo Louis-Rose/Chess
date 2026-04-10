@@ -199,17 +199,19 @@ function ResultsView({ models, modelResults, analyzing }: ResultsViewProps) {
   return (
     <div className="max-w-xl mx-auto space-y-4">
       <div className="flex flex-wrap justify-center gap-3">
-        <select
-          value={selectedModelId}
-          onChange={e => setSelectedModelId(e.target.value)}
-          className={selectClass}
-        >
-          {models.map(m => (
-            <option key={m.id} value={m.id}>
-              {localizeReaderName(modelResults[m.id]?.name || m.name, readerLabel)}
-            </option>
-          ))}
-        </select>
+        {models.length > 1 && (
+          <select
+            value={selectedModelId}
+            onChange={e => setSelectedModelId(e.target.value)}
+            className={selectClass}
+          >
+            {models.map(m => (
+              <option key={m.id} value={m.id}>
+                {localizeReaderName(modelResults[m.id]?.name || m.name, readerLabel)}
+              </option>
+            ))}
+          </select>
+        )}
 
         <select
           value={selectedDiagramIdx}
