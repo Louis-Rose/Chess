@@ -928,13 +928,35 @@ def read_scoresheet_azure():
     })
 
 
-DIAGRAM_READ_PROMPT = """You are analyzing a chess image that may contain ONE OR SEVERAL chess diagrams (screenshot, photo, or printed page).
+DIAGRAM_LOCATE_PROMPT = """You are analyzing an image that may contain ONE OR SEVERAL chess diagrams.
 
-For every chess diagram, extract the position AND the surrounding context: which side is to move, and the two player names if they are printed near the diagram.
+Your job is to locate each diagram region — the chess board plus its surrounding context (player names, move indicator, diagram number).
 
 Return ONLY a JSON array of objects, in reading order (left-to-right, top-to-bottom). No markdown, no commentary, no code fences.
 
 Each object MUST have these fields:
+- "x": left edge as a percentage of image width (0-100)
+- "y": top edge as a percentage of image height (0-100)
+- "width": region width as a percentage of image width
+- "height": region height as a percentage of image height
+
+Include generous padding around each diagram to capture player names and captions above/below the board.
+
+Return [] if no diagram is detected.
+
+Example output for a page with two diagrams side by side:
+[
+  {"x": 2, "y": 5, "width": 48, "height": 45},
+  {"x": 50, "y": 5, "width": 48, "height": 45}
+]"""
+
+DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a cropped image containing exactly ONE chess diagram with its surrounding context.
+
+Extract the position AND the surrounding context: which side is to move, and the two player names if printed.
+
+Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
+
+The object MUST have these fields:
 - "fen": a complete FEN string (all 6 fields)
 - "white_player": the white player's name as printed near the diagram, or empty string "" if not visible
 - "black_player": the black player's name as printed near the diagram, or empty string "" if not visible
@@ -953,18 +975,43 @@ Player name rules:
 - Return just the name, no ratings or dates
 - Use "" (empty string) when a name is not printed
 
-Return [] if no diagram is detected.
+Example output:
+{"fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "white_player": "Kasparov", "black_player": "Karpov"}"""
 
-Example output for a page with two labelled diagrams:
-[
-  {"fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "white_player": "Kasparov", "black_player": "Karpov"},
-  {"fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "white_player": "", "black_player": ""}
-]"""
+
+def _strip_code_fences(raw):
+    """Remove markdown code fences from LLM output."""
+    raw = raw.strip()
+    if raw.startswith('```'):
+        raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
+        if raw.endswith('```'):
+            raw = raw[:-3]
+        raw = raw.strip()
+    if raw.startswith('json\n'):
+        raw = raw[5:].strip()
+    return raw
+
+
+def _crop_image_region(image_bytes, mime_type, region):
+    """Crop a region from an image. Region has x, y, width, height as percentages."""
+    from PIL import Image
+    import io
+    img = Image.open(io.BytesIO(image_bytes))
+    w, h = img.size
+    left = int(region['x'] / 100 * w)
+    top = int(region['y'] / 100 * h)
+    right = int((region['x'] + region['width']) / 100 * w)
+    bottom = int((region['y'] + region['height']) / 100 * h)
+    cropped = img.crop((left, top, right, bottom))
+    buf = io.BytesIO()
+    fmt = 'PNG' if 'png' in mime_type else 'JPEG'
+    cropped.save(buf, format=fmt)
+    return buf.getvalue()
 
 
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
 def read_diagram():
-    """Analyze a chess diagram image with multiple Gemini models in parallel, streaming results via SSE."""
+    """Analyze chess diagrams: first locate regions, then read each one independently."""
     from google.genai import types
 
     logger.info("[Diagram] Request received")
@@ -985,79 +1032,111 @@ def read_diagram():
     mime_type = image_file.content_type or 'image/jpeg'
     logger.info(f"[Diagram] Image: {len(image_bytes)} bytes, {mime_type}")
 
-
     req_id = uuid.uuid4().hex[:12]
     uid = get_current_user()
     _save_upload(uid, req_id, image_bytes, mime_type, 'diagram')
 
+    model_info = DIAGRAM_MODELS[0]
+    model_id = model_info["id"]
+    model_name = model_info["name"]
+
     result_queue = queue.Queue()
 
-    def run_model(model_info):
-        model_id = model_info["id"]
-        model_name = model_info["name"]
-        logger.info(f"[Diagram] Starting {model_name} ({model_id})")
-        start = time_module.time()
+    def run_pipeline():
+        total_in, total_out, total_think = 0, 0, 0
+        total_start = time_module.time()
+        tier_used = 'paid'
+
+        # ── Phase 1: Locate diagram regions ──
+        logger.info(f"[Diagram] Phase 1: locating regions with {model_id}")
         try:
-            response, tier, _ = _gemini_generate(
+            resp_locate, tier, _ = _gemini_generate(
                 client_free, client_paid, model_id,
                 contents=[
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                    DIAGRAM_READ_PROMPT,
+                    DIAGRAM_LOCATE_PROMPT,
                 ],
             )
-            elapsed = round(time_module.time() - start)
-            in_tok, out_tok, think_tok = _extract_usage_tokens(response)
-            raw = response.text.strip()
-            # Strip common markdown code fences (```json ... ``` or ``` ... ```)
-            if raw.startswith('```'):
-                raw = raw.split('\n', 1)[1] if '\n' in raw else raw[3:]
-                if raw.endswith('```'):
-                    raw = raw[:-3]
-                raw = raw.strip()
-            if raw.startswith('json\n'):
-                raw = raw[5:].strip()
-            def _coerce_diagram(item):
-                """Normalize one parsed item into {fen, white_player, black_player}."""
-                if isinstance(item, dict):
-                    fen = str(item.get("fen", "")).strip()
-                    white = str(item.get("white_player", "") or "").strip()
-                    black = str(item.get("black_player", "") or "").strip()
-                    return {"fen": fen, "white_player": white, "black_player": black} if fen else None
-                if isinstance(item, str):
-                    fen = item.strip()
-                    return {"fen": fen, "white_player": "", "black_player": ""} if fen else None
-                return None
+            tier_used = tier
+            in_tok, out_tok, think_tok = _extract_usage_tokens(resp_locate)
+            total_in += in_tok; total_out += out_tok; total_think += think_tok
+            raw = _strip_code_fences(resp_locate.text)
+            regions = json_module.loads(raw)
+            if not isinstance(regions, list):
+                regions = [regions]
+            # Validate and clamp regions
+            valid_regions = []
+            for r in regions:
+                if isinstance(r, dict) and all(k in r for k in ('x', 'y', 'width', 'height')):
+                    valid_regions.append({
+                        'x': max(0, float(r['x'])),
+                        'y': max(0, float(r['y'])),
+                        'width': min(100, float(r['width'])),
+                        'height': min(100, float(r['height'])),
+                    })
+            regions = valid_regions
+            logger.info(f"[Diagram] Phase 1 done: {len(regions)} region(s) found ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
+        except Exception as e:
+            elapsed = round(time_module.time() - total_start)
+            logger.error(f"[Diagram] Phase 1 failed: {e}")
+            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": f"Region detection failed: {e}", "elapsed": elapsed})
+            _log_api_usage('diagram', model_id, total_in, total_out, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier='paid')
+            return
 
+        if not regions:
+            elapsed = round(time_module.time() - total_start)
+            logger.info("[Diagram] No regions found")
+            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "diagrams": [], "elapsed": elapsed})
+            _log_api_usage('diagram', model_id, total_in, total_out, elapsed, request_id=req_id, billing_tier=tier_used, user_id=uid)
+            return
+
+        # Send region count to frontend
+        result_queue.put({"type": "regions", "count": len(regions), "regions": regions})
+
+        # ── Phase 2: Read each region independently ──
+        diagrams = []
+        for idx, region in enumerate(regions):
+            logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(regions)}")
             try:
+                cropped_bytes = _crop_image_region(image_bytes, mime_type, region)
+                crop_mime = 'image/png' if 'png' in mime_type else 'image/jpeg'
+                resp_read, tier, _ = _gemini_generate(
+                    client_free, client_paid, model_id,
+                    contents=[
+                        types.Part.from_bytes(data=cropped_bytes, mime_type=crop_mime),
+                        DIAGRAM_READ_SINGLE_PROMPT,
+                    ],
+                )
+                tier_used = tier
+                in_tok, out_tok, think_tok = _extract_usage_tokens(resp_read)
+                total_in += in_tok; total_out += out_tok; total_think += think_tok
+                raw = _strip_code_fences(resp_read.text)
                 parsed = json_module.loads(raw)
                 if isinstance(parsed, list):
-                    diagrams = [d for d in (_coerce_diagram(x) for x in parsed) if d]
+                    parsed = parsed[0] if parsed else {}
+                fen = str(parsed.get("fen", "")).strip()
+                white = str(parsed.get("white_player", "") or "").strip()
+                black = str(parsed.get("black_player", "") or "").strip()
+                if fen:
+                    diagram = {"fen": fen, "white_player": white, "black_player": black, "region": region}
+                    diagrams.append(diagram)
+                    # Stream each diagram as it's ready
+                    result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
+                    logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
                 else:
-                    one = _coerce_diagram(parsed)
-                    diagrams = [one] if one else []
-            except (json_module.JSONDecodeError, ValueError):
-                # Fallback: treat raw text as a single FEN line
-                fallback = raw.strip('`').strip()
-                diagrams = [{"fen": fallback, "white_player": "", "black_player": ""}] if fallback else []
-            preview = (diagrams[0]["fen"][:80] if diagrams else '(no diagrams)')
-            logger.info(f"[Diagram] {model_name} responded in {elapsed}s: {len(diagrams)} diagram(s), first={preview} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
-            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "diagrams": diagrams, "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, request_id=req_id, thinking_tokens=think_tok, billing_tier=tier, user_id=uid)
-        except Exception as e:
-            elapsed = round(time_module.time() - start)
-            logger.error(f"[Diagram] {model_name} failed after {elapsed}s: {e}")
-            result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": str(e), "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier='paid')
-        finally:
-            result_queue.put(_THREAD_DONE)
+                    logger.warning(f"[Diagram] Region {idx + 1}: no FEN extracted")
+            except Exception as e:
+                logger.error(f"[Diagram] Region {idx + 1} failed: {e}")
 
-    threads = []
-    for m in DIAGRAM_MODELS:
-        t = threading.Thread(target=run_model, args=(m,))
-        t.start()
-        threads.append(t)
+        elapsed = round(time_module.time() - total_start)
+        logger.info(f"[Diagram] All done: {len(diagrams)} diagram(s) in {elapsed}s")
+        result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "diagrams": diagrams, "elapsed": elapsed})
+        _log_api_usage('diagram', model_id, total_in, total_out, elapsed, request_id=req_id, thinking_tokens=total_think, billing_tier=tier_used, user_id=uid)
 
-    return _sse_response(result_queue, threads, len(DIAGRAM_MODELS),
+    t = threading.Thread(target=run_pipeline)
+    t.start()
+
+    return _sse_response(result_queue, [t], 1,
                          {'type': 'models', 'models': _enrich_models_with_avg('diagram', uid)}, 'Diagram')
 
 

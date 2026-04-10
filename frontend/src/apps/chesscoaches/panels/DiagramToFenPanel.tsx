@@ -142,7 +142,7 @@ export function DiagramToFenPanel() {
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
               {models.length > 0 && (
-                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} />
+                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} previewSrc={preview} />
               )}
             </div>
           )}
@@ -158,6 +158,7 @@ interface ResultsViewProps {
   models: { id: string; name: string }[];
   modelResults: Record<string, DiagramModelResult>;
   analyzing: boolean;
+  previewSrc?: string;
 }
 
 // Translate backend reader names like "Reader 1" → "Lecteur 1" (FR)
@@ -167,7 +168,7 @@ function localizeReaderName(name: string | undefined, readerLabel: string): stri
   return match ? `${readerLabel} ${match[1]}` : name;
 }
 
-function ResultsView({ models, modelResults, analyzing }: ResultsViewProps) {
+function ResultsView({ models, modelResults, analyzing, previewSrc }: ResultsViewProps) {
   const { t } = useLanguage();
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
@@ -246,7 +247,7 @@ function ResultsView({ models, modelResults, analyzing }: ResultsViewProps) {
           <p className="text-red-400 text-center py-4 px-3 text-xs">{mr.error}</p>
         ) : diagramCount > 0 ? (
           <div className="p-3">
-            <FenEntry diagram={diagrams[selectedDiagramIdx] ?? diagrams[0]} />
+            <FenEntry diagram={diagrams[selectedDiagramIdx] ?? diagrams[0]} previewSrc={previewSrc} />
           </div>
         ) : (
           <p className="text-slate-500 text-center py-4 px-3 text-xs">{t('coaches.diagram.noneDetected')}</p>
@@ -256,10 +257,10 @@ function ResultsView({ models, modelResults, analyzing }: ResultsViewProps) {
   );
 }
 
-function FenEntry({ diagram }: { diagram: DiagramExtract }) {
+function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc?: string }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
-  const { fen, white_player, black_player } = diagram;
+  const { fen, white_player, black_player, region } = diagram;
 
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(fen); }
@@ -287,6 +288,28 @@ function FenEntry({ diagram }: { diagram: DiagramExtract }) {
 
   return (
     <div className="space-y-3">
+      {previewSrc && region && (
+        <div
+          className="relative mx-auto overflow-hidden rounded-lg border border-slate-600"
+          style={{
+            width: '100%',
+            maxWidth: '400px',
+            aspectRatio: `${region.width} / ${region.height}`,
+          }}
+        >
+          <img
+            src={previewSrc}
+            alt="Diagram region"
+            className="absolute"
+            style={{
+              width: `${100 / (region.width / 100)}%`,
+              height: `${100 / (region.height / 100)}%`,
+              left: `-${region.x / region.width * 100}%`,
+              top: `-${region.y / region.height * 100}%`,
+            }}
+          />
+        </div>
+      )}
       {validFen && <StaticBoard fen={fen} />}
 
       {hasPlayers && (
