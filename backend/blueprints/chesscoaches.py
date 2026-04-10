@@ -943,7 +943,7 @@ Each object MUST have these fields:
 CRITICAL RULES:
 - Order: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
 - Regions MUST NOT overlap. Each region should tile the space without intersecting any other region.
-- Include generous padding around each diagram to capture player names and captions above/below the board.
+- Include generous padding around each diagram to capture player names and captions above/below the board. Each region MUST include the player names associated with that diagram.
 
 Return [] if no diagram is detected.
 
