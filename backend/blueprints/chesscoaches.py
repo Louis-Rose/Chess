@@ -1126,9 +1126,12 @@ def read_diagram():
         # Send region count to frontend
         result_queue.put({"type": "regions", "count": len(regions), "regions": regions})
 
-        # ── Phase 2: Read each region independently ──
-        diagrams = []
-        for idx, region in enumerate(regions):
+        # ── Phase 2: Read each region in parallel (independent API calls) ──
+        diagrams_by_idx = {}
+        tokens_lock = threading.Lock()
+
+        def read_region(idx, region):
+            nonlocal total_in, total_out, total_think, tier_used
             logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(regions)}")
             try:
                 cropped_bytes = _crop_image_region(image_bytes, mime_type, region)
@@ -1140,9 +1143,10 @@ def read_diagram():
                         DIAGRAM_READ_SINGLE_PROMPT,
                     ],
                 )
-                tier_used = tier
                 in_tok, out_tok, think_tok = _extract_usage_tokens(resp_read)
-                total_in += in_tok; total_out += out_tok; total_think += think_tok
+                with tokens_lock:
+                    total_in += in_tok; total_out += out_tok; total_think += think_tok
+                    tier_used = tier
                 raw = _strip_code_fences(resp_read.text)
                 parsed = json_module.loads(raw)
                 if isinstance(parsed, list):
@@ -1152,14 +1156,25 @@ def read_diagram():
                 black = str(parsed.get("black_player", "") or "").strip()
                 if fen:
                     diagram = {"fen": fen, "white_player": white, "black_player": black, "region": region}
-                    diagrams.append(diagram)
-                    # Stream each diagram as it's ready
+                    diagrams_by_idx[idx] = diagram
                     result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                     logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
                 else:
                     logger.warning(f"[Diagram] Region {idx + 1}: no FEN extracted")
             except Exception as e:
                 logger.error(f"[Diagram] Region {idx + 1} failed: {e}")
+
+        region_threads = []
+        for idx, region in enumerate(regions):
+            rt = threading.Thread(target=read_region, args=(idx, region))
+            rt.start()
+            region_threads.append(rt)
+
+        for rt in region_threads:
+            rt.join()
+
+        # Build ordered diagrams list
+        diagrams = [diagrams_by_idx[i] for i in sorted(diagrams_by_idx.keys())]
 
         elapsed = round(time_module.time() - total_start)
         logger.info(f"[Diagram] All done: {len(diagrams)} diagram(s) in {elapsed}s")
