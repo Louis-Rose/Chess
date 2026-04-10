@@ -10,13 +10,13 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
-import type { DiagramModelResult, DiagramExtract } from '../contexts/CoachesDataContext';
+import type { DiagramModelResult, DiagramExtract, DiagramRegion } from '../contexts/CoachesDataContext';
 
 export function DiagramToFenPanel() {
   const { t } = useLanguage();
   const fileRef = useRef<HTMLInputElement>(null);
   const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
-  const { preview, models, modelResults, analyzing, startTime, error } = diagram;
+  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead } = diagram;
   const [liveElapsed, setLiveElapsed] = useState(0);
 
   // Tick the elapsed counter while analysis is running; freeze on completion
@@ -98,13 +98,14 @@ export function DiagramToFenPanel() {
           ) : (
             <div className="space-y-4">
               {(analyzing || models.length > 0) && (() => {
-                const finishedCount = models.filter(m => !!modelResults[m.id]).length;
+                const finishedCount = models.filter(m => !!modelResults[m.id]?.elapsed).length;
                 const allDone = !analyzing && models.length > 0 && finishedCount === models.length;
-                const pct = models.length === 0
-                  ? 0
-                  : Math.round((finishedCount / models.length) * 100);
+                // Progress: 10% for region detection, then 10-100% for reading each region
+                const pct = regionCount
+                  ? Math.round(10 + (regionsRead || 0) / regionCount * 90)
+                  : regions ? 10 : 0;
                 const maxAvg = models.length > 0
-                  ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3)
+                  ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3 * (regionCount || 1))
                   : 0;
                 return (
                   <ProcessingProgressBar
@@ -119,14 +120,34 @@ export function DiagramToFenPanel() {
                 );
               })()}
 
-              <img
-                src={preview}
-                alt="Diagram"
-                className={`rounded-xl mx-auto cursor-pointer hover:opacity-90 transition-all ${
-                  !analyzing && models.length === 0 ? 'max-h-[65vh]' : 'max-h-80'
-                }`}
-                onClick={() => setShowImageModal(true)}
-              />
+              <div className="relative mx-auto inline-block">
+                <img
+                  src={preview}
+                  alt="Diagram"
+                  className={`rounded-xl cursor-pointer hover:opacity-90 transition-all ${
+                    !analyzing && models.length === 0 ? 'max-h-[65vh]' : 'max-h-80'
+                  }`}
+                  onClick={() => setShowImageModal(true)}
+                />
+                {regions && regions.length > 0 && (
+                  <>
+                    {regions.map((r, i) => (
+                      <div
+                        key={i}
+                        className="absolute border-2 border-blue-400/70 rounded pointer-events-none"
+                        style={{
+                          left: `${r.x}%`,
+                          top: `${r.y}%`,
+                          width: `${r.width}%`,
+                          height: `${r.height}%`,
+                        }}
+                      >
+                        <span className="absolute -top-4 left-1 text-[10px] text-blue-400 font-bold">{i + 1}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
 
               {!analyzing && models.length === 0 && (
                 <div className="flex justify-center">

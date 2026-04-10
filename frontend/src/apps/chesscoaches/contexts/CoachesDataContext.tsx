@@ -37,6 +37,9 @@ export interface DiagramState {
   analyzing: boolean;
   startTime: number | null;
   error: string;
+  regions?: DiagramRegion[];
+  regionCount?: number;
+  regionsRead?: number;
 }
 
 const DIAGRAM_INITIAL: DiagramState = {
@@ -407,6 +410,8 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
           if (payload.type === 'models') {
             setDiagram(prev => ({ ...prev, models: payload.models }));
+          } else if (payload.type === 'regions') {
+            setDiagram(prev => ({ ...prev, regions: payload.regions, regionCount: payload.count, regionsRead: 0 }));
           } else if (payload.type === 'diagram') {
             // Stream individual diagram as it's read
             const { diagram: d } = payload;
@@ -416,6 +421,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
               const diagrams = [...(existing?.diagrams || []), d];
               return {
                 ...prev,
+                regionsRead: (prev.regionsRead || 0) + 1,
                 modelResults: { ...prev.modelResults, [modelId]: { ...existing, name: existing?.name || modelId, diagrams, elapsed: 0 } },
               };
             });
