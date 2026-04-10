@@ -901,8 +901,8 @@ export function AdminPanel() {
                 <h4 className="text-xs text-slate-500 mb-2">{t('coaches.admin.history')} ({filteredApiUsage.invocations.length} {t('coaches.admin.invocations')})</h4>
                 <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-600/50">
                   <table className="w-full text-xs">
-                    <thead className="sticky top-0">
-                      <tr className="bg-slate-700/80 text-slate-400 uppercase tracking-wider">
+                    <thead className="sticky top-0 z-10 select-none">
+                      <tr className="bg-slate-700 text-slate-400 uppercase tracking-wider">
                         <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('created_at')}>{t('coaches.admin.time')}<HistorySortIcon column="created_at" /></th>
                         <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('user_name')}>{t('coaches.admin.user')}<HistorySortIcon column="user_name" /></th>
                         <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('feature')}>{t('coaches.admin.feature')}<HistorySortIcon column="feature" /></th>
