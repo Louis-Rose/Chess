@@ -784,7 +784,7 @@ export function AdminPanel() {
         )}
 
         {/* Gemini API Usage */}
-        {filteredApiUsage && (
+        {filteredApiUsage && selectedFeature && (
           <div className="bg-slate-700/30 rounded-lg p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
