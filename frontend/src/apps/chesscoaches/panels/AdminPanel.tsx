@@ -644,13 +644,13 @@ export function AdminPanel() {
             onChange={e => setSelectedFeature(e.target.value || null)}
             className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 border border-slate-600 focus:outline-none focus:border-blue-500"
           >
-            <option value="" disabled hidden>Select a feature</option>
+            <option value="" disabled hidden>{t('coaches.admin.selectFeature')}</option>
             {COACH_FEATURES.map(f => (
               <option key={f.id} value={f.id}>{t(f.labelKey)}</option>
             ))}
           </select>
           {selectedFeature && (
-            <span className="text-xs text-slate-500">Showing data for {t(COACH_FEATURES.find(f => f.id === selectedFeature)?.labelKey || '')}</span>
+            <span className="text-xs text-slate-500">{t('coaches.admin.showingDataFor')} {t(COACH_FEATURES.find(f => f.id === selectedFeature)?.labelKey || '')}</span>
           )}
         </div>
 
@@ -756,14 +756,14 @@ export function AdminPanel() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Cpu className="w-4 h-4 text-purple-400" />
-                <h3 className="text-sm font-medium text-slate-300">Gemini API Usage</h3>
+                <h3 className="text-sm font-medium text-slate-300">{t('coaches.admin.geminiUsage')}</h3>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex items-center gap-1">
                   <span className="text-green-400 font-medium">{formatCost(filteredApiUsage.total_cost_usd)}</span>
-                  <span className="text-slate-500">total</span>
+                  <span className="text-slate-500">{t('coaches.admin.total')}</span>
                 </div>
-                <a href="https://aistudio.google.com/spend" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">Google Billing</a>
+                <a href="https://aistudio.google.com/spend" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">{t('coaches.admin.googleBilling')}</a>
               </div>
             </div>
 
@@ -773,12 +773,12 @@ export function AdminPanel() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                      <th className="px-3 py-2 text-left">Feature</th>
-                      <th className="px-3 py-2 text-center">Uses</th>
-                      <th className="px-3 py-2 text-center">Tokens</th>
-                      <th className="px-3 py-2 text-center">Avg time</th>
-                      <th className="px-3 py-2 text-center">Avg cost</th>
-                      <th className="px-3 py-2 text-right">Cost</th>
+                      <th className="px-3 py-2 text-left">{t('coaches.admin.feature')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.uses')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.tokens')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.avgTime')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.avgCost')}</th>
+                      <th className="px-3 py-2 text-right">{t('coaches.admin.cost')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/50">
@@ -807,15 +807,15 @@ export function AdminPanel() {
             {/* Cumulative invocations chart */}
             {invocationChartData.length > 0 && (
               <div>
-                <h4 className="text-xs text-slate-500 mb-2">Images processed</h4>
+                <h4 className="text-xs text-slate-500 mb-2">{t('coaches.admin.imagesProcessed')}</h4>
                 <ClickableBarChart
                   data={invocationChartData}
                   color="#8b5cf6"
                   height={160}
                   tooltipUnit=""
-                  tooltipLabel="Images"
+                  tooltipLabel={t('coaches.admin.images')}
                   formatUserValue={(v) => `${v}`}
-                  formatDayValue={(v) => `${v} images`}
+                  formatDayValue={(v) => `${v} ${t('coaches.admin.images').toLowerCase()}`}
                 />
               </div>
             )}
@@ -826,16 +826,16 @@ export function AdminPanel() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
-                      <th className="px-3 py-2 text-left">Model</th>
-                      <th className="px-3 py-2 text-center">Calls</th>
-                      <th className="px-3 py-2 text-center">Paid</th>
-                      <th className="px-3 py-2 text-center">Free</th>
-                      <th className="px-3 py-2 text-center">Input</th>
-                      <th className="px-3 py-2 text-center">Output</th>
-                      <th className="px-3 py-2 text-center">Thinking</th>
-                      <th className="px-3 py-2 text-center">Avg time</th>
-                      <th className="px-3 py-2 text-center">Errors</th>
-                      <th className="px-3 py-2 text-right">Cost</th>
+                      <th className="px-3 py-2 text-left">{t('coaches.admin.model')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.calls')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.paid')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.free')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.input')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.output')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.thinking')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.avgTime')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.errors')}</th>
+                      <th className="px-3 py-2 text-right">{t('coaches.admin.cost')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/50">
@@ -865,18 +865,18 @@ export function AdminPanel() {
             {/* Invocation history (feature-level) */}
             {filteredApiUsage.invocations.length > 0 && (
               <div>
-                <h4 className="text-xs text-slate-500 mb-2">History ({filteredApiUsage.invocations.length} invocations)</h4>
+                <h4 className="text-xs text-slate-500 mb-2">{t('coaches.admin.history')} ({filteredApiUsage.invocations.length} {t('coaches.admin.invocations')})</h4>
                 <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-600/50">
                   <table className="w-full text-xs">
                     <thead className="sticky top-0">
                       <tr className="bg-slate-700/80 text-slate-400 uppercase tracking-wider">
-                        <th className="px-2 py-1.5 text-left">Time</th>
-                        <th className="px-2 py-1.5 text-left">User</th>
-                        <th className="px-2 py-1.5 text-left">Feature</th>
-                        <th className="px-2 py-1.5 text-center">Models</th>
-                        <th className="px-2 py-1.5 text-center">Tokens</th>
-                        <th className="px-2 py-1.5 text-center">Time</th>
-                        <th className="px-2 py-1.5 text-right">Cost</th>
+                        <th className="px-2 py-1.5 text-left">{t('coaches.admin.time')}</th>
+                        <th className="px-2 py-1.5 text-left">{t('coaches.admin.user')}</th>
+                        <th className="px-2 py-1.5 text-left">{t('coaches.admin.feature')}</th>
+                        <th className="px-2 py-1.5 text-center">{t('coaches.admin.models')}</th>
+                        <th className="px-2 py-1.5 text-center">{t('coaches.admin.tokens')}</th>
+                        <th className="px-2 py-1.5 text-center">{t('coaches.admin.time')}</th>
+                        <th className="px-2 py-1.5 text-right">{t('coaches.admin.cost')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
@@ -903,7 +903,7 @@ export function AdminPanel() {
                               <td className="px-2 py-1 text-slate-300">
                                 <div className="flex items-center gap-1.5">
                                   <span>{FEATURE_LABELS[inv.feature] || inv.feature}</span>
-                                  {inv.free_count > 0 && <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-1 rounded">{inv.free_count} free</span>}
+                                  {inv.free_count > 0 && <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-1 rounded">{inv.free_count} {t('coaches.admin.free').toLowerCase()}</span>}
                                   {matchedUpload && (
                                     <span
                                       className="text-[10px] text-blue-400 hover:text-blue-300 cursor-zoom-in"
@@ -929,14 +929,14 @@ export function AdminPanel() {
                                   <table className="w-full text-xs">
                                     <thead>
                                       <tr className="text-slate-500 text-[10px] uppercase">
-                                        <th className="px-2 py-1 text-left">Model</th>
-                                        <th className="px-2 py-1 text-center">Tier</th>
-                                        <th className="px-2 py-1 text-center">Retry</th>
-                                        <th className="px-2 py-1 text-center">Input</th>
-                                        <th className="px-2 py-1 text-center">Output</th>
-                                        <th className="px-2 py-1 text-center">Thinking</th>
-                                        <th className="px-2 py-1 text-center">Time</th>
-                                        <th className="px-2 py-1 text-right">Cost</th>
+                                        <th className="px-2 py-1 text-left">{t('coaches.admin.model')}</th>
+                                        <th className="px-2 py-1 text-center">{t('coaches.admin.tier')}</th>
+                                        <th className="px-2 py-1 text-center">{t('coaches.admin.retry')}</th>
+                                        <th className="px-2 py-1 text-center">{t('coaches.admin.input')}</th>
+                                        <th className="px-2 py-1 text-center">{t('coaches.admin.output')}</th>
+                                        <th className="px-2 py-1 text-center">{t('coaches.admin.thinking')}</th>
+                                        <th className="px-2 py-1 text-center">{t('coaches.admin.time')}</th>
+                                        <th className="px-2 py-1 text-right">{t('coaches.admin.cost')}</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -946,15 +946,15 @@ export function AdminPanel() {
                                           <td className="px-2 py-0.5 text-center">
                                             {m.retry_free_error ? (
                                               <span title={m.retry_free_error}>
-                                                <span className="text-red-400/70 line-through">free</span>
+                                                <span className="text-red-400/70 line-through">{t('coaches.admin.free').toLowerCase()}</span>
                                                 <span className="text-slate-600 mx-0.5">→</span>
-                                                <span className="text-slate-500">paid</span>
+                                                <span className="text-slate-500">{t('coaches.admin.paid').toLowerCase()}</span>
                                               </span>
-                                            ) : m.billing_tier === 'free' ? <span className="text-emerald-400">free</span> : <span className="text-slate-500">paid</span>}
+                                            ) : m.billing_tier === 'free' ? <span className="text-emerald-400">{t('coaches.admin.free').toLowerCase()}</span> : <span className="text-slate-500">{t('coaches.admin.paid').toLowerCase()}</span>}
                                           </td>
                                           <td className="px-2 py-0.5 text-center">
                                             {m.retry_free_error ? (
-                                              <span className="text-yellow-400" title={m.retry_free_error}>free {m.retry_free_elapsed}s</span>
+                                              <span className="text-yellow-400" title={m.retry_free_error}>{t('coaches.admin.free').toLowerCase()} {m.retry_free_elapsed}s</span>
                                             ) : <span className="text-slate-600">—</span>}
                                           </td>
                                           <td className="px-2 py-0.5 text-slate-400 text-center">{formatTokens(m.input_tokens)}</td>
