@@ -408,7 +408,10 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           if (!line.startsWith('data: ')) continue;
           const payload = JSON.parse(line.slice(6));
 
-          if (payload.type === 'models') {
+          if (payload.type === 'done') {
+            reader.cancel();
+            break;
+          } else if (payload.type === 'models') {
             setDiagram(prev => ({ ...prev, models: payload.models }));
           } else if (payload.type === 'regions') {
             setDiagram(prev => ({ ...prev, regions: payload.regions, regionCount: payload.count, regionsRead: 0 }));
