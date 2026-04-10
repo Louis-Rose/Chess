@@ -188,7 +188,7 @@ const LAUNCH_DATE = '2026-03-23';
 // Enabled features — derived from NAV_SECTIONS with same filter as sidebar
 const COACH_FEATURES: { id: string; labelKey: string }[] = NAV_SECTIONS
   .flatMap(s => s.items)
-  .filter(({ path }) => ['/scoresheets', '/payments', '/students'].includes(path))
+  .filter(({ path }) => ['/scoresheets', '/payments', '/students', '/diagram'].includes(path))
   .map(({ path, labelKey }) => ({ id: path.slice(1), labelKey }));
 
 export function AdminPanel() {
@@ -644,7 +644,7 @@ export function AdminPanel() {
             onChange={e => setSelectedFeature(e.target.value || null)}
             className="bg-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2 border border-slate-600 focus:outline-none focus:border-blue-500"
           >
-            <option value="">All features</option>
+            <option value="" disabled hidden>Select a feature</option>
             {COACH_FEATURES.map(f => (
               <option key={f.id} value={f.id}>{t(f.labelKey)}</option>
             ))}
