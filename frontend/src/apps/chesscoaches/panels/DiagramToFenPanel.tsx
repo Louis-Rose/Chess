@@ -217,7 +217,7 @@ function ResultsView({ models, modelResults }: ResultsViewProps) {
         >
           {Array.from({ length: Math.max(diagramCount, 1) }, (_, i) => (
             <option key={i} value={i}>
-              {t('coaches.diagram.diagramLabel')} {i + 1} / {Math.max(diagramCount, 1)}
+              {t('coaches.diagram.diagramLabel')} {i + 1} / {analyzing ? '?' : Math.max(diagramCount, 1)}
             </option>
           ))}
         </select>
