@@ -932,7 +932,7 @@ DIAGRAM_LOCATE_PROMPT = """You are analyzing an image that may contain ONE OR SE
 
 Your job is to locate each diagram region — the chess board plus its surrounding context (player names, move indicator, diagram number).
 
-Return ONLY a JSON array of objects, in reading order (left-to-right, top-to-bottom). No markdown, no commentary, no code fences.
+Return ONLY a JSON array of objects. No markdown, no commentary, no code fences.
 
 Each object MUST have these fields:
 - "x": left edge as a percentage of image width (0-100)
@@ -940,14 +940,19 @@ Each object MUST have these fields:
 - "width": region width as a percentage of image width
 - "height": region height as a percentage of image height
 
-Include generous padding around each diagram to capture player names and captions above/below the board.
+CRITICAL RULES:
+- Order: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
+- Regions MUST NOT overlap. Each region should tile the space without intersecting any other region.
+- Include generous padding around each diagram to capture player names and captions above/below the board.
 
 Return [] if no diagram is detected.
 
-Example output for a page with two diagrams side by side:
+Example output for a 2x2 grid of diagrams:
 [
-  {"x": 2, "y": 5, "width": 48, "height": 45},
-  {"x": 50, "y": 5, "width": 48, "height": 45}
+  {"x": 0, "y": 0, "width": 50, "height": 50},
+  {"x": 50, "y": 0, "width": 50, "height": 50},
+  {"x": 0, "y": 50, "width": 50, "height": 50},
+  {"x": 50, "y": 50, "width": 50, "height": 50}
 ]"""
 
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a cropped image containing exactly ONE chess diagram with its surrounding context.
@@ -1074,6 +1079,34 @@ def read_diagram():
                         'width': min(100, float(r['width'])),
                         'height': min(100, float(r['height'])),
                     })
+            # Sort: top-to-bottom, then left-to-right (using row midpoint)
+            valid_regions.sort(key=lambda r: (r['y'] + r['height'] / 2, r['x'] + r['width'] / 2))
+
+            # Resolve overlaps: clip each region so it doesn't extend into later ones
+            for i in range(len(valid_regions)):
+                ri = valid_regions[i]
+                for j in range(i + 1, len(valid_regions)):
+                    rj = valid_regions[j]
+                    # Check overlap
+                    if (ri['x'] < rj['x'] + rj['width'] and ri['x'] + ri['width'] > rj['x'] and
+                        ri['y'] < rj['y'] + rj['height'] and ri['y'] + ri['height'] > rj['y']):
+                        # Clip: shrink the earlier region's bottom or right edge
+                        ri_cx = ri['x'] + ri['width'] / 2
+                        rj_cx = rj['x'] + rj['width'] / 2
+                        ri_cy = ri['y'] + ri['height'] / 2
+                        rj_cy = rj['y'] + rj['height'] / 2
+                        # If primarily vertical overlap, clip vertically
+                        if abs(rj_cy - ri_cy) >= abs(rj_cx - ri_cx):
+                            boundary = (ri['y'] + ri['height'] + rj['y']) / 2
+                            ri['height'] = boundary - ri['y']
+                            rj['height'] = rj['height'] - (boundary - rj['y'])
+                            rj['y'] = boundary
+                        else:
+                            boundary = (ri['x'] + ri['width'] + rj['x']) / 2
+                            ri['width'] = boundary - ri['x']
+                            rj['width'] = rj['width'] - (boundary - rj['x'])
+                            rj['x'] = boundary
+
             regions = valid_regions
             logger.info(f"[Diagram] Phase 1 done: {len(regions)} region(s) found ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
         except Exception as e:
