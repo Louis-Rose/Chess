@@ -120,6 +120,7 @@ interface UserUpload {
 
 type SortColumn = 'name' | 'created_at' | 'last_active' | 'total_seconds' | 'session_count' | 'cost_usd';
 type SortDirection = 'asc' | 'desc';
+type HistorySortColumn = 'created_at' | 'user_name' | 'feature' | 'model_count' | 'tokens' | 'elapsed_seconds' | 'cost_usd';
 
 function formatDuration(totalSeconds: number): string {
   if (totalSeconds < 60) return `${totalSeconds}s`;
@@ -205,6 +206,13 @@ export function AdminPanel() {
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [usersInitialized, setUsersInitialized] = useState(false);
   const [zoomedImageSrc, setZoomedImageSrc] = useState<string | null>(null);
+  const [historySortColumn, setHistorySortColumn] = useState<HistorySortColumn>('created_at');
+  const [historySortDirection, setHistorySortDirection] = useState<SortDirection>('desc');
+
+  const toggleHistorySort = (col: HistorySortColumn) => {
+    if (historySortColumn === col) setHistorySortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    else { setHistorySortColumn(col); setHistorySortDirection('desc'); }
+  };
 
   const toggleUser = (id: number) => {
     setSelectedUserIds(prev => {
@@ -381,7 +389,7 @@ export function AdminPanel() {
 
   // Cumulative daily invocation chart data with per-user breakdown.
   // Bar totals and per-user breakdown both come from server aggregates so
-  // the expanded panel doesn't under-count once history exceeds 100 rows.
+  // the expanded panel doesn't under-count once history exceeds 300 rows.
   const invocationChartData = useMemo((): ClickableBarDatum[] => {
     const daily = filteredApiUsage?.daily_invocations;
     if (!daily || daily.length === 0) return [];
@@ -489,6 +497,31 @@ export function AdminPanel() {
       ? <ChevronUp className="w-3 h-3 inline ml-1" />
       : <ChevronDown className="w-3 h-3 inline ml-1" />;
   };
+
+  const HistorySortIcon = ({ column }: { column: HistorySortColumn }) => {
+    if (historySortColumn !== column) return null;
+    return historySortDirection === 'asc'
+      ? <ChevronUp className="w-3 h-3 inline ml-1" />
+      : <ChevronDown className="w-3 h-3 inline ml-1" />;
+  };
+
+  const sortedInvocations = useMemo(() => {
+    if (!filteredApiUsage?.invocations) return [];
+    const invs = [...filteredApiUsage.invocations];
+    const dir = historySortDirection === 'asc' ? 1 : -1;
+    return invs.sort((a, b) => {
+      switch (historySortColumn) {
+        case 'created_at': return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        case 'user_name': return dir * (a.user_name || '').localeCompare(b.user_name || '');
+        case 'feature': return dir * a.feature.localeCompare(b.feature);
+        case 'model_count': return dir * (a.model_count - b.model_count);
+        case 'tokens': return dir * (((a.total_input || 0) + (a.total_output || 0)) - ((b.total_input || 0) + (b.total_output || 0)));
+        case 'elapsed_seconds': return dir * (a.elapsed_seconds - b.elapsed_seconds);
+        case 'cost_usd': return dir * (a.cost_usd - b.cost_usd);
+        default: return 0;
+      }
+    });
+  }, [filteredApiUsage?.invocations, historySortColumn, historySortDirection]);
 
   return (
     <PanelShell title={t('coaches.navAdmin')}>
@@ -870,17 +903,17 @@ export function AdminPanel() {
                   <table className="w-full text-xs">
                     <thead className="sticky top-0">
                       <tr className="bg-slate-700/80 text-slate-400 uppercase tracking-wider">
-                        <th className="px-2 py-1.5 text-left">{t('coaches.admin.time')}</th>
-                        <th className="px-2 py-1.5 text-left">{t('coaches.admin.user')}</th>
-                        <th className="px-2 py-1.5 text-left">{t('coaches.admin.feature')}</th>
-                        <th className="px-2 py-1.5 text-center">{t('coaches.admin.models')}</th>
-                        <th className="px-2 py-1.5 text-center">{t('coaches.admin.tokens')}</th>
-                        <th className="px-2 py-1.5 text-center">{t('coaches.admin.time')}</th>
-                        <th className="px-2 py-1.5 text-right">{t('coaches.admin.cost')}</th>
+                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('created_at')}>{t('coaches.admin.time')}<HistorySortIcon column="created_at" /></th>
+                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('user_name')}>{t('coaches.admin.user')}<HistorySortIcon column="user_name" /></th>
+                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('feature')}>{t('coaches.admin.feature')}<HistorySortIcon column="feature" /></th>
+                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('model_count')}>{t('coaches.admin.models')}<HistorySortIcon column="model_count" /></th>
+                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('tokens')}>{t('coaches.admin.tokens')}<HistorySortIcon column="tokens" /></th>
+                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('elapsed_seconds')}>{t('coaches.admin.time')}<HistorySortIcon column="elapsed_seconds" /></th>
+                        <th className="px-2 py-1.5 text-right cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('cost_usd')}>{t('coaches.admin.cost')}<HistorySortIcon column="cost_usd" /></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
-                      {filteredApiUsage.invocations.map(inv => {
+                      {sortedInvocations.map(inv => {
                         const expanded = expandedInvocation === inv.request_id;
                         const matchedUpload = invUploadMap?.get(inv.request_id);
                         return (

@@ -264,7 +264,7 @@ def get_api_usage():
             WHERE a.request_id IS NOT NULL {user_filter.replace('user_id', 'a.user_id')}
             GROUP BY a.request_id, a.feature, a.user_id, u.name, u.picture
             ORDER BY MIN(a.created_at) DESC
-            LIMIT 100
+            LIMIT 300
         ''', user_params)
         invocations = []
         for r in cursor.fetchall():
@@ -304,7 +304,7 @@ def get_api_usage():
 
     # Daily successful invocation counts (grouped by feature and date),
     # plus a per-user breakdown so the admin chart can expand a day into
-    # a user list without being capped by the 100-row `invocations` list.
+    # a user list without being capped by the 300-row `invocations` list.
     with get_db() as conn:
         cursor = conn.execute(f'''
             SELECT a.feature, a.user_id, u.name as user_name, u.picture as user_picture,
