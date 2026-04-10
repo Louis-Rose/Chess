@@ -15,8 +15,8 @@ interface ImageZoomModalProps {
  */
 export function ImageZoomModal({ src, alt = 'Image', onClose, overlay }: ImageZoomModalProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  const maxLevel = isMobile ? 1 : 2;
-  const [level, setLevel] = useState(1); // 1=fit, 2=large (desktop only)
+  const maxLevel = isMobile ? 2 : 3;
+  const [level, setLevel] = useState(1); // 1=fit, 2=large, 3=extra large (desktop only)
 
   const handleBackdrop = useCallback(() => {
     if (level > 1) setLevel(prev => prev - 1);
@@ -39,11 +39,13 @@ export function ImageZoomModal({ src, alt = 'Image', onClose, overlay }: ImageZo
           src={src}
           alt={alt}
           onClick={(e) => { e.stopPropagation(); if (level < maxLevel) setLevel(prev => prev + 1); }}
-          className={
-            level === 2
-              ? 'max-w-[150vw] max-h-[150vh] rounded-xl object-contain cursor-default'
-              : `max-w-[90vw] max-h-[90vh] rounded-xl object-contain ${level < maxLevel ? 'cursor-zoom-in' : 'cursor-default'}`
-          }
+          className={`rounded-xl object-contain ${level < maxLevel ? 'cursor-zoom-in' : 'cursor-default'} ${
+            level === 1
+              ? 'max-w-[90vw] max-h-[90vh]'
+              : level === 2
+                ? 'max-w-[120vw] max-h-[120vh]'
+                : 'max-w-[180vw] max-h-[180vh]'
+          }`}
         />
         {overlay}
       </div>
