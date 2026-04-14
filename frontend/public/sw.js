@@ -1,7 +1,6 @@
 // Service Worker for LUMRA PWA
-const CACHE_NAME = 'lumna-coach-v3';
+const CACHE_NAME = 'lumna-coach-v4';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/favicon.svg'
 ];
@@ -58,22 +57,36 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
+  // Only handle http(s) — skip chrome-extension://, ws://, etc.
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
   // Skip API and PostHog calls - always fetch from network
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ph/')) return;
+
+  // Never cache navigations/HTML — index.html changes every deploy and
+  // caching it would pin the app to old hashed chunk references.
+  const isNavigation = event.request.mode === 'navigate';
+  const accept = event.request.headers.get('accept') || '';
+  if (isNavigation || accept.includes('text/html')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Hashed assets under /assets/ are immutable — safe to cache.
+  // Everything else: network-first, fall back to cache offline.
+  const isHashedAsset = url.pathname.startsWith('/assets/');
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response before caching
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
+        if (isHashedAsset && response.ok && response.type === 'basic') {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return response;
       })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
   );
 });
