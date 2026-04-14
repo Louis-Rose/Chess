@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 
+import requests as http_requests
 from flask import Blueprint, jsonify, request, send_file
 
 from auth import admin_required
@@ -497,5 +498,49 @@ def delete_user_upload(user_id, filename):
         return jsonify({'error': 'File not found'}), 404
     os.remove(fpath)
     return jsonify({'success': True})
+
+
+TYPEFORM_WAITLIST_ID = 'XOhJMuis'
+
+
+@admin_bp.route('/api/admin/waitlist', methods=['GET'])
+@admin_required
+def list_waitlist():
+    """Fetch waitlist responses from Typeform Responses API."""
+    token = os.environ.get('TYPEFORM_TOKEN')
+    if not token:
+        return jsonify({'error': 'TYPEFORM_TOKEN not configured'}), 500
+    try:
+        resp = http_requests.get(
+            f'https://api.typeform.com/forms/{TYPEFORM_WAITLIST_ID}/responses',
+            headers={'Authorization': f'Bearer {token}'},
+            params={'page_size': 1000},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except http_requests.RequestException as e:
+        logger.exception('Typeform API call failed')
+        return jsonify({'error': f'Typeform API error: {e}'}), 502
+
+    data = resp.json()
+    items = data.get('items', [])
+    responses = []
+    for item in items:
+        answers = []
+        for a in item.get('answers') or []:
+            field = a.get('field') or {}
+            title = field.get('title') or field.get('ref') or field.get('id') or ''
+            atype = a.get('type')
+            value = a.get(atype) if atype else None
+            if isinstance(value, dict):
+                value = value.get('label') or value.get('labels') or value
+            answers.append({'question': title, 'type': atype, 'value': value})
+        responses.append({
+            'response_id': item.get('response_id'),
+            'submitted_at': item.get('submitted_at'),
+            'answers': answers,
+        })
+
+    return jsonify({'responses': responses, 'total': data.get('total_items', len(responses))})
 
 
