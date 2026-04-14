@@ -510,10 +510,17 @@ def list_waitlist():
     token = os.environ.get('TYPEFORM_TOKEN')
     if not token:
         return jsonify({'error': 'TYPEFORM_TOKEN not configured'}), 500
+    headers = {'Authorization': f'Bearer {token}'}
     try:
+        form_resp = http_requests.get(
+            f'https://api.typeform.com/forms/{TYPEFORM_WAITLIST_ID}',
+            headers=headers,
+            timeout=10,
+        )
+        form_resp.raise_for_status()
         resp = http_requests.get(
             f'https://api.typeform.com/forms/{TYPEFORM_WAITLIST_ID}/responses',
-            headers={'Authorization': f'Bearer {token}'},
+            headers=headers,
             params={'page_size': 1000},
             timeout=10,
         )
@@ -522,6 +529,19 @@ def list_waitlist():
         logger.exception('Typeform API call failed')
         return jsonify({'error': f'Typeform API error: {e}'}), 502
 
+    # Build field id -> question title map from the form definition
+    field_titles: dict = {}
+    def _collect_fields(fields):
+        for f in fields or []:
+            fid = f.get('id')
+            if fid:
+                field_titles[fid] = f.get('title') or f.get('ref') or fid
+            # Recurse into group subfields
+            props = f.get('properties') or {}
+            if props.get('fields'):
+                _collect_fields(props['fields'])
+    _collect_fields(form_resp.json().get('fields'))
+
     data = resp.json()
     items = data.get('items', [])
     responses = []
@@ -529,11 +549,19 @@ def list_waitlist():
         answers = []
         for a in item.get('answers') or []:
             field = a.get('field') or {}
-            title = field.get('title') or field.get('ref') or field.get('id') or ''
+            fid = field.get('id')
+            title = field_titles.get(fid) or field.get('title') or field.get('ref') or fid or ''
             atype = a.get('type')
-            value = a.get(atype) if atype else None
-            if isinstance(value, dict):
-                value = value.get('label') or value.get('labels') or value
+            raw = a.get(atype) if atype else None
+            # Normalize common answer shapes to a human-readable value
+            if atype == 'choice' and isinstance(raw, dict):
+                value = raw.get('label') or raw.get('other')
+            elif atype == 'choices' and isinstance(raw, dict):
+                value = raw.get('labels') or raw.get('other')
+            elif isinstance(raw, dict):
+                value = raw.get('label') or raw.get('labels') or raw
+            else:
+                value = raw
             answers.append({'question': title, 'type': atype, 'value': value})
         responses.append({
             'response_id': item.get('response_id'),
