@@ -15,6 +15,7 @@ import { ProfilePage } from './panels/ProfilePage';
 import { MessagesPanel } from './panels/MessagesPanel';
 import { SchedulePanel } from './panels/SchedulePanel';
 import { InvitePage } from './panels/InvitePage';
+import { WaitlistPage } from './panels/WaitlistPage';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AdminPanel = lazy(() =>
@@ -34,6 +35,9 @@ export function ChessCoachesApp() {
     <Routes>
       {/* Invite page — accessible without auth (has its own layout) */}
       <Route path="invite/:token" element={<InvitePage />} />
+
+      {/* Waitlist — full-screen Typeform, no layout */}
+      <Route path="waitlist" element={<WaitlistPage />} />
 
       {/* Shared layout — sidebar filters visibility by role */}
       <Route element={<ChessCoachesLayout />}>
