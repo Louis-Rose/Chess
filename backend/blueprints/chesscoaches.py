@@ -991,18 +991,24 @@ Extract the position AND the surrounding context: which side is to move, and the
 Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
 
 The object MUST have these fields:
-- "fen": a complete FEN string (all 6 fields)
+- "board": an array of EXACTLY 8 strings, each EXACTLY 8 characters long, representing ranks 8 down to 1
+- "active_color": "w" or "b" — whose turn it is
 - "white_player": the white player's name as printed near the diagram, or empty string "" if not visible
 - "black_player": the black player's name as printed near the diagram, or empty string "" if not visible
 
-FEN rules:
-- Include all 6 FEN fields: piece placement, active color, castling, en passant, halfmove clock, fullmove number
-- The active color (second field, "w" or "b") MUST reflect whose turn it is — look for arrows, "White to move" / "Black to move" captions, or infer from context
-- If you cannot determine castling rights or en passant, use reasonable defaults: "KQkq" and "-"
-- Be careful distinguishing pieces: K (King), Q (Queen), R (Rook), B (Bishop), N (Knight), P (pawn)
-- White pieces are uppercase (KQRBNP), black pieces are lowercase (kqrbnp)
-- Read each board from rank 8 (top) to rank 1 (bottom), file a (left) to file h (right)
-- Empty squares are represented by digits (1-8) counting consecutive empties
+Board rules:
+- board[0] is rank 8 (top of the board), board[7] is rank 1 (bottom)
+- Each string reads file a (left) to file h (right)
+- Each character is EXACTLY one square:
+  - White pieces: K Q R B N P (uppercase)
+  - Black pieces: k q r b n p (lowercase)
+  - Empty square: . (period)
+- Every string MUST be exactly 8 characters — no digits, no compression, no spaces
+- Look at each of the 64 squares one at a time and write the symbol for what you see on that specific square
+
+Active color rules:
+- Look for arrows, "White to move" / "Black to move" captions, or infer from context
+- Default to "w" if unclear
 
 Player name rules:
 - Transliterate to Latin alphabet if necessary
@@ -1010,7 +1016,39 @@ Player name rules:
 - Use "" (empty string) when a name is not printed
 
 Example output:
-{"fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "white_player": "Kasparov", "black_player": "Karpov"}"""
+{"board": ["rnbqkbnr", "pppppppp", "........", "........", "....P...", "........", "PPPP.PPP", "RNBQKBNR"], "active_color": "b", "white_player": "Kasparov", "black_player": "Karpov"}"""
+
+
+_VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
+
+
+def _grid_to_fen(board, active_color):
+    """Convert an 8x8 grid (array of 8 strings of 8 chars each) to a FEN string.
+    Raises ValueError if the grid is malformed."""
+    if not isinstance(board, list) or len(board) != 8:
+        raise ValueError(f"board must be 8 rows, got {len(board) if isinstance(board, list) else type(board)}")
+    ranks = []
+    for i, row in enumerate(board):
+        if not isinstance(row, str) or len(row) != 8:
+            raise ValueError(f"rank {8 - i} must be 8 chars, got {row!r}")
+        if any(c not in _VALID_SQUARE_CHARS for c in row):
+            raise ValueError(f"rank {8 - i} has invalid chars: {row!r}")
+        compressed = ''
+        empty = 0
+        for c in row:
+            if c == '.':
+                empty += 1
+            else:
+                if empty:
+                    compressed += str(empty)
+                    empty = 0
+                compressed += c
+        if empty:
+            compressed += str(empty)
+        ranks.append(compressed)
+    placement = '/'.join(ranks)
+    color = 'w' if str(active_color).lower().startswith('w') else 'b'
+    return f"{placement} {color} KQkq - 0 1"
 
 
 def _strip_code_fences(raw):
@@ -1180,9 +1218,13 @@ def read_diagram():
                 parsed = json_module.loads(raw)
                 if isinstance(parsed, list):
                     parsed = parsed[0] if parsed else {}
-                fen = str(parsed.get("fen", "")).strip()
                 white = str(parsed.get("white_player", "") or "").strip()
                 black = str(parsed.get("black_player", "") or "").strip()
+                try:
+                    fen = _grid_to_fen(parsed.get("board"), parsed.get("active_color", "w"))
+                except ValueError as ve:
+                    logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
+                    fen = ""
                 if fen:
                     diagram = {"fen": fen, "white_player": white, "black_player": black, "region": region}
                     diagrams_by_idx[idx] = diagram
