@@ -973,33 +973,22 @@ Extract the position AND the surrounding context: which side is to move, and the
 Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
 
 The object MUST have these fields:
-- "pieces": an array of strings, one per piece on the board. Each string lists one piece and its square, in the form "<symbol> <square>" — for example "K g1", "q d8", "n a6". Use the same symbols as the board field below (uppercase = white, lowercase = black). Include EVERY piece you see, in any order. Do not include empty squares.
-- "board": an array of EXACTLY 8 strings, each EXACTLY 8 characters long, representing ranks 8 down to 1. This must be fully consistent with the "pieces" list — every piece in "pieces" must appear on exactly that square in the grid, and no piece in the grid should be absent from "pieces".
+- "squares": an object mapping EVERY one of the 64 square names to a one-character symbol. Keys are "a1" through "h8". Values are:
+  - White pieces: "K" "Q" "R" "B" "N" "P"
+  - Black pieces: "k" "q" "r" "b" "n" "p"
+  - Empty square: "."
+  You MUST include all 64 keys — every square from a1 to h8 — even empty ones. Any missing square is a failure.
 - "active_color": "w" or "b" — whose turn it is
 - "white_player": the white player's name as printed near the diagram, or empty string "" if not visible
 - "black_player": the black player's name as printed near the diagram, or empty string "" if not visible
 - "diagram_number": the integer number printed on or next to the diagram (often inside a circle), or null if no such number is visible. This is a label identifying the diagram in a book/article — NOT a move number or piece count.
 
-Procedure (follow in order):
-1. First, scan the diagram and build the "pieces" list. For every piece, identify its square by reading the printed file (a-h) and rank (1-8) labels directly — trace straight down for the file and straight across for the rank. Commit one piece at a time. This list is your ground truth.
-2. Then, fill the "board" grid so that each square listed in "pieces" contains its corresponding symbol, and every other square is ".".
-3. Finally, double-check: count the pieces in the grid and verify the total matches len(pieces).
-
-Board rules:
-- board[0] is rank 8 (top of the board), board[7] is rank 1 (bottom)
-- Each string reads file a (left) to file h (right)
-- Each character is EXACTLY one square:
-  - White pieces: K Q R B N P (uppercase)
-  - Black pieces: k q r b n p (lowercase)
-  - Empty square: . (period)
-- Every string MUST be exactly 8 characters — no digits, no compression, no spaces
-- Look at each of the 64 squares one at a time and write the symbol for what you see on that specific square
-
-CRITICAL — use printed coordinates if visible:
-- If the diagram has file labels (a-h) printed along the bottom edge and/or rank labels (1-8) printed along the left edge, you MUST use them as anchors. For every piece, identify its exact square by reading off the labeled file and rank — do NOT guess based on visual position relative to neighboring pieces.
-- Example: if you see a knight and want to know its file, trace straight down from it to the label row. Whatever letter sits directly under the knight is its file.
-- When coordinates are present, an off-by-one file or rank error is unacceptable — the labels are there specifically to prevent it.
-- If no coordinates are printed, fall back to counting from the visible board edges.
+Procedure for "squares" (follow exactly):
+- Visit each square one at a time, in a deterministic order (a8, b8, c8, …, h8, then a7, b7, …, h7, down to a1, …, h1).
+- For each square, look AT that specific square in the image. Read the printed file label (a-h) along the bottom and rank label (1-8) along the left to anchor which square you are looking at — trace straight down for the file and straight across for the rank.
+- Write the symbol for what you see on that square in the image: a piece symbol if a piece is centered on that square, or "." if the square is empty.
+- Do not guess based on neighbors. Do not skip squares. Do not count from the edge — use the printed labels.
+- When you are done, the object must contain exactly 64 entries.
 
 Active color rules:
 - Look for arrows, "White to move" / "Black to move" captions, or infer from context
@@ -1010,11 +999,33 @@ Player name rules:
 - Return just the name, no ratings or dates
 - Use "" (empty string) when a name is not printed
 
-Example output:
-{"pieces": ["r a8","n b8","b c8","q d8","k e8","b f8","n g8","r h8","p a7","p b7","p c7","p d7","p e7","p f7","p g7","p h7","P e4","P a2","P b2","P c2","P d2","P f2","P g2","P h2","R a1","N b1","B c1","Q d1","K e1","B f1","N g1","R h1"], "board": ["rnbqkbnr", "pppppppp", "........", "........", "....P...", "........", "PPPP.PPP", "RNBQKBNR"], "active_color": "b", "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18}"""
+Example output (showing a few entries — the real output must have all 64):
+{"squares": {"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}, "active_color": "b", "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18}"""
 
 
 _VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
+_ALL_SQUARE_NAMES = [f"{f}{r}" for r in '12345678' for f in 'abcdefgh']
+
+
+def _squares_to_grid(squares):
+    """Convert a {square_name: symbol} dict to the 8x8 grid format used by _grid_to_fen.
+    Raises ValueError if any of the 64 squares is missing or has an invalid symbol."""
+    if not isinstance(squares, dict):
+        raise ValueError(f"squares must be a dict, got {type(squares).__name__}")
+    missing = [sq for sq in _ALL_SQUARE_NAMES if sq not in squares]
+    if missing:
+        raise ValueError(f"squares missing {len(missing)} entries: {missing[:5]}...")
+    grid = []
+    for r in range(8):  # r=0 → rank 8, r=7 → rank 1
+        rank_num = 8 - r
+        row = ''
+        for file_char in 'abcdefgh':
+            sym = squares.get(f'{file_char}{rank_num}')
+            if not isinstance(sym, str) or len(sym) != 1 or sym not in _VALID_SQUARE_CHARS:
+                raise ValueError(f"square {file_char}{rank_num} has invalid value: {sym!r}")
+            row += sym
+        grid.append(row)
+    return grid
 
 
 def _grid_to_fen(board, active_color):
@@ -1272,7 +1283,12 @@ def read_diagram():
                 except (TypeError, ValueError):
                     diagram_number = None
                 try:
-                    fen = _grid_to_fen(parsed.get("board"), parsed.get("active_color", "w"))
+                    squares = parsed.get("squares")
+                    if isinstance(squares, dict):
+                        grid = _squares_to_grid(squares)
+                    else:
+                        grid = parsed.get("board")  # legacy shape
+                    fen = _grid_to_fen(grid, parsed.get("active_color", "w"))
                 except ValueError as ve:
                     logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
                     fen = ""
