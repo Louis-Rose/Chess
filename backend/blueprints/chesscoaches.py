@@ -995,6 +995,7 @@ The object MUST have these fields:
 - "active_color": "w" or "b" — whose turn it is
 - "white_player": the white player's name as printed near the diagram, or empty string "" if not visible
 - "black_player": the black player's name as printed near the diagram, or empty string "" if not visible
+- "diagram_number": the integer number printed on or next to the diagram (often inside a circle), or null if no such number is visible. This is a label identifying the diagram in a book/article — NOT a move number or piece count.
 
 Board rules:
 - board[0] is rank 8 (top of the board), board[7] is rank 1 (bottom)
@@ -1016,7 +1017,7 @@ Player name rules:
 - Use "" (empty string) when a name is not printed
 
 Example output:
-{"board": ["rnbqkbnr", "pppppppp", "........", "........", "....P...", "........", "PPPP.PPP", "RNBQKBNR"], "active_color": "b", "white_player": "Kasparov", "black_player": "Karpov"}"""
+{"board": ["rnbqkbnr", "pppppppp", "........", "........", "....P...", "........", "PPPP.PPP", "RNBQKBNR"], "active_color": "b", "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18}"""
 
 
 _VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
@@ -1220,13 +1221,18 @@ def read_diagram():
                     parsed = parsed[0] if parsed else {}
                 white = str(parsed.get("white_player", "") or "").strip()
                 black = str(parsed.get("black_player", "") or "").strip()
+                raw_num = parsed.get("diagram_number")
+                try:
+                    diagram_number = int(raw_num) if raw_num not in (None, "") else None
+                except (TypeError, ValueError):
+                    diagram_number = None
                 try:
                     fen = _grid_to_fen(parsed.get("board"), parsed.get("active_color", "w"))
                 except ValueError as ve:
                     logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
                     fen = ""
                 if fen:
-                    diagram = {"fen": fen, "white_player": white, "black_player": black, "region": region}
+                    diagram = {"fen": fen, "white_player": white, "black_player": black, "region": region, "diagram_number": diagram_number}
                     diagrams_by_idx[idx] = diagram
                     result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                     logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

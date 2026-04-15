@@ -20,6 +20,7 @@ export interface DiagramExtract {
   white_player?: string;
   black_player?: string;
   region?: DiagramRegion;
+  diagram_number?: number | null;
 }
 
 export interface DiagramModelResult {

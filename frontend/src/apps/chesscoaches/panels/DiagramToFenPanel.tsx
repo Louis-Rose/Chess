@@ -260,6 +260,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
   const mr = selectedModel ? modelResults[selectedModel.id] : undefined;
   const diagrams = mr?.diagrams ?? [];
   const diagramCount = diagrams.length;
+  const allHaveNumbers = diagramCount > 0 && diagrams.every(d => typeof d.diagram_number === 'number');
 
   // Clamp diagram index when the selected reader changes
   useEffect(() => {
@@ -294,11 +295,16 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
           disabled={diagramCount <= 1 && !totalRegions}
           className={`${selectClass} ${diagramCount <= 1 && !totalRegions ? 'opacity-50' : ''}`}
         >
-          {Array.from({ length: totalRegions || Math.max(diagramCount, 1) }, (_, i) => (
-            <option key={i} value={i} disabled={i >= diagramCount}>
-              {t('coaches.diagram.diagramLabel')} {i + 1} / {totalRegions || (analyzing ? '?' : Math.max(diagramCount, 1))}
-            </option>
-          ))}
+          {Array.from({ length: totalRegions || Math.max(diagramCount, 1) }, (_, i) => {
+            const label = allHaveNumbers && i < diagramCount
+              ? `${t('coaches.diagram.diagramLabel')} #${diagrams[i].diagram_number}`
+              : `${t('coaches.diagram.diagramLabel')} ${i + 1} / ${totalRegions || (analyzing ? '?' : Math.max(diagramCount, 1))}`;
+            return (
+              <option key={i} value={i} disabled={i >= diagramCount}>
+                {label}
+              </option>
+            );
+          })}
         </select>
       </div>
 
