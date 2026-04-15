@@ -957,43 +957,13 @@ def read_scoresheet_azure():
     })
 
 
-DIAGRAM_LOCATE_PROMPT = """You are analyzing an image that may contain ONE OR SEVERAL chess diagrams.
+DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. For each one, return a bounding box that fully contains the 8x8 board, the rank/file labels (if printed), the player names, and any caption or diagram number.
 
-For each diagram, return a set of sub-bounding-boxes. The final crop is computed from them later, so just identify where each part sits — you do NOT need to reason about the overall region.
+Return ONLY a JSON array. No markdown, no commentary.
 
-Return ONLY a JSON array of objects. No markdown, no commentary, no code fences.
+[{"x": percent, "y": percent, "width": percent, "height": percent}]
 
-Each object represents one diagram and MUST have these fields:
-- "board": bounding box of the ENTIRE 8x8 playing grid — all 64 squares, from the a-file on the far left through the h-file on the far right, and from rank 1 at the bottom through rank 8 at the top. This includes empty edge squares and any thin black border drawn around the grid. It is NOT just the region where pieces happen to be concentrated.
-- "rank_labels": bounding box tightly around the printed rank digits (1-8) on the LEFT side of the board. Null if the diagram has no rank labels.
-- "file_labels": bounding box tightly around the printed file letters (a-h) along the BOTTOM of the board. Null if the diagram has no file labels.
-- "context": bounding box containing surrounding text — player names above/below, diagram number/caption, "to move" indicator. Null if nothing of the sort is present.
-
-Each bounding box is an object with these fields, all as percentages of the full image (0-100). Measure each value directly from the image you are looking at; do not reuse numbers from any example or template.
-
-CRITICAL rules for each sub-box:
-- "board" must span the full 8x8 grid. Its left edge must be at or just outside the leftmost column of squares (the a-file), even if those squares are empty. Its right edge must be at or just outside the rightmost column (the h-file). Its top edge must include rank 8; its bottom edge must include rank 1. If any row or column of squares is cut off, the box is wrong and MUST be expanded.
-- "rank_labels" MUST include the full glyph of every rank digit 1-8. Its right edge should just touch the left edge of the board. Its top and bottom edges must extend slightly past the topmost "8" and the bottommost "1" — do not clip them. Null only if no rank digits are printed.
-- "file_labels" MUST include the full glyph of every file letter a-h. Its top edge should just touch the bottom edge of the board. Its bottom edge must extend BELOW the letters — not cut through them. Its left and right edges must contain the full "a" and "h" letters. Null only if no file letters are printed.
-- "context" should cover player names, caption, and any arrows/indicators. Do not include unrelated page content.
-
-CHECK BEFORE RETURNING:
-- For the board box: count the columns of squares inside it. You must be able to see all 8 files and all 8 ranks. If you count fewer than 8 in either direction, expand the box.
-- For each non-null label box: every glyph must sit WHOLLY inside the box with visible space around it. If any digit or letter touches or crosses the edge, expand the box.
-
-Ordering: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
-
-Return [] if no diagram is detected.
-
-Output format:
-[
-  {
-    "board": {"x": <number>, "y": <number>, "width": <number>, "height": <number>},
-    "rank_labels": {"x": <number>, "y": <number>, "width": <number>, "height": <number>},
-    "file_labels": {"x": <number>, "y": <number>, "width": <number>, "height": <number>},
-    "context": {"x": <number>, "y": <number>, "width": <number>, "height": <number>}
-  }
-]"""
+All values are percentages of the full image (0-100). Order diagrams top-to-bottom, then left-to-right. Return [] if none."""
 
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a cropped image containing exactly ONE chess diagram with its surrounding context.
 
