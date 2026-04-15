@@ -1258,7 +1258,13 @@ def read_diagram():
         result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "diagrams": diagrams, "elapsed": elapsed})
         _log_api_usage('diagram', model_id, total_in, total_out, elapsed, request_id=req_id, thinking_tokens=total_think, billing_tier=tier_used, user_id=uid)
 
-    t = threading.Thread(target=run_pipeline)
+    def run_pipeline_wrapped():
+        try:
+            run_pipeline()
+        finally:
+            result_queue.put(_THREAD_DONE)
+
+    t = threading.Thread(target=run_pipeline_wrapped)
     t.start()
 
     return _sse_response(result_queue, [t], 1,
