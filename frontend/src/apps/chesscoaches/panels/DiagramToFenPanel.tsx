@@ -7,6 +7,7 @@ import { ImageZoomModal } from '../components/ImageZoomModal';
 import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
 
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
@@ -76,9 +77,10 @@ function CroppedRegion({ src, region }: { src: string; region: { x: number; y: n
 
 export function DiagramToFenPanel() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
-  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead } = diagram;
+  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead, debugRawLocate, debugRawReads } = diagram;
   const [liveElapsed, setLiveElapsed] = useState(0);
 
   // Tick the elapsed counter while analysis is running; freeze on completion
@@ -195,6 +197,23 @@ export function DiagramToFenPanel() {
                 {regions && regions.length > 0 && <RegionOverlay regions={regions} />}
               </div>
               </div>
+
+              {user?.is_admin && (debugRawLocate || (debugRawReads && Object.keys(debugRawReads).length > 0)) && (
+                <div className="max-w-xl mx-auto space-y-2 text-xs">
+                  {debugRawLocate && (
+                    <details open className="bg-slate-900/60 border border-slate-700 rounded">
+                      <summary className="px-2 py-1 cursor-pointer text-slate-300">Phase 1 (locate) — raw LLM output</summary>
+                      <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{debugRawLocate}</pre>
+                    </details>
+                  )}
+                  {debugRawReads && Object.keys(debugRawReads).sort((a, b) => Number(a) - Number(b)).map(k => (
+                    <details key={k} className="bg-slate-900/60 border border-slate-700 rounded">
+                      <summary className="px-2 py-1 cursor-pointer text-slate-300">Phase 2 (read) — region {Number(k) + 1}</summary>
+                      <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{debugRawReads[Number(k)]}</pre>
+                    </details>
+                  ))}
+                </div>
+              )}
 
               {!analyzing && models.length === 0 && (
                 <div className="flex justify-center">

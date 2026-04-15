@@ -41,6 +41,8 @@ export interface DiagramState {
   regions?: DiagramRegion[];
   regionCount?: number;
   regionsRead?: number;
+  debugRawLocate?: string;
+  debugRawReads?: Record<number, string>;
 }
 
 const DIAGRAM_INITIAL: DiagramState = {
@@ -439,6 +441,16 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
               ...prev,
               modelResults: { ...prev.modelResults, [model_id]: { name, diagrams, error: err, elapsed } },
             }));
+          } else if (payload.type === 'debug') {
+            setDiagram(prev => {
+              if (payload.phase === 'locate') {
+                return { ...prev, debugRawLocate: payload.raw };
+              }
+              if (payload.phase === 'read' && typeof payload.index === 'number') {
+                return { ...prev, debugRawReads: { ...(prev.debugRawReads || {}), [payload.index]: payload.raw } };
+              }
+              return prev;
+            });
           }
         }
       }

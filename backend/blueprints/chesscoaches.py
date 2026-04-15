@@ -1097,6 +1097,15 @@ def read_diagram():
     uid = get_current_user()
     _save_upload(uid, req_id, image_bytes, mime_type, 'diagram')
 
+    is_admin = False
+    if uid is not None:
+        try:
+            with get_db() as conn:
+                row = conn.execute('SELECT is_admin FROM users WHERE id = ?', (uid,)).fetchone()
+                is_admin = bool(row and row['is_admin'])
+        except Exception:
+            is_admin = False
+
     model_info = DIAGRAM_MODELS[0]
     model_id = model_info["id"]
     model_name = model_info["name"]
@@ -1121,6 +1130,8 @@ def read_diagram():
             tier_used = tier
             in_tok, out_tok, think_tok = _extract_usage_tokens(resp_locate)
             total_in += in_tok; total_out += out_tok; total_think += think_tok
+            if is_admin:
+                result_queue.put({"type": "debug", "phase": "locate", "raw": resp_locate.text})
             raw = _strip_code_fences(resp_locate.text)
             regions = json_module.loads(raw)
             if not isinstance(regions, list):
@@ -1225,6 +1236,8 @@ def read_diagram():
                 with tokens_lock:
                     total_in += in_tok; total_out += out_tok; total_think += think_tok
                     tier_used = tier
+                if is_admin:
+                    result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": resp_read.text})
                 raw = _strip_code_fences(resp_read.text)
                 parsed = json_module.loads(raw)
                 if isinstance(parsed, list):
