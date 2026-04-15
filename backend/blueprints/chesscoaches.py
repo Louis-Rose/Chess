@@ -1142,12 +1142,28 @@ def read_diagram():
             for r in regions:
                 if not isinstance(r, dict):
                     continue
-                # Accepts new flat shape, legacy sub-box shape with "board"/"labels"/"context", and legacy flat
+                # Accepts multiple shapes:
+                # - Gemini native: {"box_2d": [ymin, xmin, ymax, xmax]} in 0-1000
+                # - Flat percentage: {"x", "y", "width", "height"}
+                # - Legacy sub-boxes: {"board": {...}, "labels": {...}, "context": {...}}
                 sub_boxes = []
-                for key in ('board', 'rank_labels', 'file_labels', 'labels', 'context'):
-                    sub = r.get(key)
-                    if isinstance(sub, dict) and all(k in sub for k in ('x', 'y', 'width', 'height')):
-                        sub_boxes.append(sub)
+                box_2d = r.get('box_2d')
+                if isinstance(box_2d, (list, tuple)) and len(box_2d) == 4:
+                    try:
+                        ymin, xmin, ymax, xmax = [float(v) for v in box_2d]
+                        sub_boxes.append({
+                            'x': xmin / 10.0,
+                            'y': ymin / 10.0,
+                            'width': (xmax - xmin) / 10.0,
+                            'height': (ymax - ymin) / 10.0,
+                        })
+                    except (TypeError, ValueError):
+                        pass
+                if not sub_boxes:
+                    for key in ('board', 'rank_labels', 'file_labels', 'labels', 'context'):
+                        sub = r.get(key)
+                        if isinstance(sub, dict) and all(k in sub for k in ('x', 'y', 'width', 'height')):
+                            sub_boxes.append(sub)
                 if not sub_boxes and all(k in r for k in ('x', 'y', 'width', 'height')):
                     sub_boxes.append(r)
                 if not sub_boxes:
