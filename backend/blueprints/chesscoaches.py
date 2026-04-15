@@ -973,7 +973,7 @@ CRITICAL RULES:
 - Order: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
 - Regions MUST NOT overlap. Each region should tile the space without intersecting any other region.
 - Include generous padding around each diagram to capture player names and captions above/below the board. Each region MUST include the player names associated with that diagram.
-- IMPORTANT: if file labels (a-h) or rank labels (1-8) are printed along the edges of the board, the region MUST extend far enough to include them. Do not crop them away — they are needed for accurate reading in the next step.
+- IMPORTANT: if file labels (a-h) or rank labels (1-8) are printed along the edges of the board, the region MUST extend far enough to FULLY include them with a safety margin. Err on the side of too much padding — add a clear band of empty space (roughly one square's width) beyond the outermost label so the full glyph of every letter and digit is inside the crop. A region where any label is clipped or cut in half is a failure; including extra blank space around the labels is perfectly fine.
 
 Return [] if no diagram is detected.
 
