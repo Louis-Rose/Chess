@@ -957,13 +957,13 @@ def read_scoresheet_azure():
     })
 
 
-DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. For each one, return a bounding box that fully contains the 8x8 board, the rank/file labels (if printed), the player names (if printed), and any caption or diagram number (if printed).
+DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. The image ALWAYS contains at least one diagram — never return an empty array. For each diagram, return a bounding box that fully contains the 8x8 board, the rank/file labels (if printed), the player names (if printed), and any caption or diagram number (if printed).
 
 Return ONLY a JSON array. No markdown, no commentary.
 
 [{"x": percent, "y": percent, "width": percent, "height": percent}]
 
-All values are percentages of the full image (0-100). Order diagrams top-to-bottom, then left-to-right. Return [] if none."""
+All values are percentages of the full image (0-100). Order diagrams top-to-bottom, then left-to-right."""
 
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a cropped image containing exactly ONE chess diagram with its surrounding context.
 
