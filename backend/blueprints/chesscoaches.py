@@ -959,30 +959,37 @@ def read_scoresheet_azure():
 
 DIAGRAM_LOCATE_PROMPT = """You are analyzing an image that may contain ONE OR SEVERAL chess diagrams.
 
-Your job is to locate each diagram region — the chess board plus its surrounding context (player names, move indicator, diagram number, and printed rank/file labels when present).
+For each diagram, return a set of sub-bounding-boxes. The final crop is computed from them later, so just identify where each part sits — you do NOT need to reason about the overall region.
 
 Return ONLY a JSON array of objects. No markdown, no commentary, no code fences.
 
-Each object MUST have these fields:
-- "x": left edge as a percentage of image width (0-100)
-- "y": top edge as a percentage of image height (0-100)
-- "width": region width as a percentage of image width
-- "height": region height as a percentage of image height
+Each object represents one diagram and MUST have these fields:
+- "board": bounding box of the 8x8 board itself (the grid of squares, including the black border if any).
+- "labels": bounding box containing ALL printed rank labels (1-8) and file labels (a-h) — the strip along the left/bottom where those glyphs sit. Set to null if the diagram has no printed coordinate labels.
+- "context": bounding box containing surrounding text — player names above/below, diagram number/caption, "to move" indicator. Set to null if nothing of the sort is present.
 
-CRITICAL RULES:
-- Order: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
-- Regions MUST NOT overlap. Each region should tile the space without intersecting any other region.
-- Include generous padding around each diagram to capture player names and captions above/below the board.
-- If rank labels (1-8) or file labels (a-h) are printed along the edges of the board, the region MUST extend past them into the surrounding whitespace. The edge of your bounding box should sit in the blank gutter, NOT touching any label digit or letter. When in doubt, add more padding.
+Each bounding box is an object with these fields, all as percentages of the full image (0-100):
+- "x": left edge
+- "y": top edge
+- "width": width
+- "height": height
+
+CRITICAL rules for each sub-box:
+- "board" must hug the board tightly — just the 8x8 grid, nothing else.
+- "labels" must fully contain every single rank and file glyph. Extend it slightly past the outermost glyph (half a glyph's width) so no character is on the edge. If only rank labels are visible (no files), the box should still cover just the rank strip — and vice versa. Null if neither is present.
+- "context" should cover player names, caption, and any arrows/indicators. Do not include unrelated page content.
+
+Ordering: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
 
 Return [] if no diagram is detected.
 
-Example output for a 2x2 grid of diagrams:
+Example output for one diagram with player names above and coordinate labels on the left and bottom:
 [
-  {"x": 0, "y": 0, "width": 50, "height": 50},
-  {"x": 50, "y": 0, "width": 50, "height": 50},
-  {"x": 0, "y": 50, "width": 50, "height": 50},
-  {"x": 50, "y": 50, "width": 50, "height": 50}
+  {
+    "board": {"x": 20, "y": 15, "width": 60, "height": 70},
+    "labels": {"x": 17, "y": 15, "width": 63, "height": 73},
+    "context": {"x": 18, "y": 8, "width": 64, "height": 8}
+  }
 ]"""
 
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a cropped image containing exactly ONE chess diagram with its surrounding context.
@@ -1144,16 +1151,39 @@ def read_diagram():
             regions = json_module.loads(raw)
             if not isinstance(regions, list):
                 regions = [regions]
-            # Validate and clamp regions
+            # Validate, union sub-boxes, and clamp regions
+            SAFETY_PAD = 1.0  # percentage points added around the unioned box
             valid_regions = []
             for r in regions:
-                if isinstance(r, dict) and all(k in r for k in ('x', 'y', 'width', 'height')):
-                    valid_regions.append({
-                        'x': max(0, float(r['x'])),
-                        'y': max(0, float(r['y'])),
-                        'width': min(100, float(r['width'])),
-                        'height': min(100, float(r['height'])),
-                    })
+                if not isinstance(r, dict):
+                    continue
+                # New shape: {"board": {...}, "labels": {...}|null, "context": {...}|null}
+                # Legacy shape: {"x": .., "y": .., "width": .., "height": ..}
+                sub_boxes = []
+                for key in ('board', 'labels', 'context'):
+                    sub = r.get(key)
+                    if isinstance(sub, dict) and all(k in sub for k in ('x', 'y', 'width', 'height')):
+                        sub_boxes.append(sub)
+                if not sub_boxes and all(k in r for k in ('x', 'y', 'width', 'height')):
+                    sub_boxes.append(r)
+                if not sub_boxes:
+                    continue
+                # Union all sub-boxes
+                left = min(float(b['x']) for b in sub_boxes)
+                top = min(float(b['y']) for b in sub_boxes)
+                right = max(float(b['x']) + float(b['width']) for b in sub_boxes)
+                bottom = max(float(b['y']) + float(b['height']) for b in sub_boxes)
+                # Apply safety padding, clamp to [0, 100]
+                left = max(0.0, left - SAFETY_PAD)
+                top = max(0.0, top - SAFETY_PAD)
+                right = min(100.0, right + SAFETY_PAD)
+                bottom = min(100.0, bottom + SAFETY_PAD)
+                valid_regions.append({
+                    'x': left,
+                    'y': top,
+                    'width': right - left,
+                    'height': bottom - top,
+                })
             # Sort: top-to-bottom, then left-to-right (using row midpoint)
             valid_regions.sort(key=lambda r: (r['y'] + r['height'] / 2, r['x'] + r['width'] / 2))
 
