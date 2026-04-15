@@ -1155,7 +1155,7 @@ def read_diagram():
             if not isinstance(regions, list):
                 regions = [regions]
             # Validate, union sub-boxes, and clamp regions
-            SAFETY_PAD = 2.0  # percentage points added around the unioned box
+            SAFETY_PAD = 5.0  # percentage points added around the unioned box
             valid_regions = []
             for r in regions:
                 if not isinstance(r, dict):
