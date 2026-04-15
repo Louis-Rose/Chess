@@ -406,6 +406,29 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   return (
     <div className="space-y-3">
       {previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
+
+      {hasPlayers && (
+        <div className="flex items-center justify-center gap-2 text-sm font-medium">
+          <span className="w-3 h-3 rounded-full bg-white border border-slate-400 inline-block" />
+          <span className="text-slate-100">{white_player || '—'}</span>
+          <span className="text-slate-500 mx-1">vs</span>
+          <span className="text-slate-100">{black_player || '—'}</span>
+          <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-500 inline-block" />
+        </div>
+      )}
+
+      <div className="flex justify-center">
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+            activeColor === 'b'
+              ? 'bg-slate-900 border-slate-600 text-slate-100'
+              : 'bg-slate-100 border-slate-300 text-slate-900'
+          }`}
+        >
+          {sideToMoveLabel}
+        </span>
+      </div>
+
       <EditableBoard fen={editedFen} selectedPiece={selectedPiece} onChange={handleBoardChange} />
 
       {/* Piece palette */}
@@ -439,28 +462,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         >
           ✕
         </button>
-      </div>
-
-      {hasPlayers && (
-        <div className="flex items-center justify-center gap-2 text-sm font-medium">
-          <span className="w-3 h-3 rounded-full bg-white border border-slate-400 inline-block" />
-          <span className="text-slate-100">{white_player || '—'}</span>
-          <span className="text-slate-500 mx-1">vs</span>
-          <span className="text-slate-100">{black_player || '—'}</span>
-          <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-500 inline-block" />
-        </div>
-      )}
-
-      <div className="flex justify-center">
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-            activeColor === 'b'
-              ? 'bg-slate-900 border-slate-600 text-slate-100'
-              : 'bg-slate-100 border-slate-300 text-slate-900'
-          }`}
-        >
-          {sideToMoveLabel}
-        </span>
       </div>
 
       <button
