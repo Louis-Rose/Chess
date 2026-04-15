@@ -973,11 +973,17 @@ Extract the position AND the surrounding context: which side is to move, and the
 Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
 
 The object MUST have these fields:
-- "board": an array of EXACTLY 8 strings, each EXACTLY 8 characters long, representing ranks 8 down to 1
+- "pieces": an array of strings, one per piece on the board. Each string lists one piece and its square, in the form "<symbol> <square>" — for example "K g1", "q d8", "n a6". Use the same symbols as the board field below (uppercase = white, lowercase = black). Include EVERY piece you see, in any order. Do not include empty squares.
+- "board": an array of EXACTLY 8 strings, each EXACTLY 8 characters long, representing ranks 8 down to 1. This must be fully consistent with the "pieces" list — every piece in "pieces" must appear on exactly that square in the grid, and no piece in the grid should be absent from "pieces".
 - "active_color": "w" or "b" — whose turn it is
 - "white_player": the white player's name as printed near the diagram, or empty string "" if not visible
 - "black_player": the black player's name as printed near the diagram, or empty string "" if not visible
 - "diagram_number": the integer number printed on or next to the diagram (often inside a circle), or null if no such number is visible. This is a label identifying the diagram in a book/article — NOT a move number or piece count.
+
+Procedure (follow in order):
+1. First, scan the diagram and build the "pieces" list. For every piece, identify its square by reading the printed file (a-h) and rank (1-8) labels directly — trace straight down for the file and straight across for the rank. Commit one piece at a time. This list is your ground truth.
+2. Then, fill the "board" grid so that each square listed in "pieces" contains its corresponding symbol, and every other square is ".".
+3. Finally, double-check: count the pieces in the grid and verify the total matches len(pieces).
 
 Board rules:
 - board[0] is rank 8 (top of the board), board[7] is rank 1 (bottom)
@@ -1005,7 +1011,7 @@ Player name rules:
 - Use "" (empty string) when a name is not printed
 
 Example output:
-{"board": ["rnbqkbnr", "pppppppp", "........", "........", "....P...", "........", "PPPP.PPP", "RNBQKBNR"], "active_color": "b", "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18}"""
+{"pieces": ["r a8","n b8","b c8","q d8","k e8","b f8","n g8","r h8","p a7","p b7","p c7","p d7","p e7","p f7","p g7","p h7","P e4","P a2","P b2","P c2","P d2","P f2","P g2","P h2","R a1","N b1","B c1","Q d1","K e1","B f1","N g1","R h1"], "board": ["rnbqkbnr", "pppppppp", "........", "........", "....P...", "........", "PPPP.PPP", "RNBQKBNR"], "active_color": "b", "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18}"""
 
 
 _VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
