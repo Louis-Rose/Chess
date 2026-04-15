@@ -973,6 +973,7 @@ CRITICAL RULES:
 - Order: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
 - Regions MUST NOT overlap. Each region should tile the space without intersecting any other region.
 - Include generous padding around each diagram to capture player names and captions above/below the board. Each region MUST include the player names associated with that diagram.
+- IMPORTANT: if file labels (a-h) or rank labels (1-8) are printed along the edges of the board, the region MUST extend far enough to include them. Do not crop them away — they are needed for accurate reading in the next step.
 
 Return [] if no diagram is detected.
 
@@ -1006,6 +1007,12 @@ Board rules:
   - Empty square: . (period)
 - Every string MUST be exactly 8 characters — no digits, no compression, no spaces
 - Look at each of the 64 squares one at a time and write the symbol for what you see on that specific square
+
+CRITICAL — use printed coordinates if visible:
+- If the diagram has file labels (a-h) printed along the bottom edge and/or rank labels (1-8) printed along the left edge, you MUST use them as anchors. For every piece, identify its exact square by reading off the labeled file and rank — do NOT guess based on visual position relative to neighboring pieces.
+- Example: if you see a knight and want to know its file, trace straight down from it to the label row. Whatever letter sits directly under the knight is its file.
+- When coordinates are present, an off-by-one file or rank error is unacceptable — the labels are there specifically to prevent it.
+- If no coordinates are printed, fall back to counting from the visible board edges.
 
 Active color rules:
 - Look for arrows, "White to move" / "Black to move" captions, or infer from context
