@@ -957,13 +957,14 @@ def read_scoresheet_azure():
     })
 
 
-DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. For each one, return a bounding box that fully contains the 8x8 board, the rank/file labels (if printed), the player names, and any caption or diagram number.
+DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. For each one, return an object with:
+- "x", "y", "width", "height": bounding box (percentages, 0-100) fully containing the 8x8 board, rank/file labels, player names, and caption.
+- "white_player": white player's name as printed, or "".
+- "black_player": black player's name as printed, or "".
+- "active_color": "w" or "b" (side to move — arrows, captions, or context).
+- "diagram_number": printed diagram label (integer, often in a circle), or null.
 
-Return ONLY a JSON array. No markdown, no commentary.
-
-[{"x": percent, "y": percent, "width": percent, "height": percent}]
-
-All values are percentages of the full image (0-100). Order diagrams top-to-bottom, then left-to-right. Return [] if none."""
+Return ONLY a JSON array. No markdown. Sort top-to-bottom, then left-to-right. Return [] if none."""
 
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a cropped image containing exactly ONE chess diagram with its surrounding context.
 
@@ -1130,8 +1131,7 @@ def read_diagram():
             for r in regions:
                 if not isinstance(r, dict):
                     continue
-                # New shape: {"board": {...}, "rank_labels": {...}|null, "file_labels": {...}|null, "context": {...}|null}
-                # Accepts legacy "labels" key and legacy flat {x, y, width, height}
+                # Accepts new flat shape, legacy sub-box shape with "board"/"labels"/"context", and legacy flat
                 sub_boxes = []
                 for key in ('board', 'rank_labels', 'file_labels', 'labels', 'context'):
                     sub = r.get(key)
@@ -1151,11 +1151,23 @@ def read_diagram():
                 top = max(0.0, top - SAFETY_PAD)
                 right = min(100.0, right + SAFETY_PAD)
                 bottom = min(100.0, bottom + SAFETY_PAD)
+                # Capture phase-1 metadata (passed through to the final diagram)
+                raw_num = r.get('diagram_number')
+                try:
+                    dnum = int(raw_num) if raw_num not in (None, "") else None
+                except (TypeError, ValueError):
+                    dnum = None
                 valid_regions.append({
                     'x': left,
                     'y': top,
                     'width': right - left,
                     'height': bottom - top,
+                    'meta': {
+                        'white_player': str(r.get('white_player') or '').strip(),
+                        'black_player': str(r.get('black_player') or '').strip(),
+                        'active_color': str(r.get('active_color') or '').strip().lower()[:1] or None,
+                        'diagram_number': dnum,
+                    },
                 })
             # Sort: top-to-bottom, then left-to-right (using row midpoint)
             valid_regions.sort(key=lambda r: (r['y'] + r['height'] / 2, r['x'] + r['width'] / 2))
@@ -1229,15 +1241,21 @@ def read_diagram():
                 parsed = json_module.loads(raw)
                 if isinstance(parsed, list):
                     parsed = parsed[0] if parsed else {}
-                white = str(parsed.get("white_player", "") or "").strip()
-                black = str(parsed.get("black_player", "") or "").strip()
-                raw_num = parsed.get("diagram_number")
+                p2_white = str(parsed.get("white_player", "") or "").strip()
+                p2_black = str(parsed.get("black_player", "") or "").strip()
+                p2_raw_num = parsed.get("diagram_number")
                 try:
-                    diagram_number = int(raw_num) if raw_num not in (None, "") else None
+                    p2_dnum = int(p2_raw_num) if p2_raw_num not in (None, "") else None
                 except (TypeError, ValueError):
-                    diagram_number = None
+                    p2_dnum = None
+                # Prefer phase-1 metadata when present, fall back to phase-2
+                p1_meta = region.get('meta') or {}
+                white = p1_meta.get('white_player') or p2_white
+                black = p1_meta.get('black_player') or p2_black
+                diagram_number = p1_meta.get('diagram_number') if p1_meta.get('diagram_number') is not None else p2_dnum
+                active_color = p1_meta.get('active_color') or parsed.get("active_color", "w")
                 try:
-                    fen = _grid_to_fen(parsed.get("board"), parsed.get("active_color", "w"))
+                    fen = _grid_to_fen(parsed.get("board"), active_color)
                 except ValueError as ve:
                     logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
                     fen = ""
