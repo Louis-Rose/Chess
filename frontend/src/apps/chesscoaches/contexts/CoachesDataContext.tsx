@@ -239,13 +239,15 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
   const scoresheetAnalyzeAbortRef = useRef<AbortController | null>(null);
   const retryInfoRef = useRef<Record<string, { free_error: string; free_elapsed: number }>>({});
 
-  // ── Clear scoresheet on logout ──
+  // ── Clear all panel state on logout ──
   const { user } = useAuth();
   const prevUserRef = useRef(user);
   useEffect(() => {
     if (prevUserRef.current && !user) {
       if (scoresheetAnalyzeAbortRef.current) { scoresheetAnalyzeAbortRef.current.abort(); scoresheetAnalyzeAbortRef.current = null; }
       setScoresheet(SCORESHEET_INITIAL);
+      setDiagram(DIAGRAM_INITIAL);
+      setMistakesState(MISTAKES_INITIAL);
     }
     prevUserRef.current = user;
   }, [user]);
