@@ -965,8 +965,9 @@ Return ONLY a JSON array of objects. No markdown, no commentary, no code fences.
 
 Each object represents one diagram and MUST have these fields:
 - "board": bounding box of the 8x8 board itself (the grid of squares, including the black border if any).
-- "labels": bounding box containing ALL printed rank labels (1-8) and file labels (a-h) — the strip along the left/bottom where those glyphs sit. Set to null if the diagram has no printed coordinate labels.
-- "context": bounding box containing surrounding text — player names above/below, diagram number/caption, "to move" indicator. Set to null if nothing of the sort is present.
+- "rank_labels": bounding box tightly around the printed rank digits (1-8) on the LEFT side of the board. Null if the diagram has no rank labels.
+- "file_labels": bounding box tightly around the printed file letters (a-h) along the BOTTOM of the board. Null if the diagram has no file labels.
+- "context": bounding box containing surrounding text — player names above/below, diagram number/caption, "to move" indicator. Null if nothing of the sort is present.
 
 Each bounding box is an object with these fields, all as percentages of the full image (0-100):
 - "x": left edge
@@ -976,18 +977,22 @@ Each bounding box is an object with these fields, all as percentages of the full
 
 CRITICAL rules for each sub-box:
 - "board" must hug the board tightly — just the 8x8 grid, nothing else.
-- "labels" must fully contain every single rank and file glyph. Extend it slightly past the outermost glyph (half a glyph's width) so no character is on the edge. If only rank labels are visible (no files), the box should still cover just the rank strip — and vice versa. Null if neither is present.
+- "rank_labels" MUST include the full glyph of every rank digit 1-8. Its right edge should just touch the left edge of the board. Its top and bottom edges must extend slightly past the topmost "8" and the bottommost "1" — do not clip them. Null only if no rank digits are printed.
+- "file_labels" MUST include the full glyph of every file letter a-h. Its top edge should just touch the bottom edge of the board. Its bottom edge must extend BELOW the letters — not cut through them. Its left and right edges must contain the full "a" and "h" letters. Null only if no file letters are printed.
 - "context" should cover player names, caption, and any arrows/indicators. Do not include unrelated page content.
+
+CHECK BEFORE RETURNING: for each non-null label box, verify that every glyph sits WHOLLY inside the box with visible space around it. If any digit or letter touches or crosses the edge, expand the box.
 
 Ordering: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
 
 Return [] if no diagram is detected.
 
-Example output for one diagram with player names above and coordinate labels on the left and bottom:
+Example output for one diagram with player names above, rank labels on the left, and file labels on the bottom:
 [
   {
-    "board": {"x": 20, "y": 15, "width": 60, "height": 70},
-    "labels": {"x": 17, "y": 15, "width": 63, "height": 73},
+    "board": {"x": 20, "y": 15, "width": 60, "height": 60},
+    "rank_labels": {"x": 17, "y": 14, "width": 3, "height": 62},
+    "file_labels": {"x": 19, "y": 75, "width": 62, "height": 5},
     "context": {"x": 18, "y": 8, "width": 64, "height": 8}
   }
 ]"""
@@ -1152,15 +1157,15 @@ def read_diagram():
             if not isinstance(regions, list):
                 regions = [regions]
             # Validate, union sub-boxes, and clamp regions
-            SAFETY_PAD = 1.0  # percentage points added around the unioned box
+            SAFETY_PAD = 2.0  # percentage points added around the unioned box
             valid_regions = []
             for r in regions:
                 if not isinstance(r, dict):
                     continue
-                # New shape: {"board": {...}, "labels": {...}|null, "context": {...}|null}
-                # Legacy shape: {"x": .., "y": .., "width": .., "height": ..}
+                # New shape: {"board": {...}, "rank_labels": {...}|null, "file_labels": {...}|null, "context": {...}|null}
+                # Accepts legacy "labels" key and legacy flat {x, y, width, height}
                 sub_boxes = []
-                for key in ('board', 'labels', 'context'):
+                for key in ('board', 'rank_labels', 'file_labels', 'labels', 'context'):
                     sub = r.get(key)
                     if isinstance(sub, dict) and all(k in sub for k in ('x', 'y', 'width', 'height')):
                         sub_boxes.append(sub)
