@@ -682,7 +682,7 @@ function SquareMenuPopover({ menu, t, onAdd, onMove, onDelete, onPick }: SquareM
         </div>
       )}
       {menu.kind === 'picker' && (
-        <div className="grid grid-cols-6 gap-1">
+        <div className="grid grid-cols-6 gap-1 w-[216px]">
           {PIECE_PALETTE.map(p => (
             <button
               key={p}
