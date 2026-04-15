@@ -28,11 +28,13 @@ init_db()
 
 # Register blueprints
 from blueprints.auth_routes import auth_bp
-from blueprints.chesscoaches import coaches_bp
+from blueprints.chesscoaches import coaches_bp, migrate_upload_filenames
 from blueprints.admin import admin_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(coaches_bp)
 app.register_blueprint(admin_bp)
+
+migrate_upload_filenames()
 
 
 if __name__ == '__main__':

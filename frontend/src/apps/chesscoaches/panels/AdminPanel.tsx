@@ -501,7 +501,7 @@ export function AdminPanel() {
       const feature = invs[0].feature;
       invs.forEach((inv, idx) => {
         const n = idx + 1;
-        const pattern = new RegExp(`^${feature}_.*_${n}\\.[a-z]+$`, 'i');
+        const pattern = new RegExp(`^${feature}_.*_${n}(?:_\\d{4}-\\d{2}-\\d{2}_\\d{2}h\\d{2})?\\.[a-z]+$`, 'i');
         const match = uploads.find(f => pattern.test(f.filename));
         if (match) result.set(inv.request_id, match);
       });

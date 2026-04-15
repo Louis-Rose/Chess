@@ -9,6 +9,7 @@ import logging
 import threading
 import time as time_module
 import uuid
+from datetime import datetime
 
 import chess
 import requests as http_requests
@@ -108,15 +109,42 @@ def _get_user_surname(user_id):
 
 
 def _next_upload_number(user_dir, feature, surname):
-    """Find the next available number for {feature}_{surname}_{N} naming."""
+    """Find the next available number for {feature}_{surname}_{N}_{timestamp} naming."""
     prefix = f"{feature}_{surname}_"
     max_n = 0
     if os.path.isdir(user_dir):
         for fname in os.listdir(user_dir):
-            m = re.match(rf'^{re.escape(prefix)}(\d+)\.\w+$', fname)
+            m = re.match(rf'^{re.escape(prefix)}(\d+)(?:_[^.]+)?\.\w+$', fname)
             if m:
                 max_n = max(max_n, int(m.group(1)))
     return max_n + 1
+
+
+def migrate_upload_filenames():
+    """Retroactively add {YYYY-MM-DD_HHhMM} suffix to upload filenames missing it, using file mtime."""
+    if not os.path.isdir(UPLOAD_DIR):
+        return
+    old_pattern = re.compile(r'^(.+?)_(\d+)(\.\w+)$')
+    renamed = 0
+    for user_dir_name in os.listdir(UPLOAD_DIR):
+        user_dir = os.path.join(UPLOAD_DIR, user_dir_name)
+        if not os.path.isdir(user_dir):
+            continue
+        for fname in os.listdir(user_dir):
+            m = old_pattern.match(fname)
+            if not m:
+                continue
+            base, n, ext = m.group(1), m.group(2), m.group(3)
+            old_path = os.path.join(user_dir, fname)
+            ts = datetime.fromtimestamp(os.path.getmtime(old_path)).strftime('%Y-%m-%d_%Hh%M')
+            new_name = f"{base}_{n}_{ts}{ext}"
+            new_path = os.path.join(user_dir, new_name)
+            if os.path.exists(new_path):
+                continue
+            os.rename(old_path, new_path)
+            renamed += 1
+    if renamed:
+        logger.info(f"[Upload migration] Renamed {renamed} files to include timestamp")
 
 
 def _save_upload(user_id, request_id, image_bytes, mime_type, feature='scoresheet'):
@@ -136,7 +164,8 @@ def _save_upload(user_id, request_id, image_bytes, mime_type, feature='scoreshee
         ext = MIME_TO_EXT.get(mime_type, '.jpg')
         surname = _get_user_surname(user_id)
         n = _next_upload_number(user_dir, feature, surname)
-        filename = f"{feature}_{surname}_{n}{ext}"
+        ts = datetime.now().strftime('%Y-%m-%d_%Hh%M')
+        filename = f"{feature}_{surname}_{n}_{ts}{ext}"
         path = os.path.join(user_dir, filename)
         with open(path, 'wb') as f:
             f.write(image_bytes)
