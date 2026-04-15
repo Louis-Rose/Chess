@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { ImageIcon, Clock, Copy, Check } from 'lucide-react';
-import { LichessStudyButton } from './scoresheet/ExportButtons';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
 
@@ -392,10 +391,9 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const [copied, setCopied] = useState(false);
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
-  const [editing, setEditing] = useState(false);
 
   // Reset edited FEN when diagram changes
-  useEffect(() => { setEditedFen(diagram.fen); setEditing(false); }, [diagram.fen]);
+  useEffect(() => { setEditedFen(diagram.fen); }, [diagram.fen]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => rebuildFen(prev, boardToFenPlacement(newBoard)));
@@ -446,18 +444,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </span>
       </div>
 
-      <EditableBoard fen={editedFen} editing={editing} onChange={handleBoardChange} />
-
-      <button
-        onClick={() => setEditing(e => !e)}
-        className={`w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-          editing
-            ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-            : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500'
-        }`}
-      >
-        {t('coaches.diagram.editBoard')}
-      </button>
+      <EditableBoard fen={editedFen} onChange={handleBoardChange} />
 
       <button
         onClick={handleCopy}
@@ -469,10 +456,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       >
         {copied ? <><Check className="w-4 h-4" /> {t('coaches.diagram.copied')}</> : <><Copy className="w-4 h-4" /> {t('coaches.diagram.copyFen')}</>}
       </button>
-      <LichessStudyButton
-        fen={editedFen}
-        chapterName={[white_player, black_player].filter(Boolean).join(' vs ') || 'Diagram'}
-      />
     </div>
   );
 }
@@ -487,7 +470,8 @@ type SquareMenu =
   | { kind: 'picker'; r: number; c: number }
   | null;
 
-function EditableBoard({ fen, editing, onChange }: { fen: string; editing: boolean; onChange: (board: (string | null)[][]) => void }) {
+function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (string | null)[][]) => void }) {
+  const editing = true;
   const { t } = useLanguage();
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
