@@ -957,7 +957,8 @@ def read_scoresheet_azure():
     })
 
 
-DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. The image ALWAYS contains at least one diagram — never return an empty array. For each diagram, return a bounding box that fully contains the 8x8 board, the rank/file labels (if printed), the player names (if printed), and any caption or diagram number (if printed).
+DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. The image ALWAYS contains at least one diagram.
+For each diagram, return a bounding box that fully contains the 8x8 board, and, if present, the rank/file labels, the player names, and any caption or diagram number.
 
 Return ONLY a JSON array. No markdown, no commentary.
 
