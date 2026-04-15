@@ -374,9 +374,10 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   // Reset edited FEN when diagram changes
-  useEffect(() => { setEditedFen(diagram.fen); setSelectedPiece(null); }, [diagram.fen]);
+  useEffect(() => { setEditedFen(diagram.fen); setSelectedPiece(null); setEditing(false); }, [diagram.fen]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => rebuildFen(prev, boardToFenPlacement(newBoard)));
@@ -431,38 +432,50 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 
       <EditableBoard fen={editedFen} selectedPiece={selectedPiece} onChange={handleBoardChange} />
 
-      {/* Piece palette */}
-      <div className="flex justify-center gap-1">
-        <button
-          onClick={() => setSelectedPiece(null)}
-          className={`w-8 h-8 rounded border transition-colors flex items-center justify-center text-xs ${
-            selectedPiece === null ? 'border-blue-500 bg-blue-500/20 text-blue-400' : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
-          }`}
-          title={t('coaches.diagram.movePiece')}
-        >
-          ✥
-        </button>
-        {PIECE_PALETTE.map(p => (
+      <button
+        onClick={() => { setEditing(e => !e); if (editing) setSelectedPiece(null); }}
+        className={`w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+          editing
+            ? 'bg-blue-600/20 border-blue-500 text-blue-300'
+            : 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500'
+        }`}
+      >
+        {t('coaches.diagram.editBoard')}
+      </button>
+
+      {editing && (
+        <div className="flex justify-center gap-1 flex-wrap">
           <button
-            key={p}
-            onClick={() => setSelectedPiece(selectedPiece === p ? null : p)}
-            className={`w-8 h-8 rounded border transition-colors ${
-              selectedPiece === p ? 'border-blue-500 bg-blue-500/20' : 'border-slate-600 bg-slate-800 hover:border-slate-500'
+            onClick={() => setSelectedPiece(null)}
+            className={`w-8 h-8 rounded border transition-colors flex items-center justify-center text-xs ${
+              selectedPiece === null ? 'border-blue-500 bg-blue-500/20 text-blue-400' : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
             }`}
+            title={t('coaches.diagram.movePiece')}
           >
-            <img src={pieceImageUrl(p)} alt={p} className="w-6 h-6 mx-auto" draggable={false} />
+            ✥
           </button>
-        ))}
-        <button
-          onClick={() => setSelectedPiece('ERASE')}
-          className={`w-8 h-8 rounded border transition-colors flex items-center justify-center text-xs ${
-            selectedPiece === 'ERASE' ? 'border-red-500 bg-red-500/20 text-red-400' : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
-          }`}
-          title={t('coaches.diagram.erasePiece')}
-        >
-          ✕
-        </button>
-      </div>
+          {PIECE_PALETTE.map(p => (
+            <button
+              key={p}
+              onClick={() => setSelectedPiece(selectedPiece === p ? null : p)}
+              className={`w-8 h-8 rounded border transition-colors ${
+                selectedPiece === p ? 'border-blue-500 bg-blue-500/20' : 'border-slate-600 bg-slate-800 hover:border-slate-500'
+              }`}
+            >
+              <img src={pieceImageUrl(p)} alt={p} className="w-6 h-6 mx-auto" draggable={false} />
+            </button>
+          ))}
+          <button
+            onClick={() => setSelectedPiece('ERASE')}
+            className={`w-8 h-8 rounded border transition-colors flex items-center justify-center text-xs ${
+              selectedPiece === 'ERASE' ? 'border-red-500 bg-red-500/20 text-red-400' : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
+            }`}
+            title={t('coaches.diagram.erasePiece')}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <button
         onClick={handleCopy}
