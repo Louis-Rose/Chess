@@ -1067,10 +1067,11 @@ export function AdminPanel() {
                           />
                           <span className="text-[10px] text-slate-400">{file.filename}</span>
                           <a
-                            href={`/scoresheets?image=${encodeURIComponent(imgUrl)}`}
+                            href={imgUrl}
+                            download={file.filename}
                             className="text-[9px] text-blue-400 hover:text-blue-300 transition-colors"
                           >
-                            Process
+                            Download
                           </a>
                         </div>
                       );
