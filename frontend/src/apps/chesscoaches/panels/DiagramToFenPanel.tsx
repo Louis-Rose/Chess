@@ -570,10 +570,12 @@ function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (stri
               const isLight = (r + c) % 2 === 0;
               const isDragSource = dragging && dragging.fromR === r && dragging.fromC === c;
               const isMoveFrom = moveFrom && moveFrom.r === r && moveFrom.c === c;
+              const isMenuSquare = menu && menu.r === r && menu.c === c;
+              const highlighted = isMoveFrom || isMenuSquare;
               return (
                 <div
                   key={`${r}-${c}`}
-                  className={`relative select-none ${editing ? 'cursor-pointer' : ''} ${isMoveFrom ? 'ring-2 ring-inset ring-blue-400' : ''}`}
+                  className={`relative select-none ${editing ? 'cursor-pointer' : ''} ${highlighted ? 'ring-2 ring-inset ring-blue-400' : ''}`}
                   style={{ backgroundColor: isLight ? LIGHT : DARK }}
                   onClick={() => handleSquareClick(r, c)}
                 >
