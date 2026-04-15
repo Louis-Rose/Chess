@@ -957,23 +957,40 @@ def read_scoresheet_azure():
     })
 
 
-DIAGRAM_LOCATE_PROMPT = """You are analyzing an image that may contain ONE OR SEVERAL chess diagrams.
+DIAGRAM_LOCATE_PROMPT = """Role: You are a high-precision document parser specialized in chess literature.
 
-Your job is to locate each diagram region — the chess board plus its surrounding context (player names, move indicator, diagram number).
+Task: Locate every chess diagram in the image. A "diagram region" is NOT just the board — it is the entire block including player names, diagram numbers/captions, and critically the rank (1-8) and file (a-h) coordinate labels when they are printed.
 
-Return ONLY a JSON array of objects. No markdown, no commentary, no code fences.
+Output Format: Return ONLY a JSON array of objects. No markdown, no commentary, no code fences.
+[{"x": percent, "y": percent, "width": percent, "height": percent}]
 
-Each object MUST have these fields:
-- "x": left edge as a percentage of image width (0-100)
-- "y": top edge as a percentage of image height (0-100)
-- "width": region width as a percentage of image width
-- "height": region height as a percentage of image height
+All values are percentages of the full image (0-100).
 
-CRITICAL RULES:
-- Order: top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
-- Regions MUST NOT overlap. Each region should tile the space without intersecting any other region.
-- Include generous padding around each diagram to capture player names and captions above/below the board. Each region MUST include the player names associated with that diagram.
-- IMPORTANT: if file labels (a-h) or rank labels (1-8) are printed along the edges of the board, the region MUST extend far enough to FULLY include them with a safety margin. Err on the side of too much padding — add a clear band of empty space (roughly one square's width) beyond the outermost label so the full glyph of every letter and digit is inside the crop. A region where any label is clipped or cut in half is a failure; including extra blank space around the labels is perfectly fine.
+CRITICAL RULES
+
+1. Labels are the INNER boundary
+- The a-h and 1-8 labels are often thin and low-contrast. Treat them as the inside edge of the crop: if a side of your bounding box is touching a label glyph, the crop is too tight and MUST be pushed further out.
+- Do not tight-crop to the black border of the board. The board border is NEVER the edge of the region.
+
+2. Anchor on whitespace
+- The edges of your bounding box must sit in the empty gutter (whitespace) around the diagram block. The last thing inside the crop on each side should be content; the first thing outside should be white space.
+- Reference measurement: use one board square's visual width as your unit of padding.
+- On each side that has a label or adjacent content (player name, caption, arrow, diagram number, file/rank label), leave AT LEAST half a square's width of whitespace between that content and the crop edge. Err on the side of more padding.
+- A crop where any label digit or letter is clipped, cut in half, or touching the edge is a failure.
+
+3. Inclusion checklist — every region must fully contain:
+- The 8x8 board
+- Player names (above or below the board)
+- Diagram number / caption, if present
+- The complete glyph of every rank label 1-8 (usually on the left side)
+- The complete glyph of every file label a-h (usually along the bottom)
+- Any "to move" indicator (arrow, triangle, dot)
+
+4. Non-overlap
+- Regions MUST NOT overlap. On multi-diagram pages, each region should tile its space without intersecting any other region. If honoring the padding rule would cause an overlap, shrink the padding on the overlapping side just enough to avoid the intersection — but still keep labels fully inside.
+
+5. Ordering
+- Sort top-to-bottom first, then left-to-right within the same row. Diagram 1 must be the top-left diagram.
 
 Return [] if no diagram is detected.
 
