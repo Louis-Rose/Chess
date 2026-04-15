@@ -373,11 +373,10 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const [copied, setCopied] = useState(false);
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
-  const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
 
   // Reset edited FEN when diagram changes
-  useEffect(() => { setEditedFen(diagram.fen); setSelectedPiece(null); setEditing(false); }, [diagram.fen]);
+  useEffect(() => { setEditedFen(diagram.fen); setEditing(false); }, [diagram.fen]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => rebuildFen(prev, boardToFenPlacement(newBoard)));
@@ -401,8 +400,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const sideToMoveLabel =
     activeColor === 'b' ? t('coaches.diagram.blackToPlay') : t('coaches.diagram.whiteToPlay');
   const hasPlayers = !!(white_player || black_player);
-
-  const PIECE_PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P', 'k', 'q', 'r', 'b', 'n', 'p'];
 
   return (
     <div className="space-y-3">
@@ -430,10 +427,10 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </span>
       </div>
 
-      <EditableBoard fen={editedFen} selectedPiece={selectedPiece} onChange={handleBoardChange} />
+      <EditableBoard fen={editedFen} editing={editing} onChange={handleBoardChange} />
 
       <button
-        onClick={() => { setEditing(e => !e); if (editing) setSelectedPiece(null); }}
+        onClick={() => setEditing(e => !e)}
         className={`w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
           editing
             ? 'bg-blue-600/20 border-blue-500 text-blue-300'
@@ -442,40 +439,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       >
         {t('coaches.diagram.editBoard')}
       </button>
-
-      {editing && (
-        <div className="flex justify-center gap-1 flex-wrap">
-          <button
-            onClick={() => setSelectedPiece(null)}
-            className={`w-8 h-8 rounded border transition-colors flex items-center justify-center text-xs ${
-              selectedPiece === null ? 'border-blue-500 bg-blue-500/20 text-blue-400' : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
-            }`}
-            title={t('coaches.diagram.movePiece')}
-          >
-            ✥
-          </button>
-          {PIECE_PALETTE.map(p => (
-            <button
-              key={p}
-              onClick={() => setSelectedPiece(selectedPiece === p ? null : p)}
-              className={`w-8 h-8 rounded border transition-colors ${
-                selectedPiece === p ? 'border-blue-500 bg-blue-500/20' : 'border-slate-600 bg-slate-800 hover:border-slate-500'
-              }`}
-            >
-              <img src={pieceImageUrl(p)} alt={p} className="w-6 h-6 mx-auto" draggable={false} />
-            </button>
-          ))}
-          <button
-            onClick={() => setSelectedPiece('ERASE')}
-            className={`w-8 h-8 rounded border transition-colors flex items-center justify-center text-xs ${
-              selectedPiece === 'ERASE' ? 'border-red-500 bg-red-500/20 text-red-400' : 'border-slate-600 bg-slate-800 text-slate-400 hover:border-slate-500'
-            }`}
-            title={t('coaches.diagram.erasePiece')}
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       <button
         onClick={handleCopy}
@@ -497,90 +460,144 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 
 import { pieceImageUrl, BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
 
-function EditableBoard({ fen, selectedPiece, onChange }: { fen: string; selectedPiece: string | null; onChange: (board: (string | null)[][]) => void }) {
+const PIECE_PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P', 'k', 'q', 'r', 'b', 'n', 'p'];
+
+type SquareMenu =
+  | { kind: 'piece'; r: number; c: number; piece: string }
+  | { kind: 'empty'; r: number; c: number }
+  | { kind: 'picker'; r: number; c: number }
+  | null;
+
+function EditableBoard({ fen, editing, onChange }: { fen: string; editing: boolean; onChange: (board: (string | null)[][]) => void }) {
+  const { t } = useLanguage();
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
+  const [menu, setMenu] = useState<SquareMenu>(null);
+  const [moveFrom, setMoveFrom] = useState<{ r: number; c: number } | null>(null);
+  const didDragRef = useRef(false);
+
+  // Close menu when exiting edit mode or when the FEN changes
+  useEffect(() => { if (!editing) { setMenu(null); setMoveFrom(null); } }, [editing]);
+  useEffect(() => { setMenu(null); setMoveFrom(null); }, [fen]);
+
+  const mutate = useCallback((fn: (b: (string | null)[][]) => void) => {
+    const next = board.map(row => [...row]);
+    fn(next);
+    onChange(next);
+  }, [board, onChange]);
 
   const handleSquareClick = useCallback((r: number, c: number) => {
-    if (dragging) return;
-    const newBoard = board.map(row => [...row]);
-    if (selectedPiece === 'ERASE') {
-      newBoard[r][c] = null;
-      onChange(newBoard);
-    } else if (selectedPiece) {
-      newBoard[r][c] = selectedPiece;
-      onChange(newBoard);
+    if (!editing) return;
+    if (didDragRef.current) { didDragRef.current = false; return; }
+    if (moveFrom) {
+      if (moveFrom.r === r && moveFrom.c === c) { setMoveFrom(null); return; }
+      const piece = board[moveFrom.r][moveFrom.c];
+      if (piece) {
+        mutate(b => { b[moveFrom.r][moveFrom.c] = null; b[r][c] = piece; });
+      }
+      setMoveFrom(null);
+      return;
     }
-  }, [board, selectedPiece, onChange, dragging]);
+    // Toggle menu
+    if (menu && menu.r === r && menu.c === c) { setMenu(null); return; }
+    const piece = board[r][c];
+    setMenu(piece ? { kind: 'piece', r, c, piece } : { kind: 'empty', r, c });
+  }, [editing, menu, moveFrom, board, mutate]);
 
-  // Drag: only when no piece is selected in palette (move mode)
   const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
-    if (selectedPiece) return; // palette mode, not drag mode
+    if (!editing) return;
     e.preventDefault();
+    setMenu(null);
+    setMoveFrom(null);
     setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
-  }, [selectedPiece]);
+  }, [editing]);
 
   useEffect(() => {
     if (!dragging) return;
-    const onMove = (e: PointerEvent) => setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
+    let moved = false;
+    const onMove = (e: PointerEvent) => {
+      moved = moved || Math.abs(e.clientX - dragging.x) > 4 || Math.abs(e.clientY - dragging.y) > 4;
+      setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
+    };
     const onUp = (e: PointerEvent) => {
+      didDragRef.current = moved;
       if (!boardRef.current || !dragging) { setDragging(null); return; }
       const rect = boardRef.current.getBoundingClientRect();
       const sqSize = rect.width / 8;
       const toC = Math.floor((e.clientX - rect.left) / sqSize);
       const toR = Math.floor((e.clientY - rect.top) / sqSize);
-      if (toR >= 0 && toR < 8 && toC >= 0 && toC < 8 && (toR !== dragging.fromR || toC !== dragging.fromC)) {
-        const newBoard = board.map(row => [...row]);
-        newBoard[dragging.fromR][dragging.fromC] = null;
-        newBoard[toR][toC] = dragging.piece;
-        onChange(newBoard);
+      if (moved && toR >= 0 && toR < 8 && toC >= 0 && toC < 8 && (toR !== dragging.fromR || toC !== dragging.fromC)) {
+        mutate(b => { b[dragging.fromR][dragging.fromC] = null; b[toR][toC] = dragging.piece; });
       }
       setDragging(null);
     };
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
     return () => { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); };
-  }, [dragging, board, onChange]);
+  }, [dragging, mutate]);
+
+  // Close the menu when clicking outside the board
+  useEffect(() => {
+    if (!menu) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (boardRef.current && !boardRef.current.contains(e.target as Node)) setMenu(null);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [menu]);
 
   return (
-    <div className="mx-auto rounded-lg overflow-hidden shadow-lg" style={{ maxWidth: 400 }}>
-      <div ref={boardRef} className="grid grid-cols-8 grid-rows-8 aspect-square">
-        {board.map((row, r) =>
-          row.map((piece, c) => {
-            const isLight = (r + c) % 2 === 0;
-            const isDragSource = dragging && dragging.fromR === r && dragging.fromC === c;
-            return (
-              <div
-                key={`${r}-${c}`}
-                className={`relative select-none ${selectedPiece ? 'cursor-pointer' : ''}`}
-                style={{ backgroundColor: isLight ? LIGHT : DARK }}
-                onClick={() => handleSquareClick(r, c)}
-              >
-                {c === 0 && (
-                  <span className="absolute top-0.5 left-0.5 text-[0.6rem] font-bold leading-none pointer-events-none" style={{ color: isLight ? DARK : LIGHT }}>
-                    {8 - r}
-                  </span>
-                )}
-                {r === 7 && (
-                  <span className="absolute bottom-0.5 right-1 text-[0.6rem] font-bold leading-none pointer-events-none" style={{ color: isLight ? DARK : LIGHT }}>
-                    {'abcdefgh'[c]}
-                  </span>
-                )}
-                {piece && !isDragSource && (
-                  <img
-                    src={pieceImageUrl(piece)}
-                    alt=""
-                    className={`absolute inset-[5%] w-[90%] h-[90%] ${!selectedPiece ? 'cursor-grab' : ''}`}
-                    draggable={false}
-                    onPointerDown={e => handlePointerDown(e, piece, r, c)}
-                  />
-                )}
-              </div>
-            );
-          })
-        )}
+    <div className="relative mx-auto" style={{ maxWidth: 400 }}>
+      <div className="rounded-lg overflow-hidden shadow-lg">
+        <div ref={boardRef} className="grid grid-cols-8 grid-rows-8 aspect-square">
+          {board.map((row, r) =>
+            row.map((piece, c) => {
+              const isLight = (r + c) % 2 === 0;
+              const isDragSource = dragging && dragging.fromR === r && dragging.fromC === c;
+              const isMoveFrom = moveFrom && moveFrom.r === r && moveFrom.c === c;
+              return (
+                <div
+                  key={`${r}-${c}`}
+                  className={`relative select-none ${editing ? 'cursor-pointer' : ''} ${isMoveFrom ? 'ring-2 ring-inset ring-blue-400' : ''}`}
+                  style={{ backgroundColor: isLight ? LIGHT : DARK }}
+                  onClick={() => handleSquareClick(r, c)}
+                >
+                  {c === 0 && (
+                    <span className="absolute top-0.5 left-0.5 text-[0.6rem] font-bold leading-none pointer-events-none" style={{ color: isLight ? DARK : LIGHT }}>
+                      {8 - r}
+                    </span>
+                  )}
+                  {r === 7 && (
+                    <span className="absolute bottom-0.5 right-1 text-[0.6rem] font-bold leading-none pointer-events-none" style={{ color: isLight ? DARK : LIGHT }}>
+                      {'abcdefgh'[c]}
+                    </span>
+                  )}
+                  {piece && !isDragSource && (
+                    <img
+                      src={pieceImageUrl(piece)}
+                      alt=""
+                      className={`absolute inset-[5%] w-[90%] h-[90%] ${editing ? 'cursor-grab' : ''}`}
+                      draggable={false}
+                      onPointerDown={e => handlePointerDown(e, piece, r, c)}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
+
+      {menu && <SquareMenuPopover
+        menu={menu}
+        t={t}
+        onAdd={() => setMenu({ kind: 'picker', r: menu.r, c: menu.c })}
+        onMove={() => { setMoveFrom({ r: menu.r, c: menu.c }); setMenu(null); }}
+        onDelete={() => { mutate(b => { b[menu.r][menu.c] = null; }); setMenu(null); }}
+        onPick={(p) => { mutate(b => { b[menu.r][menu.c] = p; }); setMenu(null); }}
+      />}
+
       {dragging && (
         <img
           src={pieceImageUrl(dragging.piece)}
@@ -589,6 +606,77 @@ function EditableBoard({ fen, selectedPiece, onChange }: { fen: string; selected
           style={{ left: dragging.x, top: dragging.y }}
           draggable={false}
         />
+      )}
+    </div>
+  );
+}
+
+interface SquareMenuPopoverProps {
+  menu: NonNullable<SquareMenu>;
+  t: (key: string) => string;
+  onAdd: () => void;
+  onMove: () => void;
+  onDelete: () => void;
+  onPick: (piece: string) => void;
+}
+
+function SquareMenuPopover({ menu, t, onAdd, onMove, onDelete, onPick }: SquareMenuPopoverProps) {
+  // Position popover near the clicked square. Flip above the square when on the bottom half.
+  const leftPct = (menu.c + 0.5) / 8 * 100;
+  const flipUp = menu.r >= 5;
+  const topPct = flipUp ? menu.r / 8 * 100 : (menu.r + 1) / 8 * 100;
+  const style: React.CSSProperties = {
+    left: `${leftPct}%`,
+    top: `${topPct}%`,
+    transform: flipUp ? 'translate(-50%, calc(-100% - 6px))' : 'translate(-50%, 6px)',
+  };
+  return (
+    <div
+      className="absolute z-40 rounded-lg bg-slate-900 border border-slate-600 shadow-xl p-1.5"
+      style={style}
+      onMouseDown={e => e.stopPropagation()}
+    >
+      {menu.kind === 'piece' && (
+        <div className="flex flex-col gap-1 min-w-[130px]">
+          <button
+            onClick={onMove}
+            className="flex items-center gap-2 px-2 py-1.5 rounded text-xs text-slate-200 hover:bg-slate-700"
+          >
+            <span className="text-base leading-none">✥</span>
+            {t('coaches.diagram.movePiece')}
+          </button>
+          <button
+            onClick={onDelete}
+            className="flex items-center gap-2 px-2 py-1.5 rounded text-xs text-red-400 hover:bg-slate-700"
+          >
+            <span className="text-base leading-none">✕</span>
+            {t('coaches.diagram.erasePiece')}
+          </button>
+        </div>
+      )}
+      {menu.kind === 'empty' && (
+        <div className="flex flex-col gap-1 min-w-[130px]">
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 px-2 py-1.5 rounded text-xs text-slate-200 hover:bg-slate-700"
+          >
+            <span className="text-base leading-none">+</span>
+            {t('coaches.diagram.addPiece')}
+          </button>
+        </div>
+      )}
+      {menu.kind === 'picker' && (
+        <div className="grid grid-cols-6 gap-1">
+          {PIECE_PALETTE.map(p => (
+            <button
+              key={p}
+              onClick={() => onPick(p)}
+              className="w-8 h-8 rounded border border-slate-600 bg-slate-800 hover:border-slate-400"
+            >
+              <img src={pieceImageUrl(p)} alt={p} className="w-6 h-6 mx-auto" draggable={false} />
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

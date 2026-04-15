@@ -140,6 +140,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.diagram.noneDetected': 'No diagram detected',
     'coaches.diagram.movePiece': 'Move piece',
     'coaches.diagram.erasePiece': 'Remove piece',
+    'coaches.diagram.addPiece': 'Add piece',
     'coaches.diagram.editBoard': 'Edit board',
     'coaches.diagram.copyFen': 'Copy FEN',
 
@@ -504,6 +505,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.diagram.noneDetected': 'Aucun diagramme détecté',
     'coaches.diagram.movePiece': 'Déplacer une pièce',
     'coaches.diagram.erasePiece': 'Supprimer une pièce',
+    'coaches.diagram.addPiece': 'Ajouter une pièce',
     'coaches.diagram.editBoard': 'Modifier l\'échiquier',
     'coaches.diagram.copyFen': 'Copier le FEN',
 
