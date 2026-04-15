@@ -985,7 +985,7 @@ Ordering: top-to-bottom first, then left-to-right within the same row. Diagram 1
 
 Return [] if no diagram is detected.
 
-Output format (field names only — NEVER reuse any coordinate numbers from any other source):
+Output format:
 [
   {
     "board": {"x": <number>, "y": <number>, "width": <number>, "height": <number>},
