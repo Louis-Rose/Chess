@@ -505,37 +505,48 @@ function EditableBoard({ fen, editing, onChange }: { fen: string; editing: boole
     setMenu(piece ? { kind: 'piece', r, c, piece } : { kind: 'empty', r, c });
   }, [editing, menu, moveFrom, board, mutate]);
 
-  const handlePointerDown = useCallback((e: React.PointerEvent, piece: string, r: number, c: number) => {
+  const pendingDragRef = useRef<{ piece: string; fromR: number; fromC: number; startX: number; startY: number } | null>(null);
+
+  const handlePointerDown = useCallback((_e: React.PointerEvent, piece: string, r: number, c: number) => {
     if (!editing) return;
-    e.preventDefault();
-    setMenu(null);
-    setMoveFrom(null);
-    setDragging({ piece, fromR: r, fromC: c, x: e.clientX, y: e.clientY });
+    pendingDragRef.current = { piece, fromR: r, fromC: c, startX: _e.clientX, startY: _e.clientY };
   }, [editing]);
 
   useEffect(() => {
-    if (!dragging) return;
-    let moved = false;
+    if (!editing) return;
     const onMove = (e: PointerEvent) => {
-      moved = moved || Math.abs(e.clientX - dragging.x) > 4 || Math.abs(e.clientY - dragging.y) > 4;
-      setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
+      const pd = pendingDragRef.current;
+      if (pd && !dragging) {
+        if (Math.abs(e.clientX - pd.startX) > 4 || Math.abs(e.clientY - pd.startY) > 4) {
+          setMenu(null);
+          setMoveFrom(null);
+          setDragging({ piece: pd.piece, fromR: pd.fromR, fromC: pd.fromC, x: e.clientX, y: e.clientY });
+        }
+        return;
+      }
+      if (dragging) {
+        setDragging(d => d ? { ...d, x: e.clientX, y: e.clientY } : null);
+      }
     };
     const onUp = (e: PointerEvent) => {
-      didDragRef.current = moved;
-      if (!boardRef.current || !dragging) { setDragging(null); return; }
-      const rect = boardRef.current.getBoundingClientRect();
-      const sqSize = rect.width / 8;
-      const toC = Math.floor((e.clientX - rect.left) / sqSize);
-      const toR = Math.floor((e.clientY - rect.top) / sqSize);
-      if (moved && toR >= 0 && toR < 8 && toC >= 0 && toC < 8 && (toR !== dragging.fromR || toC !== dragging.fromC)) {
-        mutate(b => { b[dragging.fromR][dragging.fromC] = null; b[toR][toC] = dragging.piece; });
+      const wasDragging = !!dragging;
+      if (dragging && boardRef.current) {
+        const rect = boardRef.current.getBoundingClientRect();
+        const sqSize = rect.width / 8;
+        const toC = Math.floor((e.clientX - rect.left) / sqSize);
+        const toR = Math.floor((e.clientY - rect.top) / sqSize);
+        if (toR >= 0 && toR < 8 && toC >= 0 && toC < 8 && (toR !== dragging.fromR || toC !== dragging.fromC)) {
+          mutate(b => { b[dragging.fromR][dragging.fromC] = null; b[toR][toC] = dragging.piece; });
+        }
       }
+      pendingDragRef.current = null;
       setDragging(null);
+      didDragRef.current = wasDragging;
     };
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
     return () => { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); };
-  }, [dragging, mutate]);
+  }, [editing, dragging, mutate]);
 
   // Close the menu when clicking outside the board
   useEffect(() => {
