@@ -1,7 +1,8 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ImageIcon, Clock, Copy, Check, Loader2 } from 'lucide-react';
+import axios from 'axios';
+import { ImageIcon, Clock, Copy, Check, Loader2, RefreshCw } from 'lucide-react';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
 
@@ -448,9 +449,12 @@ function rebuildFen(oldFen: string, newPlacement: string): string {
 
 function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc?: string }) {
   const { t } = useLanguage();
+  const effectiveAdmin = useEffectiveAdmin();
   const [copied, setCopied] = useState(false);
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
+  const [rereading, setRereading] = useState(false);
+  const [rereadError, setRereadError] = useState<string | null>(null);
   const historyRef = useRef<string[]>([]);
 
   // Reset edited FEN and undo stack when the source diagram changes
@@ -535,6 +539,47 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       </div>
 
       <EditableBoard fen={editedFen} onChange={handleBoardChange} />
+
+      {effectiveAdmin && diagram.crop_data_url && (
+        <div className="flex flex-col items-center gap-1">
+          <button
+            type="button"
+            onClick={async () => {
+              if (rereading) return;
+              setRereading(true);
+              setRereadError(null);
+              try {
+                const activeColor = editedFen.split(' ')[1] ?? 'w';
+                const res = await axios.post('/api/coaches/reread-region', {
+                  crop_data_url: diagram.crop_data_url,
+                  active_color: activeColor,
+                });
+                if (res.data?.fen) {
+                  setEditedFen(prev => {
+                    historyRef.current.push(prev);
+                    return res.data.fen;
+                  });
+                }
+              } catch (e) {
+                const msg = (e as { response?: { data?: { error?: string } }; message?: string })
+                  .response?.data?.error ?? (e as Error).message ?? 'Re-read failed';
+                setRereadError(msg);
+              } finally {
+                setRereading(false);
+              }
+            }}
+            disabled={rereading}
+            className="px-2.5 py-1 text-xs rounded border border-amber-700/50 bg-amber-900/20 text-amber-200 hover:bg-amber-900/40 flex items-center gap-1.5 disabled:opacity-60"
+            title="Admin: re-run phase 2 on this diagram (same model, same crop)"
+          >
+            <RefreshCw className={`w-3 h-3 ${rereading ? 'animate-spin' : ''}`} />
+            {rereading ? 'Re-reading…' : 'Re-read (admin)'}
+          </button>
+          {rereadError && (
+            <span className="text-xs text-red-400">{rereadError}</span>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <button

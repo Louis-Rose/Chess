@@ -15,7 +15,7 @@ from datetime import datetime
 
 import requests as http_requests
 from flask import Blueprint, jsonify, request, Response
-from auth import login_required, get_current_user
+from auth import login_required, admin_required, get_current_user
 from database import get_db
 
 # Sentinel for signaling thread completion in SSE queues
@@ -392,6 +392,91 @@ def _crop_image_region(image_bytes, mime_type, region):
     fmt = 'PNG' if 'png' in mime_type else 'JPEG'
     cropped.save(buf, format=fmt)
     return buf.getvalue()
+
+
+@coaches_bp.route('/api/coaches/reread-region', methods=['POST'])
+@admin_required
+def reread_region():
+    """Re-run the phase-2 reader on a single crop. Admin-only — used to retry
+    bad reads on a diagram without re-running the full pipeline. Body:
+    { crop_data_url: 'data:image/...;base64,...', active_color: 'w'|'b' }."""
+    from google.genai import types
+
+    data = request.get_json() or {}
+    crop_data_url = data.get('crop_data_url') or ''
+    active_color = data.get('active_color', 'w')
+    if not crop_data_url.startswith('data:'):
+        return jsonify({'error': 'crop_data_url required'}), 400
+    try:
+        header, b64 = crop_data_url.split(',', 1)
+        crop_mime = header.split(';')[0].removeprefix('data:') or 'image/png'
+        crop_bytes = base64.b64decode(b64)
+    except Exception:
+        return jsonify({'error': 'invalid crop_data_url'}), 400
+
+    try:
+        client_paid, client_free = _init_gemini_clients('Diagram reread')
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 500
+
+    uid = get_current_user()
+    req_id = uuid.uuid4().hex[:12]
+    model_id = DIAGRAM_MODELS[0]['id']
+    contents = [
+        types.Part.from_bytes(data=crop_bytes, mime_type=crop_mime),
+        DIAGRAM_READ_SINGLE_PROMPT,
+    ]
+
+    # Same 60s timeout + one retry policy as the batch pipeline.
+    READ_TIMEOUT_SECONDS = 60
+    resp = None
+    tier = 'paid'
+    last_exc = None
+    call_start = time_module.time()
+    for attempt in (1, 2):
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        future = pool.submit(_gemini_generate, client_free, client_paid, model_id, contents)
+        try:
+            resp, tier, _ = future.result(timeout=READ_TIMEOUT_SECONDS)
+            last_exc = None
+            break
+        except concurrent.futures.TimeoutError:
+            last_exc = TimeoutError(f'timeout after {READ_TIMEOUT_SECONDS}s')
+            logger.warning(f"[Diagram reread] timeout (attempt {attempt}/2)")
+        except Exception as e:
+            last_exc = e
+            logger.warning(f"[Diagram reread] attempt {attempt}/2 failed: {e}")
+        finally:
+            pool.shutdown(wait=False)
+
+    elapsed = round(time_module.time() - call_start)
+    if last_exc is not None or resp is None:
+        logger.error(f"[Diagram reread] failed after retry: {last_exc}")
+        _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(last_exc),
+                       request_id=req_id, user_id=uid, billing_tier='paid')
+        return jsonify({'error': f'Read failed: {last_exc}'}), 502
+
+    in_tok, out_tok, think_tok = _extract_usage_tokens(resp)
+    _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed,
+                   request_id=req_id, thinking_tokens=think_tok,
+                   billing_tier=tier, user_id=uid)
+
+    raw_text = resp.text or ''
+    try:
+        raw = _strip_code_fences(raw_text)
+        parsed = json_module.loads(raw)
+        if isinstance(parsed, list):
+            parsed = parsed[0] if parsed else {}
+        squares = parsed.get('squares')
+        if not isinstance(squares, dict):
+            raise ValueError("missing 'squares' object")
+        grid = _squares_to_grid(squares)
+        fen = _grid_to_fen(grid, active_color)
+    except (ValueError, json_module.JSONDecodeError) as ve:
+        logger.warning(f"[Diagram reread] invalid grid: {ve}")
+        return jsonify({'error': f'Invalid grid: {ve}', 'raw': raw_text}), 502
+
+    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed})
 
 
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
