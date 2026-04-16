@@ -958,49 +958,47 @@ def read_scoresheet_azure():
 
 
 DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. The image ALWAYS contains at least one diagram.
-For each diagram, return a bounding box that fully contains the 8x8 board, and, if present, the rank/file labels, the player names, and any caption or diagram number.
 
-Return ONLY a JSON array. No markdown, no commentary.
+For each diagram, return:
+- A tight bounding box around the 8x8 board that INCLUDES the rank labels (1-8) along one side and the file labels (a-h) along one side. Do NOT include the player names, captions, diagram number, turn-to-move arrow, or any other surrounding text — just the board grid and its edge labels.
+- The surrounding metadata read directly from text/markings near the board.
 
-[{"x": percent, "y": percent, "width": percent, "height": percent}]
+Return ONLY a JSON array. No markdown, no commentary, no code fences.
 
-All values are percentages of the full image (0-100). Order diagrams top-to-bottom, then left-to-right."""
+Each array element MUST have these fields:
+- "board_box": {"x": percent, "y": percent, "width": percent, "height": percent} — tight box around the 8x8 grid + edge labels only.
+- "white_player": the white player's name as printed near the diagram, or "" if not visible. Transliterate to Latin alphabet. Just the name, no ratings or dates.
+- "black_player": the black player's name as printed near the diagram, or "" if not visible.
+- "diagram_number": the integer number printed on or next to the diagram (often inside a circle), or null if none. This is a label identifying the diagram in a book/article — NOT a move number or piece count.
+- "active_color": "w" or "b" — whose turn it is, inferred from arrows, "White to move"/"Black to move" captions, or surrounding context. Default to "w" if unclear.
 
-DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a cropped image containing exactly ONE chess diagram with its surrounding context.
+All box values are percentages of the full image (0-100). Order diagrams top-to-bottom, then left-to-right.
 
-Extract the position AND the surrounding context: which side is to move, and the two player names if printed.
+Example output:
+[{"board_box": {"x": 12.5, "y": 18.0, "width": 40.0, "height": 42.0}, "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18, "active_color": "b"}]"""
+
+DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a tightly-cropped image of a SINGLE chess board. The crop shows the 8x8 grid plus its printed rank labels (1-8) and file labels (a-h). There is no other content to read — just the board.
+
+Your only job is to read which piece is on each square.
 
 Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
 
-The object MUST have these fields:
+The object MUST have exactly one field:
 - "squares": an object mapping EVERY one of the 64 square names to a one-character symbol. Keys are "a1" through "h8". Values are:
   - White pieces: "K" "Q" "R" "B" "N" "P"
   - Black pieces: "k" "q" "r" "b" "n" "p"
   - Empty square: "."
   You MUST include all 64 keys — every square from a1 to h8 — even empty ones. Any missing square is a failure.
-- "active_color": "w" or "b" — whose turn it is
-- "white_player": the white player's name as printed near the diagram, or empty string "" if not visible
-- "black_player": the black player's name as printed near the diagram, or empty string "" if not visible
-- "diagram_number": the integer number printed on or next to the diagram (often inside a circle), or null if no such number is visible. This is a label identifying the diagram in a book/article — NOT a move number or piece count.
 
-Procedure for "squares" (follow exactly):
+Procedure (follow exactly):
 - Visit each square one at a time, in a deterministic order (a8, b8, c8, …, h8, then a7, b7, …, h7, down to a1, …, h1).
 - For each square, look AT that specific square in the image. Read the printed file label (a-h) along the bottom and rank label (1-8) along the left to anchor which square you are looking at — trace straight down for the file and straight across for the rank.
 - Write the symbol for what you see on that square in the image: a piece symbol if a piece is centered on that square, or "." if the square is empty.
 - Do not guess based on neighbors. Do not skip squares. Do not count from the edge — use the printed labels.
 - When you are done, the object must contain exactly 64 entries.
 
-Active color rules:
-- Look for arrows, "White to move" / "Black to move" captions, or infer from context
-- Default to "w" if unclear
-
-Player name rules:
-- Transliterate to Latin alphabet if necessary
-- Return just the name, no ratings or dates
-- Use "" (empty string) when a name is not printed
-
 Example output (showing a few entries — the real output must have all 64):
-{"squares": {"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}, "active_color": "b", "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18}"""
+{"squares": {"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}}"""
 
 
 _VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
@@ -1150,74 +1148,82 @@ def read_diagram():
             if is_admin:
                 result_queue.put({"type": "debug", "phase": "locate", "raw": resp_locate.text})
             raw = _strip_code_fences(resp_locate.text)
-            regions = json_module.loads(raw)
-            if not isinstance(regions, list):
-                regions = [regions]
-            # Validate, union sub-boxes, and clamp regions
-            SAFETY_PAD = 5.0  # percentage points added around the unioned box
-            valid_regions = []
-            for r in regions:
+            raw_items = json_module.loads(raw)
+            if not isinstance(raw_items, list):
+                raw_items = [raw_items]
+            # Validate and normalize each diagram entry into {box, white_player, black_player, diagram_number, active_color}.
+            # Box is a tight crop (8x8 grid + edge labels). A small padding guards against clipping labels.
+            SAFETY_PAD = 2.0
+            valid_diagrams = []
+            for r in raw_items:
                 if not isinstance(r, dict):
                     continue
-                # Accepts multiple shapes:
+                # Extract box. Accepts:
+                # - New: {"board_box": {"x","y","width","height"}}
                 # - Gemini native: {"box_2d": [ymin, xmin, ymax, xmax]} in 0-1000
-                # - Flat percentage: {"x", "y", "width", "height"}
-                # - Legacy sub-boxes: {"board": {...}, "labels": {...}, "context": {...}}
-                sub_boxes = []
-                box_2d = r.get('box_2d')
-                if isinstance(box_2d, (list, tuple)) and len(box_2d) == 4:
-                    try:
-                        ymin, xmin, ymax, xmax = [float(v) for v in box_2d]
-                        sub_boxes.append({
-                            'x': xmin / 10.0,
-                            'y': ymin / 10.0,
-                            'width': (xmax - xmin) / 10.0,
-                            'height': (ymax - ymin) / 10.0,
-                        })
-                    except (TypeError, ValueError):
-                        pass
-                if not sub_boxes:
-                    for key in ('board', 'rank_labels', 'file_labels', 'labels', 'context'):
-                        sub = r.get(key)
-                        if isinstance(sub, dict) and all(k in sub for k in ('x', 'y', 'width', 'height')):
-                            sub_boxes.append(sub)
-                if not sub_boxes and all(k in r for k in ('x', 'y', 'width', 'height')):
-                    sub_boxes.append(r)
-                if not sub_boxes:
+                # - Flat percentage at top level: {"x","y","width","height"}
+                box = None
+                board_box = r.get('board_box')
+                if isinstance(board_box, dict) and all(k in board_box for k in ('x', 'y', 'width', 'height')):
+                    box = board_box
+                if box is None:
+                    box_2d = r.get('box_2d')
+                    if isinstance(box_2d, (list, tuple)) and len(box_2d) == 4:
+                        try:
+                            ymin, xmin, ymax, xmax = [float(v) for v in box_2d]
+                            box = {
+                                'x': xmin / 10.0,
+                                'y': ymin / 10.0,
+                                'width': (xmax - xmin) / 10.0,
+                                'height': (ymax - ymin) / 10.0,
+                            }
+                        except (TypeError, ValueError):
+                            pass
+                if box is None and all(k in r for k in ('x', 'y', 'width', 'height')):
+                    box = {k: r[k] for k in ('x', 'y', 'width', 'height')}
+                if box is None:
                     continue
-                # Union all sub-boxes
-                left = min(float(b['x']) for b in sub_boxes)
-                top = min(float(b['y']) for b in sub_boxes)
-                right = max(float(b['x']) + float(b['width']) for b in sub_boxes)
-                bottom = max(float(b['y']) + float(b['height']) for b in sub_boxes)
-                # Apply safety padding, clamp to [0, 100]
-                left = max(0.0, left - SAFETY_PAD)
-                top = max(0.0, top - SAFETY_PAD)
-                right = min(100.0, right + SAFETY_PAD)
-                bottom = min(100.0, bottom + SAFETY_PAD)
-                valid_regions.append({
+                # Clamp + pad box
+                left = max(0.0, float(box['x']) - SAFETY_PAD)
+                top = max(0.0, float(box['y']) - SAFETY_PAD)
+                right = min(100.0, float(box['x']) + float(box['width']) + SAFETY_PAD)
+                bottom = min(100.0, float(box['y']) + float(box['height']) + SAFETY_PAD)
+                clamped = {
                     'x': left,
                     'y': top,
                     'width': right - left,
                     'height': bottom - top,
+                }
+                # Extract metadata
+                white = str(r.get('white_player', '') or '').strip()
+                black = str(r.get('black_player', '') or '').strip()
+                raw_num = r.get('diagram_number')
+                try:
+                    diagram_number = int(raw_num) if raw_num not in (None, '') else None
+                except (TypeError, ValueError):
+                    diagram_number = None
+                active_color = 'w' if str(r.get('active_color', 'w')).lower().startswith('w') else 'b'
+                valid_diagrams.append({
+                    'box': clamped,
+                    'white_player': white,
+                    'black_player': black,
+                    'diagram_number': diagram_number,
+                    'active_color': active_color,
                 })
-            # Sort: top-to-bottom, then left-to-right (using row midpoint)
-            valid_regions.sort(key=lambda r: (r['y'] + r['height'] / 2, r['x'] + r['width'] / 2))
+            # Sort: top-to-bottom, then left-to-right (using box midpoint)
+            valid_diagrams.sort(key=lambda d: (d['box']['y'] + d['box']['height'] / 2, d['box']['x'] + d['box']['width'] / 2))
 
-            # Resolve overlaps: clip each region so it doesn't extend into later ones
-            for i in range(len(valid_regions)):
-                ri = valid_regions[i]
-                for j in range(i + 1, len(valid_regions)):
-                    rj = valid_regions[j]
-                    # Check overlap
+            # Resolve overlaps: clip each box so it doesn't extend into later ones
+            for i in range(len(valid_diagrams)):
+                ri = valid_diagrams[i]['box']
+                for j in range(i + 1, len(valid_diagrams)):
+                    rj = valid_diagrams[j]['box']
                     if (ri['x'] < rj['x'] + rj['width'] and ri['x'] + ri['width'] > rj['x'] and
                         ri['y'] < rj['y'] + rj['height'] and ri['y'] + ri['height'] > rj['y']):
-                        # Clip: shrink the earlier region's bottom or right edge
                         ri_cx = ri['x'] + ri['width'] / 2
                         rj_cx = rj['x'] + rj['width'] / 2
                         ri_cy = ri['y'] + ri['height'] / 2
                         rj_cy = rj['y'] + rj['height'] / 2
-                        # If primarily vertical overlap, clip vertically
                         if abs(rj_cy - ri_cy) >= abs(rj_cx - ri_cx):
                             boundary = (ri['y'] + ri['height'] + rj['y']) / 2
                             ri['height'] = boundary - ri['y']
@@ -1229,8 +1235,8 @@ def read_diagram():
                             rj['width'] = rj['width'] - (boundary - rj['x'])
                             rj['x'] = boundary
 
-            regions = valid_regions
-            logger.info(f"[Diagram] Phase 1 done: {len(regions)} region(s) found ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
+            diagrams_meta = valid_diagrams
+            logger.info(f"[Diagram] Phase 1 done: {len(diagrams_meta)} diagram(s) found ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
         except Exception as e:
             elapsed = round(time_module.time() - total_start)
             logger.error(f"[Diagram] Phase 1 failed: {e}")
@@ -1238,25 +1244,26 @@ def read_diagram():
             _log_api_usage('diagram', model_id, total_in, total_out, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier='paid')
             return
 
-        if not regions:
+        if not diagrams_meta:
             elapsed = round(time_module.time() - total_start)
             logger.info("[Diagram] No regions found")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "diagrams": [], "elapsed": elapsed})
             _log_api_usage('diagram', model_id, total_in, total_out, elapsed, request_id=req_id, billing_tier=tier_used, user_id=uid)
             return
 
-        # Send region count to frontend
-        result_queue.put({"type": "regions", "count": len(regions), "regions": regions})
+        # Send region count to frontend (boxes only — metadata arrives with each diagram)
+        boxes = [m['box'] for m in diagrams_meta]
+        result_queue.put({"type": "regions", "count": len(boxes), "regions": boxes})
 
         # ── Phase 2: Read each region in parallel (independent API calls) ──
         diagrams_by_idx = {}
         tokens_lock = threading.Lock()
 
-        def read_region(idx, region):
+        def read_region(idx, meta):
             nonlocal total_in, total_out, total_think, tier_used
-            logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(regions)}")
+            logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(diagrams_meta)}")
             try:
-                cropped_bytes = _crop_image_region(image_bytes, mime_type, region)
+                cropped_bytes = _crop_image_region(image_bytes, mime_type, meta['box'])
                 crop_mime = 'image/png' if 'png' in mime_type else 'image/jpeg'
                 resp_read, tier, _ = _gemini_generate(
                     client_free, client_paid, model_id,
@@ -1275,25 +1282,23 @@ def read_diagram():
                 parsed = json_module.loads(raw)
                 if isinstance(parsed, list):
                     parsed = parsed[0] if parsed else {}
-                white = str(parsed.get("white_player", "") or "").strip()
-                black = str(parsed.get("black_player", "") or "").strip()
-                raw_num = parsed.get("diagram_number")
-                try:
-                    diagram_number = int(raw_num) if raw_num not in (None, "") else None
-                except (TypeError, ValueError):
-                    diagram_number = None
                 try:
                     squares = parsed.get("squares")
-                    if isinstance(squares, dict):
-                        grid = _squares_to_grid(squares)
-                    else:
-                        grid = parsed.get("board")  # legacy shape
-                    fen = _grid_to_fen(grid, parsed.get("active_color", "w"))
+                    if not isinstance(squares, dict):
+                        raise ValueError("missing 'squares' object")
+                    grid = _squares_to_grid(squares)
+                    fen = _grid_to_fen(grid, meta['active_color'])
                 except ValueError as ve:
                     logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
                     fen = ""
                 if fen:
-                    diagram = {"fen": fen, "white_player": white, "black_player": black, "region": region, "diagram_number": diagram_number}
+                    diagram = {
+                        "fen": fen,
+                        "white_player": meta['white_player'],
+                        "black_player": meta['black_player'],
+                        "region": meta['box'],
+                        "diagram_number": meta['diagram_number'],
+                    }
                     diagrams_by_idx[idx] = diagram
                     result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                     logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
@@ -1303,8 +1308,8 @@ def read_diagram():
                 logger.error(f"[Diagram] Region {idx + 1} failed: {e}")
 
         region_threads = []
-        for idx, region in enumerate(regions):
-            rt = threading.Thread(target=read_region, args=(idx, region))
+        for idx, meta in enumerate(diagrams_meta):
+            rt = threading.Thread(target=read_region, args=(idx, meta))
             rt.start()
             region_threads.append(rt)
 
