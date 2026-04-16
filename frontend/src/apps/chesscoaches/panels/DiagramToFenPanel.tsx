@@ -369,7 +369,11 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
           onChange={e => setSelectedDiagramIdx(Number(e.target.value))}
           className={selectClass}
         >
-          {entries.map((entry, i) => {
+          {entries.length === 0 ? (
+            <option value={0} disabled>
+              {t('coaches.diagram.diagramLabel')} #1
+            </option>
+          ) : entries.map((entry, i) => {
             const num = entry.kind === 'ready' ? entry.diagram.diagram_number : entry.region.diagram_number;
             const label = typeof num === 'number'
               ? `${t('coaches.diagram.diagramLabel')} #${num}`
