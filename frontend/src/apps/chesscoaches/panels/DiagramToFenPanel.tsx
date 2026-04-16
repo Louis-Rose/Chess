@@ -82,6 +82,76 @@ function RegionOverlay({ regions, showCandidates = false }: { regions: Region[];
   );
 }
 
+/** Bake the region overlay onto the image via canvas, so the browser's native
+ * "Copy image" / "Open image in new tab" returns the composite. */
+function ComposedImage({
+  src,
+  regions,
+  showCandidates,
+  className,
+  onClick,
+}: {
+  src: string;
+  regions?: Region[];
+  showCandidates: boolean;
+  className?: string;
+  onClick?: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (!src) return;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      if (!regions || regions.length === 0) return;
+
+      const strokeW = Math.max(2, img.naturalWidth * 0.004);
+      const fontSize = Math.max(14, img.naturalWidth * 0.02);
+      ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+      ctx.textBaseline = 'top';
+
+      regions.forEach((r, i) => {
+        const color = REGION_COLORS[i % REGION_COLORS.length];
+        const rejected = showCandidates && r.tight_box && r.padded_box
+          ? (r.selected_variant === 'padded' ? r.tight_box : r.padded_box)
+          : null;
+        if (rejected) {
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = 0.5;
+          ctx.lineWidth = strokeW * 0.45;
+          ctx.setLineDash([strokeW * 2.5, strokeW * 2]);
+          ctx.strokeRect(
+            (rejected.x / 100) * canvas.width,
+            (rejected.y / 100) * canvas.height,
+            (rejected.width / 100) * canvas.width,
+            (rejected.height / 100) * canvas.height,
+          );
+          ctx.globalAlpha = 1;
+          ctx.setLineDash([]);
+        }
+        const x = (r.x / 100) * canvas.width;
+        const y = (r.y / 100) * canvas.height;
+        const w = (r.width / 100) * canvas.width;
+        const h = (r.height / 100) * canvas.height;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = strokeW;
+        ctx.strokeRect(x, y, w, h);
+        const label = typeof r.diagram_number === 'number' ? String(r.diagram_number) : String(i + 1);
+        ctx.fillStyle = color;
+        ctx.fillText(label, x + strokeW, y + strokeW * 0.5);
+      });
+    };
+    img.src = src;
+  }, [src, regions, showCandidates]);
+  return <canvas ref={canvasRef} className={className} onClick={onClick} />;
+}
+
 function CroppedRegion({ src, region }: { src: string; region: { x: number; y: number; width: number; height: number } }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -217,17 +287,15 @@ export function DiagramToFenPanel() {
               })()}
 
               <div className="flex justify-center">
-              <div className="relative">
-                <img
+                <ComposedImage
                   src={preview}
-                  alt="Diagram"
-                  className={`rounded-xl cursor-pointer hover:opacity-90 transition-all ${
+                  regions={regions}
+                  showCandidates={effectiveAdmin}
+                  onClick={() => setShowImageModal(true)}
+                  className={`rounded-xl cursor-pointer hover:opacity-90 transition-all w-auto ${
                     !analyzing && models.length === 0 ? 'max-h-[65vh]' : 'max-h-80'
                   }`}
-                  onClick={() => setShowImageModal(true)}
                 />
-                {regions && regions.length > 0 && <RegionOverlay regions={regions} showCandidates={effectiveAdmin} />}
-              </div>
               </div>
 
               {effectiveAdmin && (debugRawLocate || (debugRawReads && Object.keys(debugRawReads).length > 0)) && (
