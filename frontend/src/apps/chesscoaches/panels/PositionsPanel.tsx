@@ -1,6 +1,7 @@
 // Knowledge Center — Positions panel
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { BookOpen, Folder, FolderOpen, FolderPlus, Pencil, Trash2, ChevronRight, ChevronDown, Loader2, Check, X } from 'lucide-react';
@@ -60,6 +61,20 @@ export function PositionsPanel() {
   const [renameDraft, setRenameDraft] = useState('');
   const [creatingUnder, setCreatingUnder] = useState<number | null | 'root'>(null);
   const [createDraft, setCreateDraft] = useState('');
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+
+  // Close the folder-row menu when clicking anywhere outside it
+  useEffect(() => {
+    if (menuOpenId === null) return;
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-folder-menu]') && !target.closest('[data-folder-row]')) {
+        setMenuOpenId(null);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [menuOpenId]);
 
   const treeQuery = useQuery({
     queryKey: ['knowledge-tree'],
@@ -192,22 +207,24 @@ export function PositionsPanel() {
                   node={node}
                   depth={0}
                   selectedId={selectedFolderId}
-                  onSelect={setSelectedFolderId}
+                  onSelect={(id) => { setSelectedFolderId(id); setMenuOpenId(null); }}
                   expanded={expanded}
                   onToggle={toggleExpand}
                   renamingId={renaming}
                   renameDraft={renameDraft}
                   setRenameDraft={setRenameDraft}
-                  startRename={(id, name) => { setRenaming(id); setRenameDraft(name); }}
+                  startRename={(id, name) => { setRenaming(id); setRenameDraft(name); setMenuOpenId(null); }}
                   submitRename={renameFolder}
                   cancelRename={() => setRenaming(null)}
-                  onDelete={deleteFolder}
+                  onDelete={(id) => { setMenuOpenId(null); deleteFolder(id); }}
                   creatingUnder={creatingUnder}
-                  startCreateUnder={(id) => { setCreatingUnder(id); setCreateDraft(''); }}
+                  startCreateUnder={(id) => { setCreatingUnder(id); setCreateDraft(''); setMenuOpenId(null); }}
                   createDraft={createDraft}
                   setCreateDraft={setCreateDraft}
                   submitCreate={createFolder}
                   cancelCreate={() => { setCreatingUnder(null); setCreateDraft(''); }}
+                  menuOpenId={menuOpenId}
+                  setMenuOpenId={setMenuOpenId}
                   t={t}
                 />
               ))}
@@ -262,6 +279,8 @@ interface FolderItemProps {
   setCreateDraft: (v: string) => void;
   submitCreate: (parentId: number | null) => void;
   cancelCreate: () => void;
+  menuOpenId: number | null;
+  setMenuOpenId: (id: number | null) => void;
   t: (k: string) => string;
 }
 
@@ -271,17 +290,20 @@ function FolderItem(props: FolderItemProps) {
     renamingId, renameDraft, setRenameDraft, startRename, submitRename, cancelRename,
     onDelete,
     creatingUnder, startCreateUnder, createDraft, setCreateDraft, submitCreate, cancelCreate,
+    menuOpenId, setMenuOpenId,
     t,
   } = props;
   const isOpen = expanded.has(node.id);
   const isSelected = selectedId === node.id;
   const hasChildren = node.children.length > 0;
   const isRenaming = renamingId === node.id;
+  const isMenuOpen = menuOpenId === node.id;
 
   return (
     <li>
       <div
-        className={`group flex items-center gap-1 rounded px-1 py-1 text-sm ${
+        data-folder-row
+        className={`relative flex items-center gap-1 rounded px-1 py-1 text-sm ${
           isSelected ? 'bg-slate-700 text-slate-100' : 'text-slate-300 hover:bg-slate-700/50'
         }`}
         style={{ paddingLeft: `${4 + depth * 14}px` }}
@@ -307,23 +329,24 @@ function FolderItem(props: FolderItemProps) {
           <>
             <button
               type="button"
-              onClick={() => onSelect(node.id)}
+              onClick={() => setMenuOpenId(isMenuOpen ? null : node.id)}
               className="flex-1 text-left truncate"
             >
               {node.name}
             </button>
             <span className="text-xs text-slate-500">{node.position_count}</span>
-            <div className="hidden group-hover:flex items-center gap-0.5">
-              <button type="button" onClick={() => startCreateUnder(node.id)} className="p-0.5 text-slate-500 hover:text-slate-200" title={t('coaches.positions.newSubfolder')}>
-                <FolderPlus className="w-3.5 h-3.5" />
-              </button>
-              <button type="button" onClick={() => startRename(node.id, node.name)} className="p-0.5 text-slate-500 hover:text-slate-200" title={t('coaches.positions.rename')}>
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-              <button type="button" onClick={() => onDelete(node.id)} className="p-0.5 text-slate-500 hover:text-red-400" title={t('coaches.positions.delete')}>
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            {isMenuOpen && (
+              <div
+                data-folder-menu
+                className="absolute left-6 top-full z-40 mt-1 min-w-[180px] rounded-lg border border-slate-600 bg-slate-900 shadow-xl py-1"
+                onMouseDown={e => e.stopPropagation()}
+              >
+                <FolderMenuItem icon={<FolderOpen className="w-4 h-4 text-slate-400" />} label={t('coaches.positions.openFolder')} onClick={() => onSelect(node.id)} />
+                <FolderMenuItem icon={<FolderPlus className="w-4 h-4 text-slate-400" />} label={t('coaches.positions.newSubfolder')} onClick={() => startCreateUnder(node.id)} />
+                <FolderMenuItem icon={<Pencil className="w-4 h-4 text-slate-400" />} label={t('coaches.positions.rename')} onClick={() => startRename(node.id, node.name)} />
+                <FolderMenuItem icon={<Trash2 className="w-4 h-4 text-red-400" />} label={t('coaches.positions.delete')} danger onClick={() => onDelete(node.id)} />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -345,6 +368,19 @@ function FolderItem(props: FolderItemProps) {
         </ul>
       )}
     </li>
+  );
+}
+
+function FolderMenuItem({ icon, label, onClick, danger = false }: { icon: ReactNode; label: string; onClick: () => void; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left hover:bg-slate-700/70 ${danger ? 'text-red-400' : 'text-slate-200'}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }
 
