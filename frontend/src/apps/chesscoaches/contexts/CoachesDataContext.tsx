@@ -16,6 +16,10 @@ export interface DiagramRegion {
   tight_box?: { x: number; y: number; width: number; height: number };
   padded_box?: { x: number; y: number; width: number; height: number };
   selected_variant?: 'tight' | 'padded';
+  crop_data_url?: string;
+  white_player?: string;
+  black_player?: string;
+  diagram_number?: number | null;
 }
 
 export interface DiagramExtract {
@@ -427,12 +431,14 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
           } else if (payload.type === 'regions') {
             setDiagram(prev => ({ ...prev, regions: payload.regions, regionCount: payload.count, regionsRead: 0 }));
           } else if (payload.type === 'diagram') {
-            // Stream individual diagram as it's read
-            const { diagram: d } = payload;
+            // Stream individual diagram as it's read; place at its region index so
+            // pending regions (not yet read) still occupy their slot in the list.
+            const { index: regionIdx, diagram: d } = payload;
             setDiagram(prev => {
               const modelId = prev.models[0]?.id || 'default';
               const existing = prev.modelResults[modelId];
-              const diagrams = [...(existing?.diagrams || []), d];
+              const diagrams = [...(existing?.diagrams || [])];
+              diagrams[regionIdx] = d;
               return {
                 ...prev,
                 regionsRead: (prev.regionsRead || 0) + 1,

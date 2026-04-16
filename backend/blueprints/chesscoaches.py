@@ -1298,13 +1298,25 @@ def read_diagram():
         for jt in judge_threads:
             jt.join()
 
-        # Send region count + both boxes (so admin UI can render candidates)
+        # Pre-compute the selected crop bytes so phase 2 doesn't re-crop,
+        # and the frontend can show the cropped image + metadata while phase 2 runs.
+        for m in diagrams_meta:
+            m['_crop_bytes'] = _crop_image_region(image_bytes, mime_type, m['box'])
+            m['_crop_mime'] = 'image/png' if 'png' in mime_type else 'image/jpeg'
+            m['crop_data_url'] = f"data:{m['_crop_mime']};base64,{base64.b64encode(m['_crop_bytes']).decode('ascii')}"
+
+        # Send region count + both boxes (admin UI renders candidates) + crop + metadata
+        # so the frontend can show a pending diagram card while phase 2 runs.
         regions_payload = [
             {
                 **m['box'],
                 'tight_box': m['box_tight'],
                 'padded_box': m['box_padded'],
                 'selected_variant': m['selected_variant'],
+                'crop_data_url': m['crop_data_url'],
+                'white_player': m['white_player'],
+                'black_player': m['black_player'],
+                'diagram_number': m['diagram_number'],
             }
             for m in diagrams_meta
         ]
@@ -1317,8 +1329,8 @@ def read_diagram():
             nonlocal total_in, total_out, total_think, tier_used
             logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(diagrams_meta)}")
             try:
-                cropped_bytes = _crop_image_region(image_bytes, mime_type, meta['box'])
-                crop_mime = 'image/png' if 'png' in mime_type else 'image/jpeg'
+                cropped_bytes = meta['_crop_bytes']
+                crop_mime = meta['_crop_mime']
                 resp_read, tier, _ = _gemini_generate(
                     client_free, client_paid, model_id,
                     contents=[

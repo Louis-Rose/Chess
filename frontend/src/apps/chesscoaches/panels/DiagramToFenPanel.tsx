@@ -1,7 +1,7 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { ImageIcon, Clock, Copy, Check } from 'lucide-react';
+import { ImageIcon, Clock, Copy, Check, Loader2 } from 'lucide-react';
 import { ImageZoomModal } from '../components/ImageZoomModal';
 import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
 
@@ -10,7 +10,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
-import type { DiagramModelResult, DiagramExtract } from '../contexts/CoachesDataContext';
+import type { DiagramModelResult, DiagramExtract, DiagramRegion } from '../contexts/CoachesDataContext';
 
 const REGION_COLORS = [
   'rgba(99,102,241,0.7)',   // indigo
@@ -252,7 +252,7 @@ export function DiagramToFenPanel() {
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
               {models.length > 0 && (
-                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} previewSrc={preview} totalRegions={regionCount} liveElapsedSec={liveElapsed} />
+                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} previewSrc={preview} totalRegions={regionCount} liveElapsedSec={liveElapsed} regions={regions} />
               )}
             </div>
           )}
@@ -276,6 +276,7 @@ interface ResultsViewProps {
   previewSrc?: string;
   totalRegions?: number;
   liveElapsedSec?: number;
+  regions?: DiagramRegion[];
 }
 
 // Translate backend reader names like "Reader 1" → "Lecteur 1" (FR)
@@ -285,7 +286,11 @@ function localizeReaderName(name: string | undefined, readerLabel: string): stri
   return match ? `${readerLabel} ${match[1]}` : name;
 }
 
-function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions, liveElapsedSec }: ResultsViewProps) {
+type DiagramEntry =
+  | { kind: 'ready'; diagram: DiagramExtract }
+  | { kind: 'pending'; region: DiagramRegion };
+
+function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions, liveElapsedSec, regions }: ResultsViewProps) {
   const { t } = useLanguage();
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
@@ -302,18 +307,34 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
   const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
   const mr = selectedModel ? modelResults[selectedModel.id] : undefined;
   const rawDiagrams = mr?.diagrams ?? [];
-  const diagramCount = rawDiagrams.length;
-  const allHaveNumbers = diagramCount > 0 && rawDiagrams.every(d => typeof d.diagram_number === 'number');
-  const diagrams = allHaveNumbers
-    ? [...rawDiagrams].sort((a, b) => (a.diagram_number ?? 0) - (b.diagram_number ?? 0))
-    : rawDiagrams;
+  const regionList = regions ?? [];
+
+  // Build entries per region index: ready (phase 2 done) or pending (crop known, reading in flight).
+  const count = Math.max(totalRegions ?? 0, regionList.length, rawDiagrams.length);
+  const rawEntries: DiagramEntry[] = [];
+  for (let i = 0; i < count; i++) {
+    const d = rawDiagrams[i];
+    if (d) { rawEntries.push({ kind: 'ready', diagram: d }); continue; }
+    const r = regionList[i];
+    if (r) rawEntries.push({ kind: 'pending', region: r });
+  }
+  const readyCount = rawEntries.filter(e => e.kind === 'ready').length;
+  const allReady = rawEntries.length > 0 && readyCount === rawEntries.length;
+  const allHaveNumbers = allReady && rawEntries.every(e => e.kind === 'ready' && typeof e.diagram.diagram_number === 'number');
+  const entries = allHaveNumbers
+    ? [...rawEntries].sort((a, b) =>
+        (a.kind === 'ready' ? (a.diagram.diagram_number ?? 0) : 0) -
+        (b.kind === 'ready' ? (b.diagram.diagram_number ?? 0) : 0)
+      )
+    : rawEntries;
+  const entryCount = entries.length;
 
   // Clamp diagram index when the selected reader changes
   useEffect(() => {
-    if (diagramCount > 0 && selectedDiagramIdx >= diagramCount) {
+    if (entryCount > 0 && selectedDiagramIdx >= entryCount) {
       setSelectedDiagramIdx(0);
     }
-  }, [diagramCount, selectedDiagramIdx]);
+  }, [entryCount, selectedDiagramIdx]);
 
   const selectClass =
     'bg-slate-800 border border-slate-600 text-slate-100 text-sm rounded-lg px-3 py-2 hover:border-slate-500 focus:border-blue-500 focus:outline-none';
@@ -338,15 +359,16 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
         <select
           value={selectedDiagramIdx}
           onChange={e => setSelectedDiagramIdx(Number(e.target.value))}
-          disabled={diagramCount <= 1 && !totalRegions}
-          className={`${selectClass} ${diagramCount <= 1 && !totalRegions ? 'opacity-50' : ''}`}
+          disabled={entryCount <= 1}
+          className={`${selectClass} ${entryCount <= 1 ? 'opacity-50' : ''}`}
         >
-          {Array.from({ length: totalRegions || Math.max(diagramCount, 1) }, (_, i) => {
-            const label = allHaveNumbers && i < diagramCount
-              ? `${t('coaches.diagram.diagramLabel')} #${diagrams[i].diagram_number}`
-              : `${t('coaches.diagram.diagramLabel')} ${i + 1} / ${totalRegions || (analyzing ? '?' : Math.max(diagramCount, 1))}`;
+          {entries.map((entry, i) => {
+            const num = entry.kind === 'ready' ? entry.diagram.diagram_number : entry.region.diagram_number;
+            const label = typeof num === 'number'
+              ? `${t('coaches.diagram.diagramLabel')} #${num}`
+              : `${t('coaches.diagram.diagramLabel')} ${i + 1} / ${entryCount || (analyzing ? '?' : 1)}`;
             return (
-              <option key={i} value={i} disabled={i >= diagramCount}>
+              <option key={i} value={i}>
                 {label}
               </option>
             );
@@ -368,15 +390,20 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
           })()}
         </div>
 
-        {!mr ? (
+        {mr?.error ? (
+          <p className="text-red-400 text-center py-4 px-3 text-xs">{mr.error}</p>
+        ) : entryCount > 0 ? (
+          <div className="p-3">
+            {(() => {
+              const entry = entries[selectedDiagramIdx] ?? entries[0];
+              return entry.kind === 'ready'
+                ? <FenEntry diagram={entry.diagram} previewSrc={previewSrc} />
+                : <PendingDiagram region={entry.region} />;
+            })()}
+          </div>
+        ) : !mr ? (
           <div className="flex items-center justify-center py-12">
             <span className="text-slate-500 text-xs animate-pulse">{t('coaches.diagram.analyzing')}</span>
-          </div>
-        ) : mr.error ? (
-          <p className="text-red-400 text-center py-4 px-3 text-xs">{mr.error}</p>
-        ) : diagramCount > 0 ? (
-          <div className="p-3">
-            <FenEntry diagram={diagrams[selectedDiagramIdx] ?? diagrams[0]} previewSrc={previewSrc} />
           </div>
         ) : (
           <p className="text-slate-500 text-center py-4 px-3 text-xs">{t('coaches.diagram.noneDetected')}</p>
@@ -494,6 +521,38 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 }
 
 import { pieceImageUrl, BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
+
+function PendingDiagram({ region }: { region: DiagramRegion }) {
+  const hasPlayers = !!(region.white_player || region.black_player);
+  return (
+    <div className="space-y-3">
+      {region.crop_data_url && (
+        <img src={region.crop_data_url} alt="" className="mx-auto rounded-lg border border-slate-600 max-w-[400px] w-full" />
+      )}
+      {hasPlayers && (
+        <div className="flex items-center justify-center gap-2 text-sm font-medium">
+          <span className="w-3 h-3 rounded-full bg-white border border-slate-400 inline-block" />
+          <span className="text-slate-100">{region.white_player || '—'}</span>
+          <span className="text-slate-500 mx-1">vs</span>
+          <span className="text-slate-100">{region.black_player || '—'}</span>
+          <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-500 inline-block" />
+        </div>
+      )}
+      <div className="relative mx-auto aspect-square w-full max-w-[400px] rounded-lg overflow-hidden shadow-lg">
+        <div className="grid h-full w-full grid-cols-8 grid-rows-8">
+          {Array.from({ length: 64 }, (_, i) => {
+            const r = Math.floor(i / 8), c = i % 8;
+            const isLight = (r + c) % 2 === 0;
+            return <div key={i} style={{ backgroundColor: isLight ? LIGHT : DARK }} />;
+          })}
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/10">
+          <Loader2 className="w-10 h-10 text-slate-100 drop-shadow animate-spin" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const PIECE_PALETTE = ['K', 'Q', 'R', 'B', 'N', 'P', 'k', 'q', 'r', 'b', 'n', 'p'];
 
