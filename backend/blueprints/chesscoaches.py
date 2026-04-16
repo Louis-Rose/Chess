@@ -986,11 +986,6 @@ Pick the crop that best satisfies BOTH criteria:
 1. The rank labels (1-8) and file labels (a-h) printed along the edges of the board MUST both be fully visible.
 2. The crop MUST NOT include any other text or metadata — no player names, no diagram number, no caption, no "to move" arrow, and no part of a neighboring diagram.
 
-Tie-breaking:
-- If both satisfy both criteria, prefer A (tighter is better).
-- If only one satisfies both criteria, pick that one.
-- If neither fully satisfies, pick the one closer to meeting both criteria.
-
 Return ONLY a single letter: "A" or "B". No explanation, no punctuation, no code fences."""
 
 
