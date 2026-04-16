@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+import time
 
 import requests as http_requests
 from flask import Blueprint, jsonify, request, send_file
@@ -571,4 +572,72 @@ def list_waitlist():
 
     return jsonify({'responses': responses, 'total': data.get('total_items', len(responses))})
 
+
+# ── Notion: "Features wanted" aggregation from CRM ──
+NOTION_API_VERSION = '2022-06-28'
+NOTION_CACHE_TTL_SECONDS = 600  # 10 minutes
+_notion_cache: dict = {'ts': 0.0, 'payload': None}
+
+
+@admin_bp.route('/api/admin/feature-requests', methods=['GET'])
+@admin_required
+def feature_requests():
+    """Aggregate 'Features wanted' multi-select tags from the Notion CRM, filtered to interviewed rows."""
+    token = os.environ.get('NOTION_TOKEN')
+    database_id = os.environ.get('NOTION_DATABASE_ID')
+    if not token or not database_id:
+        return jsonify({'error': 'NOTION_TOKEN and NOTION_DATABASE_ID must be configured'}), 500
+
+    now = time.time()
+    cached = _notion_cache.get('payload')
+    if cached and now - _notion_cache['ts'] < NOTION_CACHE_TTL_SECONDS:
+        return jsonify(cached)
+
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Notion-Version': NOTION_API_VERSION,
+        'Content-Type': 'application/json',
+    }
+    body = {
+        'filter': {'property': 'Interviewed', 'checkbox': {'equals': True}},
+        'page_size': 100,
+    }
+
+    counts: dict = {}
+    interviewed_count = 0
+    start_cursor = None
+    try:
+        while True:
+            if start_cursor:
+                body['start_cursor'] = start_cursor
+            resp = http_requests.post(
+                f'https://api.notion.com/v1/databases/{database_id}/query',
+                headers=headers,
+                json=body,
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            for page in data.get('results') or []:
+                interviewed_count += 1
+                prop = (page.get('properties') or {}).get('Features wanted') or {}
+                for tag in prop.get('multi_select') or []:
+                    name = tag.get('name')
+                    if name:
+                        counts[name] = counts.get(name, 0) + 1
+            if not data.get('has_more'):
+                break
+            start_cursor = data.get('next_cursor')
+    except http_requests.RequestException as e:
+        logger.exception('Notion API call failed')
+        return jsonify({'error': f'Notion API error: {e}'}), 502
+
+    items = sorted(
+        [{'tag': k, 'count': v} for k, v in counts.items()],
+        key=lambda d: (-d['count'], d['tag']),
+    )
+    payload = {'items': items, 'interviewed_count': interviewed_count}
+    _notion_cache['ts'] = now
+    _notion_cache['payload'] = payload
+    return jsonify(payload)
 
