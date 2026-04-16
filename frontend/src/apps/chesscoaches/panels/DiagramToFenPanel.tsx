@@ -168,7 +168,7 @@ export function DiagramToFenPanel() {
                   ? Math.round(20 + (regionsRead || 0) / regionCount * 80)
                   : regions ? 20 : 0;
                 const maxAvg = models.length > 0
-                  ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)) * 1.3 * (regionCount || 1))
+                  ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)))
                   : 0;
                 return (
                   <ProcessingProgressBar
@@ -228,7 +228,7 @@ export function DiagramToFenPanel() {
               {error && <p className="text-red-400 text-center py-4">{error}</p>}
 
               {models.length > 0 && (
-                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} previewSrc={preview} totalRegions={regionCount} />
+                <ResultsView models={models} modelResults={modelResults} analyzing={analyzing} previewSrc={preview} totalRegions={regionCount} liveElapsedSec={liveElapsed} />
               )}
             </div>
           )}
@@ -251,6 +251,7 @@ interface ResultsViewProps {
   analyzing: boolean;
   previewSrc?: string;
   totalRegions?: number;
+  liveElapsedSec?: number;
 }
 
 // Translate backend reader names like "Reader 1" → "Lecteur 1" (FR)
@@ -260,7 +261,7 @@ function localizeReaderName(name: string | undefined, readerLabel: string): stri
   return match ? `${readerLabel} ${match[1]}` : name;
 }
 
-function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions }: ResultsViewProps) {
+function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions, liveElapsedSec }: ResultsViewProps) {
   const { t } = useLanguage();
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
@@ -332,12 +333,15 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
       <div className="bg-slate-700/50 rounded-xl overflow-hidden">
         <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
           <span className="text-slate-100 font-medium text-xs">{t('coaches.diagram.readerTitle')}</span>
-          {mr?.elapsed !== undefined && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3 text-slate-400" />
-              <span className="text-slate-400 text-xs">{mr.elapsed}s</span>
-            </div>
-          )}
+          {(() => {
+            const displayed = analyzing ? liveElapsedSec : mr?.elapsed;
+            return displayed !== undefined ? (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-slate-400" />
+                <span className="text-slate-400 text-xs">{displayed}s</span>
+              </div>
+            ) : null;
+          })()}
         </div>
 
         {!mr ? (
