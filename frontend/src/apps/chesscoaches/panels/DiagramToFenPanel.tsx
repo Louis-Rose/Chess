@@ -232,12 +232,18 @@ export function DiagramToFenPanel() {
                       <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{debugRawLocate}</pre>
                     </details>
                   )}
-                  {debugRawReads && Object.keys(debugRawReads).sort((a, b) => Number(a) - Number(b)).map(k => (
-                    <details key={k} className="bg-slate-900/60 border border-slate-700 rounded">
-                      <summary className="px-2 py-1 cursor-pointer text-slate-300">Phase 2 (read) — region {Number(k) + 1}</summary>
-                      <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{debugRawReads[Number(k)]}</pre>
-                    </details>
-                  ))}
+                  {debugRawReads && Object.keys(debugRawReads).sort((a, b) => Number(a) - Number(b)).map(k => {
+                    const entry = debugRawReads[Number(k)];
+                    return (
+                      <details key={k} className="bg-slate-900/60 border border-slate-700 rounded">
+                        <summary className="px-2 py-1 cursor-pointer text-slate-300">
+                          Phase 2 (read) — region {Number(k) + 1}
+                          {entry.attempt ? ` — pass ${entry.attempt}` : ''}
+                        </summary>
+                        <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{entry.raw}</pre>
+                      </details>
+                    );
+                  })}
                 </div>
               )}
 

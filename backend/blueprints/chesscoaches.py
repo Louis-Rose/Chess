@@ -1,4 +1,5 @@
 import base64
+import concurrent.futures
 import hashlib
 import json as json_module
 import math
@@ -630,55 +631,81 @@ def read_diagram():
         def read_region(idx, meta):
             logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(diagrams_meta)}")
             call_start = time_module.time()
-            try:
-                cropped_bytes = meta['_crop_bytes']
-                crop_mime = meta['_crop_mime']
-                resp_read, tier, _ = _gemini_generate(
-                    client_free, client_paid, model_id,
-                    contents=[
-                        types.Part.from_bytes(data=cropped_bytes, mime_type=crop_mime),
-                        DIAGRAM_READ_SINGLE_PROMPT,
-                    ],
-                )
-                in_tok, out_tok, think_tok = _extract_usage_tokens(resp_read)
+            contents = [
+                types.Part.from_bytes(data=meta['_crop_bytes'], mime_type=meta['_crop_mime']),
+                DIAGRAM_READ_SINGLE_PROMPT,
+            ]
+
+            # Wrap the call in a 60s timeout and retry once (fresh 60s) on timeout/error.
+            # The Gemini SDK has no built-in request timeout; if the server stalls, the
+            # call blocks forever and locks up the whole pipeline.
+            READ_TIMEOUT_SECONDS = 60
+            resp_read = None
+            tier = 'paid'
+            last_exc = None
+            succeeded_on_attempt = None
+            for attempt in (1, 2):
+                pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                future = pool.submit(_gemini_generate, client_free, client_paid, model_id, contents)
+                try:
+                    resp_read, tier, _ = future.result(timeout=READ_TIMEOUT_SECONDS)
+                    last_exc = None
+                    succeeded_on_attempt = attempt
+                    break
+                except concurrent.futures.TimeoutError:
+                    last_exc = TimeoutError(f"timeout after {READ_TIMEOUT_SECONDS}s")
+                    logger.warning(f"[Diagram] Region {idx + 1}: timeout (attempt {attempt}/2)")
+                except Exception as e:
+                    last_exc = e
+                    logger.warning(f"[Diagram] Region {idx + 1}: attempt {attempt}/2 failed: {e}")
+                finally:
+                    # Don't wait for the stuck Gemini call — let the worker thread leak
+                    # rather than block the retry. It'll eventually unblock or die.
+                    pool.shutdown(wait=False)
+
+            if last_exc is not None or resp_read is None:
                 call_elapsed = round(time_module.time() - call_start)
-                _log_api_usage('diagram', model_id, in_tok, out_tok, call_elapsed,
-                               request_id=req_id, thinking_tokens=think_tok,
-                               billing_tier=tier, user_id=uid)
-                if is_admin:
-                    result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": resp_read.text})
+                logger.error(f"[Diagram] Region {idx + 1} failed after retry: {last_exc}")
+                _log_api_usage('diagram', model_id, 0, 0, call_elapsed, error=str(last_exc),
+                               request_id=req_id, user_id=uid, billing_tier='paid')
+                return
+
+            in_tok, out_tok, think_tok = _extract_usage_tokens(resp_read)
+            call_elapsed = round(time_module.time() - call_start)
+            _log_api_usage('diagram', model_id, in_tok, out_tok, call_elapsed,
+                           request_id=req_id, thinking_tokens=think_tok,
+                           billing_tier=tier, user_id=uid)
+            if is_admin:
+                result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": resp_read.text, "attempt": succeeded_on_attempt})
+
+            try:
                 raw = _strip_code_fences(resp_read.text)
                 parsed = json_module.loads(raw)
                 if isinstance(parsed, list):
                     parsed = parsed[0] if parsed else {}
-                try:
-                    squares = parsed.get("squares")
-                    if not isinstance(squares, dict):
-                        raise ValueError("missing 'squares' object")
-                    grid = _squares_to_grid(squares)
-                    fen = _grid_to_fen(grid, meta['active_color'])
-                except ValueError as ve:
-                    logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
-                    fen = ""
-                if fen:
-                    diagram = {
-                        "fen": fen,
-                        "white_player": meta['white_player'],
-                        "black_player": meta['black_player'],
-                        "region": meta['box'],
-                        "diagram_number": meta['diagram_number'],
-                        "crop_data_url": meta['crop_data_url'],  # already base64-encoded in phase 1.5
-                    }
-                    diagrams_by_idx[idx] = diagram
-                    result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
-                    logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
-                else:
-                    logger.warning(f"[Diagram] Region {idx + 1}: no FEN extracted")
-            except Exception as e:
-                call_elapsed = round(time_module.time() - call_start)
-                logger.error(f"[Diagram] Region {idx + 1} failed: {e}")
-                _log_api_usage('diagram', model_id, 0, 0, call_elapsed, error=str(e),
-                               request_id=req_id, user_id=uid, billing_tier='paid')
+                squares = parsed.get("squares")
+                if not isinstance(squares, dict):
+                    raise ValueError("missing 'squares' object")
+                grid = _squares_to_grid(squares)
+                fen = _grid_to_fen(grid, meta['active_color'])
+            except (ValueError, json_module.JSONDecodeError) as ve:
+                logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
+                fen = ""
+
+            if fen:
+                diagram = {
+                    "fen": fen,
+                    "white_player": meta['white_player'],
+                    "black_player": meta['black_player'],
+                    "region": meta['box'],
+                    "diagram_number": meta['diagram_number'],
+                    "crop_data_url": meta['crop_data_url'],  # already base64-encoded in phase 1.5
+                }
+                diagrams_by_idx[idx] = diagram
+                result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
+                logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
+            else:
+                logger.warning(f"[Diagram] Region {idx + 1}: no FEN extracted")
 
         region_threads = []
         for idx, meta in enumerate(diagrams_meta):

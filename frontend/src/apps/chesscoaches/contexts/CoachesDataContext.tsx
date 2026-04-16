@@ -51,7 +51,7 @@ export interface DiagramState {
   regionCount?: number;
   regionsRead?: number;
   debugRawLocate?: string;
-  debugRawReads?: Record<number, string>;
+  debugRawReads?: Record<number, { raw: string; attempt?: number }>;
 }
 
 const DIAGRAM_INITIAL: DiagramState = {
@@ -252,7 +252,13 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
                 return { ...prev, debugRawLocate: payload.raw };
               }
               if (payload.phase === 'read' && typeof payload.index === 'number') {
-                return { ...prev, debugRawReads: { ...(prev.debugRawReads || {}), [payload.index]: payload.raw } };
+                return {
+                  ...prev,
+                  debugRawReads: {
+                    ...(prev.debugRawReads || {}),
+                    [payload.index]: { raw: payload.raw, attempt: payload.attempt },
+                  },
+                };
               }
               return prev;
             });
