@@ -967,16 +967,16 @@ For each diagram, return:
 Return ONLY a JSON array. No markdown, no commentary, no code fences.
 
 Each array element MUST have these fields:
-- "board_box": {"x": percent, "y": percent, "width": percent, "height": percent} — tight box around the 8x8 grid + edge labels only.
+- "box_2d": [ymin, xmin, ymax, xmax] — the tight bounding box in your standard 0-1000 normalized coordinate system, with ymin < ymax and xmin < xmax. This is Gemini's native bounding-box format. Do NOT invent a different scale or use pixels.
 - "white_player": the white player's name as printed near the diagram, or "" if not visible. Transliterate to Latin alphabet. Just the name, no ratings or dates.
 - "black_player": the black player's name as printed near the diagram, or "" if not visible.
 - "diagram_number": the integer number printed on or next to the diagram (often inside a circle), or null if none. This is a label identifying the diagram in a book/article — NOT a move number or piece count.
 - "active_color": "w" or "b" — whose turn it is, inferred from arrows, "White to move"/"Black to move" captions, or surrounding context. Default to "w" if unclear.
 
-All box values are percentages of the full image (0-100). Order diagrams top-to-bottom, then left-to-right.
+Order diagrams top-to-bottom, then left-to-right (by the midpoint of box_2d).
 
 Example output:
-[{"board_box": {"x": 12.5, "y": 18.0, "width": 40.0, "height": 42.0}, "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18, "active_color": "b"}]"""
+[{"box_2d": [120, 80, 620, 480], "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18, "active_color": "b"}]"""
 
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a tightly-cropped image of a SINGLE chess board. The crop shows the 8x8 grid plus its printed rank labels (1-8) and file labels (a-h). There is no other content to read — just the board.
 
@@ -1160,30 +1160,30 @@ def read_diagram():
             for r in raw_items:
                 if not isinstance(r, dict):
                     continue
-                # Extract box. Accepts:
-                # - New: {"board_box": {"x","y","width","height"}}
-                # - Gemini native: {"box_2d": [ymin, xmin, ymax, xmax]} in 0-1000
-                # - Flat percentage at top level: {"x","y","width","height"}
+                # Extract box. Preferred: {"box_2d": [ymin, xmin, ymax, xmax]} in Gemini's native 0-1000.
+                # Legacy fallbacks: {"board_box": {x,y,width,height}} or flat {x,y,width,height} in 0-100.
                 box = None
-                board_box = r.get('board_box')
-                if isinstance(board_box, dict) and all(k in board_box for k in ('x', 'y', 'width', 'height')):
-                    box = board_box
-                if box is None:
-                    box_2d = r.get('box_2d')
-                    if isinstance(box_2d, (list, tuple)) and len(box_2d) == 4:
-                        try:
-                            ymin, xmin, ymax, xmax = [float(v) for v in box_2d]
+                box_2d = r.get('box_2d')
+                if isinstance(box_2d, (list, tuple)) and len(box_2d) == 4:
+                    try:
+                        ymin, xmin, ymax, xmax = [float(v) for v in box_2d]
+                        if xmax > xmin and ymax > ymin and 0 <= xmin and 0 <= ymin and xmax <= 1000 and ymax <= 1000:
                             box = {
                                 'x': xmin / 10.0,
                                 'y': ymin / 10.0,
                                 'width': (xmax - xmin) / 10.0,
                                 'height': (ymax - ymin) / 10.0,
                             }
-                        except (TypeError, ValueError):
-                            pass
+                    except (TypeError, ValueError):
+                        pass
+                if box is None:
+                    board_box = r.get('board_box')
+                    if isinstance(board_box, dict) and all(k in board_box for k in ('x', 'y', 'width', 'height')):
+                        box = board_box
                 if box is None and all(k in r for k in ('x', 'y', 'width', 'height')):
                     box = {k: r[k] for k in ('x', 'y', 'width', 'height')}
                 if box is None:
+                    logger.warning(f"[Diagram] Phase 1 entry dropped (no valid box): {r}")
                     continue
                 # Clamp + pad box (5% of the box's own dimensions on each side)
                 bx = float(box['x'])
