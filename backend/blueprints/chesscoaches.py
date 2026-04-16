@@ -1155,7 +1155,7 @@ def read_diagram():
             # Validate and normalize each diagram entry into {box, white_player, black_player, diagram_number, active_color}.
             # Box is a tight crop (8x8 grid + edge labels). Pad each side by a fraction of the box's own size
             # to avoid clipping labels when the LLM draws its box a bit too tight.
-            PAD_RATIO = 0.05
+            PAD_RATIO = 0.10
             valid_diagrams = []
             for r in raw_items:
                 if not isinstance(r, dict):
