@@ -231,16 +231,20 @@ function SquareMenuPopover({ menu, t, onAdd, onMove, onDelete, onPick }: SquareM
         </div>
       )}
       {menu.kind === 'picker' && (
-        <div className="grid grid-cols-6 gap-1 w-[216px]">
-          {PIECE_PALETTE.map(p => (
-            <button
-              key={p}
-              onClick={() => onPick(p)}
-              className="w-8 h-8 rounded border border-slate-600 bg-slate-800 hover:border-slate-400"
-            >
-              <img src={pieceImageUrl(p)} alt={p} className="w-6 h-6 mx-auto" draggable={false} />
-            </button>
-          ))}
+        <div className="grid grid-cols-6 gap-1 w-[264px]">
+          {PIECE_PALETTE.map(p => {
+            const isBlack = p === p.toLowerCase();
+            return (
+              <button
+                key={p}
+                onClick={() => onPick(p)}
+                className="w-10 h-10 rounded border border-slate-600 hover:border-slate-400 flex items-center justify-center"
+                style={{ backgroundColor: isBlack ? LIGHT : DARK }}
+              >
+                <img src={pieceImageUrl(p)} alt={p} className="w-[38px] h-[38px]" draggable={false} />
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
