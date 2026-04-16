@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { ComposedImage, type ComposedRegion } from '../panels/diagram/ComposedImage';
 
 interface ImageZoomModalProps {
   src: string;
@@ -6,6 +7,10 @@ interface ImageZoomModalProps {
   onClose: () => void;
   /** Extra content to overlay on the image at zoom (e.g. highlight box) */
   overlay?: React.ReactNode;
+  /** If provided, render a canvas with the regions baked in instead of a plain <img>,
+   * so the browser's native Copy/Open-in-new-tab includes the box annotations. */
+  regions?: ComposedRegion[];
+  showCandidates?: boolean;
 }
 
 /**
@@ -13,7 +18,7 @@ interface ImageZoomModalProps {
  * Click image to zoom in (2 levels), click backdrop or zoomed-out to close.
  * Escape key closes.
  */
-export function ImageZoomModal({ src, alt = 'Image', onClose, overlay }: ImageZoomModalProps) {
+export function ImageZoomModal({ src, alt = 'Image', onClose, overlay, regions, showCandidates = false }: ImageZoomModalProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const maxLevel = isMobile ? 2 : 3;
   const [level, setLevel] = useState(1); // 1=fit, 2=large, 3=extra large (desktop only)
@@ -38,17 +43,32 @@ export function ImageZoomModal({ src, alt = 'Image', onClose, overlay }: ImageZo
         className="relative m-auto"
         onClick={(e) => { e.stopPropagation(); if (level < maxLevel) setLevel(prev => prev + 1); }}
       >
-        <img
-          src={src}
-          alt={alt}
-          className={`rounded-xl object-contain ${level < maxLevel ? 'cursor-zoom-in' : 'cursor-default'} ${
-            level === 1
-              ? 'max-w-[90vw] max-h-[90vh]'
-              : level === 2
-                ? 'max-w-[120vw] max-h-[120vh]'
-                : 'max-w-[180vw] max-h-[180vh]'
-          }`}
-        />
+        {regions && regions.length > 0 ? (
+          <ComposedImage
+            src={src}
+            regions={regions}
+            showCandidates={showCandidates}
+            className={`rounded-xl object-contain ${level < maxLevel ? 'cursor-zoom-in' : 'cursor-default'} ${
+              level === 1
+                ? 'max-w-[90vw] max-h-[90vh]'
+                : level === 2
+                  ? 'max-w-[120vw] max-h-[120vh]'
+                  : 'max-w-[180vw] max-h-[180vh]'
+            }`}
+          />
+        ) : (
+          <img
+            src={src}
+            alt={alt}
+            className={`rounded-xl object-contain ${level < maxLevel ? 'cursor-zoom-in' : 'cursor-default'} ${
+              level === 1
+                ? 'max-w-[90vw] max-h-[90vh]'
+                : level === 2
+                  ? 'max-w-[120vw] max-h-[120vh]'
+                  : 'max-w-[180vw] max-h-[180vh]'
+            }`}
+          />
+        )}
         {overlay}
       </div>
     </div>

@@ -14,143 +14,8 @@ import { compressImage } from '../utils/compressImage';
 import type { DiagramModelResult, DiagramExtract, DiagramRegion } from '../contexts/CoachesDataContext';
 import { EditableBoard } from './diagram/EditableBoard';
 import { SaveToKnowledgeButton } from './diagram/SaveToKnowledgeButton';
+import { ComposedImage } from './diagram/ComposedImage';
 import { BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
-
-const REGION_COLORS = [
-  'rgba(99,102,241,0.7)',   // indigo
-  'rgba(168,85,247,0.7)',   // purple
-  'rgba(20,184,166,0.7)',   // teal
-  'rgba(245,158,11,0.7)',   // amber
-  'rgba(239,68,68,0.7)',    // red
-  'rgba(34,197,94,0.7)',    // green
-  'rgba(59,130,246,0.7)',   // blue
-  'rgba(236,72,153,0.7)',   // pink
-];
-
-interface RegionBox { x: number; y: number; width: number; height: number; }
-interface Region extends RegionBox {
-  tight_box?: RegionBox;
-  padded_box?: RegionBox;
-  selected_variant?: 'tight' | 'padded';
-  diagram_number?: number | null;
-}
-
-function RegionOverlay({ regions, showCandidates = false }: { regions: Region[]; showCandidates?: boolean }) {
-  return (
-    <>
-      {regions.map((r, i) => {
-        const color = REGION_COLORS[i % REGION_COLORS.length];
-        const rejected = showCandidates && r.tight_box && r.padded_box
-          ? (r.selected_variant === 'padded' ? r.tight_box : r.padded_box)
-          : null;
-        return (
-          <div key={i} className="pointer-events-none">
-            {rejected && (
-              <div
-                className="absolute rounded"
-                style={{
-                  left: `${rejected.x}%`,
-                  top: `${rejected.y}%`,
-                  width: `${rejected.width}%`,
-                  height: `${rejected.height}%`,
-                  border: `1px dashed ${color}`,
-                  opacity: 0.5,
-                }}
-              />
-            )}
-            <div
-              className="absolute rounded"
-              style={{
-                left: `${r.x}%`,
-                top: `${r.y}%`,
-                width: `${r.width}%`,
-                height: `${r.height}%`,
-                border: `3px solid ${color}`,
-              }}
-            >
-              <span
-                className="absolute top-1 left-1 text-sm font-bold leading-none"
-                style={{ color }}
-              >
-                {typeof r.diagram_number === 'number' ? r.diagram_number : i + 1}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </>
-  );
-}
-
-/** Bake the region overlay onto the image via canvas, so the browser's native
- * "Copy image" / "Open image in new tab" returns the composite. */
-function ComposedImage({
-  src,
-  regions,
-  showCandidates,
-  className,
-  onClick,
-}: {
-  src: string;
-  regions?: Region[];
-  showCandidates: boolean;
-  className?: string;
-  onClick?: () => void;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    if (!src) return;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-      if (!regions || regions.length === 0) return;
-
-      const strokeW = Math.max(2, img.naturalWidth * 0.004);
-      const fontSize = Math.max(14, img.naturalWidth * 0.02);
-      ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
-      ctx.textBaseline = 'top';
-
-      regions.forEach((r, i) => {
-        const color = REGION_COLORS[i % REGION_COLORS.length];
-        const rejected = showCandidates && r.tight_box && r.padded_box
-          ? (r.selected_variant === 'padded' ? r.tight_box : r.padded_box)
-          : null;
-        if (rejected) {
-          ctx.strokeStyle = color;
-          ctx.globalAlpha = 0.5;
-          ctx.lineWidth = strokeW * 0.45;
-          ctx.setLineDash([strokeW * 2.5, strokeW * 2]);
-          ctx.strokeRect(
-            (rejected.x / 100) * canvas.width,
-            (rejected.y / 100) * canvas.height,
-            (rejected.width / 100) * canvas.width,
-            (rejected.height / 100) * canvas.height,
-          );
-          ctx.globalAlpha = 1;
-          ctx.setLineDash([]);
-        }
-        const x = (r.x / 100) * canvas.width;
-        const y = (r.y / 100) * canvas.height;
-        const w = (r.width / 100) * canvas.width;
-        const h = (r.height / 100) * canvas.height;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = strokeW;
-        ctx.strokeRect(x, y, w, h);
-        const label = typeof r.diagram_number === 'number' ? String(r.diagram_number) : String(i + 1);
-        ctx.fillStyle = color;
-        ctx.fillText(label, x + strokeW, y + strokeW * 0.5);
-      });
-    };
-    img.src = src;
-  }, [src, regions, showCandidates]);
-  return <canvas ref={canvasRef} className={className} onClick={onClick} />;
-}
 
 function CroppedRegion({ src, region }: { src: string; region: { x: number; y: number; width: number; height: number } }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -345,7 +210,8 @@ export function DiagramToFenPanel() {
           src={preview}
           alt="Diagram"
           onClose={() => setShowImageModal(false)}
-          overlay={regions && regions.length > 0 ? <RegionOverlay regions={regions} showCandidates={effectiveAdmin} /> : undefined}
+          regions={regions}
+          showCandidates={effectiveAdmin}
         />
       )}
     </PanelShell>
