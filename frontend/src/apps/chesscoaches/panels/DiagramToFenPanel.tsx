@@ -327,14 +327,13 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
     const r = regionList[i];
     if (r) rawEntries.push({ kind: 'pending', region: r });
   }
-  const readyCount = rawEntries.filter(e => e.kind === 'ready').length;
-  const allReady = rawEntries.length > 0 && readyCount === rawEntries.length;
-  const allHaveNumbers = allReady && rawEntries.every(e => e.kind === 'ready' && typeof e.diagram.diagram_number === 'number');
+  // Phase 1 already returns diagram_number for every region, so pending entries can be
+  // sorted the same way as ready ones — no need to wait for phase 2 to finish.
+  const entryNumber = (e: DiagramEntry) =>
+    e.kind === 'ready' ? e.diagram.diagram_number : e.region.diagram_number;
+  const allHaveNumbers = rawEntries.length > 0 && rawEntries.every(e => typeof entryNumber(e) === 'number');
   const entries = allHaveNumbers
-    ? [...rawEntries].sort((a, b) =>
-        (a.kind === 'ready' ? (a.diagram.diagram_number ?? 0) : 0) -
-        (b.kind === 'ready' ? (b.diagram.diagram_number ?? 0) : 0)
-      )
+    ? [...rawEntries].sort((a, b) => (entryNumber(a) ?? 0) - (entryNumber(b) ?? 0))
     : rawEntries;
   const entryCount = entries.length;
 
