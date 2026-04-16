@@ -619,15 +619,25 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       )}
 
       <div className="flex justify-center">
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+        <button
+          type="button"
+          onClick={() => {
+            setEditedFen(prev => {
+              historyRef.current.push(prev);
+              const parts = prev.split(' ');
+              parts[1] = parts[1] === 'b' ? 'w' : 'b';
+              return parts.join(' ');
+            });
+          }}
+          title="Click to toggle side to move"
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
             activeColor === 'b'
-              ? 'bg-slate-900 border-slate-600 text-slate-100'
-              : 'bg-slate-100 border-slate-300 text-slate-900'
+              ? 'bg-slate-900 border-slate-600 text-slate-100 hover:bg-slate-800'
+              : 'bg-slate-100 border-slate-300 text-slate-900 hover:bg-white'
           }`}
         >
           {sideToMoveLabel}
-        </span>
+        </button>
       </div>
 
       <EditableBoard fen={editedFen} onChange={handleBoardChange} />
