@@ -227,6 +227,31 @@ CREATE TABLE IF NOT EXISTS coach_bundle_offers (
 );
 CREATE INDEX IF NOT EXISTS idx_coach_bundle_offers_user ON coach_bundle_offers(user_id);
 
+-- Knowledge Center: folder tree + saved positions
+CREATE TABLE IF NOT EXISTS knowledge_folders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    parent_id INTEGER REFERENCES knowledge_folders(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_positions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    folder_id INTEGER REFERENCES knowledge_folders(id) ON DELETE SET NULL,
+    fen TEXT NOT NULL,
+    white_player TEXT,
+    black_player TEXT,
+    active_color CHAR(1),
+    diagram_number INTEGER,
+    crop_data_url TEXT,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- API usage tracking (Gemini calls)
 CREATE TABLE IF NOT EXISTS api_usage (
     id SERIAL PRIMARY KEY,
@@ -265,3 +290,7 @@ CREATE INDEX IF NOT EXISTS idx_coach_lessons_scheduled ON coach_lessons(schedule
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_pack ON coach_lessons(pack_id);
 CREATE INDEX IF NOT EXISTS idx_api_usage_created ON api_usage(created_at);
 CREATE INDEX IF NOT EXISTS idx_api_usage_feature ON api_usage(feature);
+CREATE INDEX IF NOT EXISTS idx_knowledge_folders_user ON knowledge_folders(user_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_folders_parent ON knowledge_folders(parent_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_positions_user ON knowledge_positions(user_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_positions_folder ON knowledge_positions(folder_id);

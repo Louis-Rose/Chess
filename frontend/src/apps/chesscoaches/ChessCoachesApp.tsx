@@ -8,6 +8,7 @@ import { ScoresheetReadPage } from './panels/ScoresheetReadPage';
 import { StudentsPanel } from './panels/StudentsPanel';
 import { MistakeFinderPanel } from './panels/MistakeFinderPanel';
 import { DiagramToFenPanel } from './panels/DiagramToFenPanel';
+import { PositionsPanel } from './panels/PositionsPanel';
 import { AboutPanel } from './panels/AboutPanel';
 import { StudentDetailPage } from './panels/StudentDetailPage';
 import { PaymentsPanel } from './panels/PaymentsPanel';
@@ -51,6 +52,7 @@ export function ChessCoachesApp() {
         <Route path="scoresheets" element={<ScoresheetReadPage />} />
         <Route path="mistakes" element={<MistakeFinderPanel />} />
         <Route path="diagram" element={<DiagramToFenPanel />} />
+        <Route path="positions" element={<PositionsPanel />} />
         <Route path="about" element={<AboutPanel />} />
         <Route path="admin" element={<Suspense><AdminPanel /></Suspense>} />
       </Route>

@@ -242,3 +242,40 @@ def init_db():
         if not _column_exists(conn, 'coach_students', 'city'):
             conn.execute("ALTER TABLE coach_students ADD COLUMN city TEXT")
             logger.info("Added city column to coach_students")
+
+        # Migration: Knowledge Center — folders tree + saved positions
+        if not _table_exists(conn, 'knowledge_folders'):
+            conn.execute("""
+                CREATE TABLE knowledge_folders (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    parent_id INTEGER REFERENCES knowledge_folders(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_knowledge_folders_user ON knowledge_folders(user_id)")
+            conn.execute("CREATE INDEX idx_knowledge_folders_parent ON knowledge_folders(parent_id)")
+            logger.info("Created knowledge_folders table")
+
+        if not _table_exists(conn, 'knowledge_positions'):
+            conn.execute("""
+                CREATE TABLE knowledge_positions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    folder_id INTEGER REFERENCES knowledge_folders(id) ON DELETE SET NULL,
+                    fen TEXT NOT NULL,
+                    white_player TEXT,
+                    black_player TEXT,
+                    active_color CHAR(1),
+                    diagram_number INTEGER,
+                    crop_data_url TEXT,
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_knowledge_positions_user ON knowledge_positions(user_id)")
+            conn.execute("CREATE INDEX idx_knowledge_positions_folder ON knowledge_positions(folder_id)")
+            logger.info("Created knowledge_positions table")
