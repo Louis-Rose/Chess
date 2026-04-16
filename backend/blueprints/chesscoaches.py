@@ -1153,8 +1153,9 @@ def read_diagram():
             if not isinstance(raw_items, list):
                 raw_items = [raw_items]
             # Validate and normalize each diagram entry into {box, white_player, black_player, diagram_number, active_color}.
-            # Box is a tight crop (8x8 grid + edge labels). A small padding guards against clipping labels.
-            SAFETY_PAD = 2.0
+            # Box is a tight crop (8x8 grid + edge labels). Pad each side by a fraction of the box's own size
+            # to avoid clipping labels when the LLM draws its box a bit too tight.
+            PAD_RATIO = 0.05
             valid_diagrams = []
             for r in raw_items:
                 if not isinstance(r, dict):
@@ -1184,11 +1185,17 @@ def read_diagram():
                     box = {k: r[k] for k in ('x', 'y', 'width', 'height')}
                 if box is None:
                     continue
-                # Clamp + pad box
-                left = max(0.0, float(box['x']) - SAFETY_PAD)
-                top = max(0.0, float(box['y']) - SAFETY_PAD)
-                right = min(100.0, float(box['x']) + float(box['width']) + SAFETY_PAD)
-                bottom = min(100.0, float(box['y']) + float(box['height']) + SAFETY_PAD)
+                # Clamp + pad box (5% of the box's own dimensions on each side)
+                bx = float(box['x'])
+                by = float(box['y'])
+                bw = float(box['width'])
+                bh = float(box['height'])
+                pad_x = bw * PAD_RATIO
+                pad_y = bh * PAD_RATIO
+                left = max(0.0, bx - pad_x)
+                top = max(0.0, by - pad_y)
+                right = min(100.0, bx + bw + pad_x)
+                bottom = min(100.0, by + bh + pad_y)
                 clamped = {
                     'x': left,
                     'y': top,
