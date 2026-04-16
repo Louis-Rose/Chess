@@ -451,13 +451,41 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const [copied, setCopied] = useState(false);
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
+  const historyRef = useRef<string[]>([]);
 
-  // Reset edited FEN when diagram changes
-  useEffect(() => { setEditedFen(diagram.fen); }, [diagram.fen]);
+  // Reset edited FEN and undo stack when the source diagram changes
+  useEffect(() => {
+    setEditedFen(diagram.fen);
+    historyRef.current = [];
+  }, [diagram.fen]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
-    setEditedFen(prev => rebuildFen(prev, boardToFenPlacement(newBoard)));
+    setEditedFen(prev => {
+      historyRef.current.push(prev);
+      return rebuildFen(prev, boardToFenPlacement(newBoard));
+    });
   }, []);
+
+  const undo = useCallback(() => {
+    const last = historyRef.current.pop();
+    if (last !== undefined) setEditedFen(last);
+  }, []);
+
+  // Ctrl/Cmd+Z undoes the last board edit. Skip if a text input/textarea is focused
+  // (the native undo should still work inside those).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.key === 'z' || e.key === 'Z')) return;
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (historyRef.current.length === 0) return;
+      e.preventDefault();
+      undo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo]);
 
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(editedFen); }
