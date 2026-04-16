@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json as json_module
 import math
@@ -1292,12 +1293,14 @@ def read_diagram():
                     logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
                     fen = ""
                 if fen:
+                    crop_b64 = base64.b64encode(cropped_bytes).decode('ascii')
                     diagram = {
                         "fen": fen,
                         "white_player": meta['white_player'],
                         "black_player": meta['black_player'],
                         "region": meta['box'],
                         "diagram_number": meta['diagram_number'],
+                        "crop_data_url": f"data:{crop_mime};base64,{crop_b64}",
                     }
                     diagrams_by_idx[idx] = diagram
                     result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})

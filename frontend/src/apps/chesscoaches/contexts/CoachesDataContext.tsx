@@ -21,6 +21,7 @@ export interface DiagramExtract {
   black_player?: string;
   region?: DiagramRegion;
   diagram_number?: number | null;
+  crop_data_url?: string;
 }
 
 export interface DiagramModelResult {

@@ -420,7 +420,9 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 
   return (
     <div className="space-y-3">
-      {previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
+      {diagram.crop_data_url
+        ? <img src={diagram.crop_data_url} alt="" className="mx-auto rounded-lg border border-slate-600 max-w-[400px] w-full" />
+        : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
 
       {hasPlayers && (
         <div className="flex items-center justify-center gap-2 text-sm font-medium">
