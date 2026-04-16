@@ -237,18 +237,17 @@ function CoachesNavSidebar() {
         </nav>
 
         {user?.is_admin && (
-          <div className="mt-3 px-1">
-            <div className="h-px bg-slate-700 mb-2" />
+          <div className="mt-auto mb-2 flex justify-center">
             <div
               role="tablist"
-              className="grid grid-cols-2 rounded-full bg-slate-800 border border-slate-700 p-0.5 text-xs font-medium"
+              className="inline-grid grid-cols-2 rounded-full bg-slate-800 border border-slate-700 p-0.5 text-xs font-medium"
             >
               <button
                 type="button"
                 role="tab"
                 aria-selected={!previewAsNonAdmin}
                 onClick={() => setPreviewAsNonAdmin(false)}
-                className={`px-3 py-1.5 rounded-full transition-colors ${
+                className={`px-2.5 py-1 rounded-full transition-colors ${
                   !previewAsNonAdmin
                     ? 'bg-emerald-600 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200'
@@ -261,7 +260,7 @@ function CoachesNavSidebar() {
                 role="tab"
                 aria-selected={previewAsNonAdmin}
                 onClick={() => setPreviewAsNonAdmin(true)}
-                className={`px-3 py-1.5 rounded-full transition-colors ${
+                className={`px-2.5 py-1 rounded-full transition-colors ${
                   previewAsNonAdmin
                     ? 'bg-slate-500 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200'
@@ -272,10 +271,6 @@ function CoachesNavSidebar() {
             </div>
           </div>
         )}
-
-        {/* Extra top margin when the nav is empty (no role yet) so the
-            space below Home matches the 8px gap above it. */}
-        <div className={`h-px bg-slate-700 ${!user?.role ? 'mt-1.5' : ''}`} />
       </div>
     </div>
   );
