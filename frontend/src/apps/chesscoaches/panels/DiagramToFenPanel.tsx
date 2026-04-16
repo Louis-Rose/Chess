@@ -301,14 +301,21 @@ function localizeReaderName(name: string | undefined, readerLabel: string): stri
 }
 
 type DiagramEntry =
-  | { kind: 'ready'; diagram: DiagramExtract }
-  | { kind: 'pending'; region: DiagramRegion };
+  | { kind: 'ready'; diagram: DiagramExtract; originIdx: number }
+  | { kind: 'pending'; region: DiagramRegion; originIdx: number }
+  | { kind: 'reread'; diagram: DiagramExtract; originIdx: number; rereadNum: number };
 
 function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions, liveElapsedSec, regions }: ResultsViewProps) {
   const { t } = useLanguage();
+  const effectiveAdmin = useEffectiveAdmin();
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
   const [selectedDiagramIdx, setSelectedDiagramIdx] = useState(0);
+  // Per-region-index re-read results (admin-only). Each region's array preserves arrival order.
+  const [rereads, setRereads] = useState<Record<number, DiagramExtract[]>>({});
+  const [rereadCount, setRereadCount] = useState(1);
+  const [rereading, setRereading] = useState(false);
+  const [rereadError, setRereadError] = useState<string | null>(null);
 
   // Ensure the selected model is always one that still exists
   useEffect(() => {
@@ -328,18 +335,26 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
   const rawEntries: DiagramEntry[] = [];
   for (let i = 0; i < count; i++) {
     const d = rawDiagrams[i];
-    if (d) { rawEntries.push({ kind: 'ready', diagram: d }); continue; }
+    if (d) { rawEntries.push({ kind: 'ready', diagram: d, originIdx: i }); continue; }
     const r = regionList[i];
-    if (r) rawEntries.push({ kind: 'pending', region: r });
+    if (r) rawEntries.push({ kind: 'pending', region: r, originIdx: i });
   }
   // Phase 1 already returns diagram_number for every region, so pending entries can be
   // sorted the same way as ready ones — no need to wait for phase 2 to finish.
   const entryNumber = (e: DiagramEntry) =>
-    e.kind === 'ready' ? e.diagram.diagram_number : e.region.diagram_number;
+    e.kind === 'pending' ? e.region.diagram_number : e.diagram.diagram_number;
   const allHaveNumbers = rawEntries.length > 0 && rawEntries.every(e => typeof entryNumber(e) === 'number');
-  const entries = allHaveNumbers
+  const orderedEntries = allHaveNumbers
     ? [...rawEntries].sort((a, b) => (entryNumber(a) ?? 0) - (entryNumber(b) ?? 0))
     : rawEntries;
+  // Interleave re-reads right after their original entry.
+  const entries: DiagramEntry[] = [];
+  for (const e of orderedEntries) {
+    entries.push(e);
+    (rereads[e.originIdx] ?? []).forEach((rr, i) => {
+      entries.push({ kind: 'reread', diagram: rr, originIdx: e.originIdx, rereadNum: i + 1 });
+    });
+  }
   const entryCount = entries.length;
 
   // Clamp diagram index when the selected reader changes
@@ -379,10 +394,11 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
               {t('coaches.diagram.diagramLabel')} #1
             </option>
           ) : entries.map((entry, i) => {
-            const num = entry.kind === 'ready' ? entry.diagram.diagram_number : entry.region.diagram_number;
-            const label = typeof num === 'number'
+            const num = entry.kind === 'pending' ? entry.region.diagram_number : entry.diagram.diagram_number;
+            const base = typeof num === 'number'
               ? `${t('coaches.diagram.diagramLabel')} #${num}`
               : `${t('coaches.diagram.diagramLabel')} ${i + 1} / ${entryCount || (analyzing ? '?' : 1)}`;
+            const label = entry.kind === 'reread' ? `${base} — Re-read ${entry.rereadNum}` : base;
             return (
               <option key={i} value={i} disabled={entry.kind === 'pending'}>
                 {label}
@@ -391,6 +407,86 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
           })}
         </select>
       </div>
+
+      {effectiveAdmin && (() => {
+        const current = entries[selectedDiagramIdx];
+        const originIdx = current?.originIdx;
+        // Re-read always runs against the ORIGINAL entry's crop, even when a re-read is selected.
+        type OriginEntry = Extract<DiagramEntry, { kind: 'ready' } | { kind: 'pending' }>;
+        const originEntry = typeof originIdx === 'number'
+          ? rawEntries.find(e => e.originIdx === originIdx) as OriginEntry | undefined
+          : undefined;
+        const cropUrl = originEntry?.kind === 'ready'
+          ? originEntry.diagram.crop_data_url
+          : originEntry?.region.crop_data_url;
+        const canReread = !!cropUrl && !rereading && originEntry !== undefined;
+        const activeColor = originEntry?.kind === 'ready'
+          ? (originEntry.diagram.fen.split(' ')[1] ?? 'w')
+          : (originEntry?.region.active_color ?? 'w');
+
+        const runReread = async () => {
+          if (!canReread || typeof originIdx !== 'number' || !originEntry) return;
+          setRereading(true);
+          setRereadError(null);
+          try {
+            const requests = Array.from({ length: rereadCount }, () =>
+              axios.post('/api/coaches/reread-region', { crop_data_url: cropUrl, active_color: activeColor })
+            );
+            const results = await Promise.allSettled(requests);
+            const fresh: DiagramExtract[] = [];
+            let firstError: string | null = null;
+            const meta: DiagramExtract = originEntry.kind === 'ready'
+              ? originEntry.diagram
+              : {
+                  fen: '',
+                  white_player: originEntry.region.white_player,
+                  black_player: originEntry.region.black_player,
+                  region: originEntry.region,
+                  diagram_number: originEntry.region.diagram_number,
+                  crop_data_url: originEntry.region.crop_data_url,
+                };
+            for (const r of results) {
+              if (r.status === 'fulfilled' && r.value.data?.fen) {
+                fresh.push({ ...meta, fen: r.value.data.fen });
+              } else if (r.status === 'rejected' && !firstError) {
+                firstError = (r.reason as { response?: { data?: { error?: string } }; message?: string })
+                  ?.response?.data?.error ?? (r.reason as Error)?.message ?? 'Re-read failed';
+              }
+            }
+            if (fresh.length > 0) {
+              setRereads(prev => ({ ...prev, [originIdx]: [...(prev[originIdx] ?? []), ...fresh] }));
+            }
+            if (firstError && fresh.length === 0) setRereadError(firstError);
+          } finally {
+            setRereading(false);
+          }
+        };
+
+        return (
+          <div className="flex items-center justify-center gap-2 text-xs">
+            <label className="text-slate-400">×</label>
+            <select
+              value={rereadCount}
+              onChange={e => setRereadCount(Number(e.target.value))}
+              className="bg-slate-800 border border-slate-600 text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+              disabled={rereading}
+            >
+              {[1, 2, 3, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <button
+              type="button"
+              onClick={runReread}
+              disabled={!canReread}
+              className="px-2.5 py-1 rounded border border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:border-slate-500 flex items-center gap-1.5 disabled:opacity-60"
+              title="Admin: re-run the reader in parallel on the currently selected diagram"
+            >
+              <RefreshCw className={`w-3 h-3 ${rereading ? 'animate-spin' : ''}`} />
+              {rereading ? 'Re-reading…' : 'Re-read (admin)'}
+            </button>
+            {rereadError && <span className="text-red-400">{rereadError}</span>}
+          </div>
+        );
+      })()}
 
       <div className="bg-slate-700/50 rounded-xl overflow-hidden">
         <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
@@ -412,9 +508,8 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
           <div className="p-3">
             {(() => {
               const entry = entries[selectedDiagramIdx] ?? entries[0];
-              return entry.kind === 'ready'
-                ? <FenEntry diagram={entry.diagram} previewSrc={previewSrc} />
-                : <PendingDiagram region={entry.region} />;
+              if (entry.kind === 'pending') return <PendingDiagram region={entry.region} />;
+              return <FenEntry diagram={entry.diagram} previewSrc={previewSrc} />;
             })()}
           </div>
         ) : !mr ? (
@@ -449,12 +544,9 @@ function rebuildFen(oldFen: string, newPlacement: string): string {
 
 function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc?: string }) {
   const { t } = useLanguage();
-  const effectiveAdmin = useEffectiveAdmin();
   const [copied, setCopied] = useState(false);
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
-  const [rereading, setRereading] = useState(false);
-  const [rereadError, setRereadError] = useState<string | null>(null);
   const historyRef = useRef<string[]>([]);
 
   // Reset edited FEN and undo stack when the source diagram changes
@@ -539,47 +631,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       </div>
 
       <EditableBoard fen={editedFen} onChange={handleBoardChange} />
-
-      {effectiveAdmin && diagram.crop_data_url && (
-        <div className="flex flex-col items-center gap-1">
-          <button
-            type="button"
-            onClick={async () => {
-              if (rereading) return;
-              setRereading(true);
-              setRereadError(null);
-              try {
-                const activeColor = editedFen.split(' ')[1] ?? 'w';
-                const res = await axios.post('/api/coaches/reread-region', {
-                  crop_data_url: diagram.crop_data_url,
-                  active_color: activeColor,
-                });
-                if (res.data?.fen) {
-                  setEditedFen(prev => {
-                    historyRef.current.push(prev);
-                    return res.data.fen;
-                  });
-                }
-              } catch (e) {
-                const msg = (e as { response?: { data?: { error?: string } }; message?: string })
-                  .response?.data?.error ?? (e as Error).message ?? 'Re-read failed';
-                setRereadError(msg);
-              } finally {
-                setRereading(false);
-              }
-            }}
-            disabled={rereading}
-            className="px-2.5 py-1 text-xs rounded border border-amber-700/50 bg-amber-900/20 text-amber-200 hover:bg-amber-900/40 flex items-center gap-1.5 disabled:opacity-60"
-            title="Admin: re-run phase 2 on this diagram (same model, same crop)"
-          >
-            <RefreshCw className={`w-3 h-3 ${rereading ? 'animate-spin' : ''}`} />
-            {rereading ? 'Re-reading…' : 'Re-read (admin)'}
-          </button>
-          {rereadError && (
-            <span className="text-xs text-red-400">{rereadError}</span>
-          )}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <button
