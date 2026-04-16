@@ -642,7 +642,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 
       <EditableBoard fen={editedFen} onChange={handleBoardChange} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="flex flex-col gap-2">
         <button
           onClick={handleCopy}
           className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center justify-center gap-2 ${
