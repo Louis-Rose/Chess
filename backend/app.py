@@ -5,6 +5,12 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+# Load environment-specific .env file BEFORE importing modules that read env vars at import time
+env = os.environ.get('FLASK_ENV', 'dev')
+env_file = f'.env.{env}'
+load_dotenv(env_file)
+
 from database import init_db
 
 # Configure logging for gunicorn
@@ -14,11 +20,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
-
-# Load environment-specific .env file
-env = os.environ.get('FLASK_ENV', 'dev')
-env_file = f'.env.{env}'
-load_dotenv(env_file)
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
