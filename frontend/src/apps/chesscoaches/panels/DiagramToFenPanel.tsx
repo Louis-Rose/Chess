@@ -276,9 +276,12 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
 
   const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
   const mr = selectedModel ? modelResults[selectedModel.id] : undefined;
-  const diagrams = mr?.diagrams ?? [];
-  const diagramCount = diagrams.length;
-  const allHaveNumbers = diagramCount > 0 && diagrams.every(d => typeof d.diagram_number === 'number');
+  const rawDiagrams = mr?.diagrams ?? [];
+  const diagramCount = rawDiagrams.length;
+  const allHaveNumbers = diagramCount > 0 && rawDiagrams.every(d => typeof d.diagram_number === 'number');
+  const diagrams = allHaveNumbers
+    ? [...rawDiagrams].sort((a, b) => (a.diagram_number ?? 0) - (b.diagram_number ?? 0))
+    : rawDiagrams;
 
   // Clamp diagram index when the selected reader changes
   useEffect(() => {
