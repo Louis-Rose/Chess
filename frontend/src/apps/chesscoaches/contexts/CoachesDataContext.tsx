@@ -13,6 +13,9 @@ export interface DiagramRegion {
   y: number;
   width: number;
   height: number;
+  tight_box?: { x: number; y: number; width: number; height: number };
+  padded_box?: { x: number; y: number; width: number; height: number };
+  selected_variant?: 'tight' | 'padded';
 }
 
 export interface DiagramExtract {

@@ -23,29 +23,53 @@ const REGION_COLORS = [
   'rgba(236,72,153,0.7)',   // pink
 ];
 
-function RegionOverlay({ regions }: { regions: { x: number; y: number; width: number; height: number }[] }) {
+interface RegionBox { x: number; y: number; width: number; height: number; }
+interface Region extends RegionBox {
+  tight_box?: RegionBox;
+  padded_box?: RegionBox;
+  selected_variant?: 'tight' | 'padded';
+}
+
+function RegionOverlay({ regions, showCandidates = false }: { regions: Region[]; showCandidates?: boolean }) {
   return (
     <>
       {regions.map((r, i) => {
         const color = REGION_COLORS[i % REGION_COLORS.length];
+        const rejected = showCandidates && r.tight_box && r.padded_box
+          ? (r.selected_variant === 'padded' ? r.tight_box : r.padded_box)
+          : null;
         return (
-          <div
-            key={i}
-            className="absolute rounded pointer-events-none"
-            style={{
-              left: `${r.x}%`,
-              top: `${r.y}%`,
-              width: `${r.width}%`,
-              height: `${r.height}%`,
-              border: `2px solid ${color}`,
-            }}
-          >
-            <span
-              className="absolute top-1 left-1 text-sm font-bold leading-none"
-              style={{ color }}
+          <div key={i} className="pointer-events-none">
+            {rejected && (
+              <div
+                className="absolute rounded"
+                style={{
+                  left: `${rejected.x}%`,
+                  top: `${rejected.y}%`,
+                  width: `${rejected.width}%`,
+                  height: `${rejected.height}%`,
+                  border: `1px dashed ${color}`,
+                  opacity: 0.5,
+                }}
+              />
+            )}
+            <div
+              className="absolute rounded"
+              style={{
+                left: `${r.x}%`,
+                top: `${r.y}%`,
+                width: `${r.width}%`,
+                height: `${r.height}%`,
+                border: `3px solid ${color}`,
+              }}
             >
-              {i + 1}
-            </span>
+              <span
+                className="absolute top-1 left-1 text-sm font-bold leading-none"
+                style={{ color }}
+              >
+                {i + 1}
+              </span>
+            </div>
           </div>
         );
       })}
@@ -193,7 +217,7 @@ export function DiagramToFenPanel() {
                   }`}
                   onClick={() => setShowImageModal(true)}
                 />
-                {regions && regions.length > 0 && <RegionOverlay regions={regions} />}
+                {regions && regions.length > 0 && <RegionOverlay regions={regions} showCandidates={!!user?.is_admin} />}
               </div>
               </div>
 
@@ -238,7 +262,7 @@ export function DiagramToFenPanel() {
           src={preview}
           alt="Diagram"
           onClose={() => setShowImageModal(false)}
-          overlay={regions && regions.length > 0 ? <RegionOverlay regions={regions} /> : undefined}
+          overlay={regions && regions.length > 0 ? <RegionOverlay regions={regions} showCandidates={!!user?.is_admin} /> : undefined}
         />
       )}
     </PanelShell>

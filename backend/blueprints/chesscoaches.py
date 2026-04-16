@@ -978,6 +978,22 @@ Order diagrams top-to-bottom, then left-to-right (by the midpoint of box_2d).
 Example output:
 [{"box_2d": [120, 80, 620, 480], "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18, "active_color": "b"}]"""
 
+DIAGRAM_JUDGE_MODEL_ID = 'gemini-3.1-flash-lite-preview'
+
+DIAGRAM_JUDGE_PROMPT = """You are shown two candidate crops of the same chess diagram. The first image is crop A (tight). The second image is crop B (slightly padded).
+
+Pick the crop that best satisfies BOTH criteria:
+1. The rank labels (1-8) and file labels (a-h) printed along the edges of the board MUST both be fully visible.
+2. The crop MUST NOT include any other text or metadata — no player names, no diagram number, no caption, no "to move" arrow, and no part of a neighboring diagram.
+
+Tie-breaking:
+- If both satisfy both criteria, prefer A (tighter is better).
+- If only one satisfies both criteria, pick that one.
+- If neither fully satisfies, pick the one closer to meeting both criteria.
+
+Return ONLY a single letter: "A" or "B". No explanation, no punctuation, no code fences."""
+
+
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a tightly-cropped image of a SINGLE chess board. The crop shows the 8x8 grid plus its printed rank labels (1-8) and file labels (a-h). There is no other content to read — just the board.
 
 Your only job is to read which piece is on each square.
@@ -1185,23 +1201,27 @@ def read_diagram():
                 if box is None:
                     logger.warning(f"[Diagram] Phase 1 entry dropped (no valid box): {r}")
                     continue
-                # Clamp + pad box (5% of the box's own dimensions on each side)
+                # Compute two crop candidates, both clamped to [0, 100]:
+                # - box_tight: the LLM's raw box with no extra padding.
+                # - box_padded: the LLM's box grown by PAD_RATIO on each side.
+                # A downstream judge LLM picks whichever satisfies "labels in, no other metadata".
                 bx = float(box['x'])
                 by = float(box['y'])
                 bw = float(box['width'])
                 bh = float(box['height'])
+
+                def _clamp_rect(x, y, w, h):
+                    left = max(0.0, x)
+                    top = max(0.0, y)
+                    right = min(100.0, x + w)
+                    bottom = min(100.0, y + h)
+                    return {'x': left, 'y': top, 'width': max(0.0, right - left), 'height': max(0.0, bottom - top)}
+
+                box_tight = _clamp_rect(bx, by, bw, bh)
                 pad_x = bw * PAD_RATIO
                 pad_y = bh * PAD_RATIO
-                left = max(0.0, bx - pad_x)
-                top = max(0.0, by - pad_y)
-                right = min(100.0, bx + bw + pad_x)
-                bottom = min(100.0, by + bh + pad_y)
-                clamped = {
-                    'x': left,
-                    'y': top,
-                    'width': right - left,
-                    'height': bottom - top,
-                }
+                box_padded = _clamp_rect(bx - pad_x, by - pad_y, bw + 2 * pad_x, bh + 2 * pad_y)
+
                 # Extract metadata
                 white = str(r.get('white_player', '') or '').strip()
                 black = str(r.get('black_player', '') or '').strip()
@@ -1212,36 +1232,17 @@ def read_diagram():
                     diagram_number = None
                 active_color = 'w' if str(r.get('active_color', 'w')).lower().startswith('w') else 'b'
                 valid_diagrams.append({
-                    'box': clamped,
+                    'box_tight': box_tight,
+                    'box_padded': box_padded,
+                    'box': box_padded,  # default; overridden by judge phase below
+                    'selected_variant': 'padded',
                     'white_player': white,
                     'black_player': black,
                     'diagram_number': diagram_number,
                     'active_color': active_color,
                 })
-            # Sort: top-to-bottom, then left-to-right (using box midpoint)
-            valid_diagrams.sort(key=lambda d: (d['box']['y'] + d['box']['height'] / 2, d['box']['x'] + d['box']['width'] / 2))
-
-            # Resolve overlaps: clip each box so it doesn't extend into later ones
-            for i in range(len(valid_diagrams)):
-                ri = valid_diagrams[i]['box']
-                for j in range(i + 1, len(valid_diagrams)):
-                    rj = valid_diagrams[j]['box']
-                    if (ri['x'] < rj['x'] + rj['width'] and ri['x'] + ri['width'] > rj['x'] and
-                        ri['y'] < rj['y'] + rj['height'] and ri['y'] + ri['height'] > rj['y']):
-                        ri_cx = ri['x'] + ri['width'] / 2
-                        rj_cx = rj['x'] + rj['width'] / 2
-                        ri_cy = ri['y'] + ri['height'] / 2
-                        rj_cy = rj['y'] + rj['height'] / 2
-                        if abs(rj_cy - ri_cy) >= abs(rj_cx - ri_cx):
-                            boundary = (ri['y'] + ri['height'] + rj['y']) / 2
-                            ri['height'] = boundary - ri['y']
-                            rj['height'] = rj['height'] - (boundary - rj['y'])
-                            rj['y'] = boundary
-                        else:
-                            boundary = (ri['x'] + ri['width'] + rj['x']) / 2
-                            ri['width'] = boundary - ri['x']
-                            rj['width'] = rj['width'] - (boundary - rj['x'])
-                            rj['x'] = boundary
+            # Sort: top-to-bottom, then left-to-right (using tight-box midpoint)
+            valid_diagrams.sort(key=lambda d: (d['box_tight']['y'] + d['box_tight']['height'] / 2, d['box_tight']['x'] + d['box_tight']['width'] / 2))
 
             diagrams_meta = valid_diagrams
             logger.info(f"[Diagram] Phase 1 done: {len(diagrams_meta)} diagram(s) found ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
@@ -1259,13 +1260,63 @@ def read_diagram():
             _log_api_usage('diagram', model_id, total_in, total_out, elapsed, request_id=req_id, billing_tier=tier_used, user_id=uid)
             return
 
-        # Send region count to frontend (boxes only — metadata arrives with each diagram)
-        boxes = [m['box'] for m in diagrams_meta]
-        result_queue.put({"type": "regions", "count": len(boxes), "regions": boxes})
+        tokens_lock = threading.Lock()
+
+        # ── Phase 1.5: Judge each diagram's tight vs. padded crop in parallel ──
+        def judge_region(idx, meta):
+            nonlocal total_in, total_out, total_think, tier_used
+            try:
+                tight_bytes = _crop_image_region(image_bytes, mime_type, meta['box_tight'])
+                padded_bytes = _crop_image_region(image_bytes, mime_type, meta['box_padded'])
+                crop_mime = 'image/png' if 'png' in mime_type else 'image/jpeg'
+                resp_judge, tier, _ = _gemini_generate(
+                    client_free, client_paid, DIAGRAM_JUDGE_MODEL_ID,
+                    contents=[
+                        DIAGRAM_JUDGE_PROMPT,
+                        types.Part.from_bytes(data=tight_bytes, mime_type=crop_mime),
+                        types.Part.from_bytes(data=padded_bytes, mime_type=crop_mime),
+                    ],
+                )
+                in_tok, out_tok, think_tok = _extract_usage_tokens(resp_judge)
+                with tokens_lock:
+                    total_in += in_tok; total_out += out_tok; total_think += think_tok
+                    tier_used = tier
+                raw = (resp_judge.text or '').strip().upper()
+                # Prefer tight when judge returns A; padded when B; default to tight on ambiguity.
+                if 'B' in raw and 'A' not in raw:
+                    meta['selected_variant'] = 'padded'
+                    meta['box'] = meta['box_padded']
+                else:
+                    meta['selected_variant'] = 'tight'
+                    meta['box'] = meta['box_tight']
+                logger.info(f"[Diagram] Judge region {idx + 1}: raw={raw!r} → {meta['selected_variant']} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
+            except Exception as e:
+                logger.warning(f"[Diagram] Judge failed for region {idx + 1}: {e}; defaulting to padded")
+                meta['selected_variant'] = 'padded'
+                meta['box'] = meta['box_padded']
+
+        judge_threads = []
+        for idx, meta in enumerate(diagrams_meta):
+            jt = threading.Thread(target=judge_region, args=(idx, meta))
+            jt.start()
+            judge_threads.append(jt)
+        for jt in judge_threads:
+            jt.join()
+
+        # Send region count + both boxes (so admin UI can render candidates)
+        regions_payload = [
+            {
+                **m['box'],
+                'tight_box': m['box_tight'],
+                'padded_box': m['box_padded'],
+                'selected_variant': m['selected_variant'],
+            }
+            for m in diagrams_meta
+        ]
+        result_queue.put({"type": "regions", "count": len(regions_payload), "regions": regions_payload})
 
         # ── Phase 2: Read each region in parallel (independent API calls) ──
         diagrams_by_idx = {}
-        tokens_lock = threading.Lock()
 
         def read_region(idx, meta):
             nonlocal total_in, total_out, total_think, tier_used
