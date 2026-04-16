@@ -234,6 +234,7 @@ function CoachesNavSidebar() {
               </div>
             );
           })}
+          <div className="h-px bg-slate-700 my-1.5" />
         </nav>
 
         {user?.is_admin && (
