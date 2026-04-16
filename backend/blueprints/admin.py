@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 import subprocess
 import time
 
@@ -641,8 +642,14 @@ def feature_requests():
         logger.exception('Notion API call failed')
         return jsonify({'error': f'Notion API error: {e}'}), 502
 
+    def _person_sort_key(title: str):
+        # Sort by the leading "#N" number in the CRM title so people list is ordered #1, #2, #3...
+        m = re.match(r'^#(\d+)', title)
+        n = int(m.group(1)) if m else float('inf')
+        return (n, title.lower())
+
     items = sorted(
-        [{'tag': k, 'count': len(v), 'people': sorted(v)} for k, v in tag_people.items()],
+        [{'tag': k, 'count': len(v), 'people': sorted(v, key=_person_sort_key)} for k, v in tag_people.items()],
         key=lambda d: (-d['count'], d['tag']),
     )
     payload = {'items': items, 'interviewed_count': interviewed_count}

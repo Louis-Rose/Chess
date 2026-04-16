@@ -1380,27 +1380,29 @@ function FeatureRequestsSection() {
           )}
           {!isLoading && !error && items.length > 0 && (
             <>
-              <ResponsiveContainer width="100%" height={Math.max(items.length * 32, 160)}>
-                <BarChart data={items} layout="vertical" margin={{ left: 16, right: 16, top: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fill: '#e2e8f0', fontSize: 11 }} />
-                  <YAxis type="category" dataKey="tag" tick={{ fill: '#e2e8f0', fontSize: 12 }} width={160} />
-                  <Tooltip
-                    cursor={false}
-                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                    labelStyle={{ color: '#e2e8f0' }}
-                    formatter={(value) => [`${value}`, 'Requests']}
-                  />
-                  <Bar
-                    dataKey="count"
-                    fill="#a855f7"
-                    radius={[0, 2, 2, 0]}
-                    activeBar={false}
-                    onClick={handleBarClick}
-                    style={{ cursor: 'pointer' }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="[&_*:focus]:outline-none">
+                <ResponsiveContainer width="100%" height={Math.max(items.length * 32, 160)}>
+                  <BarChart data={items} layout="vertical" margin={{ left: 16, right: 16, top: 4, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fill: '#e2e8f0', fontSize: 11 }} />
+                    <YAxis type="category" dataKey="tag" tick={{ fill: '#e2e8f0', fontSize: 12 }} width={160} />
+                    <Tooltip
+                      cursor={false}
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                      labelStyle={{ color: '#e2e8f0' }}
+                      formatter={(value) => [`${value}`, 'Requests']}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="#a855f7"
+                      radius={[0, 2, 2, 0]}
+                      activeBar={false}
+                      onClick={handleBarClick}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
               {expanded && (
                 <div className="mt-3 rounded-lg border border-slate-700 bg-slate-800/50 overflow-hidden">
                   <div className="px-3 py-2 bg-slate-700/40 flex items-center justify-between">
