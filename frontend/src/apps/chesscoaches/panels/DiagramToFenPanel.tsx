@@ -197,9 +197,13 @@ export function DiagramToFenPanel() {
                 const maxAvg = models.length > 0
                   ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)))
                   : 0;
+                const isPlural = (regionCount ?? 0) > 1;
+                const title = allDone
+                  ? t(isPlural ? 'coaches.diagram.donePlural' : 'coaches.diagram.done')
+                  : t(isPlural ? 'coaches.diagram.analyzingPlural' : 'coaches.diagram.analyzing');
                 return (
                   <ProcessingProgressBar
-                    title={t('coaches.diagram.analyzing')}
+                    title={title}
                     pct={pct}
                     elapsedSec={liveElapsed}
                     maxAvgSec={maxAvg}
