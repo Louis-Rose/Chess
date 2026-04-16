@@ -32,6 +32,7 @@ interface Region extends RegionBox {
   tight_box?: RegionBox;
   padded_box?: RegionBox;
   selected_variant?: 'tight' | 'padded';
+  diagram_number?: number | null;
 }
 
 function RegionOverlay({ regions, showCandidates = false }: { regions: Region[]; showCandidates?: boolean }) {
@@ -71,7 +72,7 @@ function RegionOverlay({ regions, showCandidates = false }: { regions: Region[];
                 className="absolute top-1 left-1 text-sm font-bold leading-none"
                 style={{ color }}
               >
-                {i + 1}
+                {typeof r.diagram_number === 'number' ? r.diagram_number : i + 1}
               </span>
             </div>
           </div>
