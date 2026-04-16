@@ -444,7 +444,7 @@ def reread_region():
     ]
 
     # Same 60s timeout + one retry policy as the batch pipeline.
-    READ_TIMEOUT_SECONDS = 60
+    READ_TIMEOUT_SECONDS = 90
     resp = None
     tier = 'paid'
     last_exc = None
@@ -740,7 +740,7 @@ def read_diagram():
             # Wrap the call in a 60s timeout and retry once (fresh 60s) on timeout/error.
             # The Gemini SDK has no built-in request timeout; if the server stalls, the
             # call blocks forever and locks up the whole pipeline.
-            READ_TIMEOUT_SECONDS = 60
+            READ_TIMEOUT_SECONDS = 90
             resp_read = None
             tier = 'paid'
             last_exc = None
