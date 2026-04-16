@@ -328,7 +328,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
 
       <div className="bg-slate-700/50 rounded-xl overflow-hidden">
         <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-center gap-2">
-          <span className="text-slate-100 font-medium text-xs">{localizeReaderName(mr?.name || selectedModel?.name, readerLabel)}</span>
+          <span className="text-slate-100 font-medium text-xs">{t('coaches.diagram.readerTitle')}</span>
           {mr?.elapsed !== undefined && (
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-slate-400" />
