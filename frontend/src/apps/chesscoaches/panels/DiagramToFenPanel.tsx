@@ -375,7 +375,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
               ? `${t('coaches.diagram.diagramLabel')} #${num}`
               : `${t('coaches.diagram.diagramLabel')} ${i + 1} / ${entryCount || (analyzing ? '?' : 1)}`;
             return (
-              <option key={i} value={i}>
+              <option key={i} value={i} disabled={entry.kind === 'pending'}>
                 {label}
               </option>
             );
