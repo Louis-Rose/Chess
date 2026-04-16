@@ -436,12 +436,11 @@ def read_diagram():
     result_queue = queue.Queue()
 
     def run_pipeline():
-        total_in, total_out, total_think = 0, 0, 0
         total_start = time_module.time()
-        tier_used = 'paid'
 
         # ── Phase 1: Locate diagram regions ──
         logger.info(f"[Diagram] Phase 1: locating regions with {model_id}")
+        phase1_start = time_module.time()
         try:
             resp_locate, tier, _ = _gemini_generate(
                 client_free, client_paid, model_id,
@@ -450,9 +449,11 @@ def read_diagram():
                     DIAGRAM_LOCATE_PROMPT,
                 ],
             )
-            tier_used = tier
+            phase1_elapsed = round(time_module.time() - phase1_start)
             in_tok, out_tok, think_tok = _extract_usage_tokens(resp_locate)
-            total_in += in_tok; total_out += out_tok; total_think += think_tok
+            _log_api_usage('diagram', model_id, in_tok, out_tok, phase1_elapsed,
+                           request_id=req_id, thinking_tokens=think_tok,
+                           billing_tier=tier, user_id=uid)
             if is_admin:
                 result_queue.put({"type": "debug", "phase": "locate", "raw": resp_locate.text})
             raw = _strip_code_fences(resp_locate.text)
@@ -541,21 +542,21 @@ def read_diagram():
             elapsed = round(time_module.time() - total_start)
             logger.error(f"[Diagram] Phase 1 failed: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": f"Region detection failed: {e}", "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, total_in, total_out, elapsed, error=str(e), request_id=req_id, user_id=uid, billing_tier='paid')
+            _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e),
+                           request_id=req_id, user_id=uid, billing_tier='paid')
             return
 
         if not diagrams_meta:
             elapsed = round(time_module.time() - total_start)
             logger.info("[Diagram] No regions found")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "diagrams": [], "elapsed": elapsed})
-            _log_api_usage('diagram', model_id, total_in, total_out, elapsed, request_id=req_id, billing_tier=tier_used, user_id=uid)
             return
 
-        tokens_lock = threading.Lock()
-
         # ── Phase 1.5: Judge each diagram's tight vs. padded crop in parallel ──
+        # Each judge call logs its own api_usage row with its own tier/tokens, so the
+        # paid/free split is accurate even when calls resolve on different tiers.
         def judge_region(idx, meta):
-            nonlocal total_in, total_out, total_think, tier_used
+            call_start = time_module.time()
             try:
                 tight_bytes = _crop_image_region(image_bytes, mime_type, meta['box_tight'])
                 padded_bytes = _crop_image_region(image_bytes, mime_type, meta['box_padded'])
@@ -569,9 +570,10 @@ def read_diagram():
                     ],
                 )
                 in_tok, out_tok, think_tok = _extract_usage_tokens(resp_judge)
-                with tokens_lock:
-                    total_in += in_tok; total_out += out_tok; total_think += think_tok
-                    tier_used = tier
+                call_elapsed = round(time_module.time() - call_start)
+                _log_api_usage('diagram', DIAGRAM_JUDGE_MODEL_ID, in_tok, out_tok, call_elapsed,
+                               request_id=req_id, thinking_tokens=think_tok,
+                               billing_tier=tier, user_id=uid)
                 raw = (resp_judge.text or '').strip().upper()
                 # Prefer tight when judge returns A; padded when B; default to tight on ambiguity.
                 if 'B' in raw and 'A' not in raw:
@@ -582,7 +584,10 @@ def read_diagram():
                     meta['box'] = meta['box_tight']
                 logger.info(f"[Diagram] Judge region {idx + 1}: raw={raw!r} → {meta['selected_variant']} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
             except Exception as e:
+                call_elapsed = round(time_module.time() - call_start)
                 logger.warning(f"[Diagram] Judge failed for region {idx + 1}: {e}; defaulting to padded")
+                _log_api_usage('diagram', DIAGRAM_JUDGE_MODEL_ID, 0, 0, call_elapsed, error=str(e),
+                               request_id=req_id, user_id=uid, billing_tier='paid')
                 meta['selected_variant'] = 'padded'
                 meta['box'] = meta['box_padded']
 
@@ -623,8 +628,8 @@ def read_diagram():
         diagrams_by_idx = {}
 
         def read_region(idx, meta):
-            nonlocal total_in, total_out, total_think, tier_used
             logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(diagrams_meta)}")
+            call_start = time_module.time()
             try:
                 cropped_bytes = meta['_crop_bytes']
                 crop_mime = meta['_crop_mime']
@@ -636,9 +641,10 @@ def read_diagram():
                     ],
                 )
                 in_tok, out_tok, think_tok = _extract_usage_tokens(resp_read)
-                with tokens_lock:
-                    total_in += in_tok; total_out += out_tok; total_think += think_tok
-                    tier_used = tier
+                call_elapsed = round(time_module.time() - call_start)
+                _log_api_usage('diagram', model_id, in_tok, out_tok, call_elapsed,
+                               request_id=req_id, thinking_tokens=think_tok,
+                               billing_tier=tier, user_id=uid)
                 if is_admin:
                     result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": resp_read.text})
                 raw = _strip_code_fences(resp_read.text)
@@ -669,7 +675,10 @@ def read_diagram():
                 else:
                     logger.warning(f"[Diagram] Region {idx + 1}: no FEN extracted")
             except Exception as e:
+                call_elapsed = round(time_module.time() - call_start)
                 logger.error(f"[Diagram] Region {idx + 1} failed: {e}")
+                _log_api_usage('diagram', model_id, 0, 0, call_elapsed, error=str(e),
+                               request_id=req_id, user_id=uid, billing_tier='paid')
 
         region_threads = []
         for idx, meta in enumerate(diagrams_meta):
@@ -686,7 +695,6 @@ def read_diagram():
         elapsed = round(time_module.time() - total_start)
         logger.info(f"[Diagram] All done: {len(diagrams)} diagram(s) in {elapsed}s")
         result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "diagrams": diagrams, "elapsed": elapsed})
-        _log_api_usage('diagram', model_id, total_in, total_out, elapsed, request_id=req_id, thinking_tokens=total_think, billing_tier=tier_used, user_id=uid)
 
     def run_pipeline_wrapped():
         try:
