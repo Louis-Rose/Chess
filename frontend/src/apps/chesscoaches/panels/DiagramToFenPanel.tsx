@@ -367,8 +367,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
         <select
           value={selectedDiagramIdx}
           onChange={e => setSelectedDiagramIdx(Number(e.target.value))}
-          disabled={entryCount <= 1}
-          className={`${selectClass} ${entryCount <= 1 ? 'opacity-50' : ''}`}
+          className={selectClass}
         >
           {entries.map((entry, i) => {
             const num = entry.kind === 'ready' ? entry.diagram.diagram_number : entry.region.diagram_number;
