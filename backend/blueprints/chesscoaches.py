@@ -1317,6 +1317,7 @@ def read_diagram():
                 'white_player': m['white_player'],
                 'black_player': m['black_player'],
                 'diagram_number': m['diagram_number'],
+                'active_color': m['active_color'],
             }
             for m in diagrams_meta
         ]

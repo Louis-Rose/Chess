@@ -646,7 +646,9 @@ function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: DiagramExtract
 import { pieceImageUrl, BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
 
 function PendingDiagram({ region }: { region: DiagramRegion }) {
+  const { t } = useLanguage();
   const hasPlayers = !!(region.white_player || region.black_player);
+  const sideToMoveLabel = region.active_color === 'b' ? t('coaches.diagram.blackToPlay') : t('coaches.diagram.whiteToPlay');
   return (
     <div className="space-y-3">
       {region.crop_data_url && (
@@ -659,6 +661,19 @@ function PendingDiagram({ region }: { region: DiagramRegion }) {
           <span className="text-slate-500 mx-1">vs</span>
           <span className="text-slate-100">{region.black_player || '—'}</span>
           <span className="w-3 h-3 rounded-full bg-slate-900 border border-slate-500 inline-block" />
+        </div>
+      )}
+      {region.active_color && (
+        <div className="flex justify-center">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+              region.active_color === 'b'
+                ? 'bg-slate-900 border-slate-600 text-slate-100'
+                : 'bg-slate-100 border-slate-300 text-slate-900'
+            }`}
+          >
+            {sideToMoveLabel}
+          </span>
         </div>
       )}
       <div className="relative mx-auto aspect-square w-full max-w-[400px] rounded-lg overflow-hidden shadow-lg">

@@ -20,6 +20,7 @@ export interface DiagramRegion {
   white_player?: string;
   black_player?: string;
   diagram_number?: number | null;
+  active_color?: 'w' | 'b';
 }
 
 export interface DiagramExtract {
