@@ -519,8 +519,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   );
 }
 
-  );
-
 function PendingDiagram({ region }: { region: DiagramRegion }) {
   const { t } = useLanguage();
   const hasPlayers = !!(region.white_player || region.black_player);
@@ -564,4 +562,6 @@ function PendingDiagram({ region }: { region: DiagramRegion }) {
           <Loader2 className="w-10 h-10 text-slate-100 drop-shadow animate-spin" />
         </div>
       </div>
+    </div>
+  );
 }
