@@ -30,11 +30,10 @@ export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board
   const boardRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ piece: string; fromR: number; fromC: number; x: number; y: number } | null>(null);
   const [menu, setMenu] = useState<SquareMenu>(null);
-  const [moveFrom, setMoveFrom] = useState<{ r: number; c: number } | null>(null);
   const didDragRef = useRef(false);
 
   // Close menu when the FEN changes
-  useEffect(() => { setMenu(null); setMoveFrom(null); }, [fen]);
+  useEffect(() => { setMenu(null); }, [fen]);
 
   const mutate = useCallback((fn: (b: (string | null)[][]) => void) => {
     const next = board.map(row => [...row]);
@@ -44,20 +43,11 @@ export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board
 
   const handleSquareClick = useCallback((r: number, c: number) => {
     if (didDragRef.current) { didDragRef.current = false; return; }
-    if (moveFrom) {
-      if (moveFrom.r === r && moveFrom.c === c) { setMoveFrom(null); return; }
-      const piece = board[moveFrom.r][moveFrom.c];
-      if (piece) {
-        mutate(b => { b[moveFrom.r][moveFrom.c] = null; b[r][c] = piece; });
-      }
-      setMoveFrom(null);
-      return;
-    }
     // Toggle menu
     if (menu && menu.r === r && menu.c === c) { setMenu(null); return; }
     const piece = board[r][c];
     setMenu(piece ? { kind: 'piece', r, c, piece } : { kind: 'empty', r, c });
-  }, [menu, moveFrom, board, mutate]);
+  }, [menu, board]);
 
   const pendingDragRef = useRef<{ piece: string; fromR: number; fromC: number; startX: number; startY: number } | null>(null);
 
@@ -71,7 +61,6 @@ export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board
       if (pd && !dragging) {
         if (Math.abs(e.clientX - pd.startX) > 4 || Math.abs(e.clientY - pd.startY) > 4) {
           setMenu(null);
-          setMoveFrom(null);
           setDragging({ piece: pd.piece, fromR: pd.fromR, fromC: pd.fromC, x: e.clientX, y: e.clientY });
         }
         return;
@@ -118,9 +107,8 @@ export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board
             row.map((piece, c) => {
               const isLight = (r + c) % 2 === 0;
               const isDragSource = dragging && dragging.fromR === r && dragging.fromC === c;
-              const isMoveFrom = moveFrom && moveFrom.r === r && moveFrom.c === c;
               const isMenuSquare = menu && menu.r === r && menu.c === c;
-              const highlighted = isMoveFrom || isMenuSquare;
+              const highlighted = isMenuSquare;
               return (
                 <div
                   key={`${r}-${c}`}
@@ -157,8 +145,7 @@ export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board
       {menu && <SquareMenuPopover
         menu={menu}
         t={t}
-        onAdd={() => setMenu({ kind: 'picker', r: menu.r, c: menu.c })}
-        onMove={() => { setMoveFrom({ r: menu.r, c: menu.c }); setMenu(null); }}
+        onOpenPicker={() => setMenu({ kind: 'picker', r: menu.r, c: menu.c })}
         onDelete={() => { mutate(b => { b[menu.r][menu.c] = null; }); setMenu(null); }}
         onPick={(p) => { mutate(b => { b[menu.r][menu.c] = p; }); setMenu(null); }}
       />}
@@ -179,13 +166,12 @@ export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board
 interface SquareMenuPopoverProps {
   menu: NonNullable<SquareMenu>;
   t: (key: string) => string;
-  onAdd: () => void;
-  onMove: () => void;
+  onOpenPicker: () => void;
   onDelete: () => void;
   onPick: (piece: string) => void;
 }
 
-function SquareMenuPopover({ menu, t, onAdd, onMove, onDelete, onPick }: SquareMenuPopoverProps) {
+function SquareMenuPopover({ menu, t, onOpenPicker, onDelete, onPick }: SquareMenuPopoverProps) {
   // Position popover near the clicked square. Flip above the square when on the bottom half.
   const leftPct = (menu.c + 0.5) / 8 * 100;
   const flipUp = menu.r >= 5;
@@ -204,11 +190,11 @@ function SquareMenuPopover({ menu, t, onAdd, onMove, onDelete, onPick }: SquareM
       {menu.kind === 'piece' && (
         <div className="flex flex-col gap-1 min-w-[130px]">
           <button
-            onClick={onMove}
+            onClick={onOpenPicker}
             className="flex items-center gap-2 px-2 py-1.5 rounded text-xs text-slate-200 hover:bg-slate-700"
           >
-            <span className="text-base leading-none">✥</span>
-            {t('coaches.diagram.movePiece')}
+            <span className="text-base leading-none">⇄</span>
+            {t('coaches.diagram.changePiece')}
           </button>
           <button
             onClick={onDelete}
@@ -222,7 +208,7 @@ function SquareMenuPopover({ menu, t, onAdd, onMove, onDelete, onPick }: SquareM
       {menu.kind === 'empty' && (
         <div className="flex flex-col gap-1 min-w-[130px]">
           <button
-            onClick={onAdd}
+            onClick={onOpenPicker}
             className="flex items-center gap-2 px-2 py-1.5 rounded text-xs text-slate-200 hover:bg-slate-700"
           >
             <span className="text-base leading-none">+</span>
