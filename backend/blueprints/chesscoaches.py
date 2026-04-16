@@ -361,7 +361,23 @@ def _grid_to_fen(board, active_color):
         ranks.append(compressed)
     placement = '/'.join(ranks)
     color = 'w' if str(active_color).lower().startswith('w') else 'b'
-    return f"{placement} {color} KQkq - 0 1"
+    # Castling rights: the reader only sees a static position, so we assume a right
+    # is still available iff the involved king and rook are on their home squares.
+    # (Corner case of "moved and came back" is ignored.)
+    # Rows are indexed 0 = rank 8 ... 7 = rank 1. Columns 0=a ... 7=h.
+    castling = ''
+    if board[7][4] == 'K':
+        if board[7][7] == 'R':
+            castling += 'K'
+        if board[7][0] == 'R':
+            castling += 'Q'
+    if board[0][4] == 'k':
+        if board[0][7] == 'r':
+            castling += 'k'
+        if board[0][0] == 'r':
+            castling += 'q'
+    castling = castling or '-'
+    return f"{placement} {color} {castling} - 0 1"
 
 
 def _strip_code_fences(raw):
