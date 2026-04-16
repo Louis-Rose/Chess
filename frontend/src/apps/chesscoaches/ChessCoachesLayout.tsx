@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Users, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, CalendarDays, AlertTriangle, BookOpen } from 'lucide-react';
+import { Users, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, CalendarDays, AlertTriangle, BookOpen, Eye, EyeOff } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
@@ -55,7 +55,7 @@ export const NAV_SECTIONS: NavSection[] = [
 
 function CoachesNavSidebar() {
   const { t } = useLanguage();
-  const { user, logout } = useAuth();
+  const { user, logout, previewAsNonAdmin, setPreviewAsNonAdmin } = useAuth();
   const navigate = useNavigate();
   const [showPlayerMenu, setShowPlayerMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -235,6 +235,27 @@ function CoachesNavSidebar() {
             );
           })}
         </nav>
+
+        {user?.is_admin && (
+          <div className="mt-3 px-1">
+            <div className="h-px bg-slate-700 mb-2" />
+            <button
+              type="button"
+              onClick={() => setPreviewAsNonAdmin(!previewAsNonAdmin)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${
+                previewAsNonAdmin
+                  ? 'bg-amber-900/30 border border-amber-700/50 text-amber-200 hover:bg-amber-900/50'
+                  : 'bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200'
+              }`}
+              title={previewAsNonAdmin ? 'Currently previewing as non-admin — click to switch back' : 'Preview the app as a non-admin would see it'}
+            >
+              {previewAsNonAdmin ? <EyeOff className="w-4 h-4 flex-shrink-0" /> : <Eye className="w-4 h-4 flex-shrink-0" />}
+              <span className="flex-1 text-left leading-tight">
+                {previewAsNonAdmin ? 'Viewing as non-admin' : 'View as non-admin'}
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Extra top margin when the nav is empty (no role yet) so the
             space below Home matches the 8px gap above it. */}

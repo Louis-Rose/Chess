@@ -6,7 +6,7 @@ import { ImageZoomModal } from '../components/ImageZoomModal';
 import { ProcessingProgressBar } from '../components/ProcessingProgressBar';
 
 import { useLanguage } from '../../../contexts/LanguageContext';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useEffectiveAdmin } from '../../../contexts/AuthContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
@@ -103,7 +103,7 @@ function CroppedRegion({ src, region }: { src: string; region: { x: number; y: n
 
 export function DiagramToFenPanel() {
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const effectiveAdmin = useEffectiveAdmin();
   const fileRef = useRef<HTMLInputElement>(null);
   const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
   const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead, debugRawLocate, debugRawReads } = diagram;
@@ -220,11 +220,11 @@ export function DiagramToFenPanel() {
                   }`}
                   onClick={() => setShowImageModal(true)}
                 />
-                {regions && regions.length > 0 && <RegionOverlay regions={regions} showCandidates={!!user?.is_admin} />}
+                {regions && regions.length > 0 && <RegionOverlay regions={regions} showCandidates={effectiveAdmin} />}
               </div>
               </div>
 
-              {user?.is_admin && (debugRawLocate || (debugRawReads && Object.keys(debugRawReads).length > 0)) && (
+              {effectiveAdmin && (debugRawLocate || (debugRawReads && Object.keys(debugRawReads).length > 0)) && (
                 <div className="max-w-xl mx-auto space-y-2 text-xs">
                   {debugRawLocate && (
                     <details open className="bg-slate-900/60 border border-slate-700 rounded">
@@ -271,7 +271,7 @@ export function DiagramToFenPanel() {
           src={preview}
           alt="Diagram"
           onClose={() => setShowImageModal(false)}
-          overlay={regions && regions.length > 0 ? <RegionOverlay regions={regions} showCandidates={!!user?.is_admin} /> : undefined}
+          overlay={regions && regions.length > 0 ? <RegionOverlay regions={regions} showCandidates={effectiveAdmin} /> : undefined}
         />
       )}
     </PanelShell>

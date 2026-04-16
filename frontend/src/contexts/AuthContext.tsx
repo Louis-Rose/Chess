@@ -31,13 +31,26 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
+  // Admin preview: when true, an admin user is viewing the app as a non-admin would.
+  previewAsNonAdmin: boolean;
+  setPreviewAsNonAdmin: (v: boolean) => void;
 }
+
+const PREVIEW_AS_NON_ADMIN_KEY = 'admin_preview_as_non_admin';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewAsNonAdmin, setPreviewAsNonAdminState] = useState<boolean>(() => {
+    try { return localStorage.getItem(PREVIEW_AS_NON_ADMIN_KEY) === 'true'; }
+    catch { return false; }
+  });
+  const setPreviewAsNonAdmin = (v: boolean) => {
+    setPreviewAsNonAdminState(v);
+    try { localStorage.setItem(PREVIEW_AS_NON_ADMIN_KEY, v ? 'true' : 'false'); } catch {}
+  };
   const [blocked, setBlocked] = useState(false);
   const clickCount = useRef(0);
   const newThreshold = () => Math.floor(Math.random() * 5) + 3; // 3-7
@@ -338,6 +351,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!user,
       login,
       logout,
+      previewAsNonAdmin,
+      setPreviewAsNonAdmin,
     }}>
       {children}
       {blocked && (
@@ -371,4 +386,13 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+/** Returns true only if the user is an admin AND not previewing as non-admin.
+ * Use this for admin-only UI affordances that should disappear in the preview.
+ * Do NOT use this for guarding data access or admin-only API queries —
+ * those must check the real user.is_admin. */
+export function useEffectiveAdmin(): boolean {
+  const { user, previewAsNonAdmin } = useAuth();
+  return !!user?.is_admin && !previewAsNonAdmin;
 }
