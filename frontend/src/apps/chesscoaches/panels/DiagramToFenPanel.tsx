@@ -701,7 +701,6 @@ type SquareMenu =
   | null;
 
 function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (string | null)[][]) => void }) {
-  const editing = true;
   const { t } = useLanguage();
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -710,8 +709,7 @@ function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (stri
   const [moveFrom, setMoveFrom] = useState<{ r: number; c: number } | null>(null);
   const didDragRef = useRef(false);
 
-  // Close menu when exiting edit mode or when the FEN changes
-  useEffect(() => { if (!editing) { setMenu(null); setMoveFrom(null); } }, [editing]);
+  // Close menu when the FEN changes
   useEffect(() => { setMenu(null); setMoveFrom(null); }, [fen]);
 
   const mutate = useCallback((fn: (b: (string | null)[][]) => void) => {
@@ -721,7 +719,6 @@ function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (stri
   }, [board, onChange]);
 
   const handleSquareClick = useCallback((r: number, c: number) => {
-    if (!editing) return;
     if (didDragRef.current) { didDragRef.current = false; return; }
     if (moveFrom) {
       if (moveFrom.r === r && moveFrom.c === c) { setMoveFrom(null); return; }
@@ -736,17 +733,15 @@ function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (stri
     if (menu && menu.r === r && menu.c === c) { setMenu(null); return; }
     const piece = board[r][c];
     setMenu(piece ? { kind: 'piece', r, c, piece } : { kind: 'empty', r, c });
-  }, [editing, menu, moveFrom, board, mutate]);
+  }, [menu, moveFrom, board, mutate]);
 
   const pendingDragRef = useRef<{ piece: string; fromR: number; fromC: number; startX: number; startY: number } | null>(null);
 
   const handlePointerDown = useCallback((_e: React.PointerEvent, piece: string, r: number, c: number) => {
-    if (!editing) return;
     pendingDragRef.current = { piece, fromR: r, fromC: c, startX: _e.clientX, startY: _e.clientY };
-  }, [editing]);
+  }, []);
 
   useEffect(() => {
-    if (!editing) return;
     const onMove = (e: PointerEvent) => {
       const pd = pendingDragRef.current;
       if (pd && !dragging) {
@@ -779,7 +774,7 @@ function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (stri
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
     return () => { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); };
-  }, [editing, dragging, mutate]);
+  }, [dragging, mutate]);
 
   // Close the menu when clicking outside the board
   useEffect(() => {
@@ -805,7 +800,7 @@ function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (stri
               return (
                 <div
                   key={`${r}-${c}`}
-                  className={`relative select-none ${editing ? 'cursor-pointer' : ''} ${highlighted ? 'ring-2 ring-inset ring-blue-400' : ''}`}
+                  className={`relative select-none cursor-pointer ${highlighted ? 'ring-2 ring-inset ring-blue-400' : ''}`}
                   style={{ backgroundColor: isLight ? LIGHT : DARK }}
                   onClick={() => handleSquareClick(r, c)}
                 >
@@ -823,7 +818,7 @@ function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (stri
                     <img
                       src={pieceImageUrl(piece)}
                       alt=""
-                      className={`absolute inset-[5%] w-[90%] h-[90%] ${editing ? 'cursor-grab' : ''}`}
+                      className="absolute inset-[5%] w-[90%] h-[90%] cursor-grab"
                       draggable={false}
                       onPointerDown={e => handlePointerDown(e, piece, r, c)}
                     />

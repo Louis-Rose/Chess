@@ -210,7 +210,6 @@ DIAGRAM_MODELS = [
 ]
 
 _avg_cache: dict = {}
-_avg_cache_ts: float = 0
 _AVG_CACHE_TTL = 120  # seconds
 
 
@@ -218,11 +217,12 @@ def _get_model_avg_elapsed(feature, user_id=None):
     """Get average elapsed seconds per model for a given feature (rounded up),
     optionally filtered by user. Results are cached for 2 minutes per
     (user_id, feature) key."""
-    global _avg_cache, _avg_cache_ts
+    global _avg_cache
     now = time_module.time()
     key = (user_id, feature)
-    if key in _avg_cache and (now - _avg_cache_ts) <= _AVG_CACHE_TTL:
-        return _avg_cache[key]
+    cached = _avg_cache.get(key)
+    if cached is not None and (now - cached[0]) <= _AVG_CACHE_TTL:
+        return cached[1]
     try:
         with get_db() as conn:
             if user_id:
@@ -242,8 +242,7 @@ def _get_model_avg_elapsed(feature, user_id=None):
                     (feature,)
                 ).fetchall()
             result = {r['model_id']: int(math.ceil(r['avg_elapsed'])) for r in rows}
-            _avg_cache[key] = result
-            _avg_cache_ts = now
+            _avg_cache[key] = (now, result)
             return result
     except Exception:
         return {}

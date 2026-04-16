@@ -182,7 +182,6 @@ const FEATURE_LABELS: Record<string, string> = {
 // Map page ids to their associated API feature names
 const PAGE_TO_API_FEATURES: Record<string, string[]> = {
   diagram: ['diagram'],
-  mistakes: ['mistakes'],
 };
 
 const LAUNCH_DATE = '2026-03-23';

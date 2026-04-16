@@ -70,7 +70,6 @@ def create_folder():
         )
         row = _datetimes(dict(cursor.fetchone()))
         row['position_count'] = 0
-        conn.commit()
     return jsonify(row), 201
 
 
@@ -115,7 +114,6 @@ def update_folder(folder_id):
             f"UPDATE knowledge_folders SET {', '.join(updates)} WHERE id = ?",
             tuple(params)
         )
-        conn.commit()
     return jsonify({'ok': True})
 
 
@@ -128,13 +126,11 @@ def delete_folder(folder_id):
         if not _folder_owned(conn, folder_id, user_id):
             return jsonify({'error': 'folder not found'}), 404
         conn.execute('DELETE FROM knowledge_folders WHERE id = ?', (folder_id,))
-        conn.commit()
     return jsonify({'ok': True})
 
 
 def _position_row(r):
-    r = _datetimes(dict(r))
-    return r
+    return _datetimes(dict(r))
 
 
 @knowledge_bp.route('/api/knowledge/positions', methods=['GET'])
@@ -200,7 +196,6 @@ def create_position():
             )
         )
         row = _position_row(cursor.fetchone())
-        conn.commit()
     return jsonify(row), 201
 
 
@@ -235,7 +230,6 @@ def update_position(position_id):
             f"UPDATE knowledge_positions SET {', '.join(updates)} WHERE id = ?",
             tuple(params)
         )
-        conn.commit()
     return jsonify({'ok': True})
 
 
@@ -250,5 +244,4 @@ def delete_position(position_id):
         if not row or row['user_id'] != user_id:
             return jsonify({'error': 'position not found'}), 404
         conn.execute('DELETE FROM knowledge_positions WHERE id = ?', (position_id,))
-        conn.commit()
     return jsonify({'ok': True})

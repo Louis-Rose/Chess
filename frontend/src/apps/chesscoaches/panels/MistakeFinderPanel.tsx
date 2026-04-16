@@ -169,9 +169,6 @@ export function MistakeFinderPanel() {
     mistakesAnalyze(parsePgn, findMistakes, t('coaches.mistakes.noClockData'));
   };
 
-  const handleClear = mistakesClear;
-  const setExpandedMistake = mistakesSetExpanded;
-
   return (
     <PanelShell title={t('coaches.navMistakes')}>
       {/* Upload area */}
@@ -202,7 +199,7 @@ export function MistakeFinderPanel() {
             <Upload className="w-4 h-4 text-blue-400 flex-shrink-0" />
             <span className="text-slate-200 text-sm">{fileName}</span>
             <button
-              onClick={handleClear}
+              onClick={mistakesClear}
               className="text-slate-400 hover:text-slate-200 transition-colors flex-shrink-0"
             >
               <X className="w-4 h-4" />
@@ -305,7 +302,7 @@ export function MistakeFinderPanel() {
                   {mistakes.map((m, i) => (
                     <div key={i} className="bg-slate-700/40 border border-slate-600 rounded-lg overflow-hidden">
                       <button
-                        onClick={() => setExpandedMistake(expandedMistake === i ? null : i)}
+                        onClick={() => mistakesSetExpanded(expandedMistake === i ? null : i)}
                         className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/60 transition-colors"
                       >
                         <div className="flex items-center gap-3">
@@ -357,7 +354,7 @@ export function MistakeFinderPanel() {
 
               {/* Analyze again */}
               <button
-                onClick={handleClear}
+                onClick={mistakesClear}
                 className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium py-2.5 rounded-lg transition-colors text-sm"
               >
                 {t('coaches.mistakes.analyzeAnother')}
