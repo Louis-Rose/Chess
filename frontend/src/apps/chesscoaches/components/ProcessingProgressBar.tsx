@@ -1,4 +1,4 @@
-// Shared processing progress bar used by the scoresheet and diagram panels.
+// Shared processing progress bar used by the diagram panel.
 // The caller supplies the progress math and any status copy shown below the bar.
 
 import type { ReactNode } from 'react';

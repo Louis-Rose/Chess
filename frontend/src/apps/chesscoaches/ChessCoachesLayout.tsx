@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Users, FileText, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, CalendarDays, AlertTriangle, BookOpen } from 'lucide-react';
+import { Users, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, CalendarDays, AlertTriangle, BookOpen } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { CoachesDataProvider, saveCoachesPrefs } from './contexts/CoachesDataContext';
+import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,7 +48,6 @@ export const NAV_SECTIONS: NavSection[] = [
     titleKey: 'coaches.sectionAITools',
     items: [
       { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
-      { path: '/scoresheets', labelKey: 'coaches.navScoresheets', icon: FileText, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', roles: ['coach'] },
       { path: '/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', hidden: true, roles: ['coach'] },
     ],
   },
@@ -152,7 +151,6 @@ function CoachesNavSidebar() {
                   <button
                     onClick={async () => {
                       setShowPlayerMenu(false);
-                      saveCoachesPrefs({ scoresheet_success: false });
                       await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
                       await logout();
                     }}

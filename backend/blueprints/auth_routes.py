@@ -279,7 +279,7 @@ def activity_heartbeat():
 
     # Normalize page names to categories
     KNOWN_PAGES = {
-        'home', 'calendar', 'students', 'payments', 'scoresheets', 'mistakes', 'diagram', 'about', 'admin',
+        'home', 'calendar', 'students', 'payments', 'mistakes', 'diagram', 'about', 'admin',
     }
     if page not in KNOWN_PAGES:
         page = 'other'

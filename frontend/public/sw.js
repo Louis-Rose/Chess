@@ -47,8 +47,8 @@ self.addEventListener('fetch', (event) => {
           });
           await cache.put('/shared-image', response);
         }
-        // Redirect to the scoresheet reader with a flag
-        return Response.redirect('/scoresheets?shared=1', 303);
+        // Redirect to the diagram reader with a flag
+        return Response.redirect('/diagram?shared=1', 303);
       })()
     );
     return;

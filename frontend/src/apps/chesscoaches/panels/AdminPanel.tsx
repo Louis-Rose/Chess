@@ -176,14 +176,11 @@ function shortModel(id: string): string {
 }
 
 const FEATURE_LABELS: Record<string, string> = {
-  scoresheet: 'Scoresheet \u2192 PGN',
-  reread: 'Re-read',
   diagram: 'Diagram \u2192 FEN',
 };
 
 // Map page ids to their associated API feature names
 const PAGE_TO_API_FEATURES: Record<string, string[]> = {
-  scoresheets: ['scoresheet', 'reread'],
   diagram: ['diagram'],
   mistakes: ['mistakes'],
 };
@@ -193,7 +190,7 @@ const LAUNCH_DATE = '2026-03-23';
 // Enabled features — derived from NAV_SECTIONS with same filter as sidebar
 const COACH_FEATURES: { id: string; labelKey: string }[] = NAV_SECTIONS
   .flatMap(s => s.items)
-  .filter(({ path }) => ['/scoresheets', '/payments', '/students', '/diagram'].includes(path))
+  .filter(({ path }) => ['/payments', '/students', '/diagram'].includes(path))
   .map(({ path, labelKey }) => ({ id: path.slice(1), labelKey }));
 
 export function AdminPanel() {
@@ -1050,7 +1047,7 @@ export function AdminPanel() {
               </div>
             )}
 
-            {/* All uploads by user (backend excludes the shared sample scoresheet) */}
+            {/* All uploads by user */}
             {allUploadsData && [...allUploadsData.entries()].map(([uid, uploads]) => {
               const featurePrefixes = selectedFeature ? (PAGE_TO_API_FEATURES[selectedFeature] || []) : [];
               const filtered = featurePrefixes.length > 0
@@ -1098,7 +1095,7 @@ export function AdminPanel() {
       {zoomedImageSrc && (
         <ImageZoomModal
           src={zoomedImageSrc}
-          alt="Scoresheet upload"
+          alt="Upload"
           onClose={() => setZoomedImageSrc(null)}
         />
       )}

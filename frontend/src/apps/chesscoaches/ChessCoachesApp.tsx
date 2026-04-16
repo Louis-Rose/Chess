@@ -4,7 +4,6 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ChessCoachesLayout } from './ChessCoachesLayout';
 import { HomePage } from './panels/HomePage';
-import { ScoresheetReadPage } from './panels/ScoresheetReadPage';
 import { StudentsPanel } from './panels/StudentsPanel';
 import { MistakeFinderPanel } from './panels/MistakeFinderPanel';
 import { DiagramToFenPanel } from './panels/DiagramToFenPanel';
@@ -49,7 +48,6 @@ export function ChessCoachesApp() {
         <Route path="students" element={<StudentsPanel />} />
         <Route path="students/:studentId" element={<StudentDetailPage />} />
         <Route path="payments" element={<PaymentsPanel />} />
-        <Route path="scoresheets" element={<ScoresheetReadPage />} />
         <Route path="mistakes" element={<MistakeFinderPanel />} />
         <Route path="diagram" element={<DiagramToFenPanel />} />
         <Route path="positions" element={<PositionsPanel />} />

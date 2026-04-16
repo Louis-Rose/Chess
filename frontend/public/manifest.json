@@ -1,7 +1,7 @@
 {
   "name": "LUMNA - Chess Coach",
   "short_name": "LUMNA",
-  "description": "Digitize and analyze tournament scoresheets",
+  "description": "AI-powered tools for chess coaches",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

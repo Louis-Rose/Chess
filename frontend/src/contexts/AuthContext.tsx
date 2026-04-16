@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const events: (keyof WindowEventMap)[] = ['mousemove', 'click', 'keydown', 'scroll', 'touchstart'];
     events.forEach(e => window.addEventListener(e, markActive, { passive: true }));
 
-    const COACHES_PAGES = new Set(['calendar', 'students', 'payments', 'scoresheets', 'mistakes', 'diagram', 'about', 'admin']);
+    const COACHES_PAGES = new Set(['calendar', 'students', 'payments', 'mistakes', 'diagram', 'about', 'admin']);
 
     const getPageFromPath = (path: string): string => {
       const parts = path.split('/').filter(Boolean);
