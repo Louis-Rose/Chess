@@ -31,20 +31,20 @@ def _folder_owned(conn, folder_id, user_id):
 def get_tree():
     """Return the user's folders (flat list with parent_id, so frontend builds the tree)
     plus counts of positions per folder."""
-    user = get_current_user()
+    user_id = get_current_user()
     with get_db() as conn:
         folders = [
             _datetimes(dict(r)) for r in conn.execute(
                 'SELECT id, parent_id, name, created_at, updated_at FROM knowledge_folders '
                 'WHERE user_id = ? ORDER BY name ASC',
-                (user['id'],)
+                (user_id,)
             ).fetchall()
         ]
         counts = {
             r['folder_id']: r['c'] for r in conn.execute(
                 'SELECT folder_id, COUNT(*) AS c FROM knowledge_positions '
                 'WHERE user_id = ? GROUP BY folder_id',
-                (user['id'],)
+                (user_id,)
             ).fetchall()
         }
     for f in folders:
@@ -55,18 +55,18 @@ def get_tree():
 @knowledge_bp.route('/api/knowledge/folders', methods=['POST'])
 @login_required
 def create_folder():
-    user = get_current_user()
+    user_id = get_current_user()
     data = request.get_json() or {}
     name = (data.get('name') or '').strip()
     parent_id = data.get('parent_id')
     if not name:
         return jsonify({'error': 'name required'}), 400
     with get_db() as conn:
-        if parent_id is not None and not _folder_owned(conn, parent_id, user['id']):
+        if parent_id is not None and not _folder_owned(conn, parent_id, user_id):
             return jsonify({'error': 'parent folder not found'}), 404
         cursor = conn.execute(
             'INSERT INTO knowledge_folders (user_id, parent_id, name) VALUES (?, ?, ?) RETURNING id, parent_id, name, created_at, updated_at',
-            (user['id'], parent_id, name)
+            (user_id, parent_id, name)
         )
         row = _datetimes(dict(cursor.fetchone()))
         row['position_count'] = 0
@@ -78,10 +78,10 @@ def create_folder():
 @login_required
 def update_folder(folder_id):
     """Rename or move a folder. Body: { name?, parent_id? } (parent_id=null moves to root)."""
-    user = get_current_user()
+    user_id = get_current_user()
     data = request.get_json() or {}
     with get_db() as conn:
-        if not _folder_owned(conn, folder_id, user['id']):
+        if not _folder_owned(conn, folder_id, user_id):
             return jsonify({'error': 'folder not found'}), 404
         updates = []
         params = []
@@ -96,7 +96,7 @@ def update_folder(folder_id):
             if new_parent is not None:
                 if new_parent == folder_id:
                     return jsonify({'error': 'cannot parent a folder to itself'}), 400
-                if not _folder_owned(conn, new_parent, user['id']):
+                if not _folder_owned(conn, new_parent, user_id):
                     return jsonify({'error': 'target parent not found'}), 404
                 # Prevent cycles: walk up from new_parent, reject if we hit folder_id
                 cur = new_parent
@@ -123,9 +123,9 @@ def update_folder(folder_id):
 @login_required
 def delete_folder(folder_id):
     """Delete a folder recursively. Positions in it (and descendants) become folder_id=NULL."""
-    user = get_current_user()
+    user_id = get_current_user()
     with get_db() as conn:
-        if not _folder_owned(conn, folder_id, user['id']):
+        if not _folder_owned(conn, folder_id, user_id):
             return jsonify({'error': 'folder not found'}), 404
         conn.execute('DELETE FROM knowledge_folders WHERE id = ?', (folder_id,))
         conn.commit()
@@ -141,24 +141,24 @@ def _position_row(r):
 @login_required
 def list_positions():
     """List positions in a folder. ?folder_id=<id|null>. If null/omitted, returns unfoldered ones."""
-    user = get_current_user()
+    user_id = get_current_user()
     folder_id_raw = request.args.get('folder_id')
     with get_db() as conn:
         if folder_id_raw in (None, '', 'null'):
             rows = conn.execute(
                 'SELECT * FROM knowledge_positions WHERE user_id = ? AND folder_id IS NULL ORDER BY created_at DESC',
-                (user['id'],)
+                (user_id,)
             ).fetchall()
         else:
             try:
                 folder_id = int(folder_id_raw)
             except ValueError:
                 return jsonify({'error': 'invalid folder_id'}), 400
-            if not _folder_owned(conn, folder_id, user['id']):
+            if not _folder_owned(conn, folder_id, user_id):
                 return jsonify({'error': 'folder not found'}), 404
             rows = conn.execute(
                 'SELECT * FROM knowledge_positions WHERE user_id = ? AND folder_id = ? ORDER BY created_at DESC',
-                (user['id'], folder_id)
+                (user_id, folder_id)
             ).fetchall()
     return jsonify({'positions': [_position_row(r) for r in rows]})
 
@@ -168,14 +168,14 @@ def list_positions():
 def create_position():
     """Save a position. Body: { folder_id?, fen, white_player?, black_player?, active_color?,
     diagram_number?, crop_data_url?, notes? }."""
-    user = get_current_user()
+    user_id = get_current_user()
     data = request.get_json() or {}
     fen = (data.get('fen') or '').strip()
     if not fen:
         return jsonify({'error': 'fen required'}), 400
     folder_id = data.get('folder_id')
     with get_db() as conn:
-        if folder_id is not None and not _folder_owned(conn, folder_id, user['id']):
+        if folder_id is not None and not _folder_owned(conn, folder_id, user_id):
             return jsonify({'error': 'folder not found'}), 404
         active_color = (data.get('active_color') or '').strip().lower()[:1] or None
         diagram_number = data.get('diagram_number')
@@ -190,7 +190,7 @@ def create_position():
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                RETURNING *""",
             (
-                user['id'], folder_id, fen,
+                user_id, folder_id, fen,
                 (data.get('white_player') or '').strip() or None,
                 (data.get('black_player') or '').strip() or None,
                 active_color,
@@ -208,13 +208,13 @@ def create_position():
 @login_required
 def update_position(position_id):
     """Update notes or move to another folder."""
-    user = get_current_user()
+    user_id = get_current_user()
     data = request.get_json() or {}
     with get_db() as conn:
         row = conn.execute(
             'SELECT user_id FROM knowledge_positions WHERE id = ?', (position_id,)
         ).fetchone()
-        if not row or row['user_id'] != user['id']:
+        if not row or row['user_id'] != user_id:
             return jsonify({'error': 'position not found'}), 404
         updates = []
         params = []
@@ -223,7 +223,7 @@ def update_position(position_id):
             params.append((data.get('notes') or '').strip() or None)
         if 'folder_id' in data:
             folder_id = data.get('folder_id')
-            if folder_id is not None and not _folder_owned(conn, folder_id, user['id']):
+            if folder_id is not None and not _folder_owned(conn, folder_id, user_id):
                 return jsonify({'error': 'folder not found'}), 404
             updates.append('folder_id = ?')
             params.append(folder_id)
@@ -242,12 +242,12 @@ def update_position(position_id):
 @knowledge_bp.route('/api/knowledge/positions/<int:position_id>', methods=['DELETE'])
 @login_required
 def delete_position(position_id):
-    user = get_current_user()
+    user_id = get_current_user()
     with get_db() as conn:
         row = conn.execute(
             'SELECT user_id FROM knowledge_positions WHERE id = ?', (position_id,)
         ).fetchone()
-        if not row or row['user_id'] != user['id']:
+        if not row or row['user_id'] != user_id:
             return jsonify({'error': 'position not found'}), 404
         conn.execute('DELETE FROM knowledge_positions WHERE id = ?', (position_id,))
         conn.commit()
