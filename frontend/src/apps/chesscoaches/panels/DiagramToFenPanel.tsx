@@ -471,7 +471,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
               className="bg-slate-800 border border-slate-600 text-slate-100 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
               disabled={rereading}
             >
-              {[1, 2, 3, 5].map(n => <option key={n} value={n}>{n}</option>)}
+              {[1, 2, 3, 5, 10].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
             <button
               type="button"
