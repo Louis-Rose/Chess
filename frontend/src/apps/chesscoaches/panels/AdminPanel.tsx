@@ -1329,10 +1329,11 @@ function WaitlistSection() {
   );
 }
 
-interface FeatureRequestItem { tag: string; count: number; }
+interface FeatureRequestItem { tag: string; count: number; people: string[]; }
 
 function FeatureRequestsSection() {
   const [collapsed, setCollapsed] = useState(true);
+  const [expandedTag, setExpandedTag] = useState<string | null>(null);
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-feature-requests'],
     queryFn: async () => {
@@ -1343,6 +1344,14 @@ function FeatureRequestsSection() {
 
   const items = data?.items ?? [];
   const interviewed = data?.interviewed_count ?? 0;
+  const expanded = expandedTag ? items.find(i => i.tag === expandedTag) : null;
+
+  const handleBarClick = (payload: unknown) => {
+    const p = payload as { tag?: string; payload?: { tag?: string } } | undefined;
+    const tag = p?.tag ?? p?.payload?.tag;
+    if (!tag) return;
+    setExpandedTag(t => (t === tag ? null : tag));
+  };
 
   return (
     <div className="rounded-lg border border-slate-700 overflow-hidden">
@@ -1370,20 +1379,46 @@ function FeatureRequestsSection() {
             <p className="text-slate-500 text-sm text-center py-4">No tags yet</p>
           )}
           {!isLoading && !error && items.length > 0 && (
-            <ResponsiveContainer width="100%" height={Math.max(items.length * 32, 160)}>
-              <BarChart data={items} layout="vertical" margin={{ left: 16, right: 16, top: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                <XAxis type="number" allowDecimals={false} tick={{ fill: '#e2e8f0', fontSize: 11 }} />
-                <YAxis type="category" dataKey="tag" tick={{ fill: '#e2e8f0', fontSize: 12 }} width={160} />
-                <Tooltip
-                  cursor={false}
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                  labelStyle={{ color: '#e2e8f0' }}
-                  formatter={(value) => [`${value}`, 'Requests']}
-                />
-                <Bar dataKey="count" fill="#a855f7" radius={[0, 2, 2, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={Math.max(items.length * 32, 160)}>
+                <BarChart data={items} layout="vertical" margin={{ left: 16, right: 16, top: 4, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fill: '#e2e8f0', fontSize: 11 }} />
+                  <YAxis type="category" dataKey="tag" tick={{ fill: '#e2e8f0', fontSize: 12 }} width={160} />
+                  <Tooltip
+                    cursor={false}
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                    labelStyle={{ color: '#e2e8f0' }}
+                    formatter={(value) => [`${value}`, 'Requests']}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="#a855f7"
+                    radius={[0, 2, 2, 0]}
+                    activeBar={false}
+                    onClick={handleBarClick}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+              {expanded && (
+                <div className="mt-3 rounded-lg border border-slate-700 bg-slate-800/50 overflow-hidden">
+                  <div className="px-3 py-2 bg-slate-700/40 flex items-center justify-between">
+                    <h4 className="text-xs font-medium text-slate-300">{expanded.tag} — {expanded.count}</h4>
+                    <button onClick={() => setExpandedTag(null)} className="text-xs text-slate-500 hover:text-slate-300">✕</button>
+                  </div>
+                  {(expanded.people ?? []).length === 0 ? (
+                    <div className="px-3 py-3 text-xs text-slate-500">No names</div>
+                  ) : (
+                    <ul className="divide-y divide-slate-700/50">
+                      {(expanded.people ?? []).map((name, i) => (
+                        <li key={i} className="px-3 py-1.5 text-sm text-slate-200">{name}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

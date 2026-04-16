@@ -603,7 +603,15 @@ def feature_requests():
         'page_size': 100,
     }
 
-    counts: dict = {}
+    def _page_title(page: dict) -> str:
+        """Find the title property on a Notion page and return its plain text."""
+        for prop in (page.get('properties') or {}).values():
+            if prop.get('type') == 'title':
+                parts = prop.get('title') or []
+                return ''.join(p.get('plain_text') or '' for p in parts).strip()
+        return ''
+
+    tag_people: dict = {}  # tag -> list[str]
     interviewed_count = 0
     start_cursor = None
     try:
@@ -620,11 +628,12 @@ def feature_requests():
             data = resp.json()
             for page in data.get('results') or []:
                 interviewed_count += 1
+                title = _page_title(page) or '—'
                 prop = (page.get('properties') or {}).get('Features wanted') or {}
                 for tag in prop.get('multi_select') or []:
                     name = tag.get('name')
                     if name:
-                        counts[name] = counts.get(name, 0) + 1
+                        tag_people.setdefault(name, []).append(title)
             if not data.get('has_more'):
                 break
             start_cursor = data.get('next_cursor')
@@ -633,7 +642,7 @@ def feature_requests():
         return jsonify({'error': f'Notion API error: {e}'}), 502
 
     items = sorted(
-        [{'tag': k, 'count': v} for k, v in counts.items()],
+        [{'tag': k, 'count': len(v), 'people': sorted(v)} for k, v in tag_people.items()],
         key=lambda d: (-d['count'], d['tag']),
     )
     payload = {'items': items, 'interviewed_count': interviewed_count}
