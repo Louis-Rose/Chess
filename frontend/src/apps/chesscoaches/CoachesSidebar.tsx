@@ -32,7 +32,7 @@ export function CoachesSidebar() {
         </div>
         <div className="h-px bg-slate-700 mx-3 mb-6" />
         <div className="flex flex-col items-center gap-4 px-6">
-          <span className="text-slate-100 text-lg">{t('coaches.onboardingInstruction')}</span>
+          <span className="text-slate-100 text-lg text-center">{t('coaches.onboardingInstruction')}</span>
           <LoginButton size="large" />
         </div>
 
