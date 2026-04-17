@@ -487,7 +487,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     all_pixels = []
     for c in cells.values():
         all_pixels.extend(c['pixels'])
-    PERCENTILE = 5
+    PERCENTILE = 7
     p = _percentile(all_pixels, PERCENTILE)
     if p is None:
         return {}
