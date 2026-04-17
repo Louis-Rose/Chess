@@ -1019,14 +1019,15 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
   const PIECE_ORDER = 'KQRBNP';
   const pieceRank = (ch: string | null | undefined) =>
     ch ? PIECE_ORDER.indexOf(ch.toUpperCase()) : 99;
-  // Hide empty squares; sort pieces by type (KQRBNP), dark bg first, then sq —
-  // same order as the Groups table above.
+  // Hide empty squares; sort by piece type (KQRBNP), then rank 8→1, then file a→h.
   const pieceRows = rows.filter(r => r.piece != null);
   pieceRows.sort((a, b) => {
     const pr = pieceRank(a.piece) - pieceRank(b.piece);
     if (pr !== 0) return pr;
-    if (a.isDark !== b.isDark) return a.isDark ? -1 : 1;
-    return a.sq < b.sq ? -1 : 1;
+    const aRank = parseInt(a.sq[1], 10);
+    const bRank = parseInt(b.sq[1], 10);
+    if (aRank !== bRank) return bRank - aRank;
+    return a.sq[0] < b.sq[0] ? -1 : 1;
   });
 
   const allGroupEntries = Object.entries(groupsMap).sort(([a], [b]) =>
@@ -1108,10 +1109,9 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
         <table className="w-full text-left font-mono text-[11px] text-slate-300">
           <thead>
             <tr className="text-slate-500 border-b border-slate-700">
-              <th className="pr-3">sq</th>
-              <th className="pr-3">piece</th>
-              <th className="pr-3">sq_bg</th>
               <th className="pr-3">group</th>
+              <th className="pr-3">sq</th>
+              <th className="pr-3">sq_bg</th>
               <th className="pr-3">LLM</th>
               <th className="pr-3">Px</th>
               <th className="pr-3">mean</th>
@@ -1130,10 +1130,9 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
                 row.piece ? '' : 'text-slate-500';
               return (
                 <tr key={row.sq} className={cls}>
-                  <td className="pr-3">{row.sq}</td>
-                  <td className="pr-3">{row.piece ?? '.'}</td>
-                  <td className="pr-3">{row.isDark ? 'dark' : 'light'}</td>
                   <td className="pr-3">{row.group ?? '—'}</td>
+                  <td className="pr-3">{row.sq}</td>
+                  <td className="pr-3">{row.isDark ? 'dark' : 'light'}</td>
                   <td className="pr-3">{row.llm ?? '—'}</td>
                   <td className="pr-3">{row.px ?? '—'}</td>
                   <td className="pr-3">{row.mean ?? '—'}</td>
