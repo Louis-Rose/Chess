@@ -338,7 +338,7 @@ function CoachesHeader() {
         <LumnaBrandSubtitle />
       </div>
       <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2">
-        <LanguageToggle />
+        <LanguageToggle compact />
       </div>
     </div>
   );
