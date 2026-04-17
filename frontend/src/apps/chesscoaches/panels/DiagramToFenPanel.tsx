@@ -703,12 +703,12 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
         {dbg.board_box_px && <> | box=({dbg.board_box_px.left},{dbg.board_box_px.top})→({dbg.board_box_px.right},{dbg.board_box_px.bottom}) in {dbg.board_box_px.crop_w}×{dbg.board_box_px.crop_h}</>}
       </summary>
 
-      {dbg.dark_bg_histogram && dbg.dark_bg_histogram.some(v => v > 0) && (
+      {dbg.board_histogram && dbg.board_histogram.some(v => v > 0) && (
         <div className="px-2 py-2 border-b border-slate-700">
           <div className="text-slate-500 mb-1">
-            Empty-dark-cell pixel histogram — threshold at {dbg.percentile_used ?? '?'}th percentile
+            All-board pixel histogram — threshold at {dbg.percentile_used ?? '?'}th percentile
           </div>
-          <DarkBgHistogram histogram={dbg.dark_bg_histogram} threshold={dbg.dark_threshold} />
+          <DarkBgHistogram histogram={dbg.board_histogram} threshold={dbg.dark_threshold} />
         </div>
       )}
       {groupEntries.length > 0 && (

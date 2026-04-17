@@ -40,7 +40,7 @@ export interface PixelDebug {
   light_ref: number;
   dark_ref: number;
   dark_threshold: number;
-  dark_bg_histogram?: number[];
+  board_histogram?: number[];
   percentile_used?: number;
   verdicts?: Record<string, 'ok' | 'flip?' | 'no-check'>;
   piece_groups?: Record<string, string>;
