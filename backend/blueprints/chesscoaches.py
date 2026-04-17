@@ -480,14 +480,13 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
 
     light_ref = round(_median(light_empty_means), 1)
     dark_ref = round(_median(dark_empty_means), 1)
-    # Darkest pixel you'd still expect from an empty background, minus margin.
+    # Darkest pixel you'd still expect from an empty background.
     # Anything darker has to be piece ink.
     PERCENTILE = 2
-    MARGIN = 5
     p = _percentile(dark_empty_pixels, PERCENTILE)
     if p is None:
         return {}
-    dark_threshold = max(0, int(p) - MARGIN)
+    dark_threshold = max(0, int(p))
 
     # 256-bin histogram of empty dark-cell pixels (for admin visualization)
     dark_bg_histogram = [0] * 256
