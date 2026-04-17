@@ -1001,9 +1001,9 @@ function ThresholdExplorer({ baseData, percentile, setPercentile, initial, board
   );
 }
 
-function DarkBgHistogram({ histogram, threshold }: { histogram: number[]; threshold: number }) {
-  const W = 420;
-  const H = 80;
+function DarkBgHistogram({ histogram, threshold, width = 420, height = 80 }: { histogram: number[]; threshold: number; width?: number; height?: number }) {
+  const W = width;
+  const H = height;
   const max = Math.max(...histogram);
   if (max === 0) return null;
   const barW = W / 256;
@@ -1030,6 +1030,7 @@ function DarkBgHistogram({ histogram, threshold }: { histogram: number[]; thresh
 function PixelDebugPanel({ diagram, live, percentile }: { diagram: DiagramExtract; live?: LiveClassification | null; percentile?: number }) {
   const effectiveAdmin = useEffectiveAdmin();
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [zoomedHist, setZoomedHist] = useState<{ histogram: number[]; threshold: number; label: string } | null>(null);
   if (!effectiveAdmin) return null;
   const dbg = diagram.pixel_debug;
   if (!dbg) return null;
@@ -1137,10 +1138,41 @@ function PixelDebugPanel({ diagram, live, percentile }: { diagram: DiagramExtrac
         return (
           <div className="px-2 py-2 border-b border-slate-700">
             <div className="text-slate-500 mb-1">{label}</div>
-            <DarkBgHistogram histogram={histogram} threshold={threshold} />
+            <button
+              type="button"
+              onClick={() => setZoomedHist({ histogram, threshold, label })}
+              className="block w-full cursor-zoom-in"
+              title="Click to zoom"
+            >
+              <DarkBgHistogram histogram={histogram} threshold={threshold} />
+            </button>
           </div>
         );
       })()}
+
+      {zoomedHist && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setZoomedHist(null)}
+        >
+          <div
+            className="bg-slate-900 border border-slate-700 rounded p-4 max-w-[95vw] max-h-[95vh] overflow-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3 text-slate-300">
+              <span className="text-xs">{zoomedHist.label}</span>
+              <button
+                type="button"
+                onClick={() => setZoomedHist(null)}
+                className="px-2 py-0.5 rounded border border-slate-600 hover:bg-slate-800 text-xs"
+              >
+                close
+              </button>
+            </div>
+            <DarkBgHistogram histogram={zoomedHist.histogram} threshold={zoomedHist.threshold} width={1024} height={320} />
+          </div>
+        </div>
+      )}
       {allGroupEntries.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700">
           <div className="flex items-center gap-2 mb-1 text-[11px] text-slate-400">
