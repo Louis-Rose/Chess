@@ -103,7 +103,7 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
   const remainingSteps = steps.filter(s => !s.done);
 
   return (
-    <div className="max-w-4xl mx-[5%] md:mx-auto mb-4 mt-4">
+    <div className="max-w-4xl w-full mx-auto px-[5%] mb-4 mt-4">
       <div className="rounded-xl border border-blue-500/30 bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-6">
         <div className="flex items-start gap-4">
           <div className="w-11 h-11 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -163,7 +163,7 @@ function CoachHome() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
       {onboarding && <OnboardingBanner status={onboarding} />}
 
-      <div className="max-w-4xl mx-[5%] md:mx-auto space-y-4">
+      <div className="max-w-4xl w-full mx-auto px-[5%] space-y-4">
         {NAV_SECTIONS.map(({ titleKey, items }) => {
           const visibleItems = items.filter(i => !i.hidden);
           if (visibleItems.length === 0) return null;
