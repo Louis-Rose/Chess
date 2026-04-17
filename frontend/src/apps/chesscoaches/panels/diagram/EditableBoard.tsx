@@ -24,7 +24,7 @@ export function fenToBoard(fen: string): (string | null)[][] {
   });
 }
 
-export function EditableBoard({ fen, onChange, pixelColors }: { fen: string; onChange: (board: (string | null)[][]) => void; pixelColors?: Record<string, 'w' | 'b'> }) {
+export function EditableBoard({ fen, onChange, pixelColors, llmColors }: { fen: string; onChange: (board: (string | null)[][]) => void; pixelColors?: Record<string, 'w' | 'b'>; llmColors?: Record<string, 'w' | 'b'> }) {
   const { t } = useLanguage();
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -111,7 +111,11 @@ export function EditableBoard({ fen, onChange, pixelColors }: { fen: string; onC
               const highlighted = isMenuSquare;
               const sqName = `${'abcdefgh'[c]}${8 - r}`;
               const pxColor = pixelColors?.[sqName];
-              const llmColor: 'w' | 'b' | null = piece ? (piece === piece.toUpperCase() ? 'w' : 'b') : null;
+              const fenColor: 'w' | 'b' | null = piece ? (piece === piece.toUpperCase() ? 'w' : 'b') : null;
+              // Prefer the original LLM color (frozen per-square) when provided,
+              // so the left dot and red ring keep reflecting LLM-vs-classifier
+              // even after auto-flip changes the displayed FEN.
+              const llmColor: 'w' | 'b' | null = llmColors?.[sqName] ?? fenColor;
               const disagree = !!(piece && pxColor && llmColor && llmColor !== pxColor);
               const ringClass = highlighted
                 ? 'ring-2 ring-inset ring-blue-400'

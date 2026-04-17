@@ -484,11 +484,13 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
   const historyRef = useRef<string[]>([]);
+  const [autoFlipsApplied, setAutoFlipsApplied] = useState(false);
 
   // Reset edited FEN and undo stack when the source diagram changes
   useEffect(() => {
     setEditedFen(diagram.fen);
     historyRef.current = [];
+    setAutoFlipsApplied(false);
   }, [diagram.fen]);
 
   // Admin-only: threshold explorer state. Image is loaded once so the
@@ -520,6 +522,57 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     if (!baseData || !diagram.pixel_debug?.board_box_px || !editedFen) return null;
     return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, editedFen, percentile, autoTune);
   }, [baseData, percentile, autoTune, diagram.pixel_debug?.board_box_px, editedFen]);
+
+  // Original LLM colors per square, frozen from the first-read FEN. Used for
+  // the left dot + disagreement detection on EditableBoard, so corrections
+  // stay visible (red ring) even after the displayed FEN is auto-flipped.
+  const llmColors = useMemo<Record<string, 'w' | 'b'>>(() => {
+    const out: Record<string, 'w' | 'b'> = {};
+    const rows = diagram.fen.split(' ')[0].split('/');
+    rows.forEach((rankRow, r) => {
+      const rankNum = 8 - r;
+      let c = 0;
+      for (const ch of rankRow) {
+        if (ch >= '1' && ch <= '8') { c += parseInt(ch, 10); continue; }
+        out[`${'abcdefgh'[c]}${rankNum}`] = ch === ch.toUpperCase() ? 'w' : 'b';
+        c += 1;
+      }
+    });
+    return out;
+  }, [diagram.fen]);
+
+  // Once per diagram load, apply classifier flip? corrections to editedFen.
+  useEffect(() => {
+    if (autoFlipsApplied || !live) return;
+    const flipSqs: string[] = [];
+    for (const [sq, v] of Object.entries(live.verdicts)) {
+      if (v === 'flip?') flipSqs.push(sq);
+    }
+    setAutoFlipsApplied(true);
+    if (flipSqs.length === 0) return;
+    setEditedFen(prev => {
+      const parts = prev.split(' ');
+      const flipSet = new Set(flipSqs);
+      const newRows = parts[0].split('/').map((row, r) => {
+        const rankNum = 8 - r;
+        let out = '';
+        let c = 0;
+        for (const ch of row) {
+          if (ch >= '1' && ch <= '8') { out += ch; c += parseInt(ch, 10); continue; }
+          const sq = `${'abcdefgh'[c]}${rankNum}`;
+          if (flipSet.has(sq)) {
+            out += ch === ch.toUpperCase() ? ch.toLowerCase() : ch.toUpperCase();
+          } else {
+            out += ch;
+          }
+          c += 1;
+        }
+        return out;
+      });
+      parts[0] = newRows.join('/');
+      return parts.join(' ');
+    });
+  }, [live, autoFlipsApplied]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => {
@@ -606,7 +659,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </button>
       </div>
 
-      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? (live?.pixelColors ?? diagram.pixel_colors) : undefined} />
+      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? (live?.pixelColors ?? diagram.pixel_colors) : undefined} llmColors={effectiveAdmin ? llmColors : undefined} />
 
       {diagram.crop_data_url && effectiveAdmin && (
         <ThresholdExplorer
