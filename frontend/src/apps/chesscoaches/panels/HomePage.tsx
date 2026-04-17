@@ -53,23 +53,23 @@ function RoleSelectionView() {
           <button
             onClick={selectCoach}
             disabled={loading}
-            className="flex flex-row sm:flex-col items-center justify-center text-center gap-4 sm:gap-5 p-4 sm:p-6 sm:aspect-square bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50"
+            className="flex flex-row sm:flex-col items-center justify-start sm:justify-center text-center gap-4 sm:gap-5 p-4 sm:p-6 sm:aspect-square bg-slate-700/50 border border-slate-600 rounded-xl hover:border-blue-500/50 hover:bg-slate-700 transition-all disabled:opacity-50"
           >
             <div className="shrink-0 w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-blue-600/20 flex items-center justify-center">
               <Users className="w-8 h-8 sm:w-12 sm:h-12 text-blue-400" />
             </div>
-            <p className="text-slate-100 font-semibold text-lg sm:text-xl">{t('coaches.roleSelection.coach')}</p>
+            <p className="flex-1 sm:flex-none text-slate-100 font-semibold text-lg sm:text-xl">{t('coaches.roleSelection.coach')}</p>
             {/* Invisible spacer to mirror the student tile's "Coming soon" line height (desktop only) */}
             <p aria-hidden="true" className="hidden sm:block text-sm invisible">{t('coaches.comingSoon')}</p>
           </button>
           <div
             aria-disabled="true"
-            className="flex flex-row sm:flex-col items-center justify-center text-center gap-4 sm:gap-5 p-4 sm:p-6 sm:aspect-square bg-slate-700/30 border border-slate-700 rounded-xl opacity-50 cursor-not-allowed select-none"
+            className="flex flex-row sm:flex-col items-center justify-start sm:justify-center text-center gap-4 sm:gap-5 p-4 sm:p-6 sm:aspect-square bg-slate-700/30 border border-slate-700 rounded-xl opacity-50 cursor-not-allowed select-none"
           >
             <div className="shrink-0 w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-purple-600/10 flex items-center justify-center">
               <GraduationCap className="w-8 h-8 sm:w-12 sm:h-12 text-purple-400/60" />
             </div>
-            <div className="flex flex-col sm:contents">
+            <div className="flex-1 sm:flex-none flex flex-col sm:contents">
               <p className="text-slate-300 font-semibold text-lg sm:text-xl">{t('coaches.roleSelection.student')}</p>
               <p className="text-slate-400 text-sm">{t('coaches.comingSoon')}</p>
             </div>
