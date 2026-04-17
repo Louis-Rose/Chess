@@ -50,6 +50,9 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
       g.accounts.id.initialize({
         client_id: CLIENT_ID,
         callback: handleCredential,
+        auto_select: true,
+        use_fedcm_for_button: true,
+        use_fedcm_for_prompt: true,
       });
 
       const btnConfig = { size, theme: 'outline', text: 'signin', shape: 'rectangular' };
