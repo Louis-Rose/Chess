@@ -481,7 +481,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     dark_ratios = {}
     for sq, c in cells.items():
         px = c['pixels']
-        dark_count = sum(1 for p in px if p < dark_threshold)
+        dark_count = sum(1 for p in px if p <= dark_threshold)
         dark_ratios[sq] = round(dark_count / len(px), 3)
 
     # Within-image classifier: one group per piece type. Background pixels

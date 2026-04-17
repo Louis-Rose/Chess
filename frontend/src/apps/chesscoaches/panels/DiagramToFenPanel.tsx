@@ -747,7 +747,7 @@ function classifyAtThreshold(
     cellThresholds[sq] = thr;
     const pixels = cellPixels[sq];
     let darkCount = 0;
-    for (const g of pixels) if (g < thr) darkCount++;
+    for (const g of pixels) if (g <= thr) darkCount++;
     darkRatios[sq] = Math.round((darkCount / pixels.length) * 1000) / 1000;
   }
 
@@ -911,7 +911,7 @@ function ThresholdExplorer({ baseData, percentile, setPercentile, initial, board
           const sq = `${'abcdefgh'[fileIdx]}${rankNum}`;
           thr = cellThresholds[sq] ?? fallbackT;
         }
-        if (gray < thr) {
+        if (gray <= thr) {
           dst[i] = 239; dst[i + 1] = 68; dst[i + 2] = 68; dst[i + 3] = 255;
         } else {
           dst[i] = r; dst[i + 1] = g; dst[i + 2] = b; dst[i + 3] = 255;
