@@ -883,7 +883,8 @@ function ThresholdExplorer({ baseData, threshold, setThreshold, initial, boardBo
   return (
     <details className="max-w-[400px] mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
-        Threshold explorer (admin) — {pct.toFixed(2)}% of pixels tinted (gray &lt; {threshold})
+        <span className="block">Threshold explorer (admin)</span>
+        <span className="block">{pct.toFixed(2)}% of pixels tinted (gray &lt; {threshold})</span>
       </summary>
       <div className="px-2 py-2 space-y-2">
         <canvas ref={canvasRef} className="mx-auto block rounded border border-slate-700 max-w-full" style={{ imageRendering: 'pixelated' }} />
