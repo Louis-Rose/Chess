@@ -486,6 +486,8 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const historyRef = useRef<string[]>([]);
   const [positionFixesApplied, setPositionFixesApplied] = useState(false);
   const [autoFlipsApplied, setAutoFlipsApplied] = useState(false);
+  const [appliedFixes, setAppliedFixes] = useState<PositionFix[]>([]);
+  const [appliedFlips, setAppliedFlips] = useState<string[]>([]);
 
   // Reset edited FEN and undo stack when the source diagram changes
   useEffect(() => {
@@ -493,6 +495,8 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     historyRef.current = [];
     setPositionFixesApplied(false);
     setAutoFlipsApplied(false);
+    setAppliedFixes([]);
+    setAppliedFlips([]);
   }, [diagram.fen]);
 
   // Admin-only: threshold explorer state. Image is loaded once so the
@@ -525,9 +529,9 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, editedFen, percentile, autoTune);
   }, [baseData, percentile, autoTune, diagram.pixel_debug?.board_box_px, editedFen]);
 
-  // Original LLM colors per square, frozen from the first-read FEN. Used for
-  // the left dot + disagreement detection on EditableBoard, so corrections
-  // stay visible (red ring) even after the displayed FEN is auto-flipped.
+  // Per-square LLM color, frozen from the first-read FEN. When a position fix
+  // moves a piece from X to Y, the color follows the piece — so the red ring
+  // + left dot still reflect the LLM's original color even after the move.
   const llmColors = useMemo<Record<string, 'w' | 'b'>>(() => {
     const out: Record<string, 'w' | 'b'> = {};
     const rows = diagram.fen.split(' ')[0].split('/');
@@ -540,8 +544,14 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         c += 1;
       }
     });
+    for (const { from, to } of appliedFixes) {
+      if (out[from] !== undefined) {
+        out[to] = out[from];
+        delete out[from];
+      }
+    }
     return out;
-  }, [diagram.fen]);
+  }, [diagram.fen, appliedFixes]);
 
   // Phase 1: apply any position fixes the classifier proposed (piece on an
   // empty-looking cell, with a filled neighbor). Runs once per diagram. After
@@ -552,6 +562,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     const fixes = live.positionFixes;
     setPositionFixesApplied(true);
     if (!fixes || fixes.length === 0) return;
+    setAppliedFixes(fixes);
     setEditedFen(prev => {
       // Parse into 8x8 array (null = empty).
       const board: (string | null)[][] = [];
@@ -603,6 +614,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     }
     setAutoFlipsApplied(true);
     if (flipSqs.length === 0) return;
+    setAppliedFlips(flipSqs);
     setEditedFen(prev => {
       const parts = prev.split(' ');
       const flipSet = new Set(flipSqs);
@@ -727,7 +739,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         />
       )}
 
-      <PixelDebugPanel diagram={diagram} live={live} percentile={percentile} />
+      <PixelDebugPanel diagram={diagram} live={live} percentile={percentile} appliedFixes={appliedFixes} appliedFlips={appliedFlips} />
 
       <div className="flex flex-col gap-2">
         <button
@@ -1242,7 +1254,7 @@ function DarkBgHistogram({ histogram, threshold, width = 420, height = 80 }: { h
   );
 }
 
-function PixelDebugPanel({ diagram, live, percentile }: { diagram: DiagramExtract; live?: LiveClassification | null; percentile?: number }) {
+function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], appliedFlips = [] }: { diagram: DiagramExtract; live?: LiveClassification | null; percentile?: number; appliedFixes?: PositionFix[]; appliedFlips?: string[] }) {
   const effectiveAdmin = useEffectiveAdmin();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [zoomedHist, setZoomedHist] = useState<{ histogram: number[]; threshold: number; label: string } | null>(null);
@@ -1364,6 +1376,24 @@ function PixelDebugPanel({ diagram, live, percentile }: { diagram: DiagramExtrac
           </div>
         );
       })()}
+
+      {(appliedFixes.length > 0 || appliedFlips.length > 0) && (
+        <div className="px-2 py-2 border-b border-slate-700 text-[11px] text-slate-300 space-y-1">
+          <div className="text-slate-500">Auto-corrections applied</div>
+          {appliedFixes.length > 0 && (
+            <div>
+              <span className="text-slate-500">moves:</span>{' '}
+              <span className="font-mono">{appliedFixes.map(f => `${f.from}→${f.to}`).join(', ')}</span>
+            </div>
+          )}
+          {appliedFlips.length > 0 && (
+            <div>
+              <span className="text-slate-500">color flips:</span>{' '}
+              <span className="font-mono">{appliedFlips.join(', ')}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {zoomedHist && (
         <div
