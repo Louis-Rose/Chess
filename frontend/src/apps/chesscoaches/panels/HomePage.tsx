@@ -3,7 +3,7 @@
 // (sidebar + header), unlike the old standalone RoleSelectionPage.
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useNavigationType } from 'react-router-dom';
 import { ChevronRight, Sparkles, Check, Users, GraduationCap, Clock } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -147,20 +147,25 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
   );
 }
 
+let cachedOnboarding: OnboardingStatus | null = null;
+
 function CoachHome() {
   const navigate = useNavigate();
+  const navType = useNavigationType();
   const { t } = useLanguage();
-  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(cachedOnboarding);
 
   useEffect(() => {
     authFetch('/api/coaches/onboarding')
       .then(r => r.json())
-      .then(setOnboarding)
+      .then(data => { cachedOnboarding = data; setOnboarding(data); })
       .catch(() => {});
   }, []);
 
+  const animateClasses = navType === 'POP' ? '' : 'animate-in fade-in slide-in-from-bottom-4 duration-700';
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
+    <div className={`${animateClasses} mt-2 flex flex-col min-h-[calc(100dvh-80px)]`}>
       {onboarding && <OnboardingBanner status={onboarding} />}
 
       <div className="max-w-4xl w-full mx-auto px-[5%] space-y-4">
