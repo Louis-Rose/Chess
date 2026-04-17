@@ -573,17 +573,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         ? <img src={diagram.crop_data_url} alt="" className="mx-auto rounded-lg border border-slate-600 max-w-[400px] w-full" />
         : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
 
-      {diagram.crop_data_url && effectiveAdmin && (
-        <ThresholdExplorer
-          baseData={baseData}
-          threshold={threshold}
-          setThreshold={setThreshold}
-          initial={initialThreshold}
-          boardBox={diagram.pixel_debug?.board_box_px}
-          liveBlackSquares={live?.pixelColors}
-        />
-      )}
-
       {hasPlayers && (
         <div className="flex items-center justify-center gap-2 text-sm font-medium">
           <span className="w-3 h-3 rounded-full bg-white border border-slate-400 inline-block" />
@@ -617,6 +606,17 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       </div>
 
       <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={live?.pixelColors ?? diagram.pixel_colors} />
+
+      {diagram.crop_data_url && effectiveAdmin && (
+        <ThresholdExplorer
+          baseData={baseData}
+          threshold={threshold}
+          setThreshold={setThreshold}
+          initial={initialThreshold}
+          boardBox={diagram.pixel_debug?.board_box_px}
+          liveBlackSquares={live?.pixelColors}
+        />
+      )}
 
       <PixelDebugPanel diagram={diagram} live={live} threshold={threshold} />
 
