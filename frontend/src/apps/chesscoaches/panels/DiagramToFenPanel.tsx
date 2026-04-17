@@ -382,7 +382,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
                 };
             for (const r of results) {
               if (r.status === 'fulfilled' && r.value.data?.fen) {
-                fresh.push({ ...meta, fen: r.value.data.fen });
+                fresh.push({ ...meta, fen: r.value.data.fen, pixel_colors: r.value.data.pixel_colors });
               } else if (r.status === 'rejected' && !firstError) {
                 firstError = (r.reason as { response?: { data?: { error?: string } }; message?: string })
                   ?.response?.data?.error ?? (r.reason as Error)?.message ?? 'Re-read failed';
@@ -575,7 +575,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </button>
       </div>
 
-      <EditableBoard fen={editedFen} onChange={handleBoardChange} />
+      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={diagram.pixel_colors} />
 
       <div className="flex flex-col gap-2">
         <button

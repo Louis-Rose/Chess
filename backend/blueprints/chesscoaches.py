@@ -288,16 +288,17 @@ Return ONLY a single letter: "A" or "B". No explanation, no punctuation, no code
 
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a tightly-cropped image of a SINGLE chess board. The crop shows the 8x8 grid plus its printed rank labels (1-8) and file labels (a-h). There is no other content to read — just the board.
 
-Your only job is to read which piece is on each square.
+Your job is to read which piece is on each square AND to mark the pixel bounds of the 8×8 playing area inside the crop.
 
 Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
 
-The object MUST have exactly one field:
+The object MUST have exactly two fields:
 - "squares": an object mapping EVERY one of the 64 square names to a one-character symbol. Keys are "a1" through "h8". Values are:
   - White pieces: "K" "Q" "R" "B" "N" "P"
   - Black pieces: "k" "q" "r" "b" "n" "p"
   - Empty square: "."
   You MUST include all 64 keys — every square from a1 to h8 — even empty ones. Any missing square is a failure.
+- "board_box": [ymin, xmin, ymax, xmax] — pixel bounds of the 8×8 PLAYING AREA ONLY, in your standard 0-1000 normalized coordinate system. EXCLUDE the rank labels (1-8) and file labels (a-h) printed along the edges; include only the grid of 64 squares. The box must tightly wrap from the top edge of rank 8 to the bottom edge of rank 1, and from the left edge of file a to the right edge of file h.
 
 Procedure (follow exactly):
 - Visit each square one at a time, in a deterministic order (a8, b8, c8, …, h8, then a7, b7, …, h7, down to a1, …, h1).
@@ -307,7 +308,7 @@ Procedure (follow exactly):
 - When you are done, the object must contain exactly 64 entries.
 
 Example output (showing a few entries — the real output must have all 64):
-{"squares": {"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}}"""
+{"squares": {"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}, "board_box": [45, 38, 945, 962]}"""
 
 
 _VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
@@ -378,6 +379,85 @@ def _grid_to_fen(board, active_color):
             castling += 'q'
     castling = castling or '-'
     return f"{placement} {color} {castling} - 0 1"
+
+
+def _parse_board_box(board_box):
+    """Parse Gemini's [ymin, xmin, ymax, xmax] in 0-1000 space.
+    Returns (ymin, xmin, ymax, xmax) as 0-1 floats, or None if invalid."""
+    if not isinstance(board_box, (list, tuple)) or len(board_box) != 4:
+        return None
+    try:
+        ymin, xmin, ymax, xmax = [float(v) for v in board_box]
+    except (TypeError, ValueError):
+        return None
+    if not (0 <= xmin < xmax <= 1000 and 0 <= ymin < ymax <= 1000):
+        return None
+    return (ymin / 1000.0, xmin / 1000.0, ymax / 1000.0, xmax / 1000.0)
+
+
+def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
+    """Classify piece color on each non-empty square via brightness vs. a
+    calibration derived from empty squares of each color on the same board.
+    Returns {square: 'w'|'b'} for non-empty squares, or {} on failure.
+    board_box_frac = (ymin, xmin, ymax, xmax) in 0-1 fractions of crop dims."""
+    from PIL import Image
+    import io
+    try:
+        img = Image.open(io.BytesIO(crop_bytes)).convert('L')
+    except Exception:
+        return {}
+    W, H = img.size
+    ymin, xmin, ymax, xmax = board_box_frac
+    left = int(xmin * W)
+    top = int(ymin * H)
+    right = int(xmax * W)
+    bottom = int(ymax * H)
+    board_w = right - left
+    board_h = bottom - top
+    if board_w < 64 or board_h < 64:
+        return {}
+    cell_w = board_w / 8.0
+    cell_h = board_h / 8.0
+    INSET = 0.15
+
+    means = {}
+    for file_idx in range(8):
+        for rank_idx in range(8):  # 0 = rank 1 (bottom), 7 = rank 8 (top)
+            row_from_top = 7 - rank_idx
+            cl = left + file_idx * cell_w
+            ct = top + row_from_top * cell_h
+            ix_l = int(cl + cell_w * INSET)
+            iy_t = int(ct + cell_h * INSET)
+            ix_r = int(cl + cell_w * (1 - INSET))
+            iy_b = int(ct + cell_h * (1 - INSET))
+            if ix_r <= ix_l or iy_b <= iy_t:
+                continue
+            region = img.crop((ix_l, iy_t, ix_r, iy_b))
+            pixels = list(region.getdata())
+            if not pixels:
+                continue
+            means[f"{'abcdefgh'[file_idx]}{rank_idx + 1}"] = sum(pixels) / len(pixels)
+
+    # a1 (file=0, rank_idx=0) is dark: (file + rank_idx) % 2 == 0 → dark
+    light_empties, dark_empties = [], []
+    for sq, m in means.items():
+        if squares.get(sq, '.') != '.':
+            continue
+        file_idx = ord(sq[0]) - ord('a')
+        rank_idx = int(sq[1]) - 1
+        is_dark = (file_idx + rank_idx) % 2 == 0
+        (dark_empties if is_dark else light_empties).append(m)
+    if not light_empties or not dark_empties:
+        return {}
+
+    def _median(xs):
+        s = sorted(xs)
+        n = len(s)
+        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
+
+    threshold = (_median(light_empties) + _median(dark_empties)) / 2.0
+    return {sq: ('w' if m > threshold else 'b')
+            for sq, m in means.items() if squares.get(sq, '.') != '.'}
 
 
 def _strip_code_fences(raw):
@@ -492,7 +572,15 @@ def reread_region():
         logger.warning(f"[Diagram reread] invalid grid: {ve}")
         return jsonify({'error': f'Invalid grid: {ve}', 'raw': raw_text}), 502
 
-    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed})
+    pixel_colors = {}
+    box_frac = _parse_board_box(parsed.get('board_box'))
+    if box_frac:
+        try:
+            pixel_colors = _pixel_ratio_colors(crop_bytes, squares, box_frac)
+        except Exception as pe:
+            logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
+
+    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed, 'pixel_colors': pixel_colors})
 
 
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
@@ -779,6 +867,7 @@ def read_diagram():
             if is_admin:
                 result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": resp_read.text, "attempt": succeeded_on_attempt})
 
+            pixel_colors = {}
             try:
                 raw = _strip_code_fences(resp_read.text)
                 parsed = json_module.loads(raw)
@@ -789,6 +878,13 @@ def read_diagram():
                     raise ValueError("missing 'squares' object")
                 grid = _squares_to_grid(squares)
                 fen = _grid_to_fen(grid, meta['active_color'])
+                if is_admin:
+                    box_frac = _parse_board_box(parsed.get('board_box'))
+                    if box_frac:
+                        try:
+                            pixel_colors = _pixel_ratio_colors(meta['_crop_bytes'], squares, box_frac)
+                        except Exception as pe:
+                            logger.warning(f"[Diagram] Region {idx + 1}: pixel_colors failed: {pe}")
             except (ValueError, json_module.JSONDecodeError) as ve:
                 logger.warning(f"[Diagram] Region {idx + 1}: invalid grid ({ve})")
                 fen = ""
@@ -802,6 +898,8 @@ def read_diagram():
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],  # already base64-encoded in phase 1.5
                 }
+                if is_admin and pixel_colors:
+                    diagram['pixel_colors'] = pixel_colors
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

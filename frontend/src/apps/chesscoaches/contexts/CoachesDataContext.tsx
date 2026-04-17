@@ -30,6 +30,7 @@ export interface DiagramExtract {
   region?: DiagramRegion;
   diagram_number?: number | null;
   crop_data_url?: string;
+  pixel_colors?: Record<string, 'w' | 'b'>;
 }
 
 export interface DiagramModelResult {

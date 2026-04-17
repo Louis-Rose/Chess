@@ -24,7 +24,7 @@ export function fenToBoard(fen: string): (string | null)[][] {
   });
 }
 
-export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board: (string | null)[][]) => void }) {
+export function EditableBoard({ fen, onChange, pixelColors }: { fen: string; onChange: (board: (string | null)[][]) => void; pixelColors?: Record<string, 'w' | 'b'> }) {
   const { t } = useLanguage();
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -109,10 +109,19 @@ export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board
               const isDragSource = dragging && dragging.fromR === r && dragging.fromC === c;
               const isMenuSquare = menu && menu.r === r && menu.c === c;
               const highlighted = isMenuSquare;
+              const sqName = `${'abcdefgh'[c]}${8 - r}`;
+              const pxColor = pixelColors?.[sqName];
+              const llmColor: 'w' | 'b' | null = piece ? (piece === piece.toUpperCase() ? 'w' : 'b') : null;
+              const disagree = !!(piece && pxColor && llmColor && llmColor !== pxColor);
+              const ringClass = highlighted
+                ? 'ring-2 ring-inset ring-blue-400'
+                : disagree
+                ? 'ring-2 ring-inset ring-red-500'
+                : '';
               return (
                 <div
                   key={`${r}-${c}`}
-                  className={`relative select-none cursor-pointer ${highlighted ? 'ring-2 ring-inset ring-blue-400' : ''}`}
+                  className={`relative select-none cursor-pointer ${ringClass}`}
                   style={{ backgroundColor: isLight ? LIGHT : DARK }}
                   onClick={() => handleSquareClick(r, c)}
                 >
@@ -134,6 +143,20 @@ export function EditableBoard({ fen, onChange }: { fen: string; onChange: (board
                       draggable={false}
                       onPointerDown={e => handlePointerDown(e, piece, r, c)}
                     />
+                  )}
+                  {piece && llmColor && pxColor && (
+                    <div className="absolute top-0 right-0 flex gap-[2px] p-[2px] pointer-events-none">
+                      <span
+                        className="w-2 h-2 rounded-full border border-slate-500"
+                        style={{ backgroundColor: llmColor === 'w' ? '#fff' : '#000' }}
+                        title={`LLM: ${llmColor === 'w' ? 'white' : 'black'}`}
+                      />
+                      <span
+                        className="w-2 h-2 rounded-full border border-slate-500"
+                        style={{ backgroundColor: pxColor === 'w' ? '#fff' : '#000' }}
+                        title={`Pixel: ${pxColor === 'w' ? 'white' : 'black'}`}
+                      />
+                    </div>
                   )}
                 </div>
               );
