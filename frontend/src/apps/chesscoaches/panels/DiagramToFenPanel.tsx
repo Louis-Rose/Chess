@@ -1054,13 +1054,19 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
   });
 
   const bgRank = (bg: string | undefined) => (bg === 'dark' ? 0 : bg === 'light' ? 1 : 2);
-  const groupEntries = Object.entries(groupsMap).sort(([a], [b]) => {
+  const allGroupEntries = Object.entries(groupsMap).sort(([a], [b]) => {
     const [at, abg] = a.split('/');
     const [bt, bbg] = b.split('/');
     const pr = PIECE_ORDER.indexOf(at) - PIECE_ORDER.indexOf(bt);
     if (pr !== 0) return pr;
     return bgRank(abg) - bgRank(bbg);
   });
+  const groupEntries = typeFilter === 'all'
+    ? allGroupEntries
+    : allGroupEntries.filter(([k]) => k.split('/')[0] === typeFilter);
+  const visiblePieceRows = typeFilter === 'all'
+    ? pieceRows
+    : pieceRows.filter(r => r.piece && r.piece.toUpperCase() === typeFilter);
 
   const gapValues = groupEntries.map(([, g]) => g.gap).filter((v): v is number => v != null);
   const avgGap = gapValues.length ? gapValues.reduce((a, b) => a + b, 0) / gapValues.length : null;
@@ -1080,8 +1086,22 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
           <DarkBgHistogram histogram={dbg.board_histogram} threshold={displayedThreshold} />
         </div>
       )}
-      {groupEntries.length > 0 && (
+      {allGroupEntries.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700">
+          <div className="flex items-center gap-2 mb-1 text-[11px] text-slate-400">
+            <label htmlFor="piece-type-filter">Filter by type:</label>
+            <select
+              id="piece-type-filter"
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+              className="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-slate-200 font-mono"
+            >
+              <option value="all">all</option>
+              {PIECE_ORDER.split('').map(ch => (
+                <option key={ch} value={ch}>{ch}</option>
+              ))}
+            </select>
+          </div>
           <div className="text-slate-500 mb-1">
             Groups (type/bg) — threshold from largest gap in fills
             {avgGap != null && <span className="ml-2 text-slate-300">avg gap: {(avgGap * 100).toFixed(1)}%</span>}
@@ -1114,20 +1134,6 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
       )}
 
       <div className="px-2 py-2 overflow-x-auto">
-        <div className="flex items-center gap-2 mb-2 text-[11px] text-slate-400">
-          <label htmlFor="piece-type-filter">Filter by type:</label>
-          <select
-            id="piece-type-filter"
-            value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-            className="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-slate-200 font-mono"
-          >
-            <option value="all">all</option>
-            {PIECE_ORDER.split('').map(ch => (
-              <option key={ch} value={ch}>{ch}</option>
-            ))}
-          </select>
-        </div>
         <table className="w-full text-left font-mono text-[11px] text-slate-300">
           <thead>
             <tr className="text-slate-500 border-b border-slate-700">
@@ -1144,7 +1150,7 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
             </tr>
           </thead>
           <tbody>
-            {pieceRows.filter(row => typeFilter === 'all' || (row.piece && row.piece.toUpperCase() === typeFilter)).map(row => {
+            {visiblePieceRows.map(row => {
               const darkPct = row.darkRatio !== undefined ? (row.darkRatio * 100).toFixed(1) : '—';
               const gThrPct = row.groupThresh != null ? (row.groupThresh * 100).toFixed(1) : '—';
               const cls =
