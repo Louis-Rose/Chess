@@ -956,6 +956,7 @@ function DarkBgHistogram({ histogram, threshold }: { histogram: number[]; thresh
 
 function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract; live?: LiveClassification | null; threshold?: number }) {
   const effectiveAdmin = useEffectiveAdmin();
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   if (!effectiveAdmin) return null;
   const dbg = diagram.pixel_debug;
   if (!dbg) return null;
@@ -1092,6 +1093,20 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
       )}
 
       <div className="px-2 py-2 overflow-x-auto">
+        <div className="flex items-center gap-2 mb-2 text-[11px] text-slate-400">
+          <label htmlFor="piece-type-filter">Filter by type:</label>
+          <select
+            id="piece-type-filter"
+            value={typeFilter}
+            onChange={e => setTypeFilter(e.target.value)}
+            className="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-slate-200 font-mono"
+          >
+            <option value="all">all</option>
+            {PIECE_ORDER.split('').map(ch => (
+              <option key={ch} value={ch}>{ch}</option>
+            ))}
+          </select>
+        </div>
         <table className="w-full text-left font-mono text-[11px] text-slate-300">
           <thead>
             <tr className="text-slate-500 border-b border-slate-700">
@@ -1108,7 +1123,7 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
             </tr>
           </thead>
           <tbody>
-            {pieceRows.map(row => {
+            {pieceRows.filter(row => typeFilter === 'all' || (row.piece && row.piece.toUpperCase() === typeFilter)).map(row => {
               const darkPct = row.darkRatio !== undefined ? (row.darkRatio * 100).toFixed(1) : '—';
               const gThrPct = row.groupThresh != null ? (row.groupThresh * 100).toFixed(1) : '—';
               const cls =
