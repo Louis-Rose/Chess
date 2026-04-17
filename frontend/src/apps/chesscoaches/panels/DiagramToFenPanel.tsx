@@ -547,6 +547,8 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         <ThresholdExplorer
           cropUrl={diagram.crop_data_url}
           initial={diagram.pixel_debug?.dark_threshold ?? 128}
+          boardBox={diagram.pixel_debug?.board_box_px}
+          fen={diagram.fen}
         />
       )}
 
@@ -603,7 +605,14 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   );
 }
 
-function ThresholdExplorer({ cropUrl, initial }: { cropUrl: string; initial: number }) {
+interface ThresholdExplorerProps {
+  cropUrl: string;
+  initial: number;
+  boardBox?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
+  fen?: string;
+}
+
+function ThresholdExplorer({ cropUrl, initial, boardBox, fen }: ThresholdExplorerProps) {
   const effectiveAdmin = useEffectiveAdmin();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const baseDataRef = useRef<ImageData | null>(null);
@@ -661,7 +670,78 @@ function ThresholdExplorer({ cropUrl, initial }: { cropUrl: string; initial: num
       }
     }
     ctx.putImageData(out, 0, 0);
-  }, [threshold, loaded]);
+
+    // Re-classify pieces at this threshold and outline predicted blacks.
+    if (!boardBox || !fen) return;
+    const { left, top, right, bottom } = boardBox;
+    const w = base.width, h = base.height;
+    const cellW = (right - left) / 8;
+    const cellH = (bottom - top) / 8;
+    const INSET = 0.15;
+    const MIN_GAP = 0.12;
+
+    const pieces: { sq: string; piece: string; fileIdx: number; rankIdx: number; isDark: boolean; ratio: number }[] = [];
+    const fenRows = fen.split(' ')[0].split('/');
+    fenRows.forEach((rankRow, r) => {
+      const rankNum = 8 - r;
+      let c = 0;
+      for (const ch of rankRow) {
+        if (ch >= '1' && ch <= '8') { c += parseInt(ch, 10); continue; }
+        const fileIdx = c;
+        const rankIdx = rankNum - 1;
+        const isDark = (fileIdx + rankIdx) % 2 === 0;
+        const cl = left + fileIdx * cellW;
+        const ct = top + (7 - rankIdx) * cellH;
+        const ix0 = Math.max(0, Math.floor(cl + cellW * INSET));
+        const iy0 = Math.max(0, Math.floor(ct + cellH * INSET));
+        const ix1 = Math.min(w, Math.floor(cl + cellW * (1 - INSET)));
+        const iy1 = Math.min(h, Math.floor(ct + cellH * (1 - INSET)));
+        let count = 0, total = 0;
+        for (let y = iy0; y < iy1; y++) {
+          for (let x = ix0; x < ix1; x++) {
+            const idx = (y * w + x) * 4;
+            const gray = (src[idx] + src[idx + 1] + src[idx + 2]) / 3;
+            if (gray < threshold) count++;
+            total++;
+          }
+        }
+        pieces.push({ sq: `${'abcdefgh'[c]}${rankNum}`, piece: ch, fileIdx, rankIdx, isDark, ratio: total > 0 ? count / total : 0 });
+        c += 1;
+      }
+    });
+
+    const groups = new Map<string, typeof pieces>();
+    for (const p of pieces) {
+      const key = `${p.piece.toUpperCase()}/${p.isDark ? 'dark' : 'light'}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(p);
+    }
+
+    const blackSquares = new Set<string>();
+    for (const members of groups.values()) {
+      if (members.length < 2) continue;
+      const sorted = [...members].sort((a, b) => a.ratio - b.ratio);
+      let biggestGap = 0, gapIdx = -1;
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const g = sorted[i + 1].ratio - sorted[i].ratio;
+        if (g > biggestGap) { biggestGap = g; gapIdx = i; }
+      }
+      if (biggestGap < MIN_GAP || gapIdx < 0) continue;
+      const thr = (sorted[gapIdx].ratio + sorted[gapIdx + 1].ratio) / 2;
+      for (const m of members) {
+        if (m.ratio > thr) blackSquares.add(m.sq);
+      }
+    }
+
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    for (const p of pieces) {
+      if (!blackSquares.has(p.sq)) continue;
+      const cl = left + p.fileIdx * cellW;
+      const ct = top + (7 - p.rankIdx) * cellH;
+      ctx.strokeRect(cl + 1, ct + 1, cellW - 2, cellH - 2);
+    }
+  }, [threshold, loaded, boardBox, fen]);
 
   if (!effectiveAdmin) return null;
 
