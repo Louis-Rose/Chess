@@ -956,7 +956,8 @@ function ThresholdExplorer({ baseData, percentile, setPercentile, initial, board
     <details className="max-w-[400px] mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
         <span className="block">Threshold explorer (admin)</span>
-        <span className="block">percentile: {percentile.toFixed(1)}% · global dark_thr ≈ {globalThr} · ≈{pctTinted.toFixed(2)}% of board tinted</span>
+        <span className="block">percentile: {percentile.toFixed(1)}% · global dark_thr ≈ {globalThr}</span>
+        <span className="block">≈{pctTinted.toFixed(2)}% of board tinted</span>
       </summary>
       <div className="px-2 py-2 space-y-2">
         <canvas ref={canvasRef} className="mx-auto block rounded border border-slate-700 max-w-full" style={{ imageRendering: 'pixelated' }} />
