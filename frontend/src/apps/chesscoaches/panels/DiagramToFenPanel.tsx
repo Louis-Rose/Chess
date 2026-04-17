@@ -740,16 +740,37 @@ function classifyAtThreshold(
   const pixelColors: Record<string, 'w' | 'b'> = {};
   const verdicts: Record<string, 'ok' | 'flip?' | 'no-check'> = {};
 
+  const median1D = (xs: number[]) => {
+    const s = [...xs].sort((a, b) => a - b);
+    const n = s.length;
+    return n % 2 ? s[Math.floor(n / 2)] : (s[n / 2 - 1] + s[n / 2]) / 2;
+  };
+  // L1-optimal 2-cluster split: minimise sum of |fill − cluster median| over
+  // both clusters. Threshold = midpoint of cluster medians. Robust to
+  // within-cluster outliers (single rogue fill can't drag the centre).
   const analyzeGroup = (members: Member[]) => {
     const sorted = [...members].sort((a, b) => a.ratio - b.ratio);
-    let biggestGap = 0, gapIdx = -1;
-    for (let i = 0; i < sorted.length - 1; i++) {
-      const g = sorted[i + 1].ratio - sorted[i].ratio;
-      if (g > biggestGap) { biggestGap = g; gapIdx = i; }
+    const fills = sorted.map(m => m.ratio);
+    if (fills.length < 2) {
+      return { sorted, biggestGap: 0, gapIdx: -1, canCheck: false, thresh: null };
     }
-    const canCheck = gapIdx >= 0 && biggestGap >= MIN_GAP;
-    const thresh = canCheck ? (sorted[gapIdx].ratio + sorted[gapIdx + 1].ratio) / 2 : null;
-    return { sorted, biggestGap, gapIdx, canCheck, thresh };
+    let bestCost = Infinity;
+    let bestIdx = 1;
+    let bestLo = 0, bestHi = 0;
+    for (let i = 1; i < fills.length; i++) {
+      const lo = fills.slice(0, i);
+      const hi = fills.slice(i);
+      const lm = median1D(lo);
+      const hm = median1D(hi);
+      let cost = 0;
+      for (const x of lo) cost += Math.abs(x - lm);
+      for (const x of hi) cost += Math.abs(x - hm);
+      if (cost < bestCost) { bestCost = cost; bestIdx = i; bestLo = lm; bestHi = hm; }
+    }
+    const biggestGap = fills[bestIdx] - fills[bestIdx - 1];
+    const canCheck = biggestGap >= MIN_GAP;
+    const thresh = canCheck ? (bestLo + bestHi) / 2 : null;
+    return { sorted, biggestGap, gapIdx: bestIdx - 1, canCheck, thresh };
   };
 
   const buildInfo = (members: Member[], analysis: ReturnType<typeof analyzeGroup>): PixelGroupInfo => ({

@@ -524,17 +524,38 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     colors = {}
     verdicts = {}  # sq -> 'ok' | 'flip?' | 'no-check'
 
+    def _median_1d(xs):
+        s = sorted(xs)
+        n = len(s)
+        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
+
     for ptype, members in groups.items():
         fills = sorted(r for (_, _, r) in members)
-        biggest_gap = 0.0
-        gap_idx = -1
-        for i in range(len(fills) - 1):
-            g = fills[i + 1] - fills[i]
-            if g > biggest_gap:
-                biggest_gap = g
-                gap_idx = i
+        # L1-optimal 2-cluster split: minimise sum of |fill - cluster median|
+        # over both clusters. Threshold = midpoint of cluster medians.
+        best_cost = float('inf')
+        best_idx = -1
+        best_lo = None
+        best_hi = None
+        for i in range(1, len(fills)):
+            lo = fills[:i]
+            hi = fills[i:]
+            lm = _median_1d(lo)
+            hm = _median_1d(hi)
+            cost = sum(abs(x - lm) for x in lo) + sum(abs(x - hm) for x in hi)
+            if cost < best_cost:
+                best_cost = cost
+                best_idx = i
+                best_lo = lm
+                best_hi = hm
+        if best_idx == -1:
+            biggest_gap = 0.0
+            gap_idx = -1
+        else:
+            biggest_gap = fills[best_idx] - fills[best_idx - 1]
+            gap_idx = best_idx - 1
         can_check = gap_idx >= 0 and biggest_gap >= MIN_GAP
-        threshold = round((fills[gap_idx] + fills[gap_idx + 1]) / 2.0, 3) if can_check else None
+        threshold = round((best_lo + best_hi) / 2.0, 3) if can_check and best_lo is not None and best_hi is not None else None
 
         groups_debug[ptype] = {
             'threshold': threshold,
