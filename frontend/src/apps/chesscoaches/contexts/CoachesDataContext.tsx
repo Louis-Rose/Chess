@@ -23,6 +23,14 @@ export interface DiagramRegion {
   active_color?: 'w' | 'b';
 }
 
+export interface PixelDebug {
+  means: Record<string, number>;
+  light_ref: number;
+  dark_ref: number;
+  threshold: number;
+  board_box_px?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
+}
+
 export interface DiagramExtract {
   fen: string;
   white_player?: string;
@@ -31,6 +39,7 @@ export interface DiagramExtract {
   diagram_number?: number | null;
   crop_data_url?: string;
   pixel_colors?: Record<string, 'w' | 'b'>;
+  pixel_debug?: PixelDebug;
 }
 
 export interface DiagramModelResult {

@@ -398,7 +398,8 @@ def _parse_board_box(board_box):
 def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     """Classify piece color on each non-empty square via brightness vs. a
     calibration derived from empty squares of each color on the same board.
-    Returns {square: 'w'|'b'} for non-empty squares, or {} on failure.
+    Returns a dict with 'colors', 'means', 'light_ref', 'dark_ref', 'threshold',
+    'board_box_px', or {} on failure.
     board_box_frac = (ymin, xmin, ymax, xmax) in 0-1 fractions of crop dims."""
     from PIL import Image
     import io
@@ -436,7 +437,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
             pixels = list(region.getdata())
             if not pixels:
                 continue
-            means[f"{'abcdefgh'[file_idx]}{rank_idx + 1}"] = sum(pixels) / len(pixels)
+            means[f"{'abcdefgh'[file_idx]}{rank_idx + 1}"] = round(sum(pixels) / len(pixels), 1)
 
     # a1 (file=0, rank_idx=0) is dark: (file + rank_idx) % 2 == 0 → dark
     light_empties, dark_empties = [], []
@@ -455,9 +456,19 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         n = len(s)
         return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
 
-    threshold = (_median(light_empties) + _median(dark_empties)) / 2.0
-    return {sq: ('w' if m > threshold else 'b')
-            for sq, m in means.items() if squares.get(sq, '.') != '.'}
+    light_ref = round(_median(light_empties), 1)
+    dark_ref = round(_median(dark_empties), 1)
+    threshold = round((light_ref + dark_ref) / 2.0, 1)
+    colors = {sq: ('w' if m > threshold else 'b')
+              for sq, m in means.items() if squares.get(sq, '.') != '.'}
+    return {
+        'colors': colors,
+        'means': means,
+        'light_ref': light_ref,
+        'dark_ref': dark_ref,
+        'threshold': threshold,
+        'board_box_px': {'left': left, 'top': top, 'right': right, 'bottom': bottom, 'crop_w': W, 'crop_h': H},
+    }
 
 
 def _strip_code_fences(raw):
@@ -573,14 +584,18 @@ def reread_region():
         return jsonify({'error': f'Invalid grid: {ve}', 'raw': raw_text}), 502
 
     pixel_colors = {}
+    pixel_debug = None
     box_frac = _parse_board_box(parsed.get('board_box'))
     if box_frac:
         try:
-            pixel_colors = _pixel_ratio_colors(crop_bytes, squares, box_frac)
+            pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
+            if pr:
+                pixel_colors = pr.get('colors') or {}
+                pixel_debug = {k: pr[k] for k in ('means', 'light_ref', 'dark_ref', 'threshold', 'board_box_px') if k in pr}
         except Exception as pe:
             logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
 
-    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed, 'pixel_colors': pixel_colors})
+    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed, 'pixel_colors': pixel_colors, 'pixel_debug': pixel_debug})
 
 
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
@@ -867,7 +882,7 @@ def read_diagram():
             if is_admin:
                 result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": resp_read.text, "attempt": succeeded_on_attempt})
 
-            pixel_colors = {}
+            pixel_result = {}
             try:
                 raw = _strip_code_fences(resp_read.text)
                 parsed = json_module.loads(raw)
@@ -882,7 +897,7 @@ def read_diagram():
                     box_frac = _parse_board_box(parsed.get('board_box'))
                     if box_frac:
                         try:
-                            pixel_colors = _pixel_ratio_colors(meta['_crop_bytes'], squares, box_frac)
+                            pixel_result = _pixel_ratio_colors(meta['_crop_bytes'], squares, box_frac)
                         except Exception as pe:
                             logger.warning(f"[Diagram] Region {idx + 1}: pixel_colors failed: {pe}")
             except (ValueError, json_module.JSONDecodeError) as ve:
@@ -898,8 +913,9 @@ def read_diagram():
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],  # already base64-encoded in phase 1.5
                 }
-                if is_admin and pixel_colors:
-                    diagram['pixel_colors'] = pixel_colors
+                if is_admin and pixel_result:
+                    diagram['pixel_colors'] = pixel_result.get('colors') or {}
+                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'light_ref', 'dark_ref', 'threshold', 'board_box_px') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
