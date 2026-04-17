@@ -327,6 +327,19 @@ function MobilePlayerButton() {
             <LogOut className="w-4 h-4" />
             {t('chess.logout')}
           </button>
+          {user.is_admin && (
+            <button
+              onClick={async () => {
+                setOpen(false);
+                await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
+                await logout();
+              }}
+              className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors border-t border-slate-700"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              {t('chess.resetAndLogout')}
+            </button>
+          )}
         </div>
       )}
     </div>
