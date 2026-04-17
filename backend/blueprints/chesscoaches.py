@@ -396,17 +396,17 @@ def _parse_board_box(board_box):
 
 
 def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
-    """Classify piece color on each non-empty square by the ratio of very-dark
-    pixels (solid ink) within the cell. The 'very dark' threshold is adaptive:
-    5th percentile of pixels across empty dark cells, minus a small margin —
-    so hatched backgrounds and solid-color backgrounds alike stay above it.
+    """Classify piece color by within-image, within-(type, bg) comparison.
 
-    Black piece = solid fill → high dark-ratio.
-    White piece = outline or light sprite → low dark-ratio.
+    For each group of pieces that share the same type and same square-bg color,
+    dark_ratio only varies with fill (color). The per-group threshold is the
+    midpoint between the LLM-white median and the LLM-black median. Groups
+    with only one LLM color get a 'no-check' verdict.
 
-    Returns a dict with 'colors', 'means', 'dark_ratios', 'light_ref',
-    'dark_ref', 'dark_threshold', 'ratio_threshold', 'board_box_px', or {}
-    on failure. board_box_frac = (ymin, xmin, ymax, xmax) in 0-1 fractions."""
+    Returns a dict with 'colors', 'verdicts', 'piece_groups', 'groups',
+    'means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold',
+    'board_box_px', or {} on failure.
+    board_box_frac = (ymin, xmin, ymax, xmax) in 0-1 fractions."""
     from PIL import Image
     import io
     try:
@@ -495,19 +495,81 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         dark_count = sum(1 for p in px if p < dark_threshold)
         dark_ratios[sq] = round(dark_count / len(px), 3)
 
-    RATIO_THRESHOLD = 0.15
-    colors = {
-        sq: ('b' if dark_ratios[sq] > RATIO_THRESHOLD else 'w')
-        for sq in cells if squares.get(sq, '.') != '.'
-    }
+    # Within-image classifier: for each (piece_type, square_bg) group, compare
+    # pieces of the same shape on the same background. The darker ones (higher
+    # dark_ratio) are black, the lighter are white. Uses the LLM's piece type
+    # and position as ground truth — we only check color.
+    #
+    # When a group has both LLM-white and LLM-black members, we derive a
+    # per-group threshold from the midpoint of the two medians. When a group
+    # is single-color (can't cross-check) we mark pieces as "no-check" and do
+    # NOT emit a pixel color for them (so the board UI won't mislead).
+    groups = {}  # (type_upper, is_dark) -> [(sq, llm_color, ratio)]
+    for sq, c in cells.items():
+        sym = squares.get(sq, '.')
+        if sym == '.':
+            continue
+        ptype = sym.upper()
+        llm_color = 'w' if sym == ptype else 'b'
+        groups.setdefault((ptype, c['is_dark']), []).append((sq, llm_color, dark_ratios[sq]))
+
+    groups_debug = {}
+    piece_groups = {}  # sq -> "K/light"
+    for (ptype, is_dark), members in groups.items():
+        key = f"{ptype}/{'dark' if is_dark else 'light'}"
+        whites = [r for (_, c, r) in members if c == 'w']
+        blacks = [r for (_, c, r) in members if c == 'b']
+        if whites and blacks:
+            wm = _median(whites)
+            bm = _median(blacks)
+            thresh = round((wm + bm) / 2.0, 3)
+            groups_debug[key] = {
+                'threshold': thresh,
+                'white_median': round(wm, 3),
+                'black_median': round(bm, 3),
+                'can_check': True,
+                'count_w': len(whites),
+                'count_b': len(blacks),
+            }
+        else:
+            groups_debug[key] = {
+                'threshold': None,
+                'white_median': round(_median(whites), 3) if whites else None,
+                'black_median': round(_median(blacks), 3) if blacks else None,
+                'can_check': False,
+                'count_w': len(whites),
+                'count_b': len(blacks),
+            }
+        for sq, _, _ in members:
+            piece_groups[sq] = key
+
+    colors = {}
+    verdicts = {}  # sq -> 'ok' | 'flip?' | 'no-check'
+    for sq, c in cells.items():
+        sym = squares.get(sq, '.')
+        if sym == '.':
+            continue
+        ptype = sym.upper()
+        llm_color = 'w' if sym == ptype else 'b'
+        key = f"{ptype}/{'dark' if c['is_dark'] else 'light'}"
+        info = groups_debug[key]
+        if info['can_check']:
+            pred = 'b' if dark_ratios[sq] > info['threshold'] else 'w'
+            colors[sq] = pred
+            verdicts[sq] = 'ok' if pred == llm_color else 'flip?'
+        else:
+            verdicts[sq] = 'no-check'
+
     return {
         'colors': colors,
+        'verdicts': verdicts,
+        'piece_groups': piece_groups,
+        'groups': groups_debug,
         'means': {sq: c['mean'] for sq, c in cells.items()},
         'dark_ratios': dark_ratios,
         'light_ref': light_ref,
         'dark_ref': dark_ref,
         'dark_threshold': dark_threshold,
-        'ratio_threshold': RATIO_THRESHOLD,
         'board_box_px': {'left': left, 'top': top, 'right': right, 'bottom': bottom, 'crop_w': W, 'crop_h': H},
     }
 
@@ -632,7 +694,7 @@ def reread_region():
             pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
             if pr:
                 pixel_colors = pr.get('colors') or {}
-                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'ratio_threshold', 'board_box_px') if k in pr}
+                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pr}
         except Exception as pe:
             logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
 
@@ -956,7 +1018,7 @@ def read_diagram():
                 }
                 if is_admin and pixel_result:
                     diagram['pixel_colors'] = pixel_result.get('colors') or {}
-                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'ratio_threshold', 'board_box_px') if k in pixel_result}
+                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

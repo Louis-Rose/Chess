@@ -625,6 +625,9 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
     mean: number | undefined;
     darkRatio: number | undefined;
     isDark: boolean;
+    group: string | undefined;
+    groupThresh: number | null | undefined;
+    verdict: 'ok' | 'flip?' | 'no-check' | undefined;
   };
   const rows: Row[] = [];
   for (let rankIdx = 7; rankIdx >= 0; rankIdx--) {
@@ -632,6 +635,8 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
       const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
       const piece = occupancy[sq] ?? null;
       const llm: 'w' | 'b' | null = piece ? (piece === piece.toUpperCase() ? 'w' : 'b') : null;
+      const group = dbg.piece_groups?.[sq];
+      const groupInfo = group ? dbg.groups?.[group] : undefined;
       rows.push({
         sq,
         piece,
@@ -640,16 +645,52 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
         mean: dbg.means?.[sq],
         darkRatio: dbg.dark_ratios?.[sq],
         isDark: (fileIdx + rankIdx) % 2 === 0,
+        group,
+        groupThresh: groupInfo?.threshold,
+        verdict: dbg.verdicts?.[sq],
       });
     }
   }
 
+  const groupEntries = Object.entries(dbg.groups ?? {});
+
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
-        Pixel-ratio debug — light_ref={dbg.light_ref}, dark_ref={dbg.dark_ref}, dark_thr={dbg.dark_threshold}, ratio_thr={dbg.ratio_threshold}
+        Pixel-ratio debug — light_ref={dbg.light_ref}, dark_ref={dbg.dark_ref}, dark_thr={dbg.dark_threshold}
         {dbg.board_box_px && <> | box=({dbg.board_box_px.left},{dbg.board_box_px.top})→({dbg.board_box_px.right},{dbg.board_box_px.bottom}) in {dbg.board_box_px.crop_w}×{dbg.board_box_px.crop_h}</>}
       </summary>
+
+      {groupEntries.length > 0 && (
+        <div className="px-2 py-2 border-b border-slate-700">
+          <div className="text-slate-500 mb-1">Groups (type/bg)</div>
+          <table className="w-full text-left font-mono text-[11px] text-slate-300">
+            <thead>
+              <tr className="text-slate-500 border-b border-slate-800">
+                <th className="pr-3">group</th>
+                <th className="pr-3">w×b</th>
+                <th className="pr-3">w_med</th>
+                <th className="pr-3">b_med</th>
+                <th className="pr-3">thresh</th>
+                <th>check?</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupEntries.map(([k, g]) => (
+                <tr key={k} className={g.can_check ? '' : 'text-slate-500'}>
+                  <td className="pr-3">{k}</td>
+                  <td className="pr-3">{g.count_w}×{g.count_b}</td>
+                  <td className="pr-3">{g.white_median ?? '—'}</td>
+                  <td className="pr-3">{g.black_median ?? '—'}</td>
+                  <td className="pr-3">{g.threshold ?? '—'}</td>
+                  <td>{g.can_check ? 'yes' : 'no'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="px-2 py-2 overflow-x-auto">
         <table className="w-full text-left font-mono text-[11px] text-slate-300">
           <thead>
@@ -657,29 +698,35 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
               <th className="pr-3">sq</th>
               <th className="pr-3">piece</th>
               <th className="pr-3">sq_bg</th>
+              <th className="pr-3">group</th>
               <th className="pr-3">LLM</th>
               <th className="pr-3">Px</th>
               <th className="pr-3">mean</th>
               <th className="pr-3">dark%</th>
-              <th>Δ vs ref</th>
+              <th className="pr-3">g_thr%</th>
+              <th>verdict</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(row => {
-              const disagree = !!(row.piece && row.px && row.llm !== row.px);
-              const ref = row.isDark ? dbg.dark_ref : dbg.light_ref;
-              const delta = row.mean !== undefined ? +(row.mean - ref).toFixed(1) : null;
               const darkPct = row.darkRatio !== undefined ? (row.darkRatio * 100).toFixed(1) : '—';
+              const gThrPct = row.groupThresh != null ? (row.groupThresh * 100).toFixed(1) : '—';
+              const cls =
+                row.verdict === 'flip?' ? 'text-red-400' :
+                row.verdict === 'no-check' ? 'text-amber-400' :
+                row.piece ? '' : 'text-slate-500';
               return (
-                <tr key={row.sq} className={disagree ? 'text-red-400' : (row.piece ? '' : 'text-slate-500')}>
+                <tr key={row.sq} className={cls}>
                   <td className="pr-3">{row.sq}</td>
                   <td className="pr-3">{row.piece ?? '.'}</td>
                   <td className="pr-3">{row.isDark ? 'dark' : 'light'}</td>
+                  <td className="pr-3">{row.group ?? '—'}</td>
                   <td className="pr-3">{row.llm ?? '—'}</td>
                   <td className="pr-3">{row.px ?? '—'}</td>
                   <td className="pr-3">{row.mean ?? '—'}</td>
                   <td className="pr-3">{darkPct}</td>
-                  <td>{delta !== null ? (delta >= 0 ? `+${delta}` : delta) : '—'}</td>
+                  <td className="pr-3">{gThrPct}</td>
+                  <td>{row.verdict ?? '—'}</td>
                 </tr>
               );
             })}

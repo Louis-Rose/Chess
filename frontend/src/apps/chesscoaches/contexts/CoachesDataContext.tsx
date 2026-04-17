@@ -23,13 +23,24 @@ export interface DiagramRegion {
   active_color?: 'w' | 'b';
 }
 
+export interface PixelGroupInfo {
+  threshold: number | null;
+  white_median: number | null;
+  black_median: number | null;
+  can_check: boolean;
+  count_w: number;
+  count_b: number;
+}
+
 export interface PixelDebug {
   means: Record<string, number>;
   dark_ratios: Record<string, number>;
   light_ref: number;
   dark_ref: number;
   dark_threshold: number;
-  ratio_threshold: number;
+  verdicts?: Record<string, 'ok' | 'flip?' | 'no-check'>;
+  piece_groups?: Record<string, string>;
+  groups?: Record<string, PixelGroupInfo>;
   board_box_px?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
 }
 
