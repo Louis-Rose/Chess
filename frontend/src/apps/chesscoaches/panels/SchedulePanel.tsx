@@ -56,7 +56,7 @@ const STATUS_BG: Record<string, string> = {
   tbd: 'bg-amber-500/70 hover:bg-amber-500/80 border-amber-400/50',
 };
 
-const HOUR_HEIGHT = 44; // px per hour
+const HOUR_HEIGHT = 42; // px per hour
 const START_HOUR = 7;
 const END_HOUR = 22;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
@@ -473,10 +473,10 @@ export function SchedulePanel() {
 
             {/* Time grid */}
             <div ref={gridRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 240px)' }}>
-              <div className="relative flex mt-3" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
+              <div className="relative flex my-3" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
                 {/* Hour labels */}
                 <div className="w-14 flex-shrink-0 relative">
-                  {Array.from({ length: TOTAL_HOURS }, (_, i) => {
+                  {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => {
                     const h = START_HOUR + i;
                     const label = language === 'fr'
                       ? `${String(h).padStart(2, '0')}:00`
