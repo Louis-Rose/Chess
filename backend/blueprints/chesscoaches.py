@@ -508,13 +508,11 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
 
     # Within-image classifier: for each (piece_type, square_bg) group, sort
     # pieces by dark_ratio and find the largest gap between consecutive fills.
-    # If that gap exceeds MIN_GAP, we declare the group bimodal: anything above
-    # the gap = black, below = white. If no gap is big enough, we assume the
-    # group is single-color and mark 'no-check'.
-    #
-    # This derives the threshold from fill distribution alone — the LLM's
-    # color claims are never an input, only a comparison target for verdicts.
-    MIN_GAP = 0.12
+    # If that gap exceeds MIN_GAP, the group is bimodal: anything above the
+    # gap = black, below = white. Groups whose gap is below MIN_GAP fall back
+    # to a type-only super-group (same shape, either bg) and retry; usually
+    # enough for kings and queens which only appear once per color.
+    MIN_GAP = 0.10
     groups = {}  # (type_upper, is_dark) -> [(sq, llm_color, ratio)]
     for sq, c in cells.items():
         sym = squares.get(sq, '.')
@@ -529,10 +527,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     colors = {}
     verdicts = {}  # sq -> 'ok' | 'flip?' | 'no-check'
 
-    for (ptype, is_dark), members in groups.items():
-        key = f"{ptype}/{'dark' if is_dark else 'light'}"
-        count_w = sum(1 for (_, c, _) in members if c == 'w')
-        count_b = sum(1 for (_, c, _) in members if c == 'b')
+    def _analyze(members):
         fills = sorted(r for (_, _, r) in members)
         biggest_gap = 0.0
         gap_idx = -1
@@ -543,18 +538,25 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
                 gap_idx = i
         can_check = gap_idx >= 0 and biggest_gap >= MIN_GAP
         threshold = round((fills[gap_idx] + fills[gap_idx + 1]) / 2.0, 3) if can_check else None
+        return fills, biggest_gap, can_check, threshold
 
-        groups_debug[key] = {
+    def _info(members, fills, biggest_gap, can_check, threshold):
+        return {
             'threshold': threshold,
             'gap': round(biggest_gap, 3) if len(fills) > 1 else None,
             'min_gap': MIN_GAP,
             'can_check': can_check,
-            'count_w': count_w,
-            'count_b': count_b,
+            'count_w': sum(1 for (_, c, _) in members if c == 'w'),
+            'count_b': sum(1 for (_, c, _) in members if c == 'b'),
             'min_fill': round(fills[0], 3) if fills else None,
             'max_fill': round(fills[-1], 3) if fills else None,
         }
 
+    # Primary pass: (type, bg) groups.
+    for (ptype, is_dark), members in groups.items():
+        key = f"{ptype}/{'dark' if is_dark else 'light'}"
+        fills, biggest_gap, can_check, threshold = _analyze(members)
+        groups_debug[key] = _info(members, fills, biggest_gap, can_check, threshold)
         for sq, llm_color, fill in members:
             piece_groups[sq] = key
             if can_check and threshold is not None:
@@ -563,6 +565,25 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
                 verdicts[sq] = 'ok' if pred == llm_color else 'flip?'
             else:
                 verdicts[sq] = 'no-check'
+
+    # Fallback pass: pool still-no-check (type, bg) groups into a type-only
+    # super-group. Key = just the type letter (e.g. "K").
+    type_fallback = {}
+    for (ptype, is_dark), members in groups.items():
+        key = f"{ptype}/{'dark' if is_dark else 'light'}"
+        if groups_debug[key]['can_check']:
+            continue
+        type_fallback.setdefault(ptype, []).extend(members)
+    for ptype, members in type_fallback.items():
+        fills, biggest_gap, can_check, threshold = _analyze(members)
+        groups_debug[ptype] = _info(members, fills, biggest_gap, can_check, threshold)
+        if not can_check or threshold is None:
+            continue
+        for sq, llm_color, fill in members:
+            pred = 'b' if fill > threshold else 'w'
+            colors[sq] = pred
+            verdicts[sq] = 'ok' if pred == llm_color else 'flip?'
+            piece_groups[sq] = ptype
 
     return {
         'colors': colors,

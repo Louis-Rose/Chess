@@ -660,7 +660,7 @@ function classifyAtThreshold(
   const cellW = (right - left) / 8;
   const cellH = (bottom - top) / 8;
   const INSET = 0.15;
-  const MIN_GAP = 0.12;
+  const MIN_GAP = 0.10;
 
   const occupancy: Record<string, string> = {};
   fen.split(' ')[0].split('/').forEach((rankRow, r) => {
@@ -721,7 +721,7 @@ function classifyAtThreshold(
   const lightRef = Math.round((median(lightEmptyMeans) ?? 0) * 10) / 10;
   const darkRef = Math.round((median(darkEmptyMeans) ?? 0) * 10) / 10;
 
-  type Member = { sq: string; llm: 'w' | 'b'; ratio: number };
+  type Member = { sq: string; llm: 'w' | 'b'; ratio: number; type: string };
   const groupMembers = new Map<string, Member[]>();
   for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
     for (let rankIdx = 0; rankIdx < 8; rankIdx++) {
@@ -730,9 +730,10 @@ function classifyAtThreshold(
       if (!piece) continue;
       const llm: 'w' | 'b' = piece === piece.toUpperCase() ? 'w' : 'b';
       const isDark = (fileIdx + rankIdx) % 2 === 0;
-      const key = `${piece.toUpperCase()}/${isDark ? 'dark' : 'light'}`;
+      const type = piece.toUpperCase();
+      const key = `${type}/${isDark ? 'dark' : 'light'}`;
       if (!groupMembers.has(key)) groupMembers.set(key, []);
-      groupMembers.get(key)!.push({ sq, llm, ratio: darkRatios[sq] ?? 0 });
+      groupMembers.get(key)!.push({ sq, llm, ratio: darkRatios[sq] ?? 0, type });
     }
   }
 
@@ -741,7 +742,7 @@ function classifyAtThreshold(
   const pixelColors: Record<string, 'w' | 'b'> = {};
   const verdicts: Record<string, 'ok' | 'flip?' | 'no-check'> = {};
 
-  for (const [key, members] of groupMembers.entries()) {
+  const analyzeGroup = (members: Member[]) => {
     const sorted = [...members].sort((a, b) => a.ratio - b.ratio);
     let biggestGap = 0, gapIdx = -1;
     for (let i = 0; i < sorted.length - 1; i++) {
@@ -750,25 +751,56 @@ function classifyAtThreshold(
     }
     const canCheck = gapIdx >= 0 && biggestGap >= MIN_GAP;
     const thresh = canCheck ? (sorted[gapIdx].ratio + sorted[gapIdx + 1].ratio) / 2 : null;
-    groups[key] = {
-      threshold: thresh !== null ? Math.round(thresh * 1000) / 1000 : null,
-      gap: sorted.length > 1 ? Math.round(biggestGap * 1000) / 1000 : null,
-      min_gap: MIN_GAP,
-      can_check: canCheck,
-      count_w: members.filter(m => m.llm === 'w').length,
-      count_b: members.filter(m => m.llm === 'b').length,
-      min_fill: sorted.length ? Math.round(sorted[0].ratio * 1000) / 1000 : null,
-      max_fill: sorted.length ? Math.round(sorted[sorted.length - 1].ratio * 1000) / 1000 : null,
-    };
+    return { sorted, biggestGap, gapIdx, canCheck, thresh };
+  };
+
+  const buildInfo = (members: Member[], analysis: ReturnType<typeof analyzeGroup>): PixelGroupInfo => ({
+    threshold: analysis.thresh !== null ? Math.round(analysis.thresh * 1000) / 1000 : null,
+    gap: analysis.sorted.length > 1 ? Math.round(analysis.biggestGap * 1000) / 1000 : null,
+    min_gap: MIN_GAP,
+    can_check: analysis.canCheck,
+    count_w: members.filter(m => m.llm === 'w').length,
+    count_b: members.filter(m => m.llm === 'b').length,
+    min_fill: analysis.sorted.length ? Math.round(analysis.sorted[0].ratio * 1000) / 1000 : null,
+    max_fill: analysis.sorted.length ? Math.round(analysis.sorted[analysis.sorted.length - 1].ratio * 1000) / 1000 : null,
+  });
+
+  // Primary pass: (type, bg) groups.
+  for (const [key, members] of groupMembers.entries()) {
+    const analysis = analyzeGroup(members);
+    groups[key] = buildInfo(members, analysis);
     for (const m of members) {
       pieceGroups[m.sq] = key;
-      if (canCheck && thresh !== null) {
-        const pred: 'w' | 'b' = m.ratio > thresh ? 'b' : 'w';
+      if (analysis.canCheck && analysis.thresh !== null) {
+        const pred: 'w' | 'b' = m.ratio > analysis.thresh ? 'b' : 'w';
         pixelColors[m.sq] = pred;
         verdicts[m.sq] = pred === m.llm ? 'ok' : 'flip?';
       } else {
         verdicts[m.sq] = 'no-check';
       }
+    }
+  }
+
+  // Fallback pass: pool the opposite-bg halves of still-no-check (type, bg)
+  // groups into a type-only super-group (e.g. both kings together). Same
+  // shape, just different bg; usually good enough to find the color gap.
+  const typeFallback = new Map<string, Member[]>();
+  for (const [key, members] of groupMembers.entries()) {
+    if (groups[key].can_check) continue;
+    for (const m of members) {
+      if (!typeFallback.has(m.type)) typeFallback.set(m.type, []);
+      typeFallback.get(m.type)!.push(m);
+    }
+  }
+  for (const [type, members] of typeFallback.entries()) {
+    const analysis = analyzeGroup(members);
+    groups[type] = buildInfo(members, analysis);
+    if (!analysis.canCheck || analysis.thresh === null) continue;
+    for (const m of members) {
+      const pred: 'w' | 'b' = m.ratio > analysis.thresh ? 'b' : 'w';
+      pixelColors[m.sq] = pred;
+      verdicts[m.sq] = pred === m.llm ? 'ok' : 'flip?';
+      pieceGroups[m.sq] = type;
     }
   }
 
@@ -995,12 +1027,13 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
     return a.sq < b.sq ? -1 : 1;
   });
 
+  const bgRank = (bg: string | undefined) => (bg === 'dark' ? 0 : bg === 'light' ? 1 : 2);
   const groupEntries = Object.entries(groupsMap).sort(([a], [b]) => {
     const [at, abg] = a.split('/');
     const [bt, bbg] = b.split('/');
     const pr = PIECE_ORDER.indexOf(at) - PIECE_ORDER.indexOf(bt);
     if (pr !== 0) return pr;
-    return abg === bbg ? 0 : abg === 'dark' ? -1 : 1;
+    return bgRank(abg) - bgRank(bbg);
   });
 
   return (
