@@ -484,12 +484,14 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
   const historyRef = useRef<string[]>([]);
+  const [positionFixesApplied, setPositionFixesApplied] = useState(false);
   const [autoFlipsApplied, setAutoFlipsApplied] = useState(false);
 
   // Reset edited FEN and undo stack when the source diagram changes
   useEffect(() => {
     setEditedFen(diagram.fen);
     historyRef.current = [];
+    setPositionFixesApplied(false);
     setAutoFlipsApplied(false);
   }, [diagram.fen]);
 
@@ -541,9 +543,60 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     return out;
   }, [diagram.fen]);
 
-  // Once per diagram load, apply classifier flip? corrections to editedFen.
+  // Phase 1: apply any position fixes the classifier proposed (piece on an
+  // empty-looking cell, with a filled neighbor). Runs once per diagram. After
+  // editedFen updates, classifier re-runs on the corrected layout, and Phase
+  // 2 picks up the now-stable verdicts.
   useEffect(() => {
-    if (autoFlipsApplied || !live) return;
+    if (positionFixesApplied || !live) return;
+    const fixes = live.positionFixes;
+    setPositionFixesApplied(true);
+    if (!fixes || fixes.length === 0) return;
+    setEditedFen(prev => {
+      // Parse into 8x8 array (null = empty).
+      const board: (string | null)[][] = [];
+      const parts = prev.split(' ');
+      parts[0].split('/').forEach(row => {
+        const rankRow: (string | null)[] = [];
+        for (const ch of row) {
+          if (ch >= '1' && ch <= '8') {
+            for (let i = 0; i < parseInt(ch, 10); i++) rankRow.push(null);
+          } else {
+            rankRow.push(ch);
+          }
+        }
+        board.push(rankRow);
+      });
+      for (const { from, to } of fixes) {
+        const fromFile = from.charCodeAt(0) - 'a'.charCodeAt(0);
+        const fromRank = 8 - parseInt(from[1], 10);
+        const toFile = to.charCodeAt(0) - 'a'.charCodeAt(0);
+        const toRank = 8 - parseInt(to[1], 10);
+        const piece = board[fromRank]?.[fromFile];
+        if (piece && board[toRank] && !board[toRank][toFile]) {
+          board[toRank][toFile] = piece;
+          board[fromRank][fromFile] = null;
+        }
+      }
+      const newRows = board.map(rank => {
+        let row = '';
+        let empty = 0;
+        for (const cell of rank) {
+          if (cell === null) { empty++; }
+          else { if (empty) { row += empty; empty = 0; } row += cell; }
+        }
+        if (empty) row += empty;
+        return row;
+      });
+      parts[0] = newRows.join('/');
+      return parts.join(' ');
+    });
+  }, [live, positionFixesApplied]);
+
+  // Phase 2: auto-flip colors based on classifier verdicts. Only runs after
+  // Phase 1 has completed so flips reflect the corrected piece positions.
+  useEffect(() => {
+    if (!positionFixesApplied || autoFlipsApplied || !live) return;
     const flipSqs: string[] = [];
     for (const [sq, v] of Object.entries(live.verdicts)) {
       if (v === 'flip?') flipSqs.push(sq);
@@ -572,7 +625,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       parts[0] = newRows.join('/');
       return parts.join(' ');
     });
-  }, [live, autoFlipsApplied]);
+  }, [live, positionFixesApplied, autoFlipsApplied]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => {
@@ -693,6 +746,8 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   );
 }
 
+type PositionFix = { from: string; to: string };
+
 type LiveClassification = {
   means: Record<string, number>;
   dark_ratios: Record<string, number>;
@@ -705,6 +760,7 @@ type LiveClassification = {
   globalThreshold: number;
   cellThresholds: Record<string, number>;
   typeHistograms: Record<string, number[]>;
+  positionFixes: PositionFix[];
 };
 
 function classifyAtThreshold(
@@ -864,6 +920,40 @@ function classifyAtThreshold(
     darkRatios[sq] = Math.round((darkCount / pixels.length) * 1000) / 1000;
   }
 
+  // Detect likely LLM position errors: a piece-cell with essentially zero
+  // darkness means the piece isn't there; check left/right neighbors for the
+  // real location. Evaluate neighbors with the suspect's *type threshold*
+  // (apples-to-apples) rather than the neighbor's own threshold.
+  const positionFixes: PositionFix[] = [];
+  const EMPTY_THRESHOLD = 0.005; // ≤ 0.5% fill → essentially empty
+  const NEIGHBOR_FLOOR = 0.05;   // neighbor must have ≥ 5% fill at type_thr to qualify
+  for (const sq of Object.keys(cellPixels)) {
+    const piece = occupancy[sq];
+    if (!piece) continue;
+    if ((darkRatios[sq] ?? 0) > EMPTY_THRESHOLD) continue;
+    const type = piece.toUpperCase();
+    const typeThr = typeThresholds[type];
+    if (typeThr === undefined) continue;
+    const fileIdx = sq.charCodeAt(0) - 'a'.charCodeAt(0);
+    const rankChar = sq[1];
+    const candidates: { sq: string; ratio: number }[] = [];
+    for (const offset of [-1, 1]) {
+      const nf = fileIdx + offset;
+      if (nf < 0 || nf > 7) continue;
+      const nSq = `${'abcdefgh'[nf]}${rankChar}`;
+      if (occupancy[nSq]) continue;
+      const nPixels = cellPixels[nSq];
+      if (!nPixels) continue;
+      let nDark = 0;
+      for (const g of nPixels) if (g <= typeThr) nDark++;
+      const ratio = nDark / nPixels.length;
+      if (ratio >= NEIGHBOR_FLOOR) candidates.push({ sq: nSq, ratio });
+    }
+    if (candidates.length === 0) continue;
+    candidates.sort((a, b) => b.ratio - a.ratio);
+    positionFixes.push({ from: sq, to: candidates[0].sq });
+  }
+
   type Member = { sq: string; llm: 'w' | 'b'; ratio: number; type: string };
   const groupMembers = new Map<string, Member[]>();
   for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
@@ -944,7 +1034,7 @@ function classifyAtThreshold(
     }
   }
 
-  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, typePercentiles, globalThreshold, cellThresholds, typeHistograms };
+  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, typePercentiles, globalThreshold, cellThresholds, typeHistograms, positionFixes };
 }
 
 interface ThresholdExplorerProps {
