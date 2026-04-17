@@ -1037,9 +1037,9 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
                 <tr key={k} className={g.can_check ? '' : 'text-slate-500'}>
                   <td className="pr-3">{k}</td>
                   <td className="pr-3">{g.count_w + g.count_b} ({g.count_w}×{g.count_b})</td>
-                  <td className="pr-3">{g.min_fill ?? '—'}→{g.max_fill ?? '—'}</td>
-                  <td className="pr-3">{g.gap ?? '—'}</td>
-                  <td className="pr-3">{g.threshold ?? '—'}</td>
+                  <td className="pr-3">{g.min_fill != null ? `${(g.min_fill * 100).toFixed(1)}%` : '—'}→{g.max_fill != null ? `${(g.max_fill * 100).toFixed(1)}%` : '—'}</td>
+                  <td className="pr-3">{g.gap != null ? `${(g.gap * 100).toFixed(1)}%` : '—'}</td>
+                  <td className="pr-3">{g.threshold != null ? `${(g.threshold * 100).toFixed(1)}%` : '—'}</td>
                   <td>{g.can_check ? 'yes' : `no (need ≥${g.min_gap})`}</td>
                 </tr>
               ))}
