@@ -516,9 +516,9 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   }, [diagram.crop_data_url, effectiveAdmin]);
 
   const live = useMemo(() => {
-    if (!baseData || !diagram.pixel_debug?.board_box_px || !diagram.fen) return null;
-    return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, diagram.fen, threshold);
-  }, [baseData, threshold, diagram.pixel_debug?.board_box_px, diagram.fen]);
+    if (!baseData || !diagram.pixel_debug?.board_box_px || !editedFen) return null;
+    return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, editedFen, threshold);
+  }, [baseData, threshold, diagram.pixel_debug?.board_box_px, editedFen]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => {
