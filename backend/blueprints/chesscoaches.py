@@ -482,12 +482,15 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     dark_ref = round(_median(dark_empty_means), 1)
     # Darkest pixel you'd still expect from an empty background, minus margin.
     # Anything darker has to be piece ink.
+    # Capped to keep out medium-dark shading pixels (crown/base detail on ornate
+    # white pieces); we only want to count solid near-black ink.
     PERCENTILE = 5
     MARGIN = 5
+    DARK_THRESHOLD_CAP = 100
     p5 = _percentile(dark_empty_pixels, PERCENTILE)
     if p5 is None:
         return {}
-    dark_threshold = max(0, int(p5) - MARGIN)
+    dark_threshold = max(0, min(int(p5) - MARGIN, DARK_THRESHOLD_CAP))
 
     # Per-cell dark-pixel ratio (fraction of pixels below the threshold)
     dark_ratios = {}
@@ -504,7 +507,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     #
     # This derives the threshold from fill distribution alone — the LLM's
     # color claims are never an input, only a comparison target for verdicts.
-    MIN_GAP = 0.15
+    MIN_GAP = 0.12
     groups = {}  # (type_upper, is_dark) -> [(sq, llm_color, ratio)]
     for sq, c in cells.items():
         sym = squares.get(sq, '.')
