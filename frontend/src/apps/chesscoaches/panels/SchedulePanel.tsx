@@ -494,9 +494,9 @@ export function SchedulePanel() {
                 </div>
 
                 {/* Day columns */}
-                <div className="flex-1 flex relative">
+                <div className="flex-1 flex relative border-r border-slate-500/60">
                   {/* Horizontal hour lines */}
-                  {Array.from({ length: TOTAL_HOURS }, (_, i) => (
+                  {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => (
                     <div
                       key={i}
                       className="absolute left-0 right-0 border-t border-slate-500/60"
