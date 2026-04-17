@@ -495,6 +495,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   // debug tables below can recompute live as the slider moves.
   const initialPercentile = diagram.pixel_debug?.percentile_used ?? 7;
   const [percentile, setPercentile] = useState<number>(initialPercentile);
+  const [autoTune, setAutoTune] = useState<boolean>(true);
   const [baseData, setBaseData] = useState<ImageData | null>(null);
 
   useEffect(() => { setPercentile(initialPercentile); }, [initialPercentile, diagram.fen]);
@@ -517,8 +518,8 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 
   const live = useMemo(() => {
     if (!baseData || !diagram.pixel_debug?.board_box_px || !editedFen) return null;
-    return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, editedFen, percentile);
-  }, [baseData, percentile, diagram.pixel_debug?.board_box_px, editedFen]);
+    return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, editedFen, percentile, autoTune);
+  }, [baseData, percentile, autoTune, diagram.pixel_debug?.board_box_px, editedFen]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => {
@@ -615,6 +616,8 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
           initial={initialPercentile}
           boardBox={diagram.pixel_debug?.board_box_px}
           live={live}
+          autoTune={autoTune}
+          setAutoTune={setAutoTune}
         />
       )}
 
@@ -645,6 +648,7 @@ type LiveClassification = {
   verdicts: Record<string, 'ok' | 'flip?' | 'no-check'>;
   pixelColors: Record<string, 'w' | 'b'>;
   typeThresholds: Record<string, number>;
+  typePercentiles: Record<string, number>;
   globalThreshold: number;
   cellThresholds: Record<string, number>;
   typeHistograms: Record<string, number[]>;
@@ -655,6 +659,7 @@ function classifyAtThreshold(
   boardBox: { left: number; top: number; right: number; bottom: number },
   fen: string,
   percentile: number,  // 0-100
+  autoTune: boolean = false,
 ): LiveClassification {
   const w = baseData.width;
   const { left, top, right, bottom } = boardBox;
@@ -720,15 +725,70 @@ function classifyAtThreshold(
     for (const g of cellPixels[sq]) arr.push(g);
   }
   const typeThresholds: Record<string, number> = {};
+  const typePercentiles: Record<string, number> = {};
   const typeHistograms: Record<string, number[]> = {};
+
+  // L1-optimal gap for a given list of fills (sorted or not).
+  const fillsGap = (fillsIn: number[]): number => {
+    if (fillsIn.length < 2) return 0;
+    const fills = [...fillsIn].sort((a, b) => a - b);
+    let bestCost = Infinity;
+    let bestIdx = -1;
+    for (let i = 1; i < fills.length; i++) {
+      const lo = fills.slice(0, i);
+      const hi = fills.slice(i);
+      const lm = lo.length % 2 ? lo[Math.floor(lo.length / 2)] : (lo[lo.length / 2 - 1] + lo[lo.length / 2]) / 2;
+      const hm = hi.length % 2 ? hi[Math.floor(hi.length / 2)] : (hi[hi.length / 2 - 1] + hi[hi.length / 2]) / 2;
+      let c = 0;
+      for (const x of lo) c += Math.abs(x - lm);
+      for (const x of hi) c += Math.abs(x - hm);
+      if (c < bestCost) { bestCost = c; bestIdx = i; }
+    }
+    return bestIdx > 0 ? fills[bestIdx] - fills[bestIdx - 1] : 0;
+  };
+
+  const AUTO_CANDIDATES = [4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0];
+
   for (const [type, pixels] of typePixels.entries()) {
-    typeThresholds[type] = pctOf(pixels, percentile);
+    // Histogram is threshold-independent, compute once.
     const hist = new Array(256).fill(0);
     for (const g of pixels) {
       const b = Math.max(0, Math.min(255, Math.round(g)));
       hist[b]++;
     }
     typeHistograms[type] = hist;
+
+    // Find this type's cells so we can compute fills at each candidate percentile.
+    const typeCells: string[] = [];
+    for (const sq of Object.keys(cellPixels)) {
+      if (occupancy[sq] && occupancy[sq].toUpperCase() === type) typeCells.push(sq);
+    }
+
+    const evalAt = (p: number): { thr: number; gap: number } => {
+      const thr = pctOf(pixels, p);
+      const fills: number[] = [];
+      for (const sq of typeCells) {
+        const px = cellPixels[sq];
+        let dc = 0;
+        for (const g of px) if (g <= thr) dc++;
+        fills.push(dc / px.length);
+      }
+      return { thr, gap: fillsGap(fills) };
+    };
+
+    if (autoTune) {
+      let bestP = percentile;
+      let best = evalAt(percentile);
+      for (const p of AUTO_CANDIDATES) {
+        const cur = evalAt(p);
+        if (cur.gap > best.gap) { best = cur; bestP = p; }
+      }
+      typePercentiles[type] = bestP;
+      typeThresholds[type] = best.thr;
+    } else {
+      typePercentiles[type] = percentile;
+      typeThresholds[type] = pctOf(pixels, percentile);
+    }
   }
 
   // Fallback (empty cells, canvas default): percentile of all board pixels.
@@ -831,7 +891,7 @@ function classifyAtThreshold(
     }
   }
 
-  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, globalThreshold, cellThresholds, typeHistograms };
+  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, typePercentiles, globalThreshold, cellThresholds, typeHistograms };
 }
 
 interface ThresholdExplorerProps {
@@ -841,9 +901,11 @@ interface ThresholdExplorerProps {
   initial: number;
   boardBox?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
   live?: LiveClassification | null;
+  autoTune: boolean;
+  setAutoTune: (v: boolean) => void;
 }
 
-function ThresholdExplorer({ baseData, percentile, setPercentile, initial, boardBox, live }: ThresholdExplorerProps) {
+function ThresholdExplorer({ baseData, percentile, setPercentile, initial, boardBox, live, autoTune, setAutoTune }: ThresholdExplorerProps) {
   const effectiveAdmin = useEffectiveAdmin();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -961,7 +1023,16 @@ function ThresholdExplorer({ baseData, percentile, setPercentile, initial, board
       </summary>
       <div className="px-2 py-2 space-y-2">
         <canvas ref={canvasRef} className="mx-auto block rounded border border-slate-700 max-w-full" style={{ imageRendering: 'pixelated' }} />
-        <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={autoTune}
+            onChange={e => setAutoTune(e.target.checked)}
+            className="accent-blue-500"
+          />
+          <span>Auto-tune per type (sweep 4–7%, max gap)</span>
+        </label>
+        <div className={`flex items-center gap-2 ${autoTune ? 'opacity-50' : ''}`}>
           <button
             type="button"
             onClick={() => bump(-0.5)}
@@ -1199,6 +1270,7 @@ function PixelDebugPanel({ diagram, live, percentile }: { diagram: DiagramExtrac
               <tr className="text-slate-500 border-b border-slate-800">
                 <th className="pr-3">group</th>
                 <th className="pr-3">n</th>
+                <th className="pr-3">pct</th>
                 <th className="pr-3">dark_thr</th>
                 <th className="pr-3">min→max</th>
                 <th className="pr-3">thresh</th>
@@ -1209,10 +1281,12 @@ function PixelDebugPanel({ diagram, live, percentile }: { diagram: DiagramExtrac
               {groupEntries.map(([k, g]) => {
                 const gapPct = g.gap != null ? `${(g.gap * 100).toFixed(1)}%` : '—';
                 const minGapPct = `${(g.min_gap * 100).toFixed(0)}%`;
+                const typePct = live?.typePercentiles?.[k];
                 return (
                   <tr key={k} className={g.can_check ? '' : 'text-slate-500'}>
                     <td className="pr-3">{k}</td>
                     <td className="pr-3">{g.count_w + g.count_b}</td>
+                    <td className="pr-3">{typePct != null ? `${typePct.toFixed(1)}%` : '—'}</td>
                     <td className="pr-3">{typeThresholds[k] != null ? Math.round(typeThresholds[k]) : '—'}</td>
                     <td className="pr-3">{g.min_fill != null ? `${(g.min_fill * 100).toFixed(1)}%` : '—'}→{g.max_fill != null ? `${(g.max_fill * 100).toFixed(1)}%` : '—'}</td>
                     <td className="pr-3">{g.threshold != null ? `${(g.threshold * 100).toFixed(1)}%` : '—'}</td>
