@@ -14,7 +14,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.resetAndLogout': 'Reset & log out',
 
     // Coaches
-    'coaches.title': 'AI-Powered Software for Chess Coaches',
+    'coaches.title': 'AI-Powered Software|for Chess Coaches',
     'coaches.navHome': 'Home',
     'coaches.roleLabel.coach': 'Coach',
     'coaches.roleLabel.student': 'Student',
@@ -302,7 +302,7 @@ const translations: Record<Language, Record<string, string>> = {
     'chess.resetAndLogout': 'Réinitialiser et se déconnecter',
 
     // Coaches
-    'coaches.title': 'Logiciel IA pour entra\u00EEneurs d\'\u00E9checs',
+    'coaches.title': 'Logiciel IA pour|entra\u00EEneurs d\'\u00E9checs',
     'coaches.navHome': 'Accueil',
     'coaches.roleLabel.coach': 'Entra\u00EEneur',
     'coaches.roleLabel.student': '\u00C9l\u00E8ve',

@@ -13,22 +13,40 @@ export function LumnaLogo({ className }: { className?: string }) {
   );
 }
 
-export function LumnaBrand({ hideSubtitle }: { hideSubtitle?: boolean } = {}) {
+function ResponsiveTitle() {
   const { t } = useLanguage();
+  const [first, second] = t('coaches.title').split('|');
+  if (!second) return <>{first}</>;
+  return (
+    <>
+      {first}
+      <span className="hidden md:inline"> </span>
+      <br className="md:hidden" />
+      {second}
+    </>
+  );
+}
+
+export function LumnaBrand({ hideSubtitle }: { hideSubtitle?: boolean } = {}) {
   return (
     <a href="/" className="flex flex-col items-center hover:opacity-80 transition-opacity">
       <div className="relative flex items-center">
         <LumnaLogo className="w-9 h-9 absolute -left-11" />
         <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
       </div>
-      {!hideSubtitle && <span className="text-lg font-bold text-slate-100 mt-1 text-center text-balance">{t('coaches.title')}</span>}
+      {!hideSubtitle && (
+        <span className="text-lg font-bold text-slate-100 mt-1 text-center text-balance">
+          <ResponsiveTitle />
+        </span>
+      )}
     </a>
   );
 }
 
 export function LumnaBrandSubtitle() {
-  const { t } = useLanguage();
   return (
-    <div className="text-lg font-bold text-slate-100 text-center text-balance">{t('coaches.title')}</div>
+    <div className="text-lg font-bold text-slate-100 text-center text-balance">
+      <ResponsiveTitle />
+    </div>
   );
 }
