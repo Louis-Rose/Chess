@@ -396,11 +396,17 @@ def _parse_board_box(board_box):
 
 
 def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
-    """Classify piece color on each non-empty square via brightness vs. a
-    calibration derived from empty squares of each color on the same board.
-    Returns a dict with 'colors', 'means', 'light_ref', 'dark_ref', 'threshold',
-    'board_box_px', or {} on failure.
-    board_box_frac = (ymin, xmin, ymax, xmax) in 0-1 fractions of crop dims."""
+    """Classify piece color on each non-empty square by the ratio of very-dark
+    pixels (solid ink) within the cell. The 'very dark' threshold is adaptive:
+    5th percentile of pixels across empty dark cells, minus a small margin —
+    so hatched backgrounds and solid-color backgrounds alike stay above it.
+
+    Black piece = solid fill → high dark-ratio.
+    White piece = outline or light sprite → low dark-ratio.
+
+    Returns a dict with 'colors', 'means', 'dark_ratios', 'light_ref',
+    'dark_ref', 'dark_threshold', 'ratio_threshold', 'board_box_px', or {}
+    on failure. board_box_frac = (ymin, xmin, ymax, xmax) in 0-1 fractions."""
     from PIL import Image
     import io
     try:
@@ -421,7 +427,8 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     cell_h = board_h / 8.0
     INSET = 0.15
 
-    means = {}
+    # Collect inner pixels + mean per cell
+    cells = {}  # sq -> {'pixels': [...], 'mean': float, 'is_dark': bool}
     for file_idx in range(8):
         for rank_idx in range(8):  # 0 = rank 1 (bottom), 7 = rank 8 (top)
             row_from_top = 7 - rank_idx
@@ -437,18 +444,24 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
             pixels = list(region.getdata())
             if not pixels:
                 continue
-            means[f"{'abcdefgh'[file_idx]}{rank_idx + 1}"] = round(sum(pixels) / len(pixels), 1)
+            sq = f"{'abcdefgh'[file_idx]}{rank_idx + 1}"
+            cells[sq] = {
+                'pixels': pixels,
+                'mean': round(sum(pixels) / len(pixels), 1),
+                'is_dark': (file_idx + rank_idx) % 2 == 0,
+            }
 
-    # a1 (file=0, rank_idx=0) is dark: (file + rank_idx) % 2 == 0 → dark
-    light_empties, dark_empties = [], []
-    for sq, m in means.items():
+    # Gather empty-cell stats for calibration
+    light_empty_means, dark_empty_means, dark_empty_pixels = [], [], []
+    for sq, c in cells.items():
         if squares.get(sq, '.') != '.':
             continue
-        file_idx = ord(sq[0]) - ord('a')
-        rank_idx = int(sq[1]) - 1
-        is_dark = (file_idx + rank_idx) % 2 == 0
-        (dark_empties if is_dark else light_empties).append(m)
-    if not light_empties or not dark_empties:
+        if c['is_dark']:
+            dark_empty_means.append(c['mean'])
+            dark_empty_pixels.extend(c['pixels'])
+        else:
+            light_empty_means.append(c['mean'])
+    if not dark_empty_pixels or not light_empty_means:
         return {}
 
     def _median(xs):
@@ -456,17 +469,45 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         n = len(s)
         return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
 
-    light_ref = round(_median(light_empties), 1)
-    dark_ref = round(_median(dark_empties), 1)
-    threshold = round((light_ref + dark_ref) / 2.0, 1)
-    colors = {sq: ('w' if m > threshold else 'b')
-              for sq, m in means.items() if squares.get(sq, '.') != '.'}
+    def _percentile(xs, p):
+        s = sorted(xs)
+        n = len(s)
+        if n == 0:
+            return None
+        k = max(0, min(n - 1, int(p * (n - 1) / 100.0)))
+        return s[k]
+
+    light_ref = round(_median(light_empty_means), 1)
+    dark_ref = round(_median(dark_empty_means), 1)
+    # Darkest pixel you'd still expect from an empty background, minus margin.
+    # Anything darker has to be piece ink.
+    PERCENTILE = 5
+    MARGIN = 5
+    p5 = _percentile(dark_empty_pixels, PERCENTILE)
+    if p5 is None:
+        return {}
+    dark_threshold = max(0, int(p5) - MARGIN)
+
+    # Per-cell dark-pixel ratio (fraction of pixels below the threshold)
+    dark_ratios = {}
+    for sq, c in cells.items():
+        px = c['pixels']
+        dark_count = sum(1 for p in px if p < dark_threshold)
+        dark_ratios[sq] = round(dark_count / len(px), 3)
+
+    RATIO_THRESHOLD = 0.15
+    colors = {
+        sq: ('b' if dark_ratios[sq] > RATIO_THRESHOLD else 'w')
+        for sq in cells if squares.get(sq, '.') != '.'
+    }
     return {
         'colors': colors,
-        'means': means,
+        'means': {sq: c['mean'] for sq, c in cells.items()},
+        'dark_ratios': dark_ratios,
         'light_ref': light_ref,
         'dark_ref': dark_ref,
-        'threshold': threshold,
+        'dark_threshold': dark_threshold,
+        'ratio_threshold': RATIO_THRESHOLD,
         'board_box_px': {'left': left, 'top': top, 'right': right, 'bottom': bottom, 'crop_w': W, 'crop_h': H},
     }
 
@@ -591,7 +632,7 @@ def reread_region():
             pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
             if pr:
                 pixel_colors = pr.get('colors') or {}
-                pixel_debug = {k: pr[k] for k in ('means', 'light_ref', 'dark_ref', 'threshold', 'board_box_px') if k in pr}
+                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'ratio_threshold', 'board_box_px') if k in pr}
         except Exception as pe:
             logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
 
@@ -915,7 +956,7 @@ def read_diagram():
                 }
                 if is_admin and pixel_result:
                     diagram['pixel_colors'] = pixel_result.get('colors') or {}
-                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'light_ref', 'dark_ref', 'threshold', 'board_box_px') if k in pixel_result}
+                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'ratio_threshold', 'board_box_px') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

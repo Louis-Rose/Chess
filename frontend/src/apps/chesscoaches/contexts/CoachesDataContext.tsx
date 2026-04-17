@@ -25,9 +25,11 @@ export interface DiagramRegion {
 
 export interface PixelDebug {
   means: Record<string, number>;
+  dark_ratios: Record<string, number>;
   light_ref: number;
   dark_ref: number;
-  threshold: number;
+  dark_threshold: number;
+  ratio_threshold: number;
   board_box_px?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
 }
 

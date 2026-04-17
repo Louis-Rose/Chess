@@ -603,36 +603,51 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
   const colors = diagram.pixel_colors;
   if (!dbg || !colors) return null;
 
-  // Reconstruct the position from the FEN to pair each occupied square with its piece.
-  const rows = diagram.fen.split(' ')[0].split('/');
-  type Row = { sq: string; piece: string; llm: 'w' | 'b'; px: 'w' | 'b' | undefined; mean: number | undefined; isDark: boolean };
-  const pieceRows: Row[] = [];
-  rows.forEach((rankRow, r) => {
+  // Reconstruct 64-square occupancy from the FEN so we can show every cell,
+  // empty and occupied, with its measurements.
+  const fenRows = diagram.fen.split(' ')[0].split('/');
+  const occupancy: Record<string, string> = {};
+  fenRows.forEach((rankRow, r) => {
     const rankNum = 8 - r;
     let c = 0;
     for (const ch of rankRow) {
       if (ch >= '1' && ch <= '8') { c += parseInt(ch); continue; }
-      const sq = `${'abcdefgh'[c]}${rankNum}`;
-      const fileIdx = c;
-      const rankIdx = rankNum - 1;
-      const isDark = (fileIdx + rankIdx) % 2 === 0;
-      pieceRows.push({
-        sq,
-        piece: ch,
-        llm: ch === ch.toUpperCase() ? 'w' : 'b',
-        px: colors[sq],
-        mean: dbg.means?.[sq],
-        isDark,
-      });
+      occupancy[`${'abcdefgh'[c]}${rankNum}`] = ch;
       c += 1;
     }
   });
-  pieceRows.sort((a, b) => a.sq < b.sq ? -1 : 1);
+
+  type Row = {
+    sq: string;
+    piece: string | null;
+    llm: 'w' | 'b' | null;
+    px: 'w' | 'b' | null;
+    mean: number | undefined;
+    darkRatio: number | undefined;
+    isDark: boolean;
+  };
+  const rows: Row[] = [];
+  for (let rankIdx = 7; rankIdx >= 0; rankIdx--) {
+    for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
+      const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
+      const piece = occupancy[sq] ?? null;
+      const llm: 'w' | 'b' | null = piece ? (piece === piece.toUpperCase() ? 'w' : 'b') : null;
+      rows.push({
+        sq,
+        piece,
+        llm,
+        px: colors[sq] ?? null,
+        mean: dbg.means?.[sq],
+        darkRatio: dbg.dark_ratios?.[sq],
+        isDark: (fileIdx + rankIdx) % 2 === 0,
+      });
+    }
+  }
 
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
-        Pixel-ratio debug — light_ref={dbg.light_ref}, dark_ref={dbg.dark_ref}, threshold={dbg.threshold}
+        Pixel-ratio debug — light_ref={dbg.light_ref}, dark_ref={dbg.dark_ref}, dark_thr={dbg.dark_threshold}, ratio_thr={dbg.ratio_threshold}
         {dbg.board_box_px && <> | box=({dbg.board_box_px.left},{dbg.board_box_px.top})→({dbg.board_box_px.right},{dbg.board_box_px.bottom}) in {dbg.board_box_px.crop_w}×{dbg.board_box_px.crop_h}</>}
       </summary>
       <div className="px-2 py-2 overflow-x-auto">
@@ -645,22 +660,25 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
               <th className="pr-3">LLM</th>
               <th className="pr-3">Px</th>
               <th className="pr-3">mean</th>
+              <th className="pr-3">dark%</th>
               <th>Δ vs ref</th>
             </tr>
           </thead>
           <tbody>
-            {pieceRows.map(row => {
-              const disagree = row.px && row.llm !== row.px;
+            {rows.map(row => {
+              const disagree = !!(row.piece && row.px && row.llm !== row.px);
               const ref = row.isDark ? dbg.dark_ref : dbg.light_ref;
               const delta = row.mean !== undefined ? +(row.mean - ref).toFixed(1) : null;
+              const darkPct = row.darkRatio !== undefined ? (row.darkRatio * 100).toFixed(1) : '—';
               return (
-                <tr key={row.sq} className={disagree ? 'text-red-400' : ''}>
+                <tr key={row.sq} className={disagree ? 'text-red-400' : (row.piece ? '' : 'text-slate-500')}>
                   <td className="pr-3">{row.sq}</td>
-                  <td className="pr-3">{row.piece}</td>
+                  <td className="pr-3">{row.piece ?? '.'}</td>
                   <td className="pr-3">{row.isDark ? 'dark' : 'light'}</td>
-                  <td className="pr-3">{row.llm}</td>
+                  <td className="pr-3">{row.llm ?? '—'}</td>
                   <td className="pr-3">{row.px ?? '—'}</td>
                   <td className="pr-3">{row.mean ?? '—'}</td>
+                  <td className="pr-3">{darkPct}</td>
                   <td>{delta !== null ? (delta >= 0 ? `+${delta}` : delta) : '—'}</td>
                 </tr>
               );
