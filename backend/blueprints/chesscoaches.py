@@ -482,15 +482,18 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     dark_ref = round(_median(dark_empty_means), 1)
     # Darkest pixel you'd still expect from an empty background, minus margin.
     # Anything darker has to be piece ink.
-    # Capped to keep out medium-dark shading pixels (crown/base detail on ornate
-    # white pieces); we only want to count solid near-black ink.
-    PERCENTILE = 5
+    PERCENTILE = 2
     MARGIN = 5
-    DARK_THRESHOLD_CAP = 100
-    p5 = _percentile(dark_empty_pixels, PERCENTILE)
-    if p5 is None:
+    p = _percentile(dark_empty_pixels, PERCENTILE)
+    if p is None:
         return {}
-    dark_threshold = max(0, min(int(p5) - MARGIN, DARK_THRESHOLD_CAP))
+    dark_threshold = max(0, int(p) - MARGIN)
+
+    # 256-bin histogram of empty dark-cell pixels (for admin visualization)
+    dark_bg_histogram = [0] * 256
+    for px in dark_empty_pixels:
+        if 0 <= px < 256:
+            dark_bg_histogram[px] += 1
 
     # Per-cell dark-pixel ratio (fraction of pixels below the threshold)
     dark_ratios = {}
@@ -567,6 +570,8 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         'light_ref': light_ref,
         'dark_ref': dark_ref,
         'dark_threshold': dark_threshold,
+        'dark_bg_histogram': dark_bg_histogram,
+        'percentile_used': PERCENTILE,
         'board_box_px': {'left': left, 'top': top, 'right': right, 'bottom': bottom, 'crop_w': W, 'crop_h': H},
     }
 
@@ -691,7 +696,7 @@ def reread_region():
             pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
             if pr:
                 pixel_colors = pr.get('colors') or {}
-                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pr}
+                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'dark_bg_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pr}
         except Exception as pe:
             logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
 
@@ -1015,7 +1020,7 @@ def read_diagram():
                 }
                 if is_admin and pixel_result:
                     diagram['pixel_colors'] = pixel_result.get('colors') or {}
-                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pixel_result}
+                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'dark_bg_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

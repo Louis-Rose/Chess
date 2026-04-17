@@ -596,6 +596,32 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   );
 }
 
+function DarkBgHistogram({ histogram, threshold }: { histogram: number[]; threshold: number }) {
+  const W = 420;
+  const H = 80;
+  const max = Math.max(...histogram);
+  if (max === 0) return null;
+  const barW = W / 256;
+  const thresholdX = (threshold / 255) * W;
+  return (
+    <svg width={W} height={H + 18} className="block">
+      {histogram.map((count, i) => {
+        if (count === 0) return null;
+        const h = (count / max) * H;
+        const x = i * barW;
+        const isInk = i < threshold;
+        return <rect key={i} x={x} y={H - h} width={Math.max(barW, 1)} height={h} fill={isInk ? '#ef4444' : '#64748b'} />;
+      })}
+      <line x1={thresholdX} y1={0} x2={thresholdX} y2={H} stroke="#eab308" strokeWidth={1} strokeDasharray="3 2" />
+      <text x={Math.min(thresholdX + 3, W - 80)} y={10} fill="#eab308" fontSize={10} fontFamily="monospace">thr={threshold}</text>
+      <line x1={0} y1={H} x2={W} y2={H} stroke="#475569" strokeWidth={0.5} />
+      <text x={0} y={H + 12} fill="#64748b" fontSize={9} fontFamily="monospace">0</text>
+      <text x={W / 2 - 8} y={H + 12} fill="#64748b" fontSize={9} fontFamily="monospace">128</text>
+      <text x={W - 22} y={H + 12} fill="#64748b" fontSize={9} fontFamily="monospace">255</text>
+    </svg>
+  );
+}
+
 function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
   const effectiveAdmin = useEffectiveAdmin();
   if (!effectiveAdmin) return null;
@@ -677,6 +703,14 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
         {dbg.board_box_px && <> | box=({dbg.board_box_px.left},{dbg.board_box_px.top})→({dbg.board_box_px.right},{dbg.board_box_px.bottom}) in {dbg.board_box_px.crop_w}×{dbg.board_box_px.crop_h}</>}
       </summary>
 
+      {dbg.dark_bg_histogram && dbg.dark_bg_histogram.some(v => v > 0) && (
+        <div className="px-2 py-2 border-b border-slate-700">
+          <div className="text-slate-500 mb-1">
+            Empty-dark-cell pixel histogram — threshold at {dbg.percentile_used ?? '?'}th percentile − margin
+          </div>
+          <DarkBgHistogram histogram={dbg.dark_bg_histogram} threshold={dbg.dark_threshold} />
+        </div>
+      )}
       {groupEntries.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700">
           <div className="text-slate-500 mb-1">Groups (type/bg) — threshold from largest gap in fills</div>
