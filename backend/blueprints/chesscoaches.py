@@ -512,7 +512,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     # gap = black, below = white. Groups whose gap is below MIN_GAP fall back
     # to a type-only super-group (same shape, either bg) and retry; usually
     # enough for kings and queens which only appear once per color.
-    MIN_GAP = 0.10
+    MIN_GAP = 0.03
     groups = {}  # (type_upper, is_dark) -> [(sq, llm_color, ratio)]
     for sq, c in cells.items():
         sym = squares.get(sq, '.')

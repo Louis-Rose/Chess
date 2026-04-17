@@ -660,7 +660,7 @@ function classifyAtThreshold(
   const cellW = (right - left) / 8;
   const cellH = (bottom - top) / 8;
   const INSET = 0.0;
-  const MIN_GAP = 0.10;
+  const MIN_GAP = 0.03;
 
   const occupancy: Record<string, string> = {};
   fen.split(' ')[0].split('/').forEach((rankRow, r) => {
