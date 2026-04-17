@@ -334,11 +334,11 @@ function CoachesHeader() {
             <MobilePlayerButton />
           </div>
           <LumnaBrand hideSubtitle />
+          <div className="absolute right-0">
+            <LanguageToggle compact />
+          </div>
         </div>
         <LumnaBrandSubtitle />
-      </div>
-      <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2">
-        <LanguageToggle compact />
       </div>
     </div>
   );
