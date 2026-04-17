@@ -25,11 +25,13 @@ export interface DiagramRegion {
 
 export interface PixelGroupInfo {
   threshold: number | null;
-  white_median: number | null;
-  black_median: number | null;
+  gap: number | null;
+  min_gap: number;
   can_check: boolean;
   count_w: number;
   count_b: number;
+  min_fill: number | null;
+  max_fill: number | null;
 }
 
 export interface PixelDebug {

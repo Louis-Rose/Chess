@@ -679,14 +679,14 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
 
       {groupEntries.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700">
-          <div className="text-slate-500 mb-1">Groups (type/bg)</div>
+          <div className="text-slate-500 mb-1">Groups (type/bg) — threshold from largest gap in fills</div>
           <table className="w-full text-left font-mono text-[11px] text-slate-300">
             <thead>
               <tr className="text-slate-500 border-b border-slate-800">
                 <th className="pr-3">group</th>
-                <th className="pr-3">w×b</th>
-                <th className="pr-3">w_med</th>
-                <th className="pr-3">b_med</th>
+                <th className="pr-3">n (w×b)</th>
+                <th className="pr-3">min→max</th>
+                <th className="pr-3">gap</th>
                 <th className="pr-3">thresh</th>
                 <th>check?</th>
               </tr>
@@ -695,11 +695,11 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
               {groupEntries.map(([k, g]) => (
                 <tr key={k} className={g.can_check ? '' : 'text-slate-500'}>
                   <td className="pr-3">{k}</td>
-                  <td className="pr-3">{g.count_w}×{g.count_b}</td>
-                  <td className="pr-3">{g.white_median ?? '—'}</td>
-                  <td className="pr-3">{g.black_median ?? '—'}</td>
+                  <td className="pr-3">{g.count_w + g.count_b} ({g.count_w}×{g.count_b})</td>
+                  <td className="pr-3">{g.min_fill ?? '—'}→{g.max_fill ?? '—'}</td>
+                  <td className="pr-3">{g.gap ?? '—'}</td>
                   <td className="pr-3">{g.threshold ?? '—'}</td>
-                  <td>{g.can_check ? 'yes' : 'no'}</td>
+                  <td>{g.can_check ? 'yes' : `no (need ≥${g.min_gap})`}</td>
                 </tr>
               ))}
             </tbody>

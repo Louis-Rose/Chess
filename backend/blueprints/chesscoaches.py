@@ -399,9 +399,10 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     """Classify piece color by within-image, within-(type, bg) comparison.
 
     For each group of pieces that share the same type and same square-bg color,
-    dark_ratio only varies with fill (color). The per-group threshold is the
-    midpoint between the LLM-white median and the LLM-black median. Groups
-    with only one LLM color get a 'no-check' verdict.
+    sort fills and find the largest consecutive gap. If it exceeds MIN_GAP,
+    split there: upper = black, lower = white. The LLM's color claims are
+    never an input; only piece type + position are trusted. Groups whose
+    biggest gap is below MIN_GAP (likely single-color) get 'no-check'.
 
     Returns a dict with 'colors', 'verdicts', 'piece_groups', 'groups',
     'means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold',
@@ -495,15 +496,15 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         dark_count = sum(1 for p in px if p < dark_threshold)
         dark_ratios[sq] = round(dark_count / len(px), 3)
 
-    # Within-image classifier: for each (piece_type, square_bg) group, compare
-    # pieces of the same shape on the same background. The darker ones (higher
-    # dark_ratio) are black, the lighter are white. Uses the LLM's piece type
-    # and position as ground truth — we only check color.
+    # Within-image classifier: for each (piece_type, square_bg) group, sort
+    # pieces by dark_ratio and find the largest gap between consecutive fills.
+    # If that gap exceeds MIN_GAP, we declare the group bimodal: anything above
+    # the gap = black, below = white. If no gap is big enough, we assume the
+    # group is single-color and mark 'no-check'.
     #
-    # When a group has both LLM-white and LLM-black members, we derive a
-    # per-group threshold from the midpoint of the two medians. When a group
-    # is single-color (can't cross-check) we mark pieces as "no-check" and do
-    # NOT emit a pixel color for them (so the board UI won't mislead).
+    # This derives the threshold from fill distribution alone — the LLM's
+    # color claims are never an input, only a comparison target for verdicts.
+    MIN_GAP = 0.15
     groups = {}  # (type_upper, is_dark) -> [(sq, llm_color, ratio)]
     for sq, c in cells.items():
         sym = squares.get(sq, '.')
@@ -515,50 +516,43 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
 
     groups_debug = {}
     piece_groups = {}  # sq -> "K/light"
-    for (ptype, is_dark), members in groups.items():
-        key = f"{ptype}/{'dark' if is_dark else 'light'}"
-        whites = [r for (_, c, r) in members if c == 'w']
-        blacks = [r for (_, c, r) in members if c == 'b']
-        if whites and blacks:
-            wm = _median(whites)
-            bm = _median(blacks)
-            thresh = round((wm + bm) / 2.0, 3)
-            groups_debug[key] = {
-                'threshold': thresh,
-                'white_median': round(wm, 3),
-                'black_median': round(bm, 3),
-                'can_check': True,
-                'count_w': len(whites),
-                'count_b': len(blacks),
-            }
-        else:
-            groups_debug[key] = {
-                'threshold': None,
-                'white_median': round(_median(whites), 3) if whites else None,
-                'black_median': round(_median(blacks), 3) if blacks else None,
-                'can_check': False,
-                'count_w': len(whites),
-                'count_b': len(blacks),
-            }
-        for sq, _, _ in members:
-            piece_groups[sq] = key
-
     colors = {}
     verdicts = {}  # sq -> 'ok' | 'flip?' | 'no-check'
-    for sq, c in cells.items():
-        sym = squares.get(sq, '.')
-        if sym == '.':
-            continue
-        ptype = sym.upper()
-        llm_color = 'w' if sym == ptype else 'b'
-        key = f"{ptype}/{'dark' if c['is_dark'] else 'light'}"
-        info = groups_debug[key]
-        if info['can_check']:
-            pred = 'b' if dark_ratios[sq] > info['threshold'] else 'w'
-            colors[sq] = pred
-            verdicts[sq] = 'ok' if pred == llm_color else 'flip?'
-        else:
-            verdicts[sq] = 'no-check'
+
+    for (ptype, is_dark), members in groups.items():
+        key = f"{ptype}/{'dark' if is_dark else 'light'}"
+        count_w = sum(1 for (_, c, _) in members if c == 'w')
+        count_b = sum(1 for (_, c, _) in members if c == 'b')
+        fills = sorted(r for (_, _, r) in members)
+        biggest_gap = 0.0
+        gap_idx = -1
+        for i in range(len(fills) - 1):
+            g = fills[i + 1] - fills[i]
+            if g > biggest_gap:
+                biggest_gap = g
+                gap_idx = i
+        can_check = gap_idx >= 0 and biggest_gap >= MIN_GAP
+        threshold = round((fills[gap_idx] + fills[gap_idx + 1]) / 2.0, 3) if can_check else None
+
+        groups_debug[key] = {
+            'threshold': threshold,
+            'gap': round(biggest_gap, 3) if len(fills) > 1 else None,
+            'min_gap': MIN_GAP,
+            'can_check': can_check,
+            'count_w': count_w,
+            'count_b': count_b,
+            'min_fill': round(fills[0], 3) if fills else None,
+            'max_fill': round(fills[-1], 3) if fills else None,
+        }
+
+        for sq, llm_color, fill in members:
+            piece_groups[sq] = key
+            if can_check and threshold is not None:
+                pred = 'b' if fill > threshold else 'w'
+                colors[sq] = pred
+                verdicts[sq] = 'ok' if pred == llm_color else 'flip?'
+            else:
+                verdicts[sq] = 'no-check'
 
     return {
         'colors': colors,
