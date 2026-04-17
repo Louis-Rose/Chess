@@ -820,17 +820,29 @@ function ThresholdExplorer({ baseData, threshold, setThreshold, initial, boardBo
   const effectiveAdmin = useEffectiveAdmin();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Sample only pixels inside board_box so the percentage matches backend's
+  // percentile. The crop's dark book-frame and labels would otherwise skew it.
   const cumHist = useMemo(() => {
     if (!baseData) return null;
+    const w = baseData.width, h = baseData.height;
+    const left = boardBox ? Math.max(0, Math.floor(boardBox.left)) : 0;
+    const top = boardBox ? Math.max(0, Math.floor(boardBox.top)) : 0;
+    const right = boardBox ? Math.min(w, Math.ceil(boardBox.right)) : w;
+    const bottom = boardBox ? Math.min(h, Math.ceil(boardBox.bottom)) : h;
     const hist = new Array(256).fill(0);
-    for (let i = 0; i < baseData.data.length; i += 4) {
-      const g = Math.round((baseData.data[i] + baseData.data[i + 1] + baseData.data[i + 2]) / 3);
-      hist[g]++;
+    let total = 0;
+    for (let y = top; y < bottom; y++) {
+      for (let x = left; x < right; x++) {
+        const idx = (y * w + x) * 4;
+        const g = Math.round((baseData.data[idx] + baseData.data[idx + 1] + baseData.data[idx + 2]) / 3);
+        hist[g]++;
+        total++;
+      }
     }
     const cum = new Array(257).fill(0);
     for (let i = 0; i < 256; i++) cum[i + 1] = cum[i] + hist[i];
-    return cum;
-  }, [baseData]);
+    return { cum, total };
+  }, [baseData, boardBox]);
 
   useEffect(() => {
     if (!baseData) return;
@@ -876,8 +888,8 @@ function ThresholdExplorer({ baseData, threshold, setThreshold, initial, boardBo
 
   const clamp = (v: number) => Math.max(0, Math.min(255, v));
   const bump = (d: number) => setThreshold(clamp(threshold + d));
-  const total = baseData.width * baseData.height;
-  const below = cumHist ? cumHist[threshold] : 0;
+  const total = cumHist?.total ?? 0;
+  const below = cumHist ? cumHist.cum[threshold] : 0;
   const pct = total > 0 ? (below / total) * 100 : 0;
 
   return (
