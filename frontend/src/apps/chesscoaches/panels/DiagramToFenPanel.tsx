@@ -607,6 +607,9 @@ function ThresholdExplorer({ cropUrl, initial }: { cropUrl: string; initial: num
   const effectiveAdmin = useEffectiveAdmin();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const baseDataRef = useRef<ImageData | null>(null);
+  // Cumulative histogram of grayscale values: cumHist[i] = # pixels with gray < i.
+  const cumHistRef = useRef<number[] | null>(null);
+  const totalPixelsRef = useRef(0);
   const [threshold, setThreshold] = useState(initial);
   const [loaded, setLoaded] = useState(false);
 
@@ -622,7 +625,17 @@ function ThresholdExplorer({ cropUrl, initial }: { cropUrl: string; initial: num
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       ctx.drawImage(img, 0, 0);
-      baseDataRef.current = ctx.getImageData(0, 0, img.width, img.height);
+      const data = ctx.getImageData(0, 0, img.width, img.height);
+      baseDataRef.current = data;
+      const hist = new Array(256).fill(0);
+      for (let i = 0; i < data.data.length; i += 4) {
+        const gray = Math.round((data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3);
+        hist[gray]++;
+      }
+      const cum = new Array(257).fill(0);
+      for (let i = 0; i < 256; i++) cum[i + 1] = cum[i] + hist[i];
+      cumHistRef.current = cum;
+      totalPixelsRef.current = img.width * img.height;
       setLoaded(true);
     };
     img.src = cropUrl;
@@ -652,14 +665,28 @@ function ThresholdExplorer({ cropUrl, initial }: { cropUrl: string; initial: num
 
   if (!effectiveAdmin) return null;
 
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const bump = (d: number) => setThreshold(v => clamp(v + d));
+  const total = totalPixelsRef.current;
+  const below = cumHistRef.current ? cumHistRef.current[threshold] : 0;
+  const pct = total > 0 ? (below / total) * 100 : 0;
+
   return (
     <details className="max-w-[400px] mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
-        Threshold explorer (admin) — pixels with gray &lt; {threshold} are tinted red
+        Threshold explorer (admin) — {pct.toFixed(2)}% of pixels tinted (gray &lt; {threshold})
       </summary>
       <div className="px-2 py-2 space-y-2">
         <canvas ref={canvasRef} className="mx-auto block rounded border border-slate-700 max-w-full" style={{ imageRendering: 'pixelated' }} />
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => bump(-1)}
+            className="px-2 py-0.5 rounded border border-slate-600 text-slate-300 hover:bg-slate-800 font-mono"
+            title="Decrease threshold by 1"
+          >
+            −
+          </button>
           <input
             type="range"
             min={0}
@@ -668,7 +695,15 @@ function ThresholdExplorer({ cropUrl, initial }: { cropUrl: string; initial: num
             onChange={e => setThreshold(parseInt(e.target.value, 10))}
             className="flex-1"
           />
-          <span className="font-mono w-10 text-right text-slate-300">{threshold}</span>
+          <button
+            type="button"
+            onClick={() => bump(1)}
+            className="px-2 py-0.5 rounded border border-slate-600 text-slate-300 hover:bg-slate-800 font-mono"
+            title="Increase threshold by 1"
+          >
+            +
+          </button>
+          <span className="font-mono w-14 text-right text-slate-300">{pct.toFixed(2)}%</span>
           <button
             type="button"
             onClick={() => setThreshold(initial)}
