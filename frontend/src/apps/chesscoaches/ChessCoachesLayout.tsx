@@ -336,8 +336,11 @@ function CoachesHeader() {
           <LumnaBrand hideSubtitle />
         </div>
         <LumnaBrandSubtitle />
+        <div className="md:hidden mt-2">
+          <LanguageToggle />
+        </div>
       </div>
-      <div className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2">
+      <div className="hidden md:block absolute right-8 top-1/2 -translate-y-1/2">
         <LanguageToggle />
       </div>
     </div>
