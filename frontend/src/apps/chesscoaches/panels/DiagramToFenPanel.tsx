@@ -1036,6 +1036,9 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
     return bgRank(abg) - bgRank(bbg);
   });
 
+  const gapValues = groupEntries.map(([, g]) => g.gap).filter((v): v is number => v != null);
+  const avgGap = gapValues.length ? gapValues.reduce((a, b) => a + b, 0) / gapValues.length : null;
+
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
@@ -1053,7 +1056,10 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
       )}
       {groupEntries.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700">
-          <div className="text-slate-500 mb-1">Groups (type/bg) — threshold from largest gap in fills</div>
+          <div className="text-slate-500 mb-1">
+            Groups (type/bg) — threshold from largest gap in fills
+            {avgGap != null && <span className="ml-2 text-slate-300">avg gap: {(avgGap * 100).toFixed(1)}%</span>}
+          </div>
           <table className="w-full text-left font-mono text-[11px] text-slate-300">
             <thead>
               <tr className="text-slate-500 border-b border-slate-800">
