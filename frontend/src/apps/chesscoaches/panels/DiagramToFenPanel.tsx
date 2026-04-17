@@ -652,7 +652,23 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
     }
   }
 
-  const groupEntries = Object.entries(dbg.groups ?? {});
+  const PIECE_ORDER = 'KQRBNP';
+  const pieceRank = (ch: string | null | undefined) =>
+    ch ? PIECE_ORDER.indexOf(ch.toUpperCase()) : 99;
+  rows.sort((a, b) => {
+    const pr = pieceRank(a.piece) - pieceRank(b.piece);
+    if (pr !== 0) return pr;
+    if (a.isDark !== b.isDark) return a.isDark ? -1 : 1;
+    return a.sq < b.sq ? -1 : 1;
+  });
+
+  const groupEntries = Object.entries(dbg.groups ?? {}).sort(([a], [b]) => {
+    const [at, abg] = a.split('/');
+    const [bt, bbg] = b.split('/');
+    const pr = PIECE_ORDER.indexOf(at) - PIECE_ORDER.indexOf(bt);
+    if (pr !== 0) return pr;
+    return abg === bbg ? 0 : abg === 'dark' ? -1 : 1;
+  });
 
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
