@@ -766,7 +766,16 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   );
 }
 
-type PositionFix = { from: string; to: string };
+type PositionFix = {
+  from: string;
+  to: string;
+  piece: string;
+  fromRatio: number;
+  toRatio: number;
+  typeThr: number;
+  // Both neighbors (left/right) considered, with why each was kept or rejected.
+  neighbors: { sq: string; ratio: number; occupied: boolean; qualified: boolean }[];
+};
 
 type LiveClassification = {
   means: Record<string, number>;
@@ -950,28 +959,42 @@ function classifyAtThreshold(
   for (const sq of Object.keys(cellPixels)) {
     const piece = occupancy[sq];
     if (!piece) continue;
-    if ((darkRatios[sq] ?? 0) > EMPTY_THRESHOLD) continue;
+    const fromRatio = darkRatios[sq] ?? 0;
+    if (fromRatio > EMPTY_THRESHOLD) continue;
     const type = piece.toUpperCase();
     const typeThr = typeThresholds[type];
     if (typeThr === undefined) continue;
     const fileIdx = sq.charCodeAt(0) - 'a'.charCodeAt(0);
     const rankChar = sq[1];
-    const candidates: { sq: string; ratio: number }[] = [];
+    const neighbors: PositionFix['neighbors'] = [];
     for (const offset of [-1, 1]) {
       const nf = fileIdx + offset;
       if (nf < 0 || nf > 7) continue;
       const nSq = `${'abcdefgh'[nf]}${rankChar}`;
-      if (occupancy[nSq]) continue;
+      const occupied = !!occupancy[nSq];
       const nPixels = cellPixels[nSq];
-      if (!nPixels) continue;
-      let nDark = 0;
-      for (const g of nPixels) if (g <= typeThr) nDark++;
-      const ratio = nDark / nPixels.length;
-      if (ratio >= NEIGHBOR_FLOOR) candidates.push({ sq: nSq, ratio });
+      let ratio = 0;
+      if (nPixels) {
+        let nDark = 0;
+        for (const g of nPixels) if (g <= typeThr) nDark++;
+        ratio = nDark / nPixels.length;
+      }
+      const qualified = !occupied && ratio >= NEIGHBOR_FLOOR;
+      neighbors.push({ sq: nSq, ratio: Math.round(ratio * 1000) / 1000, occupied, qualified });
     }
-    if (candidates.length === 0) continue;
-    candidates.sort((a, b) => b.ratio - a.ratio);
-    positionFixes.push({ from: sq, to: candidates[0].sq });
+    const qualifieds = neighbors.filter(n => n.qualified);
+    if (qualifieds.length === 0) continue;
+    qualifieds.sort((a, b) => b.ratio - a.ratio);
+    const winner = qualifieds[0];
+    positionFixes.push({
+      from: sq,
+      to: winner.sq,
+      piece,
+      fromRatio,
+      toRatio: winner.ratio,
+      typeThr: Math.round(typeThr),
+      neighbors,
+    });
   }
 
   type Member = { sq: string; llm: 'w' | 'b'; ratio: number; type: string };
@@ -1385,21 +1408,43 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], applied
         );
       })()}
 
-      {(appliedFixes.length > 0 || appliedFlips.length > 0) && (
-        <div className="px-2 py-2 border-b border-slate-700 text-[11px] text-slate-300 space-y-1">
-          <div className="text-slate-500">Auto-corrections applied</div>
-          {appliedFixes.length > 0 && (
-            <div>
-              <span className="text-slate-500">moves:</span>{' '}
-              <span className="font-mono">{appliedFixes.map(f => `${f.from}→${f.to}`).join(', ')}</span>
-            </div>
-          )}
-          {appliedFlips.length > 0 && (
-            <div>
-              <span className="text-slate-500">color flips:</span>{' '}
-              <span className="font-mono">{appliedFlips.join(', ')}</span>
-            </div>
-          )}
+      {appliedFixes.length > 0 && (
+        <div className="px-2 py-2 border-b border-slate-700 text-[11px]">
+          <div className="text-slate-500 mb-1">Position fixes applied</div>
+          <table className="w-full text-left font-mono text-[11px] text-slate-300">
+            <thead>
+              <tr className="text-slate-500 border-b border-slate-800">
+                <th className="pr-3">piece</th>
+                <th className="pr-3">from</th>
+                <th className="pr-3">to</th>
+                <th className="pr-3">from%</th>
+                <th className="pr-3">to%</th>
+                <th className="pr-3">type_thr</th>
+                <th>neighbors (sq: dark% · state)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {appliedFixes.map((fix, i) => (
+                <tr key={i}>
+                  <td className="pr-3">{fix.piece}</td>
+                  <td className="pr-3">{fix.from}</td>
+                  <td className="pr-3">{fix.to}</td>
+                  <td className="pr-3">{(fix.fromRatio * 100).toFixed(1)}%</td>
+                  <td className="pr-3">{(fix.toRatio * 100).toFixed(1)}%</td>
+                  <td className="pr-3">{fix.typeThr}</td>
+                  <td>
+                    {fix.neighbors.map(n => `${n.sq}: ${(n.ratio * 100).toFixed(1)}% · ${n.occupied ? 'occupied' : n.qualified ? 'qualified' : '<5%'}`).join('  |  ')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {appliedFlips.length > 0 && (
+        <div className="px-2 py-2 border-b border-slate-700 text-[11px] text-slate-300">
+          <div className="text-slate-500 mb-1">Color flips applied</div>
+          <span className="font-mono">{appliedFlips.join(', ')}</span>
         </div>
       )}
 
