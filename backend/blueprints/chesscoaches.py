@@ -426,7 +426,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         return {}
     cell_w = board_w / 8.0
     cell_h = board_h / 8.0
-    INSET = 0.15
+    INSET = 0.0
 
     # Collect inner pixels + mean per cell
     cells = {}  # sq -> {'pixels': [...], 'mean': float, 'is_dark': bool}

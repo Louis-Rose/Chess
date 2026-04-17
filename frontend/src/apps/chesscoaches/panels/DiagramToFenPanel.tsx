@@ -659,7 +659,7 @@ function classifyAtThreshold(
   const { left, top, right, bottom } = boardBox;
   const cellW = (right - left) / 8;
   const cellH = (bottom - top) / 8;
-  const INSET = 0.15;
+  const INSET = 0.0;
   const MIN_GAP = 0.10;
 
   const occupancy: Record<string, string> = {};
