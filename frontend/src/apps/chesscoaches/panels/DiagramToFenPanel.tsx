@@ -1,6 +1,6 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { ImageIcon, Clock, Copy, Check, Loader2, RefreshCw } from 'lucide-react';
 import { ImageZoomModal } from '../components/ImageZoomModal';
@@ -11,7 +11,7 @@ import { useEffectiveAdmin } from '../../../contexts/AuthContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
-import type { DiagramModelResult, DiagramExtract, DiagramRegion } from '../contexts/CoachesDataContext';
+import type { DiagramModelResult, DiagramExtract, DiagramRegion, PixelGroupInfo } from '../contexts/CoachesDataContext';
 import { EditableBoard } from './diagram/EditableBoard';
 import { SaveToKnowledgeButton } from './diagram/SaveToKnowledgeButton';
 import { ComposedImage } from './diagram/ComposedImage';
@@ -479,6 +479,7 @@ function rebuildFen(oldFen: string, newPlacement: string): string {
 
 function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc?: string }) {
   const { t } = useLanguage();
+  const effectiveAdmin = useEffectiveAdmin();
   const [copied, setCopied] = useState(false);
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
@@ -489,6 +490,35 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     setEditedFen(diagram.fen);
     historyRef.current = [];
   }, [diagram.fen]);
+
+  // Admin-only: threshold explorer state. Image is loaded once so the
+  // debug tables below can recompute live as the slider moves.
+  const initialThreshold = diagram.pixel_debug?.dark_threshold ?? 128;
+  const [threshold, setThreshold] = useState(initialThreshold);
+  const [baseData, setBaseData] = useState<ImageData | null>(null);
+
+  useEffect(() => { setThreshold(initialThreshold); }, [initialThreshold, diagram.fen]);
+
+  useEffect(() => {
+    if (!effectiveAdmin || !diagram.crop_data_url) { setBaseData(null); return; }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const cvs = document.createElement('canvas');
+      cvs.width = img.width;
+      cvs.height = img.height;
+      const ctx = cvs.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      setBaseData(ctx.getImageData(0, 0, img.width, img.height));
+    };
+    img.src = diagram.crop_data_url;
+  }, [diagram.crop_data_url, effectiveAdmin]);
+
+  const live = useMemo(() => {
+    if (!baseData || !diagram.pixel_debug?.board_box_px || !diagram.fen) return null;
+    return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, diagram.fen, threshold);
+  }, [baseData, threshold, diagram.pixel_debug?.board_box_px, diagram.fen]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => {
@@ -543,12 +573,14 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         ? <img src={diagram.crop_data_url} alt="" className="mx-auto rounded-lg border border-slate-600 max-w-[400px] w-full" />
         : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
 
-      {diagram.crop_data_url && (
+      {diagram.crop_data_url && effectiveAdmin && (
         <ThresholdExplorer
-          cropUrl={diagram.crop_data_url}
-          initial={diagram.pixel_debug?.dark_threshold ?? 128}
+          baseData={baseData}
+          threshold={threshold}
+          setThreshold={setThreshold}
+          initial={initialThreshold}
           boardBox={diagram.pixel_debug?.board_box_px}
-          fen={diagram.fen}
+          liveBlackSquares={live?.pixelColors}
         />
       )}
 
@@ -584,9 +616,9 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </button>
       </div>
 
-      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={diagram.pixel_colors} />
+      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={live?.pixelColors ?? diagram.pixel_colors} />
 
-      <PixelDebugPanel diagram={diagram} />
+      <PixelDebugPanel diagram={diagram} live={live} threshold={threshold} />
 
       <div className="flex flex-col gap-2">
         <button
@@ -605,60 +637,179 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   );
 }
 
-interface ThresholdExplorerProps {
-  cropUrl: string;
-  initial: number;
-  boardBox?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
-  fen?: string;
+type LiveClassification = {
+  means: Record<string, number>;
+  dark_ratios: Record<string, number>;
+  light_ref: number;
+  dark_ref: number;
+  pieceGroups: Record<string, string>;
+  groups: Record<string, PixelGroupInfo>;
+  verdicts: Record<string, 'ok' | 'flip?' | 'no-check'>;
+  pixelColors: Record<string, 'w' | 'b'>;
+};
+
+function classifyAtThreshold(
+  baseData: ImageData,
+  boardBox: { left: number; top: number; right: number; bottom: number },
+  fen: string,
+  threshold: number,
+): LiveClassification {
+  const w = baseData.width;
+  const h = baseData.height;
+  const { left, top, right, bottom } = boardBox;
+  const cellW = (right - left) / 8;
+  const cellH = (bottom - top) / 8;
+  const INSET = 0.15;
+  const MIN_GAP = 0.12;
+
+  const occupancy: Record<string, string> = {};
+  fen.split(' ')[0].split('/').forEach((rankRow, r) => {
+    const rankNum = 8 - r;
+    let c = 0;
+    for (const ch of rankRow) {
+      if (ch >= '1' && ch <= '8') { c += parseInt(ch, 10); continue; }
+      occupancy[`${'abcdefgh'[c]}${rankNum}`] = ch;
+      c += 1;
+    }
+  });
+
+  const means: Record<string, number> = {};
+  const darkRatios: Record<string, number> = {};
+  for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
+    for (let rankIdx = 0; rankIdx < 8; rankIdx++) {
+      const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
+      const cl = left + fileIdx * cellW;
+      const ct = top + (7 - rankIdx) * cellH;
+      const ix0 = Math.max(0, Math.floor(cl + cellW * INSET));
+      const iy0 = Math.max(0, Math.floor(ct + cellH * INSET));
+      const ix1 = Math.min(w, Math.floor(cl + cellW * (1 - INSET)));
+      const iy1 = Math.min(h, Math.floor(ct + cellH * (1 - INSET)));
+      let sum = 0, total = 0, darkCount = 0;
+      for (let y = iy0; y < iy1; y++) {
+        for (let x = ix0; x < ix1; x++) {
+          const idx = (y * w + x) * 4;
+          const gray = (baseData.data[idx] + baseData.data[idx + 1] + baseData.data[idx + 2]) / 3;
+          sum += gray;
+          if (gray < threshold) darkCount++;
+          total++;
+        }
+      }
+      if (total > 0) {
+        means[sq] = Math.round((sum / total) * 10) / 10;
+        darkRatios[sq] = Math.round((darkCount / total) * 1000) / 1000;
+      }
+    }
+  }
+
+  const median = (xs: number[]): number | null => {
+    if (!xs.length) return null;
+    const s = [...xs].sort((a, b) => a - b);
+    return s.length % 2 ? s[Math.floor(s.length / 2)] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+  };
+  const lightEmptyMeans: number[] = [];
+  const darkEmptyMeans: number[] = [];
+  for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
+    for (let rankIdx = 0; rankIdx < 8; rankIdx++) {
+      const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
+      if (occupancy[sq]) continue;
+      const m = means[sq];
+      if (m === undefined) continue;
+      const isDark = (fileIdx + rankIdx) % 2 === 0;
+      if (isDark) darkEmptyMeans.push(m); else lightEmptyMeans.push(m);
+    }
+  }
+  const lightRef = Math.round((median(lightEmptyMeans) ?? 0) * 10) / 10;
+  const darkRef = Math.round((median(darkEmptyMeans) ?? 0) * 10) / 10;
+
+  type Member = { sq: string; llm: 'w' | 'b'; ratio: number };
+  const groupMembers = new Map<string, Member[]>();
+  for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
+    for (let rankIdx = 0; rankIdx < 8; rankIdx++) {
+      const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
+      const piece = occupancy[sq];
+      if (!piece) continue;
+      const llm: 'w' | 'b' = piece === piece.toUpperCase() ? 'w' : 'b';
+      const isDark = (fileIdx + rankIdx) % 2 === 0;
+      const key = `${piece.toUpperCase()}/${isDark ? 'dark' : 'light'}`;
+      if (!groupMembers.has(key)) groupMembers.set(key, []);
+      groupMembers.get(key)!.push({ sq, llm, ratio: darkRatios[sq] ?? 0 });
+    }
+  }
+
+  const groups: Record<string, PixelGroupInfo> = {};
+  const pieceGroups: Record<string, string> = {};
+  const pixelColors: Record<string, 'w' | 'b'> = {};
+  const verdicts: Record<string, 'ok' | 'flip?' | 'no-check'> = {};
+
+  for (const [key, members] of groupMembers.entries()) {
+    const sorted = [...members].sort((a, b) => a.ratio - b.ratio);
+    let biggestGap = 0, gapIdx = -1;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const g = sorted[i + 1].ratio - sorted[i].ratio;
+      if (g > biggestGap) { biggestGap = g; gapIdx = i; }
+    }
+    const canCheck = gapIdx >= 0 && biggestGap >= MIN_GAP;
+    const thresh = canCheck ? (sorted[gapIdx].ratio + sorted[gapIdx + 1].ratio) / 2 : null;
+    groups[key] = {
+      threshold: thresh !== null ? Math.round(thresh * 1000) / 1000 : null,
+      gap: sorted.length > 1 ? Math.round(biggestGap * 1000) / 1000 : null,
+      min_gap: MIN_GAP,
+      can_check: canCheck,
+      count_w: members.filter(m => m.llm === 'w').length,
+      count_b: members.filter(m => m.llm === 'b').length,
+      min_fill: sorted.length ? Math.round(sorted[0].ratio * 1000) / 1000 : null,
+      max_fill: sorted.length ? Math.round(sorted[sorted.length - 1].ratio * 1000) / 1000 : null,
+    };
+    for (const m of members) {
+      pieceGroups[m.sq] = key;
+      if (canCheck && thresh !== null) {
+        const pred: 'w' | 'b' = m.ratio > thresh ? 'b' : 'w';
+        pixelColors[m.sq] = pred;
+        verdicts[m.sq] = pred === m.llm ? 'ok' : 'flip?';
+      } else {
+        verdicts[m.sq] = 'no-check';
+      }
+    }
+  }
+
+  return { means, dark_ratios: darkRatios, light_ref: lightRef, dark_ref: darkRef, pieceGroups, groups, verdicts, pixelColors };
 }
 
-function ThresholdExplorer({ cropUrl, initial, boardBox, fen }: ThresholdExplorerProps) {
+interface ThresholdExplorerProps {
+  baseData: ImageData | null;
+  threshold: number;
+  setThreshold: (v: number) => void;
+  initial: number;
+  boardBox?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
+  liveBlackSquares?: Record<string, 'w' | 'b'>;
+}
+
+function ThresholdExplorer({ baseData, threshold, setThreshold, initial, boardBox, liveBlackSquares }: ThresholdExplorerProps) {
   const effectiveAdmin = useEffectiveAdmin();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const baseDataRef = useRef<ImageData | null>(null);
-  // Cumulative histogram of grayscale values: cumHist[i] = # pixels with gray < i.
-  const cumHistRef = useRef<number[] | null>(null);
-  const totalPixelsRef = useRef(0);
-  const [threshold, setThreshold] = useState(initial);
-  const [loaded, setLoaded] = useState(false);
+
+  const cumHist = useMemo(() => {
+    if (!baseData) return null;
+    const hist = new Array(256).fill(0);
+    for (let i = 0; i < baseData.data.length; i += 4) {
+      const g = Math.round((baseData.data[i] + baseData.data[i + 1] + baseData.data[i + 2]) / 3);
+      hist[g]++;
+    }
+    const cum = new Array(257).fill(0);
+    for (let i = 0; i < 256; i++) cum[i + 1] = cum[i] + hist[i];
+    return cum;
+  }, [baseData]);
 
   useEffect(() => {
-    if (!effectiveAdmin) return;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-      const data = ctx.getImageData(0, 0, img.width, img.height);
-      baseDataRef.current = data;
-      const hist = new Array(256).fill(0);
-      for (let i = 0; i < data.data.length; i += 4) {
-        const gray = Math.round((data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3);
-        hist[gray]++;
-      }
-      const cum = new Array(257).fill(0);
-      for (let i = 0; i < 256; i++) cum[i + 1] = cum[i] + hist[i];
-      cumHistRef.current = cum;
-      totalPixelsRef.current = img.width * img.height;
-      setLoaded(true);
-    };
-    img.src = cropUrl;
-  }, [cropUrl, effectiveAdmin]);
-
-  useEffect(() => {
-    if (!loaded) return;
+    if (!baseData) return;
     const canvas = canvasRef.current;
-    const base = baseDataRef.current;
-    if (!canvas || !base) return;
+    if (!canvas) return;
+    canvas.width = baseData.width;
+    canvas.height = baseData.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const out = ctx.createImageData(base.width, base.height);
-    const src = base.data;
+    const out = ctx.createImageData(baseData.width, baseData.height);
+    const src = baseData.data;
     const dst = out.data;
     for (let i = 0; i < src.length; i += 4) {
       const r = src[i], g = src[i + 1], b = src[i + 2];
@@ -671,84 +822,30 @@ function ThresholdExplorer({ cropUrl, initial, boardBox, fen }: ThresholdExplore
     }
     ctx.putImageData(out, 0, 0);
 
-    // Re-classify pieces at this threshold and outline predicted blacks.
-    if (!boardBox || !fen) return;
-    const { left, top, right, bottom } = boardBox;
-    const w = base.width, h = base.height;
-    const cellW = (right - left) / 8;
-    const cellH = (bottom - top) / 8;
-    const INSET = 0.15;
-    const MIN_GAP = 0.12;
-
-    const pieces: { sq: string; piece: string; fileIdx: number; rankIdx: number; isDark: boolean; ratio: number }[] = [];
-    const fenRows = fen.split(' ')[0].split('/');
-    fenRows.forEach((rankRow, r) => {
-      const rankNum = 8 - r;
-      let c = 0;
-      for (const ch of rankRow) {
-        if (ch >= '1' && ch <= '8') { c += parseInt(ch, 10); continue; }
-        const fileIdx = c;
-        const rankIdx = rankNum - 1;
-        const isDark = (fileIdx + rankIdx) % 2 === 0;
+    if (boardBox && liveBlackSquares) {
+      const { left, top, right, bottom } = boardBox;
+      const cellW = (right - left) / 8;
+      const cellH = (bottom - top) / 8;
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      for (const sq in liveBlackSquares) {
+        if (liveBlackSquares[sq] !== 'b') continue;
+        const fileIdx = 'abcdefgh'.indexOf(sq[0]);
+        const rankIdx = parseInt(sq[1], 10) - 1;
+        if (fileIdx < 0 || isNaN(rankIdx)) continue;
         const cl = left + fileIdx * cellW;
         const ct = top + (7 - rankIdx) * cellH;
-        const ix0 = Math.max(0, Math.floor(cl + cellW * INSET));
-        const iy0 = Math.max(0, Math.floor(ct + cellH * INSET));
-        const ix1 = Math.min(w, Math.floor(cl + cellW * (1 - INSET)));
-        const iy1 = Math.min(h, Math.floor(ct + cellH * (1 - INSET)));
-        let count = 0, total = 0;
-        for (let y = iy0; y < iy1; y++) {
-          for (let x = ix0; x < ix1; x++) {
-            const idx = (y * w + x) * 4;
-            const gray = (src[idx] + src[idx + 1] + src[idx + 2]) / 3;
-            if (gray < threshold) count++;
-            total++;
-          }
-        }
-        pieces.push({ sq: `${'abcdefgh'[c]}${rankNum}`, piece: ch, fileIdx, rankIdx, isDark, ratio: total > 0 ? count / total : 0 });
-        c += 1;
-      }
-    });
-
-    const groups = new Map<string, typeof pieces>();
-    for (const p of pieces) {
-      const key = `${p.piece.toUpperCase()}/${p.isDark ? 'dark' : 'light'}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(p);
-    }
-
-    const blackSquares = new Set<string>();
-    for (const members of groups.values()) {
-      if (members.length < 2) continue;
-      const sorted = [...members].sort((a, b) => a.ratio - b.ratio);
-      let biggestGap = 0, gapIdx = -1;
-      for (let i = 0; i < sorted.length - 1; i++) {
-        const g = sorted[i + 1].ratio - sorted[i].ratio;
-        if (g > biggestGap) { biggestGap = g; gapIdx = i; }
-      }
-      if (biggestGap < MIN_GAP || gapIdx < 0) continue;
-      const thr = (sorted[gapIdx].ratio + sorted[gapIdx + 1].ratio) / 2;
-      for (const m of members) {
-        if (m.ratio > thr) blackSquares.add(m.sq);
+        ctx.strokeRect(cl + 1, ct + 1, cellW - 2, cellH - 2);
       }
     }
+  }, [baseData, threshold, boardBox, liveBlackSquares]);
 
-    ctx.strokeStyle = '#ef4444';
-    ctx.lineWidth = 2;
-    for (const p of pieces) {
-      if (!blackSquares.has(p.sq)) continue;
-      const cl = left + p.fileIdx * cellW;
-      const ct = top + (7 - p.rankIdx) * cellH;
-      ctx.strokeRect(cl + 1, ct + 1, cellW - 2, cellH - 2);
-    }
-  }, [threshold, loaded, boardBox, fen]);
-
-  if (!effectiveAdmin) return null;
+  if (!effectiveAdmin || !baseData) return null;
 
   const clamp = (v: number) => Math.max(0, Math.min(255, v));
-  const bump = (d: number) => setThreshold(v => clamp(v + d));
-  const total = totalPixelsRef.current;
-  const below = cumHistRef.current ? cumHistRef.current[threshold] : 0;
+  const bump = (d: number) => setThreshold(clamp(threshold + d));
+  const total = baseData.width * baseData.height;
+  const below = cumHist ? cumHist[threshold] : 0;
   const pct = total > 0 ? (below / total) * 100 : 0;
 
   return (
@@ -824,12 +921,20 @@ function DarkBgHistogram({ histogram, threshold }: { histogram: number[]; thresh
   );
 }
 
-function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
+function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract; live?: LiveClassification | null; threshold?: number }) {
   const effectiveAdmin = useEffectiveAdmin();
   if (!effectiveAdmin) return null;
   const dbg = diagram.pixel_debug;
-  const colors = diagram.pixel_colors;
-  if (!dbg || !colors) return null;
+  if (!dbg) return null;
+  const colors = live?.pixelColors ?? diagram.pixel_colors ?? {};
+  const means = live?.means ?? dbg.means;
+  const darkRatios = live?.dark_ratios ?? dbg.dark_ratios;
+  const lightRef = live?.light_ref ?? dbg.light_ref;
+  const darkRef = live?.dark_ref ?? dbg.dark_ref;
+  const groupsMap = live?.groups ?? dbg.groups ?? {};
+  const pieceGroupsMap = live?.pieceGroups ?? dbg.piece_groups ?? {};
+  const verdictsMap = live?.verdicts ?? dbg.verdicts ?? {};
+  const displayedThreshold = threshold ?? dbg.dark_threshold;
 
   // Reconstruct 64-square occupancy from the FEN so we can show every cell,
   // empty and occupied, with its measurements.
@@ -863,19 +968,19 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
       const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
       const piece = occupancy[sq] ?? null;
       const llm: 'w' | 'b' | null = piece ? (piece === piece.toUpperCase() ? 'w' : 'b') : null;
-      const group = dbg.piece_groups?.[sq];
-      const groupInfo = group ? dbg.groups?.[group] : undefined;
+      const group = pieceGroupsMap[sq];
+      const groupInfo = group ? groupsMap[group] : undefined;
       rows.push({
         sq,
         piece,
         llm,
         px: colors[sq] ?? null,
-        mean: dbg.means?.[sq],
-        darkRatio: dbg.dark_ratios?.[sq],
+        mean: means?.[sq],
+        darkRatio: darkRatios?.[sq],
         isDark: (fileIdx + rankIdx) % 2 === 0,
         group,
         groupThresh: groupInfo?.threshold,
-        verdict: dbg.verdicts?.[sq],
+        verdict: verdictsMap[sq],
       });
     }
   }
@@ -890,7 +995,7 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
     return a.sq < b.sq ? -1 : 1;
   });
 
-  const groupEntries = Object.entries(dbg.groups ?? {}).sort(([a], [b]) => {
+  const groupEntries = Object.entries(groupsMap).sort(([a], [b]) => {
     const [at, abg] = a.split('/');
     const [bt, bbg] = b.split('/');
     const pr = PIECE_ORDER.indexOf(at) - PIECE_ORDER.indexOf(bt);
@@ -901,7 +1006,7 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
-        Pixel-ratio debug — light_ref={dbg.light_ref}, dark_ref={dbg.dark_ref}, dark_thr={dbg.dark_threshold}
+        Pixel-ratio debug — light_ref={lightRef}, dark_ref={darkRef}, dark_thr={displayedThreshold}
         {dbg.board_box_px && <> | box=({dbg.board_box_px.left},{dbg.board_box_px.top})→({dbg.board_box_px.right},{dbg.board_box_px.bottom}) in {dbg.board_box_px.crop_w}×{dbg.board_box_px.crop_h}</>}
       </summary>
 
@@ -910,7 +1015,7 @@ function PixelDebugPanel({ diagram }: { diagram: DiagramExtract }) {
           <div className="text-slate-500 mb-1">
             All-board pixel histogram — threshold at {dbg.percentile_used ?? '?'}th percentile
           </div>
-          <DarkBgHistogram histogram={dbg.board_histogram} threshold={dbg.dark_threshold} />
+          <DarkBgHistogram histogram={dbg.board_histogram} threshold={displayedThreshold} />
         </div>
       )}
       {groupEntries.length > 0 && (
