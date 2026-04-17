@@ -290,7 +290,7 @@ function CoachesNavSidebar() {
 }
 
 function MobilePlayerButton() {
-  const { user } = useAuth();
+  const { user, previewAsNonAdmin, setPreviewAsNonAdmin } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -317,6 +317,20 @@ function MobilePlayerButton() {
         <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg overflow-hidden whitespace-nowrap">
           <div className="px-3 py-2 border-b border-slate-700">
             <p className="text-white text-sm font-medium">{user.name}</p>
+            {user.is_admin && (
+              <button
+                type="button"
+                onClick={() => setPreviewAsNonAdmin(!previewAsNonAdmin)}
+                aria-pressed={previewAsNonAdmin}
+                className={`mt-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  previewAsNonAdmin
+                    ? 'bg-slate-500 text-white'
+                    : 'bg-emerald-600 text-white'
+                }`}
+              >
+                {previewAsNonAdmin ? 'Non-Admin' : 'Admin'}
+              </button>
+            )}
           </div>
           <PlayerMenuItems onClose={() => setOpen(false)} align="left" />
         </div>
