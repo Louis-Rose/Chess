@@ -53,10 +53,53 @@ export const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+function PlayerMenuItems({ onClose, align }: { onClose: () => void; align: 'center' | 'left' }) {
+  const { t } = useLanguage();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  if (!user) return null;
+
+  const rowBase = 'w-full px-3 py-2.5 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors';
+  const justify = align === 'center' ? 'justify-center' : 'text-left';
+
+  return (
+    <>
+      {user.is_admin && (
+        <button
+          onClick={() => { onClose(); navigate('/admin'); }}
+          className={`${rowBase} ${justify} text-amber-400 border-b border-slate-700`}
+        >
+          <Shield className="w-4 h-4" />
+          {t('coaches.navAdmin')}
+        </button>
+      )}
+      <button
+        onClick={async () => { onClose(); await logout(); }}
+        className={`${rowBase} ${justify} text-red-400`}
+      >
+        <LogOut className="w-4 h-4" />
+        {t('chess.logout')}
+      </button>
+      {user.is_admin && (
+        <button
+          onClick={async () => {
+            onClose();
+            await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
+            await logout();
+          }}
+          className={`${rowBase} ${justify} text-red-400 border-t border-slate-700`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          {t('chess.resetAndLogout')}
+        </button>
+      )}
+    </>
+  );
+}
+
 function CoachesNavSidebar() {
   const { t } = useLanguage();
-  const { user, logout, previewAsNonAdmin, setPreviewAsNonAdmin } = useAuth();
-  const navigate = useNavigate();
+  const { user, previewAsNonAdmin, setPreviewAsNonAdmin } = useAuth();
   const [showPlayerMenu, setShowPlayerMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const playerMenuRef = useRef<HTMLDivElement>(null);
@@ -128,38 +171,7 @@ function CoachesNavSidebar() {
             </button>
             {showPlayerMenu && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-50 overflow-hidden">
-                {user.is_admin && (
-                  <button
-                    onClick={() => { setShowPlayerMenu(false); navigate('/admin'); }}
-                    className="w-full px-3 py-2.5 text-amber-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-sm transition-colors border-b border-slate-700"
-                  >
-                    <Shield className="w-4 h-4" />
-                    {t('coaches.navAdmin')}
-                  </button>
-                )}
-                <button
-                  onClick={async () => {
-                    setShowPlayerMenu(false);
-                    await logout();
-                  }}
-                  className="w-full px-3 py-2.5 text-red-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-sm transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  {t('chess.logout')}
-                </button>
-                {user.is_admin && (
-                  <button
-                    onClick={async () => {
-                      setShowPlayerMenu(false);
-                      await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
-                      await logout();
-                    }}
-                    className="w-full px-3 py-2.5 text-red-400 hover:bg-slate-700 flex items-center justify-center gap-2 text-sm transition-colors border-t border-slate-700"
-                  >
-                    <AlertTriangle className="w-4 h-4" />
-                    {t('chess.resetAndLogout')}
-                  </button>
-                )}
+                <PlayerMenuItems onClose={() => setShowPlayerMenu(false)} align="center" />
               </div>
             )}
           </div>
@@ -278,9 +290,7 @@ function CoachesNavSidebar() {
 }
 
 function MobilePlayerButton() {
-  const { t } = useLanguage();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -308,38 +318,7 @@ function MobilePlayerButton() {
           <div className="px-3 py-2 border-b border-slate-700">
             <p className="text-white text-sm font-medium">{user.name}</p>
           </div>
-          {user.is_admin && (
-            <button
-              onClick={() => { setOpen(false); navigate('/admin'); }}
-              className="w-full px-3 py-2.5 text-left text-amber-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors border-b border-slate-700"
-            >
-              <Shield className="w-4 h-4" />
-              Admin
-            </button>
-          )}
-          <button
-            onClick={async () => {
-              setOpen(false);
-              await logout();
-            }}
-            className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            {t('chess.logout')}
-          </button>
-          {user.is_admin && (
-            <button
-              onClick={async () => {
-                setOpen(false);
-                await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
-                await logout();
-              }}
-              className="w-full px-3 py-2.5 text-left text-red-400 hover:bg-slate-700 flex items-center gap-2 text-sm transition-colors border-t border-slate-700"
-            >
-              <AlertTriangle className="w-4 h-4" />
-              {t('chess.resetAndLogout')}
-            </button>
-          )}
+          <PlayerMenuItems onClose={() => setOpen(false)} align="left" />
         </div>
       )}
     </div>
