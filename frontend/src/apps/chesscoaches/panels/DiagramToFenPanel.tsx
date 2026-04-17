@@ -729,11 +729,9 @@ function classifyAtThreshold(
       const piece = occupancy[sq];
       if (!piece) continue;
       const llm: 'w' | 'b' = piece === piece.toUpperCase() ? 'w' : 'b';
-      const isDark = (fileIdx + rankIdx) % 2 === 0;
       const type = piece.toUpperCase();
-      const key = `${type}/${isDark ? 'dark' : 'light'}`;
-      if (!groupMembers.has(key)) groupMembers.set(key, []);
-      groupMembers.get(key)!.push({ sq, llm, ratio: darkRatios[sq] ?? 0, type });
+      if (!groupMembers.has(type)) groupMembers.set(type, []);
+      groupMembers.get(type)!.push({ sq, llm, ratio: darkRatios[sq] ?? 0, type });
     }
   }
 
@@ -765,7 +763,8 @@ function classifyAtThreshold(
     max_fill: analysis.sorted.length ? Math.round(analysis.sorted[analysis.sorted.length - 1].ratio * 1000) / 1000 : null,
   });
 
-  // Primary pass: (type, bg) groups.
+  // One group per piece type (bg ignored: background pixels sit above the
+  // dark_threshold so tile color doesn't affect fill-ratios meaningfully).
   for (const [key, members] of groupMembers.entries()) {
     const analysis = analyzeGroup(members);
     groups[key] = buildInfo(members, analysis);
@@ -778,29 +777,6 @@ function classifyAtThreshold(
       } else {
         verdicts[m.sq] = 'no-check';
       }
-    }
-  }
-
-  // Fallback pass: pool the opposite-bg halves of still-no-check (type, bg)
-  // groups into a type-only super-group (e.g. both kings together). Same
-  // shape, just different bg; usually good enough to find the color gap.
-  const typeFallback = new Map<string, Member[]>();
-  for (const [key, members] of groupMembers.entries()) {
-    if (groups[key].can_check) continue;
-    for (const m of members) {
-      if (!typeFallback.has(m.type)) typeFallback.set(m.type, []);
-      typeFallback.get(m.type)!.push(m);
-    }
-  }
-  for (const [type, members] of typeFallback.entries()) {
-    const analysis = analyzeGroup(members);
-    groups[type] = buildInfo(members, analysis);
-    if (!analysis.canCheck || analysis.thresh === null) continue;
-    for (const m of members) {
-      const pred: 'w' | 'b' = m.ratio > analysis.thresh ? 'b' : 'w';
-      pixelColors[m.sq] = pred;
-      verdicts[m.sq] = pred === m.llm ? 'ok' : 'flip?';
-      pieceGroups[m.sq] = type;
     }
   }
 
@@ -1053,17 +1029,12 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
     return a.sq < b.sq ? -1 : 1;
   });
 
-  const bgRank = (bg: string | undefined) => (bg === 'dark' ? 0 : bg === 'light' ? 1 : 2);
-  const allGroupEntries = Object.entries(groupsMap).sort(([a], [b]) => {
-    const [at, abg] = a.split('/');
-    const [bt, bbg] = b.split('/');
-    const pr = PIECE_ORDER.indexOf(at) - PIECE_ORDER.indexOf(bt);
-    if (pr !== 0) return pr;
-    return bgRank(abg) - bgRank(bbg);
-  });
+  const allGroupEntries = Object.entries(groupsMap).sort(([a], [b]) =>
+    PIECE_ORDER.indexOf(a) - PIECE_ORDER.indexOf(b)
+  );
   const groupEntries = typeFilter === 'all'
     ? allGroupEntries
-    : allGroupEntries.filter(([k]) => k.split('/')[0] === typeFilter);
+    : allGroupEntries.filter(([k]) => k === typeFilter);
   const visiblePieceRows = typeFilter === 'all'
     ? pieceRows
     : pieceRows.filter(r => r.piece && r.piece.toUpperCase() === typeFilter);
@@ -1103,7 +1074,7 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
             </select>
           </div>
           <div className="text-slate-500 mb-1">
-            Groups (type/bg) — threshold from largest gap in fills
+            Groups (type) — threshold from largest gap in fills
             {avgGap != null && <span className="ml-2 text-slate-300">avg gap: {(avgGap * 100).toFixed(1)}%</span>}
           </div>
           <table className="w-full text-left font-mono text-[11px] text-slate-300">
