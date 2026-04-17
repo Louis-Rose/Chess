@@ -553,6 +553,14 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     return out;
   }, [diagram.fen, appliedFixes]);
 
+  // Squares involved in a position fix (both source and destination) so the
+  // board can mark them with a blue ring.
+  const movedSquares = useMemo<Set<string>>(() => {
+    const s = new Set<string>();
+    for (const { from, to } of appliedFixes) { s.add(from); s.add(to); }
+    return s;
+  }, [appliedFixes]);
+
   // Phase 1: apply any position fixes the classifier proposed (piece on an
   // empty-looking cell, with a filled neighbor). Runs once per diagram. After
   // editedFen updates, classifier re-runs on the corrected layout, and Phase
@@ -724,7 +732,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </button>
       </div>
 
-      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? (live?.pixelColors ?? diagram.pixel_colors) : undefined} llmColors={effectiveAdmin ? llmColors : undefined} />
+      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? (live?.pixelColors ?? diagram.pixel_colors) : undefined} llmColors={effectiveAdmin ? llmColors : undefined} movedSquares={effectiveAdmin ? movedSquares : undefined} />
 
       {diagram.crop_data_url && effectiveAdmin && (
         <ThresholdExplorer
