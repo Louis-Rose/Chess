@@ -56,7 +56,7 @@ const STATUS_BG: Record<string, string> = {
   tbd: 'bg-amber-500/70 hover:bg-amber-500/80 border-amber-400/50',
 };
 
-const HOUR_HEIGHT = 60; // px per hour
+const HOUR_HEIGHT = 44; // px per hour
 const START_HOUR = 7;
 const END_HOUR = 22;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
