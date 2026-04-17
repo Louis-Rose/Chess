@@ -866,6 +866,15 @@ function ThresholdExplorer({ baseData, threshold, setThreshold, initial, boardBo
     }
     ctx.putImageData(out, 0, 0);
 
+    if (boardBox) {
+      const { left, top, right, bottom } = boardBox;
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(left + 0.5, top + 0.5, right - left - 1, bottom - top - 1);
+      ctx.setLineDash([]);
+    }
+
     if (boardBox && liveBlackSquares) {
       const { left, top, right, bottom } = boardBox;
       const cellW = (right - left) / 8;
