@@ -647,6 +647,7 @@ type LiveClassification = {
   typeThresholds: Record<string, number>;
   globalThreshold: number;
   cellThresholds: Record<string, number>;
+  typeHistograms: Record<string, number[]>;
 };
 
 function classifyAtThreshold(
@@ -719,8 +720,15 @@ function classifyAtThreshold(
     for (const g of cellPixels[sq]) arr.push(g);
   }
   const typeThresholds: Record<string, number> = {};
+  const typeHistograms: Record<string, number[]> = {};
   for (const [type, pixels] of typePixels.entries()) {
     typeThresholds[type] = pctOf(pixels, percentile);
+    const hist = new Array(256).fill(0);
+    for (const g of pixels) {
+      const b = Math.max(0, Math.min(255, Math.round(g)));
+      hist[b]++;
+    }
+    typeHistograms[type] = hist;
   }
 
   // Fallback (empty cells, canvas default): percentile of all board pixels.
@@ -823,7 +831,7 @@ function classifyAtThreshold(
     }
   }
 
-  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, globalThreshold, cellThresholds };
+  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, globalThreshold, cellThresholds, typeHistograms };
 }
 
 interface ThresholdExplorerProps {
@@ -1118,14 +1126,21 @@ function PixelDebugPanel({ diagram, live, percentile }: { diagram: DiagramExtrac
         {dbg.board_box_px && <> | box=({dbg.board_box_px.left},{dbg.board_box_px.top})→({dbg.board_box_px.right},{dbg.board_box_px.bottom}) in {dbg.board_box_px.crop_w}×{dbg.board_box_px.crop_h}</>}
       </summary>
 
-      {dbg.board_histogram && dbg.board_histogram.some(v => v > 0) && (
-        <div className="px-2 py-2 border-b border-slate-700">
-          <div className="text-slate-500 mb-1">
-            All-board pixel histogram — threshold at {dbg.percentile_used ?? '?'}th percentile
+      {(() => {
+        const typedHist = typeFilter !== 'all' ? live?.typeHistograms?.[typeFilter] : undefined;
+        const histogram = typedHist ?? dbg.board_histogram;
+        if (!histogram || !histogram.some(v => v > 0)) return null;
+        const threshold = typedHist ? Math.round(typeThresholds[typeFilter] ?? 0) : displayedGlobalThreshold;
+        const label = typedHist
+          ? `${typeFilter}-cell pixel histogram — threshold = ${typeFilter} dark_thr (${threshold})`
+          : `All-board pixel histogram — threshold at ${dbg.percentile_used ?? '?'}th percentile`;
+        return (
+          <div className="px-2 py-2 border-b border-slate-700">
+            <div className="text-slate-500 mb-1">{label}</div>
+            <DarkBgHistogram histogram={histogram} threshold={threshold} />
           </div>
-          <DarkBgHistogram histogram={dbg.board_histogram} threshold={displayedGlobalThreshold} />
-        </div>
-      )}
+        );
+      })()}
       {allGroupEntries.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700">
           <div className="flex items-center gap-2 mb-1 text-[11px] text-slate-400">
