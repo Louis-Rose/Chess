@@ -1,6 +1,6 @@
 // Shared panel header — "Previous" back button + title between two full-width separators
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
@@ -11,12 +11,18 @@ interface PanelHeaderProps {
 
 export function PanelHeader({ title, onBack }: PanelHeaderProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useLanguage();
+
+  const handleBack = onBack || (() => {
+    if (location.key === 'default') navigate('/');
+    else navigate(-1);
+  });
 
   return (
     <div className="flex flex-col pt-2">
       <button
-        onClick={onBack || (() => navigate('/'))}
+        onClick={handleBack}
         className="self-start inline-flex items-center gap-2 text-white hover:text-slate-200 transition-colors text-lg px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-lg ml-2 md:ml-4"
       >
         <ArrowLeft className="w-6 h-6" />

@@ -1,7 +1,7 @@
 // Chess Coaches app layout with sidebar and content area
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import { Users, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, CalendarDays, AlertTriangle, BookOpen } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider } from './contexts/CoachesDataContext';
@@ -346,6 +346,28 @@ function CoachesHeader() {
 
 function CoachesLayoutInner() {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+  const navType = useNavigationType();
+  const mainRef = useRef<HTMLElement>(null);
+  const scrollPositions = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    const onScroll = () => {
+      scrollPositions.current.set(location.key, main.scrollTop);
+    };
+    main.addEventListener('scroll', onScroll, { passive: true });
+    return () => main.removeEventListener('scroll', onScroll);
+  }, [location.key]);
+
+  useLayoutEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    main.scrollTop = navType === 'POP'
+      ? scrollPositions.current.get(location.key) ?? 0
+      : 0;
+  }, [location.key, navType]);
 
   if (isLoading) {
     return (
@@ -362,7 +384,7 @@ function CoachesLayoutInner() {
       ) : (
         <>
           <CoachesNavSidebar />
-          <main className="relative flex-1 px-2 pb-8 md:px-8 md:pb-8 overflow-y-auto overflow-x-hidden overscroll-y-contain bg-[#1e2d3d] flex flex-col" style={{ scrollbarGutter: 'stable' }}>
+          <main ref={mainRef} className="relative flex-1 px-2 pb-8 md:px-8 md:pb-8 overflow-y-auto overflow-x-hidden overscroll-y-contain bg-[#1e2d3d] flex flex-col" style={{ scrollbarGutter: 'stable' }}>
             <CoachesHeader />
             <div className="flex-1 border-l border-slate-700 -ml-2 md:-ml-8 pl-2 md:pl-8 -mt-2 pt-2">
               <Outlet />
