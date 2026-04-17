@@ -499,7 +499,7 @@ export function SchedulePanel() {
                   {Array.from({ length: TOTAL_HOURS }, (_, i) => (
                     <div
                       key={i}
-                      className="absolute left-0 right-0 border-t border-slate-700/50"
+                      className="absolute left-0 right-0 border-t border-slate-500/60"
                       style={{ top: i * HOUR_HEIGHT }}
                     />
                   ))}
@@ -559,7 +559,7 @@ export function SchedulePanel() {
                         key={key}
                         onClick={e => handleGridClick(dayIdx, e)}
                         className={`flex-1 relative border-l min-w-0 cursor-pointer ${
-                          isToday ? 'border-l-blue-500/30 bg-blue-500/[0.03]' : 'border-l-slate-700/50'
+                          isToday ? 'border-l-blue-500/30 bg-blue-500/[0.03]' : 'border-l-slate-500/60'
                         }`}
                       >
                         {dayLessons.map(l => {
