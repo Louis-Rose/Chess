@@ -1020,7 +1020,10 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
   const PIECE_ORDER = 'KQRBNP';
   const pieceRank = (ch: string | null | undefined) =>
     ch ? PIECE_ORDER.indexOf(ch.toUpperCase()) : 99;
-  rows.sort((a, b) => {
+  // Hide empty squares; sort pieces by type (KQRBNP), dark bg first, then sq —
+  // same order as the Groups table above.
+  const pieceRows = rows.filter(r => r.piece != null);
+  pieceRows.sort((a, b) => {
     const pr = pieceRank(a.piece) - pieceRank(b.piece);
     if (pr !== 0) return pr;
     if (a.isDark !== b.isDark) return a.isDark ? -1 : 1;
@@ -1104,7 +1107,7 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
             </tr>
           </thead>
           <tbody>
-            {rows.map(row => {
+            {pieceRows.map(row => {
               const darkPct = row.darkRatio !== undefined ? (row.darkRatio * 100).toFixed(1) : '—';
               const gThrPct = row.groupThresh != null ? (row.groupThresh * 100).toFixed(1) : '—';
               const cls =
