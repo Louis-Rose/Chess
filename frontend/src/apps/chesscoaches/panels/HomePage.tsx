@@ -206,10 +206,10 @@ function CoachHome() {
       </div>
 
       <div className="flex-1" />
-      <div className="text-center pb-4">
+      <div className="text-center pt-8 pb-6">
         <button
           onClick={() => navigate('/about')}
-          className="text-xs text-slate-500 hover:text-slate-400 transition-colors"
+          className="text-sm text-slate-500 hover:text-slate-400 transition-colors"
         >
           {t('coaches.navAbout')}
         </button>
