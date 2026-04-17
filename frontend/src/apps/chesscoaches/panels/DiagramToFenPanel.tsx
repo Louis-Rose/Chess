@@ -543,6 +543,13 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         ? <img src={diagram.crop_data_url} alt="" className="mx-auto rounded-lg border border-slate-600 max-w-[400px] w-full" />
         : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
 
+      {diagram.crop_data_url && (
+        <ThresholdExplorer
+          cropUrl={diagram.crop_data_url}
+          initial={diagram.pixel_debug?.dark_threshold ?? 128}
+        />
+      )}
+
       {hasPlayers && (
         <div className="flex items-center justify-center gap-2 text-sm font-medium">
           <span className="w-3 h-3 rounded-full bg-white border border-slate-400 inline-block" />
@@ -593,6 +600,86 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         <SaveToKnowledgeButton diagram={diagram} editedFen={editedFen} />
       </div>
     </div>
+  );
+}
+
+function ThresholdExplorer({ cropUrl, initial }: { cropUrl: string; initial: number }) {
+  const effectiveAdmin = useEffectiveAdmin();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const baseDataRef = useRef<ImageData | null>(null);
+  const [threshold, setThreshold] = useState(initial);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!effectiveAdmin) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      baseDataRef.current = ctx.getImageData(0, 0, img.width, img.height);
+      setLoaded(true);
+    };
+    img.src = cropUrl;
+  }, [cropUrl, effectiveAdmin]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const canvas = canvasRef.current;
+    const base = baseDataRef.current;
+    if (!canvas || !base) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const out = ctx.createImageData(base.width, base.height);
+    const src = base.data;
+    const dst = out.data;
+    for (let i = 0; i < src.length; i += 4) {
+      const r = src[i], g = src[i + 1], b = src[i + 2];
+      const gray = (r + g + b) / 3;
+      if (gray < threshold) {
+        dst[i] = 239; dst[i + 1] = 68; dst[i + 2] = 68; dst[i + 3] = 255;
+      } else {
+        dst[i] = r; dst[i + 1] = g; dst[i + 2] = b; dst[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+  }, [threshold, loaded]);
+
+  if (!effectiveAdmin) return null;
+
+  return (
+    <details className="max-w-[400px] mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
+      <summary className="px-2 py-1 cursor-pointer text-slate-300">
+        Threshold explorer (admin) — pixels with gray &lt; {threshold} are tinted red
+      </summary>
+      <div className="px-2 py-2 space-y-2">
+        <canvas ref={canvasRef} className="mx-auto block rounded border border-slate-700 max-w-full" style={{ imageRendering: 'pixelated' }} />
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={0}
+            max={255}
+            value={threshold}
+            onChange={e => setThreshold(parseInt(e.target.value, 10))}
+            className="flex-1"
+          />
+          <span className="font-mono w-10 text-right text-slate-300">{threshold}</span>
+          <button
+            type="button"
+            onClick={() => setThreshold(initial)}
+            className="px-2 py-0.5 rounded border border-slate-600 text-slate-300 hover:bg-slate-800"
+            title="Reset to computed dark_threshold"
+          >
+            reset
+          </button>
+        </div>
+      </div>
+    </details>
   );
 }
 
