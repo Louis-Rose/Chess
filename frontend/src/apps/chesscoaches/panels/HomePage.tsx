@@ -163,7 +163,7 @@ function CoachHome() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2 flex flex-col min-h-[calc(100dvh-80px)]">
       {onboarding && <OnboardingBanner status={onboarding} />}
 
-      <div className="max-w-4xl mx-[5%] md:mx-auto space-y-4 w-full">
+      <div className="max-w-4xl mx-[5%] md:mx-auto space-y-4">
         {NAV_SECTIONS.map(({ titleKey, items }) => {
           const visibleItems = items.filter(i => !i.hidden);
           if (visibleItems.length === 0) return null;
