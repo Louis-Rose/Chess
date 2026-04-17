@@ -1153,23 +1153,25 @@ function PixelDebugPanel({ diagram, live, percentile }: { diagram: DiagramExtrac
                 <th className="pr-3">n</th>
                 <th className="pr-3">dark_thr</th>
                 <th className="pr-3">min→max</th>
-                <th className="pr-3">gap</th>
                 <th className="pr-3">thresh</th>
-                <th>check?</th>
+                <th>gap check</th>
               </tr>
             </thead>
             <tbody>
-              {groupEntries.map(([k, g]) => (
-                <tr key={k} className={g.can_check ? '' : 'text-slate-500'}>
-                  <td className="pr-3">{k}</td>
-                  <td className="pr-3">{g.count_w + g.count_b}</td>
-                  <td className="pr-3">{typeThresholds[k] != null ? Math.round(typeThresholds[k]) : '—'}</td>
-                  <td className="pr-3">{g.min_fill != null ? `${(g.min_fill * 100).toFixed(1)}%` : '—'}→{g.max_fill != null ? `${(g.max_fill * 100).toFixed(1)}%` : '—'}</td>
-                  <td className="pr-3">{g.gap != null ? `${(g.gap * 100).toFixed(1)}%` : '—'}</td>
-                  <td className="pr-3">{g.threshold != null ? `${(g.threshold * 100).toFixed(1)}%` : '—'}</td>
-                  <td>{g.can_check ? 'yes' : `no (need ≥${g.min_gap})`}</td>
-                </tr>
-              ))}
+              {groupEntries.map(([k, g]) => {
+                const gapPct = g.gap != null ? `${(g.gap * 100).toFixed(1)}%` : '—';
+                const minGapPct = `${(g.min_gap * 100).toFixed(0)}%`;
+                return (
+                  <tr key={k} className={g.can_check ? '' : 'text-slate-500'}>
+                    <td className="pr-3">{k}</td>
+                    <td className="pr-3">{g.count_w + g.count_b}</td>
+                    <td className="pr-3">{typeThresholds[k] != null ? Math.round(typeThresholds[k]) : '—'}</td>
+                    <td className="pr-3">{g.min_fill != null ? `${(g.min_fill * 100).toFixed(1)}%` : '—'}→{g.max_fill != null ? `${(g.max_fill * 100).toFixed(1)}%` : '—'}</td>
+                    <td className="pr-3">{g.threshold != null ? `${(g.threshold * 100).toFixed(1)}%` : '—'}</td>
+                    <td>{gapPct}{g.gap != null && (g.can_check ? ' ✓' : ` ✗ (<${minGapPct})`)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
