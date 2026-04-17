@@ -640,8 +640,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
 type LiveClassification = {
   means: Record<string, number>;
   dark_ratios: Record<string, number>;
-  light_ref: number;
-  dark_ref: number;
   pieceGroups: Record<string, string>;
   groups: Record<string, PixelGroupInfo>;
   verdicts: Record<string, 'ok' | 'flip?' | 'no-check'>;
@@ -700,26 +698,6 @@ function classifyAtThreshold(
       }
     }
   }
-
-  const median = (xs: number[]): number | null => {
-    if (!xs.length) return null;
-    const s = [...xs].sort((a, b) => a - b);
-    return s.length % 2 ? s[Math.floor(s.length / 2)] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
-  };
-  const lightEmptyMeans: number[] = [];
-  const darkEmptyMeans: number[] = [];
-  for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
-    for (let rankIdx = 0; rankIdx < 8; rankIdx++) {
-      const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
-      if (occupancy[sq]) continue;
-      const m = means[sq];
-      if (m === undefined) continue;
-      const isDark = (fileIdx + rankIdx) % 2 === 0;
-      if (isDark) darkEmptyMeans.push(m); else lightEmptyMeans.push(m);
-    }
-  }
-  const lightRef = Math.round((median(lightEmptyMeans) ?? 0) * 10) / 10;
-  const darkRef = Math.round((median(darkEmptyMeans) ?? 0) * 10) / 10;
 
   type Member = { sq: string; llm: 'w' | 'b'; ratio: number; type: string };
   const groupMembers = new Map<string, Member[]>();
@@ -801,7 +779,7 @@ function classifyAtThreshold(
     }
   }
 
-  return { means, dark_ratios: darkRatios, light_ref: lightRef, dark_ref: darkRef, pieceGroups, groups, verdicts, pixelColors };
+  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors };
 }
 
 interface ThresholdExplorerProps {
@@ -981,8 +959,6 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
   const colors = live?.pixelColors ?? diagram.pixel_colors ?? {};
   const means = live?.means ?? dbg.means;
   const darkRatios = live?.dark_ratios ?? dbg.dark_ratios;
-  const lightRef = live?.light_ref ?? dbg.light_ref;
-  const darkRef = live?.dark_ref ?? dbg.dark_ref;
   const groupsMap = live?.groups ?? dbg.groups ?? {};
   const pieceGroupsMap = live?.pieceGroups ?? dbg.piece_groups ?? {};
   const verdictsMap = live?.verdicts ?? dbg.verdicts ?? {};
@@ -1067,7 +1043,7 @@ function PixelDebugPanel({ diagram, live, threshold }: { diagram: DiagramExtract
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
-        Pixel-ratio debug — light_ref={lightRef}, dark_ref={darkRef}, dark_thr={displayedThreshold}
+        Pixel-ratio debug — dark_thr={displayedThreshold}
         {dbg.board_box_px && <> | box=({dbg.board_box_px.left},{dbg.board_box_px.top})→({dbg.board_box_px.right},{dbg.board_box_px.bottom}) in {dbg.board_box_px.crop_w}×{dbg.board_box_px.crop_h}</>}
       </summary>
 

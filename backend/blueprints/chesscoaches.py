@@ -404,8 +404,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     Groups whose biggest gap is below MIN_GAP get 'no-check'.
 
     Returns a dict with 'colors', 'verdicts', 'piece_groups', 'groups',
-    'means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold',
-    'board_box_px', or {} on failure.
+    'means', 'dark_ratios', 'dark_threshold', 'board_box_px', or {} on failure.
     board_box_frac = (ymin, xmin, ymax, xmax) in 0-1 fractions."""
     from PIL import Image
     import io
@@ -451,23 +450,6 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
                 'is_dark': (file_idx + rank_idx) % 2 == 0,
             }
 
-    # Gather empty-cell stats for light/dark refs (still useful for the panel)
-    light_empty_means, dark_empty_means = [], []
-    for sq, c in cells.items():
-        if squares.get(sq, '.') != '.':
-            continue
-        if c['is_dark']:
-            dark_empty_means.append(c['mean'])
-        else:
-            light_empty_means.append(c['mean'])
-    if not light_empty_means or not dark_empty_means:
-        return {}
-
-    def _median(xs):
-        s = sorted(xs)
-        n = len(s)
-        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
-
     def _percentile(xs, p):
         s = sorted(xs)
         n = len(s)
@@ -475,9 +457,6 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
             return None
         k = max(0, min(n - 1, int(p * (n - 1) / 100.0)))
         return s[k]
-
-    light_ref = round(_median(light_empty_means), 1)
-    dark_ref = round(_median(dark_empty_means), 1)
 
     # dark_threshold derived from the full-board pixel distribution.
     # A typical position has ~6-10% of total pixels as piece ink, so the
@@ -584,8 +563,6 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         'groups': groups_debug,
         'means': {sq: c['mean'] for sq, c in cells.items()},
         'dark_ratios': dark_ratios,
-        'light_ref': light_ref,
-        'dark_ref': dark_ref,
         'dark_threshold': dark_threshold,
         'board_histogram': board_histogram,
         'percentile_used': PERCENTILE,
@@ -713,7 +690,7 @@ def reread_region():
             pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
             if pr:
                 pixel_colors = pr.get('colors') or {}
-                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pr}
+                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pr}
         except Exception as pe:
             logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
 
@@ -1037,7 +1014,7 @@ def read_diagram():
                 }
                 if is_admin and pixel_result:
                     diagram['pixel_colors'] = pixel_result.get('colors') or {}
-                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'light_ref', 'dark_ref', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pixel_result}
+                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

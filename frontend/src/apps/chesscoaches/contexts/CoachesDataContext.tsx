@@ -37,8 +37,6 @@ export interface PixelGroupInfo {
 export interface PixelDebug {
   means: Record<string, number>;
   dark_ratios: Record<string, number>;
-  light_ref: number;
-  dark_ref: number;
   dark_threshold: number;
   board_histogram?: number[];
   percentile_used?: number;
