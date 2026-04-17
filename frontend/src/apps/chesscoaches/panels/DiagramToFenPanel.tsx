@@ -605,7 +605,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </button>
       </div>
 
-      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={live?.pixelColors ?? diagram.pixel_colors} />
+      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? (live?.pixelColors ?? diagram.pixel_colors) : undefined} />
 
       {diagram.crop_data_url && effectiveAdmin && (
         <ThresholdExplorer
