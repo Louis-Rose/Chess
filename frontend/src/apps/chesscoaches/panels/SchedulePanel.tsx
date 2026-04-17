@@ -473,18 +473,24 @@ export function SchedulePanel() {
 
             {/* Time grid */}
             <div ref={gridRef} className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 240px)' }}>
-              <div className="relative flex" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
+              <div className="relative flex mt-3" style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}>
                 {/* Hour labels */}
                 <div className="w-14 flex-shrink-0 relative">
-                  {Array.from({ length: TOTAL_HOURS }, (_, i) => (
-                    <div
-                      key={i}
-                      className="absolute w-full text-right pr-2 text-xs text-slate-300 tabular-nums"
-                      style={{ top: i * HOUR_HEIGHT - 8 }}
-                    >
-                      {String(START_HOUR + i).padStart(2, '0')}:00
-                    </div>
-                  ))}
+                  {Array.from({ length: TOTAL_HOURS }, (_, i) => {
+                    const h = START_HOUR + i;
+                    const label = language === 'fr'
+                      ? `${String(h).padStart(2, '0')}:00`
+                      : `${h % 12 === 0 ? 12 : h % 12} ${h < 12 ? 'AM' : 'PM'}`;
+                    return (
+                      <div
+                        key={i}
+                        className="absolute w-full text-right pr-2 text-xs text-slate-300 tabular-nums"
+                        style={{ top: i * HOUR_HEIGHT - 8 }}
+                      >
+                        {label}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Day columns */}
