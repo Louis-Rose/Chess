@@ -1378,6 +1378,27 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], applied
   const gapValues = groupEntries.map(([, g]) => g.gap).filter((v): v is number => v != null);
   const avgGap = gapValues.length ? gapValues.reduce((a, b) => a + b, 0) / gapValues.length : null;
 
+  // Flips land on squares *after* position fixes, so rebuild occupancy with fixes applied
+  // to look up piece type for the filter.
+  const postFixOccupancy: Record<string, string> = { ...occupancy };
+  for (const f of appliedFixes) {
+    const p = postFixOccupancy[f.from];
+    if (p) {
+      postFixOccupancy[f.to] = p;
+      delete postFixOccupancy[f.from];
+    }
+  }
+  const visibleFixes = typeFilter === 'all'
+    ? appliedFixes
+    : appliedFixes.filter(f => f.piece && f.piece.toUpperCase() === typeFilter);
+  const visibleFlips = typeFilter === 'all'
+    ? appliedFlips
+    : appliedFlips.filter(sq => {
+        const p = postFixOccupancy[sq];
+        return p != null && p.toUpperCase() === typeFilter;
+      });
+  const showTypeFilter = allGroupEntries.length > 0 || appliedFixes.length > 0 || appliedFlips.length > 0;
+
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
@@ -1408,7 +1429,24 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], applied
         );
       })()}
 
-      {appliedFixes.length > 0 && (
+      {showTypeFilter && (
+        <div className="px-2 py-2 border-b border-slate-700 flex items-center gap-2 text-[11px] text-slate-400">
+          <label htmlFor="piece-type-filter">Filter by type:</label>
+          <select
+            id="piece-type-filter"
+            value={typeFilter}
+            onChange={e => setTypeFilter(e.target.value)}
+            className="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-slate-200 font-mono"
+          >
+            <option value="all">all</option>
+            {PIECE_ORDER.split('').map(ch => (
+              <option key={ch} value={ch}>{ch}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {visibleFixes.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700 text-[11px]">
           <div className="text-slate-500 mb-1">Position fixes applied</div>
           <table className="w-full text-left font-mono text-[11px] text-slate-300">
@@ -1424,7 +1462,7 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], applied
               </tr>
             </thead>
             <tbody>
-              {appliedFixes.map((fix, i) => (
+              {visibleFixes.map((fix, i) => (
                 <tr key={i}>
                   <td className="pr-3">{fix.piece}</td>
                   <td className="pr-3">{fix.from}</td>
@@ -1441,10 +1479,10 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], applied
           </table>
         </div>
       )}
-      {appliedFlips.length > 0 && (
+      {visibleFlips.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700 text-[11px] text-slate-300">
           <div className="text-slate-500 mb-1">Color flips applied</div>
-          <span className="font-mono">{appliedFlips.join(', ')}</span>
+          <span className="font-mono">{visibleFlips.join(', ')}</span>
         </div>
       )}
 
@@ -1473,21 +1511,7 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], applied
       )}
       {allGroupEntries.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700">
-          <div className="flex items-center gap-2 mb-1 text-[11px] text-slate-400">
-            <label htmlFor="piece-type-filter">Filter by type:</label>
-            <select
-              id="piece-type-filter"
-              value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
-              className="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-slate-200 font-mono"
-            >
-              <option value="all">all</option>
-              {PIECE_ORDER.split('').map(ch => (
-                <option key={ch} value={ch}>{ch}</option>
-              ))}
-            </select>
-          </div>
-          <div className="text-slate-500 mb-1">
+          <div className="text-slate-500 mb-1 text-[11px]">
             Groups (type) — threshold from largest gap in fills
             {avgGap != null && <span className="ml-2 text-slate-300">avg gap: {(avgGap * 100).toFixed(1)}%</span>}
           </div>
