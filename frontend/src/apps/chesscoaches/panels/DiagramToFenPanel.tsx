@@ -484,18 +484,14 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
   const historyRef = useRef<string[]>([]);
-  const [positionFixesApplied, setPositionFixesApplied] = useState(false);
   const [autoFlipsApplied, setAutoFlipsApplied] = useState(false);
-  const [appliedFixes, setAppliedFixes] = useState<PositionFix[]>([]);
   const [appliedFlips, setAppliedFlips] = useState<string[]>([]);
 
   // Reset edited FEN and undo stack when the source diagram changes
   useEffect(() => {
     setEditedFen(diagram.fen);
     historyRef.current = [];
-    setPositionFixesApplied(false);
     setAutoFlipsApplied(false);
-    setAppliedFixes([]);
     setAppliedFlips([]);
   }, [diagram.fen]);
 
@@ -529,9 +525,8 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, editedFen, percentile, autoTune);
   }, [baseData, percentile, autoTune, diagram.pixel_debug?.board_box_px, editedFen]);
 
-  // Per-square LLM color, frozen from the first-read FEN. When a position fix
-  // moves a piece from X to Y, the color follows the piece — so the red ring
-  // + left dot still reflect the LLM's original color even after the move.
+  // Per-square LLM color, frozen from the first-read FEN so the red ring
+  // + left dot still reflect the LLM's original color even after auto-flip.
   const llmColors = useMemo<Record<string, 'w' | 'b'>>(() => {
     const out: Record<string, 'w' | 'b'> = {};
     const rows = diagram.fen.split(' ')[0].split('/');
@@ -544,78 +539,12 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         c += 1;
       }
     });
-    for (const { from, to } of appliedFixes) {
-      if (out[from] !== undefined) {
-        out[to] = out[from];
-        delete out[from];
-      }
-    }
     return out;
-  }, [diagram.fen, appliedFixes]);
+  }, [diagram.fen]);
 
-  // Squares involved in a position fix (both source and destination) so the
-  // board can mark them with a blue ring.
-  const movedSquares = useMemo<Set<string>>(() => {
-    const s = new Set<string>();
-    for (const { from, to } of appliedFixes) { s.add(from); s.add(to); }
-    return s;
-  }, [appliedFixes]);
-
-  // Phase 1: apply any position fixes the classifier proposed (piece on an
-  // empty-looking cell, with a filled neighbor). Runs once per diagram. After
-  // editedFen updates, classifier re-runs on the corrected layout, and Phase
-  // 2 picks up the now-stable verdicts.
+  // Auto-flip colors based on classifier verdicts.
   useEffect(() => {
-    if (positionFixesApplied || !live) return;
-    const fixes = live.positionFixes;
-    setPositionFixesApplied(true);
-    if (!fixes || fixes.length === 0) return;
-    setAppliedFixes(fixes);
-    setEditedFen(prev => {
-      // Parse into 8x8 array (null = empty).
-      const board: (string | null)[][] = [];
-      const parts = prev.split(' ');
-      parts[0].split('/').forEach(row => {
-        const rankRow: (string | null)[] = [];
-        for (const ch of row) {
-          if (ch >= '1' && ch <= '8') {
-            for (let i = 0; i < parseInt(ch, 10); i++) rankRow.push(null);
-          } else {
-            rankRow.push(ch);
-          }
-        }
-        board.push(rankRow);
-      });
-      for (const { from, to } of fixes) {
-        const fromFile = from.charCodeAt(0) - 'a'.charCodeAt(0);
-        const fromRank = 8 - parseInt(from[1], 10);
-        const toFile = to.charCodeAt(0) - 'a'.charCodeAt(0);
-        const toRank = 8 - parseInt(to[1], 10);
-        const piece = board[fromRank]?.[fromFile];
-        if (piece && board[toRank] && !board[toRank][toFile]) {
-          board[toRank][toFile] = piece;
-          board[fromRank][fromFile] = null;
-        }
-      }
-      const newRows = board.map(rank => {
-        let row = '';
-        let empty = 0;
-        for (const cell of rank) {
-          if (cell === null) { empty++; }
-          else { if (empty) { row += empty; empty = 0; } row += cell; }
-        }
-        if (empty) row += empty;
-        return row;
-      });
-      parts[0] = newRows.join('/');
-      return parts.join(' ');
-    });
-  }, [live, positionFixesApplied]);
-
-  // Phase 2: auto-flip colors based on classifier verdicts. Only runs after
-  // Phase 1 has completed so flips reflect the corrected piece positions.
-  useEffect(() => {
-    if (!positionFixesApplied || autoFlipsApplied || !live) return;
+    if (autoFlipsApplied || !live) return;
     const flipSqs: string[] = [];
     for (const [sq, v] of Object.entries(live.verdicts)) {
       if (v === 'flip?') flipSqs.push(sq);
@@ -645,7 +574,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       parts[0] = newRows.join('/');
       return parts.join(' ');
     });
-  }, [live, positionFixesApplied, autoFlipsApplied]);
+  }, [live, autoFlipsApplied]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => {
@@ -732,7 +661,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </button>
       </div>
 
-      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? (live?.pixelColors ?? diagram.pixel_colors) : undefined} llmColors={effectiveAdmin ? llmColors : undefined} movedSquares={effectiveAdmin ? movedSquares : undefined} />
+      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? (live?.pixelColors ?? diagram.pixel_colors) : undefined} llmColors={effectiveAdmin ? llmColors : undefined} />
 
       {diagram.crop_data_url && effectiveAdmin && (
         <ThresholdExplorer
@@ -747,7 +676,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         />
       )}
 
-      <PixelDebugPanel diagram={diagram} live={live} percentile={percentile} appliedFixes={appliedFixes} appliedFlips={appliedFlips} />
+      <PixelDebugPanel diagram={diagram} live={live} percentile={percentile} appliedFlips={appliedFlips} />
 
       <div className="flex flex-col gap-2">
         <button
@@ -766,17 +695,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   );
 }
 
-type PositionFix = {
-  from: string;
-  to: string;
-  piece: string;
-  fromRatio: number;
-  toRatio: number;
-  typeThr: number;
-  // Both neighbors (left/right) considered, with why each was kept or rejected.
-  neighbors: { sq: string; ratio: number; occupied: boolean; qualified: boolean }[];
-};
-
 type LiveClassification = {
   means: Record<string, number>;
   dark_ratios: Record<string, number>;
@@ -789,7 +707,6 @@ type LiveClassification = {
   globalThreshold: number;
   cellThresholds: Record<string, number>;
   typeHistograms: Record<string, number[]>;
-  positionFixes: PositionFix[];
 };
 
 function classifyAtThreshold(
@@ -949,54 +866,6 @@ function classifyAtThreshold(
     darkRatios[sq] = Math.round((darkCount / pixels.length) * 1000) / 1000;
   }
 
-  // Detect likely LLM position errors: a piece-cell with essentially zero
-  // darkness means the piece isn't there; check left/right neighbors for the
-  // real location. Evaluate neighbors with the suspect's *type threshold*
-  // (apples-to-apples) rather than the neighbor's own threshold.
-  const positionFixes: PositionFix[] = [];
-  const EMPTY_THRESHOLD = 0.005; // ≤ 0.5% fill → essentially empty
-  const NEIGHBOR_FLOOR = 0.05;   // neighbor must have ≥ 5% fill at type_thr to qualify
-  for (const sq of Object.keys(cellPixels)) {
-    const piece = occupancy[sq];
-    if (!piece) continue;
-    const fromRatio = darkRatios[sq] ?? 0;
-    if (fromRatio > EMPTY_THRESHOLD) continue;
-    const type = piece.toUpperCase();
-    const typeThr = typeThresholds[type];
-    if (typeThr === undefined) continue;
-    const fileIdx = sq.charCodeAt(0) - 'a'.charCodeAt(0);
-    const rankChar = sq[1];
-    const neighbors: PositionFix['neighbors'] = [];
-    for (const offset of [-1, 1]) {
-      const nf = fileIdx + offset;
-      if (nf < 0 || nf > 7) continue;
-      const nSq = `${'abcdefgh'[nf]}${rankChar}`;
-      const occupied = !!occupancy[nSq];
-      const nPixels = cellPixels[nSq];
-      let ratio = 0;
-      if (nPixels) {
-        let nDark = 0;
-        for (const g of nPixels) if (g <= typeThr) nDark++;
-        ratio = nDark / nPixels.length;
-      }
-      const qualified = !occupied && ratio >= NEIGHBOR_FLOOR;
-      neighbors.push({ sq: nSq, ratio: Math.round(ratio * 1000) / 1000, occupied, qualified });
-    }
-    const qualifieds = neighbors.filter(n => n.qualified);
-    if (qualifieds.length === 0) continue;
-    qualifieds.sort((a, b) => b.ratio - a.ratio);
-    const winner = qualifieds[0];
-    positionFixes.push({
-      from: sq,
-      to: winner.sq,
-      piece,
-      fromRatio,
-      toRatio: winner.ratio,
-      typeThr: Math.round(typeThr),
-      neighbors,
-    });
-  }
-
   type Member = { sq: string; llm: 'w' | 'b'; ratio: number; type: string };
   const groupMembers = new Map<string, Member[]>();
   for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
@@ -1077,7 +946,7 @@ function classifyAtThreshold(
     }
   }
 
-  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, typePercentiles, globalThreshold, cellThresholds, typeHistograms, positionFixes };
+  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, typePercentiles, globalThreshold, cellThresholds, typeHistograms };
 }
 
 interface ThresholdExplorerProps {
@@ -1285,7 +1154,7 @@ function DarkBgHistogram({ histogram, threshold, width = 420, height = 80 }: { h
   );
 }
 
-function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], appliedFlips = [] }: { diagram: DiagramExtract; live?: LiveClassification | null; percentile?: number; appliedFixes?: PositionFix[]; appliedFlips?: string[] }) {
+function PixelDebugPanel({ diagram, live, percentile, appliedFlips = [] }: { diagram: DiagramExtract; live?: LiveClassification | null; percentile?: number; appliedFlips?: string[] }) {
   const effectiveAdmin = useEffectiveAdmin();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [zoomedHist, setZoomedHist] = useState<{ histogram: number[]; threshold: number; label: string } | null>(null);
@@ -1378,26 +1247,13 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], applied
   const gapValues = groupEntries.map(([, g]) => g.gap).filter((v): v is number => v != null);
   const avgGap = gapValues.length ? gapValues.reduce((a, b) => a + b, 0) / gapValues.length : null;
 
-  // Flips land on squares *after* position fixes, so rebuild occupancy with fixes applied
-  // to look up piece type for the filter.
-  const postFixOccupancy: Record<string, string> = { ...occupancy };
-  for (const f of appliedFixes) {
-    const p = postFixOccupancy[f.from];
-    if (p) {
-      postFixOccupancy[f.to] = p;
-      delete postFixOccupancy[f.from];
-    }
-  }
-  const visibleFixes = typeFilter === 'all'
-    ? appliedFixes
-    : appliedFixes.filter(f => f.piece && f.piece.toUpperCase() === typeFilter);
   const visibleFlips = typeFilter === 'all'
     ? appliedFlips
     : appliedFlips.filter(sq => {
-        const p = postFixOccupancy[sq];
+        const p = occupancy[sq];
         return p != null && p.toUpperCase() === typeFilter;
       });
-  const showTypeFilter = allGroupEntries.length > 0 || appliedFixes.length > 0 || appliedFlips.length > 0;
+  const showTypeFilter = allGroupEntries.length > 0 || appliedFlips.length > 0;
 
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
@@ -1446,39 +1302,6 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFixes = [], applied
         </div>
       )}
 
-      {visibleFixes.length > 0 && (
-        <div className="px-2 py-2 border-b border-slate-700 text-[11px]">
-          <div className="text-slate-500 mb-1">Position fixes applied</div>
-          <table className="w-full text-left font-mono text-[11px] text-slate-300">
-            <thead>
-              <tr className="text-slate-500 border-b border-slate-800">
-                <th className="pr-3">piece</th>
-                <th className="pr-3">from</th>
-                <th className="pr-3">to</th>
-                <th className="pr-3">from%</th>
-                <th className="pr-3">to%</th>
-                <th className="pr-3">type_thr</th>
-                <th>neighbors (sq: dark% · state)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleFixes.map((fix, i) => (
-                <tr key={i}>
-                  <td className="pr-3">{fix.piece}</td>
-                  <td className="pr-3">{fix.from}</td>
-                  <td className="pr-3">{fix.to}</td>
-                  <td className="pr-3">{(fix.fromRatio * 100).toFixed(1)}%</td>
-                  <td className="pr-3">{(fix.toRatio * 100).toFixed(1)}%</td>
-                  <td className="pr-3">{fix.typeThr}</td>
-                  <td>
-                    {fix.neighbors.map(n => `${n.sq}: ${(n.ratio * 100).toFixed(1)}% · ${n.occupied ? 'occupied' : n.qualified ? 'qualified' : '<5%'}`).join('  |  ')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
       {visibleFlips.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700 text-[11px] text-slate-300">
           <div className="text-slate-500 mb-1">Color flips applied</div>

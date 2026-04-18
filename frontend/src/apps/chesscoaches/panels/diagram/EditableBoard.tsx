@@ -24,7 +24,7 @@ export function fenToBoard(fen: string): (string | null)[][] {
   });
 }
 
-export function EditableBoard({ fen, onChange, pixelColors, llmColors, movedSquares }: { fen: string; onChange: (board: (string | null)[][]) => void; pixelColors?: Record<string, 'w' | 'b'>; llmColors?: Record<string, 'w' | 'b'>; movedSquares?: Set<string> }) {
+export function EditableBoard({ fen, onChange, pixelColors, llmColors }: { fen: string; onChange: (board: (string | null)[][]) => void; pixelColors?: Record<string, 'w' | 'b'>; llmColors?: Record<string, 'w' | 'b'> }) {
   const { t } = useLanguage();
   const board = useMemo(() => fenToBoard(fen), [fen]);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -117,13 +117,8 @@ export function EditableBoard({ fen, onChange, pixelColors, llmColors, movedSqua
               // even after auto-flip changes the displayed FEN.
               const llmColor: 'w' | 'b' | null = llmColors?.[sqName] ?? fenColor;
               const disagree = !!(piece && pxColor && llmColor && llmColor !== pxColor);
-              const moved = !!movedSquares?.has(sqName);
               const ringClass = highlighted
                 ? 'ring-2 ring-inset ring-blue-400'
-                : moved && disagree
-                ? 'ring-2 ring-inset ring-purple-500'
-                : moved
-                ? 'ring-2 ring-inset ring-blue-500'
                 : disagree
                 ? 'ring-2 ring-inset ring-red-500'
                 : '';
