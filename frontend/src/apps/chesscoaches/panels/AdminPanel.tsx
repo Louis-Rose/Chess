@@ -176,7 +176,7 @@ function shortModel(id: string): string {
 }
 
 const FEATURE_LABELS: Record<string, string> = {
-  diagram: 'Diagram \u2192 FEN',
+  diagram: 'Position Scanner',
 };
 
 // Map page ids to their associated API feature names
