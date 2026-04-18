@@ -358,7 +358,7 @@ function CoachesHeader() {
           </div>
           <LumnaBrand hideSubtitle />
           <div className="absolute right-0">
-            <LanguageToggle compact />
+            <LanguageToggle />
           </div>
         </div>
         <LumnaBrandSubtitle />
