@@ -84,6 +84,8 @@ function RoleSelectionView() {
 //  Coach home — onboarding banner + feature grid
 // ──────────────────────────────────────────────────────────────────────
 
+const SHOW_ONBOARDING_BANNER = false;
+
 interface OnboardingStatus {
   has_profile: boolean;
   has_students: boolean;
@@ -168,7 +170,7 @@ function CoachHome() {
 
   return (
     <div className={`${animateClasses} mt-2 flex flex-col min-h-[calc(100dvh-80px)]`}>
-      {onboarding && <OnboardingBanner status={onboarding} />}
+      {SHOW_ONBOARDING_BANNER && onboarding && <OnboardingBanner status={onboarding} />}
 
       <div className="max-w-4xl w-full mx-auto px-[5%] space-y-4">
         {NAV_SECTIONS.map(({ titleKey, items }) => {
