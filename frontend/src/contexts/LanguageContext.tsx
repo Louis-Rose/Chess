@@ -215,7 +215,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.packs.save': 'Save',
     'coaches.packs.cancel': 'Cancel',
     // Shared
-    'coaches.sectionAdmin': 'Admin',
+    'coaches.sectionAdmin': 'Coaching',
     'coaches.sectionAITools': 'AI Tools',
     'coaches.sectionKnowledge': 'Knowledge Center',
     'coaches.navPositions': 'Positions',
@@ -503,7 +503,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.packs.save': 'Enregistrer',
     'coaches.packs.cancel': 'Annuler',
     // Shared
-    'coaches.sectionAdmin': 'Administratif',
+    'coaches.sectionAdmin': 'Coaching',
     'coaches.sectionAITools': 'Outils IA',
     'coaches.sectionKnowledge': 'Centre de connaissances',
     'coaches.navPositions': 'Positions',

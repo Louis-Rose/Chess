@@ -174,7 +174,7 @@ function CoachHome() {
 
       <div className="max-w-4xl w-full mx-auto px-[5%] space-y-4">
         {NAV_SECTIONS.map(({ titleKey, items }) => {
-          const visibleItems = items.filter(i => !i.hidden);
+          const visibleItems = items.filter(i => !i.hidden && !i.hideOnHome);
           if (visibleItems.length === 0) return null;
           const highlightPath = onboarding && !onboarding.has_lessons
             ? (!onboarding.has_profile ? '/profile' : !onboarding.has_students ? '/students' : '/schedule')
