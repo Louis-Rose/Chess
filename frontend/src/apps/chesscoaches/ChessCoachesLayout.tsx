@@ -38,7 +38,6 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'coaches.sectionAdmin',
     items: [
-      { path: '/profile', labelKey: 'coaches.navProfile', icon: UserCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', roles: ['coach'] },
       { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
       { path: '/schedule', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', roles: ['coach'] },
       { path: '/messages', labelKey: 'coaches.navMessages', icon: MessageCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', roles: ['coach', 'student'] },
@@ -64,6 +63,15 @@ function PlayerMenuItems({ onClose, align }: { onClose: () => void; align: 'cent
 
   return (
     <>
+      {user.role === 'coach' && (
+        <button
+          onClick={() => { onClose(); navigate('/profile'); }}
+          className={`${rowBase} ${justify} text-slate-200 border-b border-slate-700`}
+        >
+          <UserCircle className="w-4 h-4" />
+          {t('coaches.navProfile')}
+        </button>
+      )}
       {user.is_admin && (
         <button
           onClick={() => { onClose(); navigate('/admin'); }}
