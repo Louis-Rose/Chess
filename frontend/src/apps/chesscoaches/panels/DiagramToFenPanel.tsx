@@ -549,6 +549,8 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     for (const [sq, v] of Object.entries(live.verdicts)) {
       if (v === 'flip?') flipSqs.push(sq);
     }
+    // eslint-disable-next-line no-console
+    console.log('[auto-flip] flipSqs=', flipSqs, 'verdicts=', live.verdicts, 'dark_ratios=', live.dark_ratios, 'typeThresholds=', live.typeThresholds);
     setAutoFlipsApplied(true);
     if (flipSqs.length === 0) return;
     setAppliedFlips(flipSqs);
