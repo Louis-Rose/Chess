@@ -521,9 +521,9 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   }, [diagram.crop_data_url, effectiveAdmin]);
 
   const live = useMemo(() => {
-    if (!baseData || !diagram.pixel_debug?.board_box_px || !editedFen) return null;
-    return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, editedFen, percentile, autoTune);
-  }, [baseData, percentile, autoTune, diagram.pixel_debug?.board_box_px, editedFen]);
+    if (!baseData || !diagram.pixel_debug?.board_box_px || !diagram.fen) return null;
+    return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, diagram.fen, percentile, autoTune);
+  }, [baseData, percentile, autoTune, diagram.pixel_debug?.board_box_px, diagram.fen]);
 
   // Per-square LLM color, frozen from the first-read FEN so the red ring
   // + left dot still reflect the LLM's original color even after auto-flip.
