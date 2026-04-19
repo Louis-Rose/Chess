@@ -21,8 +21,6 @@ function formatPhone(raw: string, country?: CountryCode): string {
   }
 }
 
-export const STUDENT_SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
-
 export interface StudentFormData {
   student_name: string;
   email: string;
@@ -128,15 +126,6 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
       <div>
         <div className={labelCls}>{t('coaches.students.phone')}</div>
         <input type="tel" className={input} value={form.phone_number} onChange={e => handlePhoneChange(e.target.value)} placeholder="+33 6 12 34 56 78" />
-      </div>
-      <div>
-        <div className={labelCls}>{t('coaches.packs.source')}</div>
-        <select className={input} value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}>
-          <option value=""></option>
-          {STUDENT_SOURCES.map(s => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-          ))}
-        </select>
       </div>
       <div>
         <div className={labelCls}>Chess.com username</div>
