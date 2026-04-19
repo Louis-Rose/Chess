@@ -380,7 +380,7 @@ export function SchedulePanel() {
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const locale = language === 'fr' ? 'fr-FR' : 'en-US';
+  const locale = language === 'fr' ? 'fr-FR' : language === 'es' ? 'es-ES' : 'en-US';
   const weekLabel = `${weekStart.toLocaleDateString(locale, { month: 'long', day: 'numeric' })} — ${addDays(weekStart, 6).toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
   // Group lessons by day key
@@ -478,7 +478,8 @@ export function SchedulePanel() {
                 <div className="w-14 flex-shrink-0 relative">
                   {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => {
                     const h = START_HOUR + i;
-                    const label = language === 'fr'
+                    const use24h = language === 'fr' || language === 'es';
+                    const label = use24h
                       ? `${String(h).padStart(2, '0')}:00`
                       : `${h % 12 === 0 ? 12 : h % 12} ${h < 12 ? 'AM' : 'PM'}`;
                     return (

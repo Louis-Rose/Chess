@@ -26,6 +26,7 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
   const [ready, setReady] = useState(false);
   const enRef = useRef<HTMLDivElement>(null);
   const frRef = useRef<HTMLDivElement>(null);
+  const esRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
 
   const handleCredential = useCallback(async (response: { credential?: string }) => {
@@ -45,7 +46,7 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
 
     const render = () => {
       const g = window.google;
-      if (!g || !enRef.current || !frRef.current) return;
+      if (!g || !enRef.current || !frRef.current || !esRef.current) return;
 
       g.accounts.id.initialize({
         client_id: CLIENT_ID,
@@ -59,12 +60,13 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
 
       g.accounts.id.renderButton(enRef.current, { ...btnConfig, locale: 'en' });
       g.accounts.id.renderButton(frRef.current, { ...btnConfig, locale: 'fr' });
+      g.accounts.id.renderButton(esRef.current, { ...btnConfig, locale: 'es' });
 
       initializedRef.current = true;
 
       // Watch for the iframe to reach its final size, then reveal
       const observer = new MutationObserver(() => {
-        const iframe = enRef.current?.querySelector('iframe') || frRef.current?.querySelector('iframe');
+        const iframe = enRef.current?.querySelector('iframe') || frRef.current?.querySelector('iframe') || esRef.current?.querySelector('iframe');
         if (iframe && iframe.offsetHeight > 40) {
           setReady(true);
           observer.disconnect();
@@ -72,6 +74,7 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
       });
       observer.observe(enRef.current, { childList: true, subtree: true, attributes: true });
       observer.observe(frRef.current, { childList: true, subtree: true, attributes: true });
+      observer.observe(esRef.current, { childList: true, subtree: true, attributes: true });
 
       // Fallback: show after 1.5s no matter what
       setTimeout(() => { setReady(true); observer.disconnect(); }, 1500);
@@ -93,6 +96,7 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
     <div className={`relative ${h} flex items-center justify-center overflow-hidden transition-opacity duration-300 ${ready ? 'opacity-100' : 'opacity-0'}`}>
       <div ref={enRef} className={language === 'en' ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'} />
       <div ref={frRef} className={language === 'fr' ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'} />
+      <div ref={esRef} className={language === 'es' ? '' : 'absolute pointer-events-none opacity-0 h-0 overflow-hidden'} />
       {error && (
         <div className="absolute top-full mt-2 right-0 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
           {error}

@@ -102,7 +102,7 @@ def google_auth():
     # If the client passed a language preference (chosen on the login screen),
     # persist it immediately so the returned user payload reflects it.
     client_language = data.get('language')
-    if client_language in ('en', 'fr'):
+    if client_language in ('en', 'fr', 'es'):
         with get_db() as conn:
             _upsert_language(conn, user_id, client_language)
 
@@ -224,7 +224,7 @@ def set_user_language():
     """Persist the user's language preference (immediate, not via heartbeat)."""
     data = request.get_json() or {}
     language = data.get('language')
-    if language not in ('en', 'fr'):
+    if language not in ('en', 'fr', 'es'):
         return jsonify({'error': 'Invalid language'}), 400
     with get_db() as conn:
         _upsert_language(conn, request.user_id, language)

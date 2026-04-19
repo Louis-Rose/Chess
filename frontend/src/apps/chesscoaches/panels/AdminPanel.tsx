@@ -135,10 +135,15 @@ function formatDuration(totalSeconds: number): string {
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 }
 
+function pickLocale(lang: string): string {
+  if (lang === 'fr') return 'fr-FR';
+  if (lang === 'es') return 'es-ES';
+  return 'en-GB';
+}
+
 function formatDate(dateStr: string | null, lang: string): string {
   if (!dateStr) return '—';
-  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
-  return new Date(dateStr).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString(pickLocale(lang), { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function timeAgo(dateStr: string | null, lang: string): string {
@@ -151,6 +156,13 @@ function timeAgo(dateStr: string | null, lang: string): string {
     if (hours < 24) return `il y a ${hours} heure${hours !== 1 ? 's' : ''}`;
     const days = Math.floor(hours / 24);
     return `il y a ${days} jour${days !== 1 ? 's' : ''}`;
+  }
+  if (lang === 'es') {
+    if (minutes < 60) return `hace ${minutes} minuto${minutes !== 1 ? 's' : ''}`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `hace ${hours} hora${hours !== 1 ? 's' : ''}`;
+    const days = Math.floor(hours / 24);
+    return `hace ${days} día${days !== 1 ? 's' : ''}`;
   }
   if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
   const hours = Math.floor(minutes / 60);
@@ -331,7 +343,7 @@ export function AdminPanel() {
       const day = byDate[key];
       result.push({
         date: key,
-        label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long' }),
+        label: cur.toLocaleDateString(pickLocale(language), { day: 'numeric', month: 'long' }),
         value: Math.round((day?.total_seconds || 0) / 60),
         by_user: (day?.by_user || []).map(u => ({
           user_id: u.user_id,
@@ -454,7 +466,7 @@ export function AdminPanel() {
       const users = byDateUser[key] ? [...byDateUser[key].values()].sort((a, b) => b.value - a.value) : [];
       result.push({
         date: key,
-        label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long' }),
+        label: cur.toLocaleDateString(pickLocale(language), { day: 'numeric', month: 'long' }),
         value: count,
         by_user: users,
       });
@@ -767,7 +779,7 @@ export function AdminPanel() {
                 cumulative += dailyCounts[key] || 0;
                 data.push({
                   date: key,
-                  label: cur.toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' }),
+                  label: cur.toLocaleDateString(pickLocale(language), { day: 'numeric', month: 'short' }),
                   total: cumulative,
                 });
                 cur.setDate(cur.getDate() + 1);
@@ -958,9 +970,9 @@ export function AdminPanel() {
                               onClick={() => setExpandedInvocation(expanded ? null : inv.request_id)}
                             >
                               <td className="px-2 py-1 text-slate-500 whitespace-nowrap">
-                                {new Date(inv.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' })}
+                                {new Date(inv.created_at).toLocaleDateString(pickLocale(language), { day: 'numeric', month: 'short' })}
                                 {' '}
-                                {new Date(inv.created_at).toLocaleTimeString(language === 'fr' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(inv.created_at).toLocaleTimeString(pickLocale(language), { hour: '2-digit', minute: '2-digit' })}
                               </td>
                               <td className="px-2 py-1 text-slate-400">
                                 <div className="flex items-center gap-1">

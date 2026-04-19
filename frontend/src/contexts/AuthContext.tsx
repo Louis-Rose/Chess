@@ -20,7 +20,7 @@ interface User {
   picture: string;
   role: 'coach' | 'student' | null;
   is_admin: boolean;
-  language?: 'en' | 'fr' | null;
+  language?: 'en' | 'fr' | 'es' | null;
   _t?: number;
 }
 
@@ -299,7 +299,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({
         credential,
         registered_app: 'coaches',
-        ...(preLoginLang === 'en' || preLoginLang === 'fr' ? { language: preLoginLang } : {}),
+        ...(preLoginLang === 'en' || preLoginLang === 'fr' || preLoginLang === 'es' ? { language: preLoginLang } : {}),
       })
     });
 
