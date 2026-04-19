@@ -24,7 +24,6 @@ interface Student {
   source: string | null;
   chesscom_username: string | null;
   lichess_username: string | null;
-  fide_arena_username: string | null;
   fide_arena_profile_url: string | null;
   linked_user_id: number | null;
   created_at: string;
@@ -149,7 +148,6 @@ export function StudentDetailPage() {
               source: student.source || '',
               chesscom_username: student.chesscom_username || '',
               lichess_username: student.lichess_username || '',
-              fide_arena_username: student.fide_arena_username || '',
               fide_arena_profile_url: student.fide_arena_profile_url || '',
             }}
             onSave={handleUpdate}
@@ -172,16 +170,10 @@ export function StudentDetailPage() {
                     {student.lichess_username} (Lichess)
                   </a>
                 )}
-                {(student.fide_arena_username || student.fide_arena_profile_url) && (
-                  student.fide_arena_profile_url ? (
-                    <a href={student.fide_arena_profile_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
-                      {student.fide_arena_username || 'Profile'} (FIDE Arena)
-                    </a>
-                  ) : (
-                    <span className="text-sm text-slate-400 mt-0.5 block">
-                      {student.fide_arena_username} (FIDE Arena)
-                    </span>
-                  )
+                {student.fide_arena_profile_url && (
+                  <a href={student.fide_arena_profile_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
+                    FIDE Arena profile
+                  </a>
                 )}
                 {student.email && (
                   <span className="text-sm text-slate-400 mt-0.5 block">{student.email}</span>

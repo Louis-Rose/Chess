@@ -30,7 +30,6 @@ export interface StudentFormData {
   source: string;
   chesscom_username: string;
   lichess_username: string;
-  fide_arena_username: string;
   fide_arena_profile_url: string;
 }
 
@@ -43,7 +42,6 @@ export const EMPTY_STUDENT_FORM: StudentFormData = {
   source: '',
   chesscom_username: '',
   lichess_username: '',
-  fide_arena_username: '',
   fide_arena_profile_url: '',
 };
 
@@ -136,10 +134,6 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
       <div>
         <div className={labelCls}>Lichess username</div>
         <input className={input} value={form.lichess_username} onChange={e => setForm({ ...form, lichess_username: e.target.value })} placeholder="e.g. DrNykterstein" />
-      </div>
-      <div>
-        <div className={labelCls}>FIDE Arena username</div>
-        <input className={input} value={form.fide_arena_username} onChange={e => setForm({ ...form, fide_arena_username: e.target.value })} placeholder="e.g. PlayerName" />
       </div>
       <div>
         <div className={labelCls}>FIDE Arena profile link</div>
