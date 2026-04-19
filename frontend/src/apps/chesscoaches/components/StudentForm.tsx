@@ -31,6 +31,7 @@ export interface StudentFormData {
   chesscom_username: string;
   lichess_username: string;
   fide_arena_username: string;
+  fide_arena_profile_url: string;
 }
 
 export const EMPTY_STUDENT_FORM: StudentFormData = {
@@ -43,6 +44,7 @@ export const EMPTY_STUDENT_FORM: StudentFormData = {
   chesscom_username: '',
   lichess_username: '',
   fide_arena_username: '',
+  fide_arena_profile_url: '',
 };
 
 const input = 'w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors';
@@ -138,6 +140,10 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
       <div>
         <div className={labelCls}>FIDE Arena username</div>
         <input className={input} value={form.fide_arena_username} onChange={e => setForm({ ...form, fide_arena_username: e.target.value })} placeholder="e.g. PlayerName" />
+      </div>
+      <div>
+        <div className={labelCls}>FIDE Arena profile link</div>
+        <input type="url" className={input} value={form.fide_arena_profile_url} onChange={e => setForm({ ...form, fide_arena_profile_url: e.target.value })} placeholder="https://arena.myfide.net/..." />
       </div>
 
       {/* Actions */}
