@@ -1,17 +1,28 @@
 import { useState, useMemo } from 'react';
-import { AsYouType, type CountryCode } from 'libphonenumber-js/min';
+import { AsYouType, validatePhoneNumberLength, type CountryCode } from 'libphonenumber-js/min';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { btnPrimary, BTN_GHOST } from './PanelShell';
 import { CITY_TIMEZONES, getTimezoneForCity, getTimezoneAbbr, getPhonePrefixForCity, getCountryCodeForCity } from '../utils/cities';
 
-// E.164 allows max 15 digits total (excluding the '+').
-const MAX_PHONE_DIGITS = 15;
+// E.164 allows max 15 digits total (excluding the '+') when no country is known.
+const MAX_E164_DIGITS = 15;
+
+function isTooLong(raw: string, country?: CountryCode): boolean {
+  if (!country) return false;
+  const clean = raw.replace(/[^\d+]/g, '');
+  if (!clean) return false;
+  try {
+    return validatePhoneNumberLength(clean, country) === 'TOO_LONG';
+  } catch {
+    return false;
+  }
+}
 
 function formatPhone(raw: string, country?: CountryCode): string {
   if (!raw) return '';
   const clean = raw.replace(/[^\d+]/g, '');
   const hasPlus = clean.startsWith('+');
-  const digits = clean.replace(/\+/g, '').slice(0, MAX_PHONE_DIGITS);
+  const digits = clean.replace(/\+/g, '').slice(0, MAX_E164_DIGITS);
   const input = (hasPlus ? '+' : '') + digits;
   if (!input) return '';
   try {
@@ -83,7 +94,9 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
 
   const country = (form.city ? getCountryCodeForCity(form.city) : '') as CountryCode | '';
   const handlePhoneChange = (raw: string) => {
-    setForm(f => ({ ...f, phone_number: formatPhone(raw, country || undefined) }));
+    const c = country || undefined;
+    if (isTooLong(raw, c)) return;
+    setForm(f => ({ ...f, phone_number: formatPhone(raw, c) }));
   };
 
   const cityTimezone = form.city ? getTimezoneForCity(form.city) : '';
