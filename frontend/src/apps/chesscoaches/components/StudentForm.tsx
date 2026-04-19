@@ -137,7 +137,7 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
       </div>
       <div>
         <div className={labelCls}>FIDE Arena profile link</div>
-        <input type="url" className={input} value={form.fide_arena_profile_url} onChange={e => setForm({ ...form, fide_arena_profile_url: e.target.value })} placeholder="https://arena.myfide.net/..." />
+        <input type="url" className={input} value={form.fide_arena_profile_url} onChange={e => setForm({ ...form, fide_arena_profile_url: e.target.value })} placeholder="https://worldchess.com/profile/377620" />
       </div>
 
       {/* Actions */}
