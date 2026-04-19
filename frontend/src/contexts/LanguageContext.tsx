@@ -875,6 +875,39 @@ const translations: Record<Language, Record<string, string>> = {
   },
 };
 
+// Rough country → language hint used when the browser locale has no region tag.
+// Only the country codes present in CITY_TIMEZONES are listed.
+const TZ_LANG_HINT: Record<string, Language> = {
+  'Europe/Paris': 'fr', 'Europe/Brussels': 'fr', 'Europe/Luxembourg': 'fr',
+  'Europe/Madrid': 'es',
+  'America/Mexico_City': 'es', 'America/Argentina/Buenos_Aires': 'es',
+  'America/Bogota': 'es', 'America/Santiago': 'es', 'America/Lima': 'es',
+  'America/Caracas': 'es', 'America/Havana': 'es', 'America/Guatemala': 'es',
+};
+
+function detectPrimaryLanguage(): Language {
+  const locales = (navigator.languages && navigator.languages.length > 0)
+    ? navigator.languages
+    : [navigator.language || ''];
+  for (const loc of locales) {
+    const lower = (loc || '').toLowerCase();
+    if (lower.startsWith('fr')) return 'fr';
+    if (lower.startsWith('es')) return 'es';
+    if (lower.startsWith('en')) return 'en';
+  }
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && TZ_LANG_HINT[tz]) return TZ_LANG_HINT[tz];
+  } catch {}
+  return 'en';
+}
+
+// Two options: the detected primary language + English (deduped).
+export function getAvailableLanguages(): Language[] {
+  const primary = detectPrimaryLanguage();
+  return primary === 'en' ? ['en'] : [primary, 'en'];
+}
+
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
