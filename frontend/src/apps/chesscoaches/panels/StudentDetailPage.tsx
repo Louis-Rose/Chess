@@ -160,29 +160,35 @@ export function StudentDetailPage() {
               <Avatar name={student.student_name} size="xl" />
               <div className="flex-1 min-w-0">
                 <h1 className="text-xl font-bold text-slate-100">{student.student_name}</h1>
-                {student.chesscom_username && (
-                  <a href={`https://www.chess.com/member/${student.chesscom_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
-                    {student.chesscom_username} (Chess.com)
-                  </a>
-                )}
-                {student.lichess_username && (
-                  <a href={`https://lichess.org/@/${student.lichess_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
-                    {student.lichess_username} (Lichess)
-                  </a>
-                )}
-                {student.fide_arena_profile_url && (
-                  <a href={student.fide_arena_profile_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
-                    FIDE Arena profile
-                  </a>
-                )}
-                {student.email && (
-                  <span className="text-sm text-slate-400 mt-0.5 block">{student.email}</span>
-                )}
-                {student.phone_number && (
-                  <a href={`https://wa.me/${student.phone_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors mt-0.5 block">
-                    {student.phone_number} (WhatsApp)
-                  </a>
-                )}
+                <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0.5">
+                  <div>
+                    {student.email && (
+                      <span className="text-sm text-slate-400 mt-0.5 block">{student.email}</span>
+                    )}
+                    {student.phone_number && (
+                      <a href={`https://wa.me/${student.phone_number.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors mt-0.5 block">
+                        {student.phone_number} (WhatsApp)
+                      </a>
+                    )}
+                  </div>
+                  <div>
+                    {student.chesscom_username && (
+                      <a href={`https://www.chess.com/member/${student.chesscom_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
+                        {student.chesscom_username} (Chess.com)
+                      </a>
+                    )}
+                    {student.lichess_username && (
+                      <a href={`https://lichess.org/@/${student.lichess_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
+                        {student.lichess_username} (Lichess)
+                      </a>
+                    )}
+                    {student.fide_arena_profile_url && (
+                      <a href={student.fide_arena_profile_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
+                        FIDE Arena profile
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <button
