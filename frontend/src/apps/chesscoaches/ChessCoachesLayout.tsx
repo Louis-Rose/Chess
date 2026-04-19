@@ -30,6 +30,15 @@ export interface NavSection {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
+    titleKey: 'coaches.sectionAdmin',
+    items: [
+      { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
+      { path: '/schedule', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', roles: ['coach'] },
+      { path: '/messages', labelKey: 'coaches.navMessages', icon: MessageCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', hideOnHome: true, roles: ['coach', 'student'] },
+      { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
+    ],
+  },
+  {
     titleKey: 'coaches.sectionAITools',
     items: [
       { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
@@ -40,15 +49,6 @@ export const NAV_SECTIONS: NavSection[] = [
     titleKey: 'coaches.sectionKnowledge',
     items: [
       { path: '/positions', labelKey: 'coaches.navPositions', icon: BookOpen, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
-    ],
-  },
-  {
-    titleKey: 'coaches.sectionAdmin',
-    items: [
-      { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
-      { path: '/schedule', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', roles: ['coach'] },
-      { path: '/messages', labelKey: 'coaches.navMessages', icon: MessageCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', hideOnHome: true, roles: ['coach', 'student'] },
-      { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
     ],
   },
 ];
