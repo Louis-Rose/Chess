@@ -244,14 +244,16 @@ export function StudentDetailPage() {
         {!editing && (
           <div className="flex justify-center pt-8 pb-4">
             {confirmDelete ? (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-2">
                 <span className="text-xs text-red-400">{t('coaches.students.deleteConfirm')}</span>
-                <button onClick={handleDelete} className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-500 transition-colors">
-                  {t('coaches.students.deleteStudentFull')}
-                </button>
-                <button onClick={() => setConfirmDelete(false)} className="text-slate-400 hover:text-slate-200">
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-3">
+                  <button onClick={handleDelete} className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-500 transition-colors">
+                    {t('coaches.students.deleteStudentFull')}
+                  </button>
+                  <button onClick={() => setConfirmDelete(false)} className="text-slate-400 hover:text-slate-200">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ) : (
               <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-600 hover:border-red-500/50 hover:bg-red-600/10 text-slate-400 hover:text-red-400 text-xs rounded-lg transition-colors">
