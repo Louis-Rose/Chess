@@ -243,6 +243,11 @@ def init_db():
             conn.execute("ALTER TABLE coach_students ADD COLUMN city TEXT")
             logger.info("Added city column to coach_students")
 
+        # Migration: Add fide_arena_username column to coach_students
+        if not _column_exists(conn, 'coach_students', 'fide_arena_username'):
+            conn.execute("ALTER TABLE coach_students ADD COLUMN fide_arena_username TEXT")
+            logger.info("Added fide_arena_username column to coach_students")
+
         # Migration: Knowledge Center — folders tree + saved positions
         if not _table_exists(conn, 'knowledge_folders'):
             conn.execute("""

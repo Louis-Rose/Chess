@@ -24,6 +24,7 @@ interface Student {
   source: string | null;
   chesscom_username: string | null;
   lichess_username: string | null;
+  fide_arena_username: string | null;
   linked_user_id: number | null;
   created_at: string;
 }
@@ -147,6 +148,7 @@ export function StudentDetailPage() {
               source: student.source || '',
               chesscom_username: student.chesscom_username || '',
               lichess_username: student.lichess_username || '',
+              fide_arena_username: student.fide_arena_username || '',
             }}
             onSave={handleUpdate}
             onCancel={() => setEditing(false)}
@@ -167,6 +169,11 @@ export function StudentDetailPage() {
                   <a href={`https://lichess.org/@/${student.lichess_username}`} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:text-blue-300 transition-colors mt-0.5 block">
                     {student.lichess_username} (Lichess)
                   </a>
+                )}
+                {student.fide_arena_username && (
+                  <span className="text-sm text-slate-400 mt-0.5 block">
+                    {student.fide_arena_username} (FIDE Arena)
+                  </span>
                 )}
                 {student.email && (
                   <span className="text-sm text-slate-400 mt-0.5 block">{student.email}</span>

@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS coach_students (
     source TEXT,
     chesscom_username TEXT,
     lichess_username TEXT,
+    fide_arena_username TEXT,
     email TEXT,
     phone_number TEXT,
     recurring_day INTEGER,

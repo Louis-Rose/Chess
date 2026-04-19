@@ -14,6 +14,7 @@ export interface StudentFormData {
   source: string;
   chesscom_username: string;
   lichess_username: string;
+  fide_arena_username: string;
 }
 
 export const EMPTY_STUDENT_FORM: StudentFormData = {
@@ -25,6 +26,7 @@ export const EMPTY_STUDENT_FORM: StudentFormData = {
   source: '',
   chesscom_username: '',
   lichess_username: '',
+  fide_arena_username: '',
 };
 
 const input = 'w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors';
@@ -110,18 +112,18 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
           ))}
         </select>
       </div>
-      {form.source === 'chess.com' && (
-        <div>
-          <div className={labelCls}>Chess.com username</div>
-          <input className={input} value={form.chesscom_username} onChange={e => setForm({ ...form, chesscom_username: e.target.value })} placeholder="e.g. MagnusCarlsen" />
-        </div>
-      )}
-      {form.source === 'lichess' && (
-        <div>
-          <div className={labelCls}>Lichess username</div>
-          <input className={input} value={form.lichess_username} onChange={e => setForm({ ...form, lichess_username: e.target.value })} placeholder="e.g. DrNykterstein" />
-        </div>
-      )}
+      <div>
+        <div className={labelCls}>Chess.com username</div>
+        <input className={input} value={form.chesscom_username} onChange={e => setForm({ ...form, chesscom_username: e.target.value })} placeholder="e.g. MagnusCarlsen" />
+      </div>
+      <div>
+        <div className={labelCls}>Lichess username</div>
+        <input className={input} value={form.lichess_username} onChange={e => setForm({ ...form, lichess_username: e.target.value })} placeholder="e.g. DrNykterstein" />
+      </div>
+      <div>
+        <div className={labelCls}>FIDE Arena username</div>
+        <input className={input} value={form.fide_arena_username} onChange={e => setForm({ ...form, fide_arena_username: e.target.value })} placeholder="e.g. PlayerName" />
+      </div>
 
       {/* Actions */}
       <div className="flex items-center justify-center gap-3 pt-1">
