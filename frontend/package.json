@@ -14,6 +14,7 @@
     "@tanstack/react-query": "^5.90.12",
     "axios": "^1.13.2",
     "chess.js": "^1.4.0",
+    "libphonenumber-js": "^1.12.41",
     "lucide-react": "^0.561.0",
     "posthog-js": "^1.321.2",
     "react": "^19.2.0",

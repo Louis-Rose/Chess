@@ -1,7 +1,25 @@
 import { useState, useMemo } from 'react';
+import { AsYouType, type CountryCode } from 'libphonenumber-js/min';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { btnPrimary, BTN_GHOST } from './PanelShell';
-import { CITY_TIMEZONES, getTimezoneForCity, getTimezoneAbbr, getPhonePrefixForCity } from '../utils/cities';
+import { CITY_TIMEZONES, getTimezoneForCity, getTimezoneAbbr, getPhonePrefixForCity, getCountryCodeForCity } from '../utils/cities';
+
+// E.164 allows max 15 digits total (excluding the '+').
+const MAX_PHONE_DIGITS = 15;
+
+function formatPhone(raw: string, country?: CountryCode): string {
+  if (!raw) return '';
+  const clean = raw.replace(/[^\d+]/g, '');
+  const hasPlus = clean.startsWith('+');
+  const digits = clean.replace(/\+/g, '').slice(0, MAX_PHONE_DIGITS);
+  const input = (hasPlus ? '+' : '') + digits;
+  if (!input) return '';
+  try {
+    return country ? new AsYouType(country).input(input) : input;
+  } catch {
+    return input;
+  }
+}
 
 export const STUDENT_SOURCES = ['chess.com', 'lichess', 'superprof', 'my website'] as const;
 
@@ -54,12 +72,20 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
     setShowCityDropdown(false);
     const tz = getTimezoneForCity(name);
     const prefix = getPhonePrefixForCity(name);
+    const country = (getCountryCodeForCity(name) || undefined) as CountryCode | undefined;
     setForm(f => ({
       ...f,
       city: name,
       timezone: tz || 'UTC',
-      phone_number: !f.phone_number ? prefix + ' ' : f.phone_number,
+      phone_number: !f.phone_number
+        ? formatPhone(prefix, country)
+        : formatPhone(f.phone_number, country),
     }));
+  };
+
+  const country = (form.city ? getCountryCodeForCity(form.city) : '') as CountryCode | '';
+  const handlePhoneChange = (raw: string) => {
+    setForm(f => ({ ...f, phone_number: formatPhone(raw, country || undefined) }));
   };
 
   const cityTimezone = form.city ? getTimezoneForCity(form.city) : '';
@@ -101,7 +127,7 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
       </div>
       <div>
         <div className={labelCls}>{t('coaches.students.phone')}</div>
-        <input type="tel" className={input} value={form.phone_number} onChange={e => setForm({ ...form, phone_number: e.target.value })} placeholder="+33 6 12 34 56 78" />
+        <input type="tel" className={input} value={form.phone_number} onChange={e => handlePhoneChange(e.target.value)} placeholder="+33 6 12 34 56 78" />
       </div>
       <div>
         <div className={labelCls}>{t('coaches.packs.source')}</div>

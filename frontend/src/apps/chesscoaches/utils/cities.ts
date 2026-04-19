@@ -153,3 +153,17 @@ export function getPhonePrefixForCity(city: string): string {
   const entry = CITY_TIMEZONES.find(([c]) => c === city);
   return entry ? FLAG_PHONE[entry[2]] || '' : '';
 }
+
+// Flag emoji (regional indicator pair) → ISO 3166-1 alpha-2 country code
+function flagToCountryCode(flag: string): string {
+  const chars = Array.from(flag);
+  if (chars.length !== 2) return '';
+  return chars
+    .map(c => String.fromCodePoint((c.codePointAt(0) ?? 0) - 127397))
+    .join('');
+}
+
+export function getCountryCodeForCity(city: string): string {
+  const entry = CITY_TIMEZONES.find(([c]) => c === city);
+  return entry ? flagToCountryCode(entry[2]) : '';
+}
