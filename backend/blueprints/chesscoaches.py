@@ -1380,6 +1380,63 @@ def create_student_invite(student_id):
     return jsonify({'token': token}), 201
 
 
+@coaches_bp.route('/api/coaches/students/<int:student_id>/invite/send-email', methods=['POST'])
+@login_required
+def send_student_invite_email_endpoint(student_id):
+    """Create or reuse an invite for this student, and email it to them with
+    the coach's edited message."""
+    data = request.get_json() or {}
+    note = (data.get('message') or '').strip()
+
+    with get_db() as conn:
+        student = conn.execute(
+            'SELECT id, student_name, email, linked_user_id FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            (student_id, request.user_id),
+        ).fetchone()
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        if student['linked_user_id']:
+            return jsonify({'error': 'Student already has an account'}), 400
+        if not student['email']:
+            return jsonify({'error': 'Student has no email on file'}), 400
+
+        existing = conn.execute(
+            'SELECT token FROM student_invites WHERE student_id = ? AND accepted_at IS NULL',
+            (student_id,),
+        ).fetchone()
+        if existing:
+            token = existing['token']
+        else:
+            token = secrets.token_urlsafe(32)
+            conn.execute(
+                'INSERT INTO student_invites (coach_user_id, student_id, token) VALUES (?, ?, ?)',
+                (request.user_id, student_id, token),
+            )
+
+        coach = conn.execute(
+            'SELECT name FROM users WHERE id = ?', (request.user_id,)
+        ).fetchone()
+        coach_name = (coach and coach['name']) or 'Your coach'
+
+    invite_url = f"{request.host_url.rstrip('/')}/invite/{token}"
+
+    import threading
+    from email_utils import send_student_invite_email
+    threading.Thread(
+        target=send_student_invite_email,
+        kwargs={
+            'coach_name': coach_name,
+            'student_email': student['email'],
+            'student_name': student['student_name'] or '',
+            'note': note,
+            'invite_url': invite_url,
+        },
+        daemon=True,
+    ).start()
+
+    return jsonify({'token': token, 'sent': True})
+
+
 # ── Invoices ──
 
 @coaches_bp.route('/api/coaches/invoices', methods=['POST'])

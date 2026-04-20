@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Pencil, Trash2, X, Link, Copy, Check } from 'lucide-react';
+import { Pencil, Trash2, X, Link, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 import { StudentForm } from '../components/StudentForm';
@@ -190,7 +190,9 @@ export function StudentDetailPage() {
                   <Pencil className="w-3.5 h-3.5" />
                   {t('coaches.students.editStudent')}
                 </button>
-                {!student.linked_user_id && <InviteButton studentId={student.id} />}
+                {!student.linked_user_id && (
+                  <InviteButton studentId={student.id} studentName={student.student_name} studentEmail={student.email} />
+                )}
                 {student.linked_user_id && (
                   <span className="flex items-center gap-1.5 px-3 py-1.5 text-emerald-400 text-xs">
                     <Check className="w-3.5 h-3.5" />
@@ -262,50 +264,102 @@ export function StudentDetailPage() {
 
 // ── Invite Button ──
 
-function InviteButton({ studentId }: { studentId: number }) {
+function InviteButton({ studentId, studentName, studentEmail }: { studentId: number; studentName: string; studentEmail: string | null }) {
   const { t } = useLanguage();
-  const [inviteToken, setInviteToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const handleInvite = async () => {
-    setLoading(true);
+  const openModal = () => {
+    setMessage(t('coaches.students.inviteDefault').replace('{name}', studentName));
+    setSent(false);
+    setOpen(true);
+  };
+
+  const send = async () => {
+    if (sending || !studentEmail) return;
+    setSending(true);
     try {
-      const res = await authFetch(`/api/coaches/students/${studentId}/invite`, { method: 'POST' });
-      const data = await res.json();
-      if (data.token) {
-        setInviteToken(data.token);
-        const url = `${window.location.origin}/invite/${data.token}`;
-        try { await navigator.clipboard.writeText(url); setCopied(true); } catch {}
+      const res = await authFetch(`/api/coaches/students/${studentId}/invite/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      });
+      if (res.ok) {
+        setSent(true);
+        setTimeout(() => setOpen(false), 1500);
       }
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
-  if (inviteToken) {
-    const url = `${window.location.origin}/invite/${inviteToken}`;
-    return (
-      <button
-        onClick={async () => {
-          try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
-        }}
-        className="flex items-center gap-1.5 px-3 py-1.5 border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs rounded-lg transition-colors hover:bg-emerald-500/20"
-      >
-        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-        {copied ? t('coaches.students.linkCopied') : t('coaches.students.copyInviteLink')}
-      </button>
-    );
-  }
-
   return (
-    <button
-      onClick={handleInvite}
-      disabled={loading}
-      className="flex items-center gap-1.5 px-3 py-1.5 border border-purple-500/30 bg-purple-500/10 text-purple-400 text-xs rounded-lg transition-colors hover:bg-purple-500/20 disabled:opacity-50"
-    >
-      <Link className="w-3.5 h-3.5" />
-      {loading ? '...' : t('coaches.students.inviteToPlatform')}
-    </button>
+    <>
+      <button
+        onClick={openModal}
+        className="flex items-center gap-1.5 px-3 py-1.5 border border-purple-500/30 bg-purple-500/10 text-purple-400 text-xs rounded-lg transition-colors hover:bg-purple-500/20"
+      >
+        <Link className="w-3.5 h-3.5" />
+        {t('coaches.students.inviteToPlatform')}
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+          onClick={() => !sending && setOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-900 shadow-xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+              <h3 className="text-sm font-medium text-slate-100">
+                {t('coaches.students.inviteModalTitle').replace('{name}', studentName)}
+              </h3>
+              <button onClick={() => setOpen(false)} className="p-1 text-slate-400 hover:text-slate-200" disabled={sending}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              {!studentEmail ? (
+                <p className="text-sm text-amber-400">{t('coaches.students.inviteNoEmail')}</p>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-400">
+                    {t('coaches.students.inviteRecipient').replace('{email}', studentEmail)}
+                  </p>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      {t('coaches.students.inviteMessageLabel')}
+                    </label>
+                    <textarea
+                      value={message}
+                      onChange={e => setMessage(e.target.value)}
+                      rows={5}
+                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-slate-700">
+              <button onClick={() => setOpen(false)} disabled={sending} className="px-3 py-1.5 text-sm rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">
+                {t('coaches.students.cancel')}
+              </button>
+              <button
+                onClick={send}
+                disabled={sending || sent || !studentEmail}
+                className="px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 disabled:opacity-70"
+              >
+                {sent ? <><Check className="w-4 h-4" /> {t('coaches.students.inviteSent')}</>
+                  : sending ? '...'
+                  : t('coaches.students.inviteSend')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
