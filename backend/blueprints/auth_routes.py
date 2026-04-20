@@ -706,7 +706,7 @@ def get_messages(other_user_id):
 
         params = [user_id, other_user_id, user_id, other_user_id]
         query = '''
-            SELECT id, sender_id, receiver_id, content, invoice_id, read_at, created_at
+            SELECT id, sender_id, receiver_id, content, invoice_id, position_id, read_at, created_at
             FROM messages
             WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
         '''
@@ -728,6 +728,7 @@ def get_messages(other_user_id):
         'sender_id': r['sender_id'],
         'content': r['content'],
         'invoice_id': r['invoice_id'],
+        'position_id': r['position_id'],
         'read_at': r['read_at'].isoformat() if r['read_at'] else None,
         'created_at': r['created_at'].isoformat() if r['created_at'] else None,
     } for r in reversed(rows)]  # reverse to chronological order
@@ -738,11 +739,13 @@ def get_messages(other_user_id):
 @auth_bp.route('/api/messages/<int:other_user_id>', methods=['POST'])
 @login_required
 def send_message(other_user_id):
-    """Send a message to another user."""
+    """Send a message to another user. Optional position_id attaches a saved
+    knowledge-center position as homework (coach → student only)."""
     user_id = request.user_id
     data = request.get_json()
     content = (data.get('content') or '').strip()
-    if not content:
+    position_id = data.get('position_id')
+    if not content and position_id is None:
         return jsonify({'error': 'Message cannot be empty'}), 400
     if len(content) > 5000:
         return jsonify({'error': 'Message too long'}), 400
@@ -757,16 +760,25 @@ def send_message(other_user_id):
         if not linked:
             return jsonify({'error': 'Not authorized to message this user'}), 403
 
+        if position_id is not None:
+            owns = conn.execute(
+                'SELECT 1 FROM knowledge_positions WHERE id = ? AND user_id = ?',
+                (position_id, user_id),
+            ).fetchone()
+            if not owns:
+                return jsonify({'error': 'position not found'}), 404
+
         cursor = conn.execute('''
-            INSERT INTO messages (sender_id, receiver_id, content)
-            VALUES (?, ?, ?) RETURNING id, created_at
-        ''', (user_id, other_user_id, content))
+            INSERT INTO messages (sender_id, receiver_id, content, position_id)
+            VALUES (?, ?, ?, ?) RETURNING id, created_at
+        ''', (user_id, other_user_id, content, position_id))
         row = cursor.fetchone()
 
     return jsonify({
         'id': row['id'],
         'sender_id': user_id,
         'content': content,
+        'position_id': position_id,
         'created_at': row['created_at'].isoformat(),
     }), 201
 

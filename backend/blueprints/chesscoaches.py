@@ -1062,6 +1062,9 @@ def add_coach_student():
     name = (data.get('student_name') or '').strip()
     if not name:
         return jsonify({'error': 'student_name required'}), 400
+    email = (data.get('email') or '').strip()
+    if not email:
+        return jsonify({'error': 'email required'}), 400
 
     recurring_day = data.get('recurring_day')
     recurring_time = (data.get('recurring_time') or '').strip() or None
@@ -1081,7 +1084,7 @@ def add_coach_student():
              (data.get('fide_arena_username') or '').strip() or None,
              (data.get('fide_arena_profile_url') or '').strip() or None,
              recurring_day, recurring_time,
-             (data.get('email') or '').strip() or None,
+             email,
              (data.get('phone_number') or '').strip() or None)
         )
         student_id = cursor.fetchone()['id']

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Folder, FolderPlus, Pencil, Trash2, Loader2, Check, X } from 'lucide-react';
+import { Folder, FolderPlus, Pencil, Trash2, Loader2, Check, X, Send } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
@@ -280,6 +280,7 @@ function FolderEditInput({ value, onChange, onSubmit, onCancel, placeholder, inl
 function PositionCard({ position, onDelete, refresh, t }: { position: PositionRow; onDelete: () => void; refresh: () => void; t: (k: string) => string }) {
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState(position.notes ?? '');
+  const [homeworkOpen, setHomeworkOpen] = useState(false);
 
   useEffect(() => { setNotes(position.notes ?? ''); }, [position.notes]);
 
@@ -311,15 +312,32 @@ function PositionCard({ position, onDelete, refresh, t }: { position: PositionRo
           <div className="text-xs text-slate-400">{sideToMove}</div>
           <div className="text-xs font-mono text-slate-500 break-all">{position.fen}</div>
         </div>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="self-start p-1 text-slate-500 hover:text-red-400"
-          title={t('coaches.positions.delete')}
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex flex-col gap-1 self-start">
+          <button
+            type="button"
+            onClick={() => setHomeworkOpen(true)}
+            className="p-1 text-slate-500 hover:text-blue-400"
+            title={t('coaches.positions.sendAsHomework')}
+          >
+            <Send className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-1 text-slate-500 hover:text-red-400"
+            title={t('coaches.positions.delete')}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+      {homeworkOpen && (
+        <SendHomeworkModal
+          position={position}
+          onClose={() => setHomeworkOpen(false)}
+          t={t}
+        />
+      )}
       {editing ? (
         <div className="space-y-1.5">
           <textarea
@@ -340,5 +358,121 @@ function PositionCard({ position, onDelete, refresh, t }: { position: PositionRo
         </div>
       )}
     </li>
+  );
+}
+
+interface StudentWithUser {
+  id: number;
+  student_name: string;
+  linked_user_id: number | null;
+}
+
+function SendHomeworkModal({ position, onClose, t }: {
+  position: PositionRow;
+  onClose: () => void;
+  t: (k: string) => string;
+}) {
+  const [students, setStudents] = useState<StudentWithUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    axios.get('/api/coaches/students')
+      .then(r => {
+        const list = (r.data.students ?? []) as StudentWithUser[];
+        // Only students with a linked account can receive messages.
+        const messageable = list.filter(s => s.linked_user_id);
+        setStudents(messageable);
+        if (messageable.length === 1) setSelectedId(messageable[0].linked_user_id);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const send = async () => {
+    if (selectedId === null || sending) return;
+    setSending(true);
+    try {
+      const body: Record<string, unknown> = { position_id: position.id };
+      if (message.trim()) body.content = message.trim();
+      else body.content = t('coaches.positions.homeworkDefault');
+      const res = await axios.post(`/api/messages/${selectedId}`, body);
+      if (res.status === 201) {
+        setSent(true);
+        setTimeout(onClose, 900);
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+      onClick={() => !sending && onClose()}
+    >
+      <div
+        className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-900 shadow-xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+          <h3 className="text-sm font-medium text-slate-100">{t('coaches.positions.sendAsHomework')}</h3>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-200" disabled={sending}>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+            </div>
+          ) : students.length === 0 ? (
+            <p className="text-sm text-slate-400">{t('coaches.positions.homeworkNoStudents')}</p>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('coaches.positions.homeworkChooseStudent')}</label>
+                <select
+                  value={selectedId ?? ''}
+                  onChange={e => setSelectedId(e.target.value === '' ? null : Number(e.target.value))}
+                  className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">{t('coaches.positions.homeworkPickOne')}</option>
+                  {students.map(s => (
+                    <option key={s.id} value={s.linked_user_id ?? ''}>{s.student_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('coaches.positions.homeworkNote')}</label>
+                <textarea
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  rows={3}
+                  placeholder={t('coaches.positions.homeworkDefault')}
+                  className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-slate-700">
+          <button onClick={onClose} disabled={sending} className="px-3 py-1.5 text-sm rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">
+            {t('coaches.positions.cancel')}
+          </button>
+          <button
+            onClick={send}
+            disabled={sending || sent || selectedId === null}
+            className="px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 disabled:opacity-70"
+          >
+            {sent ? <><Check className="w-4 h-4" /> {t('coaches.positions.homeworkSent')}</>
+              : sending ? <Loader2 className="w-4 h-4 animate-spin" />
+              : t('coaches.positions.homeworkSend')}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

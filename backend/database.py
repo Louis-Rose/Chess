@@ -195,6 +195,11 @@ def init_db():
         # Migration: Add invoice_id to messages
         if not _column_exists(conn, 'messages', 'invoice_id'):
             conn.execute("ALTER TABLE messages ADD COLUMN invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL")
+
+        # Migration: Add position_id for homework (a coach sending a saved position to a student)
+        if not _column_exists(conn, 'messages', 'position_id'):
+            conn.execute("ALTER TABLE messages ADD COLUMN position_id INTEGER REFERENCES knowledge_positions(id) ON DELETE SET NULL")
+            logger.info("Added position_id column to messages")
             logger.info("Added invoice_id column to messages")
 
         # Migration: Add revolut_username to coach_profiles

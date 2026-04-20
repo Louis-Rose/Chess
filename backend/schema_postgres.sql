@@ -180,6 +180,7 @@ CREATE TABLE IF NOT EXISTS messages (
     receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL,
+    position_id INTEGER REFERENCES knowledge_positions(id) ON DELETE SET NULL,
     read_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

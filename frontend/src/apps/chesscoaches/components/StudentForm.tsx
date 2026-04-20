@@ -133,8 +133,17 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
         </div>
       </div>
       <div>
-        <div className={labelCls}>{t('coaches.students.email')}</div>
-        <input type="email" className={input} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="student@email.com" />
+        <div className={labelCls}>
+          {t('coaches.students.email')} <span className="text-red-400">*</span>
+        </div>
+        <input
+          type="email"
+          required
+          className={input}
+          value={form.email}
+          onChange={e => setForm({ ...form, email: e.target.value })}
+          placeholder="student@email.com"
+        />
       </div>
       <div>
         <div className={labelCls}>{t('coaches.students.phone')}</div>
@@ -157,7 +166,7 @@ export function StudentForm({ initial, onSave, onCancel, saving }: {
       <div className="flex items-center justify-center gap-3 pt-1">
         <button
           onClick={() => onSave(form)}
-          disabled={!form.student_name.trim() || saving}
+          disabled={!form.student_name.trim() || !form.email.trim() || saving}
           className={btnPrimary('purple')}
         >
           {saving ? '...' : t('coaches.students.save')}

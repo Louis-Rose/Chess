@@ -1,7 +1,7 @@
 // Messages panel — coach-student chat with invoice support
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Send, ArrowLeft, MessageCircle, Receipt, Check, ExternalLink } from 'lucide-react';
+import { Send, ArrowLeft, MessageCircle, Receipt, Check, ExternalLink, BookOpen } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
@@ -23,8 +23,19 @@ interface Message {
   sender_id: number;
   content: string;
   invoice_id: number | null;
+  position_id: number | null;
   read_at: string | null;
   created_at: string;
+}
+
+interface PositionInfo {
+  id: number;
+  fen: string;
+  white_player: string | null;
+  black_player: string | null;
+  active_color: string | null;
+  crop_data_url: string | null;
+  notes: string | null;
 }
 
 interface InvoiceInfo {
@@ -147,6 +158,7 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
   const [sending, setSending] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
   const [invoiceCache, setInvoiceCache] = useState<Record<number, InvoiceInfo>>({});
+  const [positionCache, setPositionCache] = useState<Record<number, PositionInfo>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -194,6 +206,25 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
       if (m.invoice_id) fetchInvoice(m.invoice_id);
     }
   }, [messages, fetchInvoice]);
+
+  const fetchedPositionIds = useRef<Set<number>>(new Set());
+  const fetchPosition = useCallback(async (positionId: number) => {
+    if (fetchedPositionIds.current.has(positionId)) return;
+    fetchedPositionIds.current.add(positionId);
+    try {
+      const res = await authFetch(`/api/knowledge/positions/${positionId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPositionCache(prev => ({ ...prev, [positionId]: data }));
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    for (const m of messages) {
+      if (m.position_id) fetchPosition(m.position_id);
+    }
+  }, [messages, fetchPosition]);
 
   const handleSend = async () => {
     const content = text.trim();
@@ -324,6 +355,51 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
                         </>
                       ) : (
                         <div className="h-8 bg-slate-600 rounded animate-pulse" />
+                      )}
+                    </div>
+                    <div className="px-4 py-1.5 text-[10px] text-slate-500">
+                      {formatTime(m.created_at)}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Homework message — position attached
+            if (m.position_id) {
+              const position = positionCache[m.position_id];
+              return (
+                <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div className="max-w-[85%] bg-slate-700 border border-slate-600 rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-600/50 flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm font-medium text-blue-400">Homework</span>
+                    </div>
+                    <div className="px-4 py-3 space-y-2">
+                      {position ? (
+                        <div className="flex gap-3">
+                          {position.crop_data_url ? (
+                            <img src={position.crop_data_url} alt="" className="w-24 h-24 object-contain rounded border border-slate-500 shrink-0" />
+                          ) : (
+                            <div className="w-24 h-24 rounded border border-slate-500 bg-slate-800 shrink-0" />
+                          )}
+                          <div className="min-w-0 space-y-1">
+                            <div className="text-xs text-slate-400">
+                              {position.active_color === 'b' ? t('coaches.diagram.blackToPlay') : t('coaches.diagram.whiteToPlay')}
+                            </div>
+                            {position.notes && (
+                              <p className="text-xs text-slate-200 whitespace-pre-wrap">{position.notes}</p>
+                            )}
+                            <div className="text-[10px] font-mono text-slate-500 break-all">{position.fen}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-16 bg-slate-600/50 rounded animate-pulse" />
+                      )}
+                      {m.content && (
+                        <p className="text-sm text-slate-200 whitespace-pre-wrap break-words pt-1 border-t border-slate-600/50">
+                          {m.content}
+                        </p>
                       )}
                     </div>
                     <div className="px-4 py-1.5 text-[10px] text-slate-500">

@@ -131,6 +131,30 @@ def list_positions():
     return jsonify({'positions': [_position_row(r) for r in rows]})
 
 
+@knowledge_bp.route('/api/knowledge/positions/<int:position_id>', methods=['GET'])
+@login_required
+def get_position(position_id):
+    """Return one position owned by the current user, or visible as homework
+    (where the current user is the recipient of a message referencing it)."""
+    user_id = get_current_user()
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT * FROM knowledge_positions WHERE id = ?',
+            (position_id,),
+        ).fetchone()
+        if not row:
+            return jsonify({'error': 'position not found'}), 404
+        if row['user_id'] != user_id:
+            # Allow if this user is the receiver of a message carrying this position
+            shared = conn.execute(
+                'SELECT 1 FROM messages WHERE position_id = ? AND receiver_id = ?',
+                (position_id, user_id),
+            ).fetchone()
+            if not shared:
+                return jsonify({'error': 'position not found'}), 404
+    return jsonify(_position_row(row))
+
+
 @knowledge_bp.route('/api/knowledge/positions', methods=['POST'])
 @login_required
 def create_position():
