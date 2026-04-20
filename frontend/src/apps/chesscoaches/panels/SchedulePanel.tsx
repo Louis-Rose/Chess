@@ -269,7 +269,13 @@ const STATUS_OPTIONS = [
   { value: 'tbd', icon: HelpCircle, label: 'coaches.lessons.status.tbd', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
 ] as const;
 
-function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated, onRecordUndo }: {
+interface EditPreview {
+  lessonId: number;
+  startHHMM: string;
+  endHHMM: string;
+}
+
+function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated, onRecordUndo, onEditPreviewChange }: {
   lesson: ScheduleLesson;
   dayIdx: number;
   locale: string;
@@ -277,6 +283,7 @@ function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated,
   onClose: () => void;
   onUpdated: () => void;
   onRecordUndo: (action: UndoAction, toastText: string) => void;
+  onEditPreviewChange: (preview: EditPreview | null) => void;
 }) {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -302,6 +309,14 @@ function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated,
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
+
+  // Live preview the edited times on the calendar block while the popup is in edit mode.
+  useEffect(() => {
+    if (editing) onEditPreviewChange({ lessonId: lesson.id, startHHMM: startTime, endHHMM: endTime });
+    else onEditPreviewChange(null);
+  }, [editing, startTime, endTime, lesson.id, onEditPreviewChange]);
+
+  useEffect(() => () => onEditPreviewChange(null), [onEditPreviewChange]);
 
   const dateLabel = d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
   const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
@@ -506,6 +521,7 @@ export function SchedulePanel() {
   const undoStackRef = useRef<UndoAction[]>([]);
   const [toast, setToast] = useState<{ text: string; canUndo: boolean; key: number } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const [editPreview, setEditPreview] = useState<EditPreview | null>(null);
 
   const hasLoadedRef = useRef(false);
   const fetchSchedule = useCallback(async () => {
@@ -773,6 +789,7 @@ export function SchedulePanel() {
                         onClose={() => setSelectedLesson(null)}
                         onUpdated={fetchSchedule}
                         onRecordUndo={recordUndo}
+                        onEditPreviewChange={setEditPreview}
                       />
                     );
                   })()}
@@ -791,12 +808,25 @@ export function SchedulePanel() {
                         }`}
                       >
                         {dayLessons.map(l => {
-                          const start = new Date(l.scheduled_at);
-                          const end = new Date(start.getTime() + l.duration_minutes * 60000);
+                          const realStart = new Date(l.scheduled_at);
+                          const previewing = editPreview?.lessonId === l.id;
+                          let start = realStart;
+                          let durationMin = l.duration_minutes;
+                          if (previewing && editPreview) {
+                            const [sh, sm] = editPreview.startHHMM.split(':').map(Number);
+                            const [eh, em] = editPreview.endHHMM.split(':').map(Number);
+                            const dur = (eh * 60 + em) - (sh * 60 + sm);
+                            if (dur > 0) {
+                              start = new Date(realStart);
+                              start.setHours(sh, sm, 0, 0);
+                              durationMin = dur;
+                            }
+                          }
+                          const end = new Date(start.getTime() + durationMin * 60000);
                           const startH = start.getHours() + start.getMinutes() / 60;
                           if (startH < START_HOUR || startH >= END_HOUR) return null;
                           const top = (startH - START_HOUR) * HOUR_HEIGHT;
-                          const height = Math.max((l.duration_minutes / 60) * HOUR_HEIGHT, 24);
+                          const height = Math.max((durationMin / 60) * HOUR_HEIGHT, 24);
                           const colors = STATUS_BG[l.status] || STATUS_BG.scheduled;
                           const timeStr = formatTimeRange(start, end, locale);
 
