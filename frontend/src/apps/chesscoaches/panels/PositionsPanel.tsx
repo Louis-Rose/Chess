@@ -187,7 +187,7 @@ export function PositionsPanel() {
           ) : (
             <ul className="grid grid-cols-1 gap-3">
               {positions.map(p => (
-                <PositionCard key={p.id} position={p} onDelete={() => deletePosition(p.id)} refresh={refreshPositions} t={t} />
+                <PositionCard key={p.id} position={p} onDelete={() => deletePosition(p.id)} t={t} />
               ))}
             </ul>
           )}
@@ -286,19 +286,9 @@ function FolderEditInput({ value, onChange, onSubmit, onCancel, placeholder, inl
   );
 }
 
-function PositionCard({ position, onDelete, refresh, t }: { position: PositionRow; onDelete: () => void; refresh: () => void; t: (k: string) => string }) {
-  const [editing, setEditing] = useState(false);
-  const [notes, setNotes] = useState(position.notes ?? '');
+function PositionCard({ position, onDelete, t }: { position: PositionRow; onDelete: () => void; t: (k: string) => string }) {
   const [homeworkOpen, setHomeworkOpen] = useState(false);
   const [zoomOpen, setZoomOpen] = useState(false);
-
-  useEffect(() => { setNotes(position.notes ?? ''); }, [position.notes]);
-
-  const saveNotes = async () => {
-    await axios.patch(`/api/knowledge/positions/${position.id}`, { notes });
-    setEditing(false);
-    refresh();
-  };
 
   const sideToMove = position.active_color === 'b' ? t('coaches.diagram.blackToPlay') : t('coaches.diagram.whiteToPlay');
   const hasPlayers = !!(position.white_player || position.black_player);
@@ -362,25 +352,6 @@ function PositionCard({ position, onDelete, refresh, t }: { position: PositionRo
           t={t}
         />
       )}
-      {editing ? (
-        <div className="space-y-1.5">
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={3}
-            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
-            placeholder={t('coaches.positions.notesPlaceholder')}
-          />
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={saveNotes} className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-500 text-white">{t('coaches.positions.save')}</button>
-            <button type="button" onClick={() => { setEditing(false); setNotes(position.notes ?? ''); }} className="px-2 py-1 text-xs rounded bg-slate-700 hover:bg-slate-600 text-slate-200">{t('coaches.positions.cancel')}</button>
-          </div>
-        </div>
-      ) : (
-        <div onClick={() => setEditing(true)} className="cursor-text rounded border border-slate-700/50 bg-slate-900/30 px-2 py-1.5 text-sm text-slate-300 min-h-[2.25rem] whitespace-pre-wrap">
-          {position.notes || <span className="text-slate-500 italic">{t('coaches.positions.addNotes')}</span>}
-        </div>
-      )}
     </li>
   );
 }
@@ -436,9 +407,6 @@ function PositionZoomModal({ position, onClose, onDelete, onSendHomework, t }: {
             </div>
           )}
           <div className="text-xs text-slate-400 text-center">{sideToMove}</div>
-          {position.notes && (
-            <div className="text-sm text-slate-200 whitespace-pre-wrap bg-slate-800/60 rounded px-3 py-2">{position.notes}</div>
-          )}
           <div className="flex justify-center pt-2">
             <button
               type="button"

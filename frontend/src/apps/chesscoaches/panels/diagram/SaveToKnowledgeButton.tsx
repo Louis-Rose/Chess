@@ -1,4 +1,4 @@
-// "Save to Knowledge Center" button — modal picks a folder and saves notes alongside a position.
+// "Save to Knowledge Center" button — modal picks a folder and saves the position.
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -14,7 +14,6 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
   const [folders, setFolders] = useState<KnowledgeFolder[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [folderId, setFolderId] = useState<number | null>(null);
-  const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -78,10 +77,9 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
         active_color: activeColor,
         diagram_number: diagram.diagram_number ?? null,
         crop_data_url: diagram.crop_data_url || null,
-        notes: notes || null,
       });
       setSaved(true);
-      setTimeout(() => { setSaved(false); setOpen(false); setNotes(''); setFolderId(null); }, 1200);
+      setTimeout(() => { setSaved(false); setOpen(false); setFolderId(null); }, 1200);
     } finally {
       setSaving(false);
     }
@@ -171,16 +169,6 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
                     </button>
                   </div>
                 )}
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('coaches.positions.notesPlaceholder')}</label>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  rows={3}
-                  placeholder={t('coaches.positions.notesPlaceholder')}
-                  className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
-                />
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-slate-700">
