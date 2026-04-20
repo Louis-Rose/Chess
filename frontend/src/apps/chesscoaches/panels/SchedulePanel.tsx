@@ -771,7 +771,6 @@ export function SchedulePanel() {
                       />
                     );
                   })()}
-                  )}
 
                   {days.map((day, dayIdx) => {
                     const key = fmtDate(day);
