@@ -17,7 +17,11 @@ interface InviteInfo {
 }
 
 export function InvitePage() {
-  const { token } = useParams<{ token: string }>();
+  // URL can be /invite/<token> (legacy) or /invite/from-foo-to-bar/<token>
+  // (pretty). The raw random token is always the last path segment.
+  const params = useParams();
+  const splat = params['*'] ?? '';
+  const token = splat.split('/').filter(Boolean).pop() || '';
   const { t } = useLanguage();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 

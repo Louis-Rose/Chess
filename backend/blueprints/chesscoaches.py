@@ -1418,7 +1418,17 @@ def send_student_invite_email_endpoint(student_id):
         ).fetchone()
         coach_name = (coach and coach['name']) or 'Your coach'
 
-    invite_url = f"{request.host_url.rstrip('/')}/invite/{token}"
+    import re as _re
+
+    def _slugify(name: str) -> str:
+        first = (name or '').strip().lower().split(' ')[0]
+        s = _re.sub(r'[^a-z0-9]+', '-', first).strip('-')[:24]
+        return s or 'user'
+
+    invite_url = (
+        f"{request.host_url.rstrip('/')}/invite/"
+        f"from-{_slugify(coach_name)}-to-{_slugify(student['student_name'] or '')}/{token}"
+    )
 
     import threading
     from email_utils import send_student_invite_email

@@ -265,6 +265,14 @@ export function StudentDetailPage() {
 
 // ── Invite Button ──
 
+// Readable URL slug: "Louis Rose" → "louis-rose". Keeps the token-bearing
+// random suffix, so the link reads /invite/from-louis-to-marc/<token>.
+function slugify(name: string): string {
+  const s = (name || '').trim().toLowerCase().split(' ')[0] // first word only
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+  return s || 'user';
+}
+
 function InviteButton({ studentId, studentName, studentEmail }: { studentId: number; studentName: string; studentEmail: string | null }) {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -283,8 +291,10 @@ function InviteButton({ studentId, studentName, studentEmail }: { studentId: num
       // real, working link the coach can see before sending.
       const res = await authFetch(`/api/coaches/students/${studentId}/invite`, { method: 'POST' });
       const data = await res.json();
-      const url = data.token ? `${window.location.origin}/invite/${data.token}` : '';
       const coachName = user?.name || '';
+      const url = data.token
+        ? `${window.location.origin}/invite/from-${slugify(coachName)}-to-${slugify(studentName)}/${data.token}`
+        : '';
       const firstName = (studentName || '').split(' ')[0] || studentName;
       const template = t('coaches.students.inviteDefault')
         .replace('{name}', firstName)

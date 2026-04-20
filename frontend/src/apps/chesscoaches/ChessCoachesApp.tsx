@@ -34,7 +34,7 @@ export function ChessCoachesApp() {
   return (
     <Routes>
       {/* Invite page — accessible without auth (has its own layout) */}
-      <Route path="invite/:token" element={<InvitePage />} />
+      <Route path="invite/*" element={<InvitePage />} />
 
       {/* Waitlist — full-screen Typeform, no layout */}
       <Route path="waitlist" element={<WaitlistPage />} />
