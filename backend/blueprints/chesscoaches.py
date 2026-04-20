@@ -1145,7 +1145,7 @@ def get_student_detail(student_id):
             return jsonify({'error': 'Student not found'}), 404
 
         lessons = conn.execute('''
-            SELECT id, scheduled_at, duration_minutes, status, notes, meet_link, pack_id, created_at
+            SELECT id, scheduled_at, duration_minutes, status, paid, notes, meet_link, pack_id, created_at
             FROM coach_lessons WHERE student_id = ? AND deleted_at IS NULL
             ORDER BY scheduled_at DESC
         ''', (student_id,)).fetchall()
@@ -1221,7 +1221,7 @@ def update_lesson(lesson_id):
         if 'status' in data and data['status'] not in VALID_STATUSES:
             return jsonify({'error': f'Invalid status. Must be one of: {", ".join(VALID_STATUSES)}'}), 400
 
-        allowed = ['scheduled_at', 'duration_minutes', 'status', 'notes']
+        allowed = ['scheduled_at', 'duration_minutes', 'status', 'paid', 'notes']
         sets = []
         vals = []
         for field in allowed:
@@ -1229,6 +1229,8 @@ def update_lesson(lesson_id):
                 val = data[field]
                 if isinstance(val, str) and field == 'notes':
                     val = val.strip() or None
+                elif field == 'paid':
+                    val = 1 if val else 0
                 sets.append(f'{field} = ?')
                 vals.append(val)
 
@@ -1292,7 +1294,7 @@ def get_coach_schedule():
 
     with get_db() as conn:
         lessons = conn.execute('''
-            SELECT cl.id, cl.scheduled_at, cl.duration_minutes, cl.status, cl.notes, cl.meet_link,
+            SELECT cl.id, cl.scheduled_at, cl.duration_minutes, cl.status, cl.paid, cl.notes, cl.meet_link,
                    cs.id AS student_id, cs.student_name, cs.timezone AS student_timezone
             FROM coach_lessons cl
             JOIN coach_students cs ON cl.student_id = cs.id

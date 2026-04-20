@@ -1,7 +1,7 @@
 // Lessons section — upcoming + past lessons with expandable cards
 
 import { useState } from 'react';
-import { Clock, ChevronDown, ChevronRight, Video, ExternalLink, Check, Trash2 } from 'lucide-react';
+import { Clock, ChevronDown, ChevronRight, Video, ExternalLink, Trash2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 
@@ -10,12 +10,11 @@ export interface Lesson {
   scheduled_at: string;
   duration_minutes: number;
   status: string;
+  paid: number;           // 0 or 1 (PostgreSQL INTEGER)
   notes: string | null;
   meet_link: string | null;
   created_at: string;
 }
-
-const PAST_STATUSES = ['done', 'cancelled', 'tbd'] as const;
 
 export function LessonsSection({ upcoming, past, onRefresh }: {
   upcoming: Lesson[];
@@ -62,19 +61,11 @@ export function LessonsSection({ upcoming, past, onRefresh }: {
   );
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  scheduled: 'bg-blue-500/15 text-blue-400',
-  done: 'bg-emerald-500/15 text-emerald-400',
-  cancelled: 'bg-red-500/15 text-red-400',
-  tbd: 'bg-amber-500/15 text-amber-400',
-};
-
-const STATUS_LABEL_KEYS: Record<string, string> = {
-  scheduled: 'coaches.lessons.status.scheduled',
-  done: 'coaches.lessons.status.done',
-  cancelled: 'coaches.lessons.status.cancelled',
-  tbd: 'coaches.lessons.status.tbd',
-};
+// Two pills per lesson: Paid/Not paid + Done/Scheduled.
+// Legacy cancelled/tbd rows read as "Scheduled" — toggling flips them back
+// into the two-state world.
+const PILL_ON = 'bg-emerald-500/15 text-emerald-400';
+const PILL_OFF = 'bg-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-600';
 
 function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: 'upcoming' | 'past'; onRefresh: () => void }) {
   const { t } = useLanguage();
@@ -104,11 +95,11 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
     }
   };
 
-  const handleSetStatus = async (status: string) => {
+  const patchLesson = async (patch: Record<string, unknown>) => {
     const res = await authFetch(`/api/coaches/lessons/${lesson.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(patch),
     });
     if (res.ok) onRefresh();
   };
@@ -118,8 +109,8 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
     if (res.ok) onRefresh();
   };
 
-  const badgeClass = STATUS_BADGE[lesson.status] || 'bg-slate-600 text-slate-400';
-  const statusLabel = t(STATUS_LABEL_KEYS[lesson.status] || '') || lesson.status;
+  const isDone = lesson.status === 'done';
+  const isPaid = !!lesson.paid;
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
@@ -136,8 +127,23 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>
-            {statusLabel}
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={e => { e.stopPropagation(); patchLesson({ paid: !isPaid }); }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); patchLesson({ paid: !isPaid }); } }}
+            className={`text-xs px-2 py-0.5 rounded-full transition-colors cursor-pointer ${isPaid ? PILL_ON : PILL_OFF}`}
+          >
+            {t(isPaid ? 'coaches.lessons.paid' : 'coaches.lessons.notPaid')}
+          </span>
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={e => { e.stopPropagation(); patchLesson({ status: isDone ? 'scheduled' : 'done' }); }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); patchLesson({ status: isDone ? 'scheduled' : 'done' }); } }}
+            className={`text-xs px-2 py-0.5 rounded-full transition-colors cursor-pointer ${isDone ? PILL_ON : PILL_OFF}`}
+          >
+            {t(isDone ? 'coaches.lessons.status.done' : 'coaches.lessons.status.scheduled')}
           </span>
           {lesson.meet_link && <Video className="w-3.5 h-3.5 text-blue-400" />}
           {lesson.notes && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title="Has notes" />}
@@ -198,26 +204,7 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
             </div>
           )}
 
-          <div className="flex items-center gap-2 pt-1 border-t border-slate-700/50">
-            {variant === 'past' && (
-              <div className="flex items-center gap-1">
-                {PAST_STATUSES.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => handleSetStatus(s)}
-                    disabled={lesson.status === s}
-                    className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
-                      lesson.status === s
-                        ? `${STATUS_BADGE[s]} font-medium`
-                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    {s === 'done' && <Check className="w-3 h-3 inline mr-1" />}
-                    {t(STATUS_LABEL_KEYS[s])}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex items-center pt-1 border-t border-slate-700/50">
             <button onClick={handleDelete}
               className="flex items-center gap-1 px-3 py-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors ml-auto">
               <Trash2 className="w-3 h-3" /> Delete

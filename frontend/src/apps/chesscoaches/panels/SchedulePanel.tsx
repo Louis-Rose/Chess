@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon, Check, Ban, HelpCircle, ExternalLink, Trash2, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon, ExternalLink, Trash2, Pencil } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { TimeSelect } from '../components/TimeSelect';
@@ -13,6 +13,7 @@ interface ScheduleLesson {
   scheduled_at: string;
   duration_minutes: number;
   status: string;
+  paid: number;
   notes: string | null;
   meet_link: string | null;
   student_id: number;
@@ -62,8 +63,6 @@ function fmtDate(d: Date): string {
 const STATUS_BG: Record<string, string> = {
   scheduled: 'bg-blue-500/80 hover:bg-blue-500/90 border-blue-400/50',
   done: 'bg-emerald-500/70 hover:bg-emerald-500/80 border-emerald-400/50',
-  cancelled: 'bg-slate-600/50 hover:bg-slate-600/60 border-slate-500/50 opacity-50',
-  tbd: 'bg-amber-500/70 hover:bg-amber-500/80 border-amber-400/50',
 };
 
 const HOUR_HEIGHT = 42; // px per hour
@@ -263,11 +262,8 @@ function CreateEventPopup({ event, students, locale, use24h, onClose, onCreated 
 
 // ── Lesson Detail Popup ──
 
-const STATUS_OPTIONS = [
-  { value: 'done', icon: Check, label: 'coaches.lessons.status.done', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  { value: 'cancelled', icon: Ban, label: 'coaches.lessons.status.cancelled', color: 'bg-red-500/15 text-red-400 border-red-500/30' },
-  { value: 'tbd', icon: HelpCircle, label: 'coaches.lessons.status.tbd', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
-] as const;
+const PILL_ON = 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+const PILL_OFF = 'bg-slate-700 text-slate-400 border border-slate-600 hover:text-slate-200 hover:border-slate-500';
 
 interface EditPreview {
   lessonId: number;
@@ -288,7 +284,8 @@ function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated,
   const { t } = useLanguage();
   const navigate = useNavigate();
   const popupRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState(lesson.status);
+  const [isDone, setIsDone] = useState(lesson.status === 'done');
+  const [isPaid, setIsPaid] = useState(!!lesson.paid);
 
   const d = new Date(lesson.scheduled_at);
   const endDate = new Date(d.getTime() + lesson.duration_minutes * 60000);
@@ -321,7 +318,6 @@ function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated,
   const dateLabel = d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
   const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const endStr = endDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-  const isPast = d < new Date();
 
   const handleStartChange = (next: string) => {
     const dur = minutesBetween(startTime, endTime);
@@ -363,12 +359,24 @@ function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated,
     setEditing(false);
   };
 
-  const handleSetStatus = async (newStatus: string) => {
-    setStatus(newStatus);
+  const toggleDone = async () => {
+    const next = !isDone;
+    setIsDone(next);
     await authFetch(`/api/coaches/lessons/${lesson.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({ status: next ? 'done' : 'scheduled' }),
+    });
+    onUpdated();
+  };
+
+  const togglePaid = async () => {
+    const next = !isPaid;
+    setIsPaid(next);
+    await authFetch(`/api/coaches/lessons/${lesson.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paid: next }),
     });
     onUpdated();
   };
@@ -456,30 +464,21 @@ function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated,
           </a>
         )}
 
-        {/* Status toggle (for past lessons) */}
-        {isPast && (
-          <div>
-            <p className="text-xs text-slate-500 mb-1.5">{t('coaches.calendar.lessonStatus')}</p>
-            <div className="flex gap-1.5">
-              {STATUS_OPTIONS.map(opt => {
-                const active = status === opt.value;
-                const Icon = opt.icon;
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => handleSetStatus(opt.value)}
-                    className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                      active ? opt.color : 'border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-600'
-                    }`}
-                  >
-                    <Icon className="w-3 h-3" />
-                    {t(opt.label)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Paid + Done toggles */}
+        <div className="flex gap-1.5">
+          <button
+            onClick={togglePaid}
+            className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${isPaid ? PILL_ON : PILL_OFF}`}
+          >
+            {t(isPaid ? 'coaches.lessons.paid' : 'coaches.lessons.notPaid')}
+          </button>
+          <button
+            onClick={toggleDone}
+            className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDone ? PILL_ON : PILL_OFF}`}
+          >
+            {t(isDone ? 'coaches.lessons.status.done' : 'coaches.lessons.status.scheduled')}
+          </button>
+        </div>
 
         {/* Actions */}
         <div className={`flex items-center pt-1 border-t border-slate-700/50 ${editing ? 'justify-between' : 'justify-center'}`}>
