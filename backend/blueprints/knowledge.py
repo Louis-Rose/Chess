@@ -29,13 +29,13 @@ def _folder_owned(conn, folder_id, user_id):
 @knowledge_bp.route('/api/knowledge/tree', methods=['GET'])
 @login_required
 def get_tree():
-    """Return the user's folders (flat list with parent_id, so frontend builds the tree)
-    plus counts of positions per folder."""
+    """Return the user's folders as a flat list plus counts of positions per folder.
+    (Endpoint kept for compatibility; there's no hierarchy anymore.)"""
     user_id = get_current_user()
     with get_db() as conn:
         folders = [
             _datetimes(dict(r)) for r in conn.execute(
-                'SELECT id, parent_id, name, created_at, updated_at FROM knowledge_folders '
+                'SELECT id, name, created_at, updated_at FROM knowledge_folders '
                 'WHERE user_id = ? ORDER BY name ASC',
                 (user_id,)
             ).fetchall()
@@ -58,15 +58,12 @@ def create_folder():
     user_id = get_current_user()
     data = request.get_json() or {}
     name = (data.get('name') or '').strip()
-    parent_id = data.get('parent_id')
     if not name:
         return jsonify({'error': 'name required'}), 400
     with get_db() as conn:
-        if parent_id is not None and not _folder_owned(conn, parent_id, user_id):
-            return jsonify({'error': 'parent folder not found'}), 404
         cursor = conn.execute(
-            'INSERT INTO knowledge_folders (user_id, parent_id, name) VALUES (?, ?, ?) RETURNING id, parent_id, name, created_at, updated_at',
-            (user_id, parent_id, name)
+            'INSERT INTO knowledge_folders (user_id, name) VALUES (?, ?) RETURNING id, name, created_at, updated_at',
+            (user_id, name)
         )
         row = _datetimes(dict(cursor.fetchone()))
         row['position_count'] = 0
@@ -76,43 +73,18 @@ def create_folder():
 @knowledge_bp.route('/api/knowledge/folders/<int:folder_id>', methods=['PATCH'])
 @login_required
 def update_folder(folder_id):
-    """Rename or move a folder. Body: { name?, parent_id? } (parent_id=null moves to root)."""
+    """Rename a folder. Body: { name }."""
     user_id = get_current_user()
     data = request.get_json() or {}
     with get_db() as conn:
         if not _folder_owned(conn, folder_id, user_id):
             return jsonify({'error': 'folder not found'}), 404
-        updates = []
-        params = []
-        if 'name' in data:
-            new_name = (data.get('name') or '').strip()
-            if not new_name:
-                return jsonify({'error': 'name cannot be empty'}), 400
-            updates.append('name = ?')
-            params.append(new_name)
-        if 'parent_id' in data:
-            new_parent = data.get('parent_id')
-            if new_parent is not None:
-                if new_parent == folder_id:
-                    return jsonify({'error': 'cannot parent a folder to itself'}), 400
-                if not _folder_owned(conn, new_parent, user_id):
-                    return jsonify({'error': 'target parent not found'}), 404
-                # Prevent cycles: walk up from new_parent, reject if we hit folder_id
-                cur = new_parent
-                while cur is not None:
-                    if cur == folder_id:
-                        return jsonify({'error': 'cannot move a folder inside its own descendants'}), 400
-                    parent_row = conn.execute('SELECT parent_id FROM knowledge_folders WHERE id = ?', (cur,)).fetchone()
-                    cur = parent_row['parent_id'] if parent_row else None
-            updates.append('parent_id = ?')
-            params.append(new_parent)
-        if not updates:
-            return jsonify({'error': 'nothing to update'}), 400
-        updates.append('updated_at = CURRENT_TIMESTAMP')
-        params.append(folder_id)
+        new_name = (data.get('name') or '').strip()
+        if not new_name:
+            return jsonify({'error': 'name cannot be empty'}), 400
         conn.execute(
-            f"UPDATE knowledge_folders SET {', '.join(updates)} WHERE id = ?",
-            tuple(params)
+            'UPDATE knowledge_folders SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (new_name, folder_id)
         )
     return jsonify({'ok': True})
 

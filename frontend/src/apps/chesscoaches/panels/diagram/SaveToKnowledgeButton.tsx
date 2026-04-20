@@ -1,12 +1,12 @@
 // "Save to Knowledge Center" button — modal picks a folder and saves notes alongside a position.
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BookOpen, X, Loader2, Check } from 'lucide-react';
+import { BookOpen, X, Loader2, Check, FolderPlus } from 'lucide-react';
 import { useLanguage } from '../../../../contexts/LanguageContext';
 import type { DiagramExtract } from '../../contexts/CoachesDataContext';
 
-interface KnowledgeFolder { id: number; parent_id: number | null; name: string; position_count: number; }
+interface KnowledgeFolder { id: number; name: string; position_count: number; }
 
 export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: DiagramExtract; editedFen: string }) {
   const { t } = useLanguage();
@@ -17,6 +17,9 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [creatingInFlight, setCreatingInFlight] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -26,22 +29,23 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
       .finally(() => setLoadingFolders(false));
   }, [open]);
 
-  const orderedFolders = useMemo(() => {
-    // Flat list with indentation based on depth (root first, then DFS by name)
-    const byParent = new Map<number | null, KnowledgeFolder[]>();
-    folders.forEach(f => {
-      const arr = byParent.get(f.parent_id) ?? [];
-      arr.push(f);
-      byParent.set(f.parent_id, arr);
-    });
-    byParent.forEach(arr => arr.sort((a, b) => a.name.localeCompare(b.name)));
-    const out: { folder: KnowledgeFolder; depth: number }[] = [];
-    const visit = (parent: number | null, depth: number) => {
-      (byParent.get(parent) ?? []).forEach(f => { out.push({ folder: f, depth }); visit(f.id, depth + 1); });
-    };
-    visit(null, 0);
-    return out;
-  }, [folders]);
+  const sortedFolders = [...folders].sort((a, b) => a.name.localeCompare(b.name));
+
+  const createFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name || creatingInFlight) return;
+    setCreatingInFlight(true);
+    try {
+      const res = await axios.post('/api/knowledge/folders', { name });
+      const created = res.data as KnowledgeFolder;
+      setFolders(prev => [...prev, created]);
+      setFolderId(created.id);
+      setNewFolderName('');
+      setCreatingFolder(false);
+    } finally {
+      setCreatingInFlight(false);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -89,16 +93,56 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
                     <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
                   </div>
                 ) : (
-                  <select
-                    value={folderId ?? ''}
-                    onChange={e => setFolderId(e.target.value === '' ? null : Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="">{t('coaches.positions.rootFolder')}</option>
-                    {orderedFolders.map(({ folder, depth }) => (
-                      <option key={folder.id} value={folder.id}>{'\u00A0\u00A0'.repeat(depth)}{folder.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={folderId ?? ''}
+                      onChange={e => setFolderId(e.target.value === '' ? null : Number(e.target.value))}
+                      className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">{t('coaches.positions.rootFolder')}</option>
+                      {sortedFolders.map(folder => (
+                        <option key={folder.id} value={folder.id}>{folder.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => { setCreatingFolder(true); setNewFolderName(''); }}
+                      className="p-1.5 text-slate-300 hover:text-slate-100 border border-slate-600 rounded hover:border-slate-500"
+                      title={t('coaches.positions.newFolder')}
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                {creatingFolder && (
+                  <div className="mt-2 flex items-center gap-1">
+                    <input
+                      autoFocus
+                      value={newFolderName}
+                      onChange={e => setNewFolderName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') createFolder();
+                        else if (e.key === 'Escape') { setCreatingFolder(false); setNewFolderName(''); }
+                      }}
+                      placeholder={t('coaches.positions.folderNamePlaceholder')}
+                      className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={createFolder}
+                      disabled={!newFolderName.trim() || creatingInFlight}
+                      className="p-1 text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setCreatingFolder(false); setNewFolderName(''); }}
+                      className="p-1 text-slate-500 hover:text-slate-200"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
               </div>
               <div>
