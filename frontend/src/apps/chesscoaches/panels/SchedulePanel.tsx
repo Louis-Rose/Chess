@@ -47,7 +47,12 @@ function addDays(d: Date, n: number): Date {
 }
 
 function fmtDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  // Local YYYY-MM-DD. toISOString() uses UTC, which shifts Monday 00:00 local
+  // onto Sunday in non-UTC time zones and breaks day-column keys.
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
 }
 
 const STATUS_BG: Record<string, string> = {
@@ -121,6 +126,16 @@ function CreateEventPopup({ event, students, locale, use24h, onClose, onCreated 
   const duration = minutesBetween(startTime, endTime);
   const validDuration = duration > 0;
 
+  // Ghost highlight + side-placed popup, Google Calendar-style.
+  const [sh, sm] = startTime.split(':').map(Number);
+  const startFloat = sh + sm / 60;
+  const highlightTop = (startFloat - START_HOUR) * HOUR_HEIGHT;
+  const highlightHeight = Math.max((duration / 60) * HOUR_HEIGHT, 4);
+  const colWidthPct = 100 / 7;
+  const dayLeftPct = event.dayIdx * colWidthPct;
+  const placeRight = event.dayIdx < 4;
+  const popupTop = Math.max(0, Math.min(highlightTop - 8, TOTAL_HOURS * HOUR_HEIGHT - 280));
+
   const handleSave = async () => {
     if (!studentId || saving || !validDuration) return;
     setSaving(true);
@@ -141,11 +156,26 @@ function CreateEventPopup({ event, students, locale, use24h, onClose, onCreated 
   };
 
   return (
+    <>
+      {/* Ghost highlight showing the proposed lesson slot */}
+      {validDuration && (
+        <div
+          className="absolute z-20 rounded border-2 border-blue-400 bg-blue-500/25 pointer-events-none"
+          style={{
+            left: `calc(${dayLeftPct}% + 2px)`,
+            width: `calc(${colWidthPct}% - 4px)`,
+            top: highlightTop,
+            height: highlightHeight,
+          }}
+        />
+      )}
     <div ref={popupRef}
       className="absolute z-30 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-72 animate-in fade-in zoom-in-95 duration-150"
       style={{
-        left: `calc(${(event.dayIdx / 7) * 100}% + ${100 / 7 / 2}% - 144px)`,
-        top: Math.min((event.hour - START_HOUR + event.minute / 60) * HOUR_HEIGHT, TOTAL_HOURS * HOUR_HEIGHT - 320),
+        left: placeRight
+          ? `calc(${dayLeftPct + colWidthPct}% + 8px)`
+          : `calc(${dayLeftPct}% - 288px - 8px)`,
+        top: popupTop,
       }}
       onClick={e => e.stopPropagation()}
     >
@@ -207,6 +237,7 @@ function CreateEventPopup({ event, students, locale, use24h, onClose, onCreated 
         </div>
       </div>
     </div>
+    </>
   );
 }
 

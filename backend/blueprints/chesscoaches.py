@@ -1292,7 +1292,16 @@ def get_coach_schedule():
             ORDER BY cl.scheduled_at
         ''', (request.user_id, start, end)).fetchall()
 
-    return jsonify({'lessons': [dict(l) for l in lessons]})
+    # Flask 3 serializes datetimes as RFC 822 ("Mon, 20 Apr 2026 10:30:00 GMT")
+    # which (a) frontend can't slice for a YYYY-MM-DD key, and (b) implies UTC
+    # for a naive column. Emit ISO 8601 with no TZ suffix so JS parses as local.
+    result = []
+    for l in lessons:
+        d = dict(l)
+        if d.get('scheduled_at') is not None:
+            d['scheduled_at'] = d['scheduled_at'].isoformat()
+        result.append(d)
+    return jsonify({'lessons': result})
 
 
 @coaches_bp.route('/api/coaches/students/<int:student_id>/invite', methods=['POST'])
