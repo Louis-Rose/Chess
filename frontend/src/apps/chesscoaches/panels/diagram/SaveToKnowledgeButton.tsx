@@ -25,7 +25,17 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
     if (!open) return;
     setLoadingFolders(true);
     axios.get('/api/knowledge/tree')
-      .then(r => setFolders(r.data.folders ?? []))
+      .then(r => {
+        const list = (r.data.folders ?? []) as KnowledgeFolder[];
+        setFolders(list);
+        // Auto-pick the first folder; if the user has none, keep folderId=null
+        // and surface the inline "+ New folder" input immediately.
+        if (list.length > 0) {
+          setFolderId(prev => prev ?? list[0].id);
+        } else {
+          setCreatingFolder(true);
+        }
+      })
       .finally(() => setLoadingFolders(false));
   }, [open]);
 
@@ -97,9 +107,10 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
                     <select
                       value={folderId ?? ''}
                       onChange={e => setFolderId(e.target.value === '' ? null : Number(e.target.value))}
-                      className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+                      disabled={sortedFolders.length === 0}
+                      className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                     >
-                      <option value="">{t('coaches.positions.rootFolder')}</option>
+                      {sortedFolders.length === 0 && <option value="">—</option>}
                       {sortedFolders.map(folder => (
                         <option key={folder.id} value={folder.id}>{folder.name}</option>
                       ))}
@@ -158,7 +169,7 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
             </div>
             <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-slate-700">
               <button onClick={() => setOpen(false)} disabled={saving} className="px-3 py-1.5 text-sm rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">{t('coaches.positions.cancel')}</button>
-              <button onClick={save} disabled={saving || saved} className="px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 disabled:opacity-70">
+              <button onClick={save} disabled={saving || saved || folderId === null} className="px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 disabled:opacity-70">
                 {saved ? <><Check className="w-4 h-4" /> {t('coaches.positions.saved')}</> : saving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('coaches.positions.save')}
               </button>
             </div>

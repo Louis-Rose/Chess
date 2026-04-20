@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { BookOpen, Folder, FolderPlus, Pencil, Trash2, Loader2, Check, X } from 'lucide-react';
+import { Folder, FolderPlus, Pencil, Trash2, Loader2, Check, X } from 'lucide-react';
 import { PanelShell } from '../components/PanelShell';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
@@ -44,16 +44,25 @@ export function PositionsPanel() {
   });
 
   const folders = treeQuery.data?.folders ?? [];
-  const rootCount = treeQuery.data?.root_count ?? 0;
+
+  // Auto-select the first folder when none is selected (e.g. on first load or
+  // after the selected folder is deleted).
+  useEffect(() => {
+    if (selectedFolderId === null && folders.length > 0) {
+      setSelectedFolderId(folders[0].id);
+    }
+  }, [folders, selectedFolderId]);
 
   const positionsQuery = useQuery({
     queryKey: ['knowledge-positions', selectedFolderId],
     queryFn: async () => {
+      if (selectedFolderId === null) return { positions: [] as PositionRow[] };
       const res = await axios.get('/api/knowledge/positions', {
-        params: { folder_id: selectedFolderId ?? 'null' },
+        params: { folder_id: selectedFolderId },
       });
       return res.data as { positions: PositionRow[] };
     },
+    enabled: selectedFolderId !== null,
   });
 
   const positions = positionsQuery.data?.positions ?? [];
@@ -93,10 +102,7 @@ export function PositionsPanel() {
     refreshTree();
   };
 
-  const selectedFolderName =
-    selectedFolderId === null
-      ? t('coaches.positions.rootFolder')
-      : folders.find(f => f.id === selectedFolderId)?.name ?? '';
+  const selectedFolderName = folders.find(f => f.id === selectedFolderId)?.name ?? '';
 
   return (
     <PanelShell title={t('coaches.navPositions')}>
@@ -114,17 +120,6 @@ export function PositionsPanel() {
               <FolderPlus className="w-4 h-4" />
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setSelectedFolderId(null)}
-            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm ${
-              selectedFolderId === null ? 'bg-slate-700 text-slate-100' : 'text-slate-300 hover:bg-slate-700/50'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span className="flex-1 text-left truncate">{t('coaches.positions.rootFolder')}</span>
-            <span className="text-xs text-slate-500">{rootCount}</span>
-          </button>
           {creating && (
             <FolderEditInput
               value={createDraft}
@@ -162,11 +157,17 @@ export function PositionsPanel() {
 
         {/* Positions list */}
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm text-slate-300">{selectedFolderName}</h2>
-            <span className="text-xs text-slate-500">{positions.length} {t(positions.length === 1 ? 'coaches.positions.position' : 'coaches.positions.positions')}</span>
-          </div>
-          {positionsQuery.isLoading ? (
+          {selectedFolderId !== null && (
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm text-slate-300">{selectedFolderName}</h2>
+              <span className="text-xs text-slate-500">{positions.length} {t(positions.length === 1 ? 'coaches.positions.position' : 'coaches.positions.positions')}</span>
+            </div>
+          )}
+          {selectedFolderId === null ? (
+            <div className="rounded-lg border border-dashed border-slate-700 py-12 text-center text-sm text-slate-500">
+              {t('coaches.positions.noFolderYet')}
+            </div>
+          ) : positionsQuery.isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
             </div>
