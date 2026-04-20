@@ -268,10 +268,10 @@ function FolderEditInput({ value, onChange, onSubmit, onCancel, placeholder, inl
           else if (e.key === 'Escape') onCancel();
         }}
         placeholder={placeholder}
-        className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-0.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
+        className="min-w-0 flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-0.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
       />
-      <button type="button" onMouseDown={e => e.preventDefault()} onClick={onSubmit} className="p-0.5 text-emerald-400 hover:text-emerald-300"><Check className="w-3.5 h-3.5" /></button>
-      <button type="button" onMouseDown={e => e.preventDefault()} onClick={onCancel} className="p-0.5 text-slate-500 hover:text-slate-200"><X className="w-3.5 h-3.5" /></button>
+      <button type="button" onMouseDown={e => e.preventDefault()} onClick={onSubmit} className="flex-shrink-0 p-0.5 text-emerald-400 hover:text-emerald-300"><Check className="w-3.5 h-3.5" /></button>
+      <button type="button" onMouseDown={e => e.preventDefault()} onClick={onCancel} className="flex-shrink-0 p-0.5 text-slate-500 hover:text-slate-200"><X className="w-3.5 h-3.5" /></button>
     </div>
   );
 }
