@@ -819,7 +819,7 @@ export function SchedulePanel() {
                             >
                               <div className="px-1.5 py-0.5">
                                 <div className="flex items-center gap-1">
-                                  <span className="text-xs font-semibold text-white truncate">
+                                  <span className="text-sm font-semibold text-white truncate">
                                     {l.student_name}
                                   </span>
                                   {l.meet_link && (
@@ -836,16 +836,16 @@ export function SchedulePanel() {
                                 </div>
                                 {height >= 40 && (
                                   <div>
-                                    <span className="text-[10px] text-white/70 tabular-nums">{timeStr}</span>
+                                    <span className="text-xs text-white/80 tabular-nums">{timeStr}</span>
                                     {studentTimeLabel && (
-                                      <span className="text-[10px] text-white/50 tabular-nums ml-1">
+                                      <span className="text-[11px] text-white/60 tabular-nums ml-1">
                                         ({studentTimeLabel})
                                       </span>
                                     )}
                                   </div>
                                 )}
                                 {height >= 56 && l.notes && (
-                                  <p className="text-[10px] text-white/60 line-clamp-1 mt-0.5">{l.notes}</p>
+                                  <p className="text-[11px] text-white/70 line-clamp-1 mt-0.5">{l.notes}</p>
                                 )}
                               </div>
                             </div>
