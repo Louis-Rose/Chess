@@ -158,9 +158,11 @@ export function PositionsPanel() {
         {/* Positions list */}
         <section className="space-y-3">
           {selectedFolderId !== null && (
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm text-slate-300">{selectedFolderName}</h2>
-              <span className="text-xs text-slate-500">{positions.length} {t(positions.length === 1 ? 'coaches.positions.position' : 'coaches.positions.positions')}</span>
+            <div className="relative">
+              <h2 className="text-xl font-bold text-slate-100 text-center capitalize">{selectedFolderName}</h2>
+              <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                {positions.length} {t(positions.length === 1 ? 'coaches.positions.position' : 'coaches.positions.positions')}
+              </span>
             </div>
           )}
           {selectedFolderId === null ? (
@@ -281,6 +283,7 @@ function PositionCard({ position, onDelete, refresh, t }: { position: PositionRo
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState(position.notes ?? '');
   const [homeworkOpen, setHomeworkOpen] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   useEffect(() => { setNotes(position.notes ?? ''); }, [position.notes]);
 
@@ -296,31 +299,29 @@ function PositionCard({ position, onDelete, refresh, t }: { position: PositionRo
   return (
     <li className="rounded-lg border border-slate-700 bg-slate-800/40 p-3 space-y-2">
       <div className="flex gap-3">
-        {position.crop_data_url ? (
-          <img src={position.crop_data_url} alt="" className="w-28 h-28 object-contain rounded border border-slate-600 shrink-0" />
-        ) : (
-          <div className="w-28 h-28 rounded border border-slate-600 bg-slate-900/40 shrink-0" />
-        )}
-        <div className="flex-1 min-w-0 space-y-1">
-          {hasPlayers && (
-            <div className="text-sm text-slate-200 truncate">
-              <span className="font-medium">{position.white_player || '—'}</span>
-              <span className="text-slate-500 mx-1.5">vs</span>
-              <span className="font-medium">{position.black_player || '—'}</span>
-            </div>
+        <button
+          type="button"
+          onClick={() => setZoomOpen(true)}
+          className="flex gap-3 flex-1 min-w-0 text-left"
+        >
+          {position.crop_data_url ? (
+            <img src={position.crop_data_url} alt="" className="w-28 h-28 object-contain rounded border border-slate-600 shrink-0" />
+          ) : (
+            <div className="w-28 h-28 rounded border border-slate-600 bg-slate-900/40 shrink-0" />
           )}
-          <div className="text-xs text-slate-400">{sideToMove}</div>
-          <div className="text-xs font-mono text-slate-500 break-all">{position.fen}</div>
-        </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            {hasPlayers && (
+              <div className="text-sm text-slate-200 truncate">
+                <span className="font-medium">{position.white_player || '—'}</span>
+                <span className="text-slate-500 mx-1.5">vs</span>
+                <span className="font-medium">{position.black_player || '—'}</span>
+              </div>
+            )}
+            <div className="text-xs text-slate-400">{sideToMove}</div>
+            <div className="text-xs font-mono text-slate-500 break-all">{position.fen}</div>
+          </div>
+        </button>
         <div className="flex flex-col gap-1 self-start">
-          <button
-            type="button"
-            onClick={() => setHomeworkOpen(true)}
-            className="p-1 text-slate-500 hover:text-blue-400"
-            title={t('coaches.positions.sendAsHomework')}
-          >
-            <Send className="w-4 h-4" />
-          </button>
           <button
             type="button"
             onClick={onDelete}
@@ -329,8 +330,25 @@ function PositionCard({ position, onDelete, refresh, t }: { position: PositionRo
           >
             <Trash2 className="w-4 h-4" />
           </button>
+          <button
+            type="button"
+            onClick={() => setHomeworkOpen(true)}
+            className="p-1 text-slate-500 hover:text-blue-400"
+            title={t('coaches.positions.sendAsHomework')}
+          >
+            <Send className="w-4 h-4" />
+          </button>
         </div>
       </div>
+      {zoomOpen && (
+        <PositionZoomModal
+          position={position}
+          onClose={() => setZoomOpen(false)}
+          onDelete={() => { setZoomOpen(false); onDelete(); }}
+          onSendHomework={() => { setZoomOpen(false); setHomeworkOpen(true); }}
+          t={t}
+        />
+      )}
       {homeworkOpen && (
         <SendHomeworkModal
           position={position}
@@ -365,6 +383,71 @@ interface StudentWithUser {
   id: number;
   student_name: string;
   linked_user_id: number | null;
+}
+
+function PositionZoomModal({ position, onClose, onDelete, onSendHomework, t }: {
+  position: PositionRow;
+  onClose: () => void;
+  onDelete: () => void;
+  onSendHomework: () => void;
+  t: (k: string) => string;
+}) {
+  const sideToMove = position.active_color === 'b' ? t('coaches.diagram.blackToPlay') : t('coaches.diagram.whiteToPlay');
+  const hasPlayers = !!(position.white_player || position.black_player);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-lg border border-slate-700 bg-slate-900 shadow-xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onDelete}
+              className="p-1 text-slate-500 hover:text-red-400"
+              title={t('coaches.positions.delete')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onSendHomework}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-blue-300 hover:text-blue-200 border border-blue-500/40 rounded hover:border-blue-400"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {t('coaches.positions.sendAsHomework')}
+            </button>
+          </div>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-200">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          {position.crop_data_url ? (
+            <img src={position.crop_data_url} alt="" className="w-full max-w-md mx-auto rounded border border-slate-600" />
+          ) : (
+            <div className="w-full max-w-md mx-auto aspect-square rounded border border-slate-600 bg-slate-800" />
+          )}
+          {hasPlayers && (
+            <div className="text-sm text-slate-200 text-center">
+              <span className="font-medium">{position.white_player || '—'}</span>
+              <span className="text-slate-500 mx-1.5">vs</span>
+              <span className="font-medium">{position.black_player || '—'}</span>
+            </div>
+          )}
+          <div className="text-xs text-slate-400 text-center">{sideToMove}</div>
+          <div className="text-xs font-mono text-slate-500 break-all bg-slate-800/60 rounded px-3 py-2">{position.fen}</div>
+          {position.notes && (
+            <div className="text-sm text-slate-200 whitespace-pre-wrap bg-slate-800/60 rounded px-3 py-2">{position.notes}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SendHomeworkModal({ position, onClose, t }: {
