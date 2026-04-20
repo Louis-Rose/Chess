@@ -59,8 +59,8 @@ function RoleSelectionView() {
               <Users className="w-8 h-8 sm:w-12 sm:h-12 text-blue-400" />
             </div>
             <p className="flex-1 sm:flex-none text-slate-100 font-semibold text-lg sm:text-xl">{t('coaches.roleSelection.coach')}</p>
-            {/* Invisible spacer to mirror the student tile's "Coming soon" line height (desktop only) */}
-            <p aria-hidden="true" className="hidden sm:block text-sm invisible">{t('coaches.comingSoon')}</p>
+            {/* Invisible spacer to mirror the student tile's hint line height (desktop only) */}
+            <p aria-hidden="true" className="hidden sm:block text-sm invisible">{t('coaches.roleSelection.studentHint')}</p>
           </button>
           <div
             aria-disabled="true"
@@ -71,7 +71,7 @@ function RoleSelectionView() {
             </div>
             <div className="flex-1 sm:flex-none flex flex-col sm:contents">
               <p className="text-slate-300 font-semibold text-lg sm:text-xl">{t('coaches.roleSelection.student')}</p>
-              <p className="text-slate-400 text-sm">{t('coaches.comingSoon')}</p>
+              <p className="text-slate-400 text-sm">{t('coaches.roleSelection.studentHint')}</p>
             </div>
           </div>
         </div>

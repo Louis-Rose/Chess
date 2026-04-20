@@ -328,6 +328,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.roleSelection.coach': "I'm a coach",
     'coaches.roleSelection.coachDesc': 'Manage students & lessons',
     'coaches.roleSelection.student': "I'm a student",
+    'coaches.roleSelection.studentHint': 'Ask your coach for an invite link',
 
     // Common
     'common.loading': 'Loading...',
@@ -652,6 +653,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.roleSelection.coach': 'Je suis entra\u00EEneur',
     'coaches.roleSelection.coachDesc': 'Gérer élèves & cours',
     'coaches.roleSelection.student': 'Je suis élève',
+    'coaches.roleSelection.studentHint': "Demande à ton coach un lien d'invitation",
 
     // Common
     'common.loading': 'Chargement...',
@@ -976,6 +978,7 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.roleSelection.coach': 'Soy entrenador',
     'coaches.roleSelection.coachDesc': 'Gestionar estudiantes y clases',
     'coaches.roleSelection.student': 'Soy estudiante',
+    'coaches.roleSelection.studentHint': 'Pide a tu entrenador un enlace de invitación',
 
     // Common
     'common.loading': 'Cargando...',
