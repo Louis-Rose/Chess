@@ -32,6 +32,10 @@ interface NewEventState {
   dayIdx: number;     // column index for positioning
 }
 
+type UndoAction =
+  | { kind: 'edit'; lessonId: number; prevScheduledAt: string; prevDuration: number }
+  | { kind: 'delete'; lessonId: number };
+
 function getMonday(d: Date): Date {
   const date = new Date(d);
   const day = date.getDay();
@@ -249,12 +253,13 @@ const STATUS_OPTIONS = [
   { value: 'tbd', icon: HelpCircle, label: 'coaches.lessons.status.tbd', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
 ] as const;
 
-function LessonDetailPopup({ lesson, locale, use24h, onClose, onUpdated }: {
+function LessonDetailPopup({ lesson, locale, use24h, onClose, onUpdated, onRecordUndo }: {
   lesson: ScheduleLesson;
   locale: string;
   use24h: boolean;
   onClose: () => void;
   onUpdated: () => void;
+  onRecordUndo: (action: UndoAction, toastText: string) => void;
 }) {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -308,6 +313,10 @@ function LessonDetailPopup({ lesson, locale, use24h, onClose, onUpdated }: {
         }),
       });
       if (res.ok) {
+        onRecordUndo(
+          { kind: 'edit', lessonId: lesson.id, prevScheduledAt: lesson.scheduled_at, prevDuration: lesson.duration_minutes },
+          t('coaches.calendar.lessonUpdated'),
+        );
         setEditing(false);
         onUpdated();
       }
@@ -333,7 +342,10 @@ function LessonDetailPopup({ lesson, locale, use24h, onClose, onUpdated }: {
   };
 
   const handleDelete = async () => {
-    await authFetch(`/api/coaches/lessons/${lesson.id}`, { method: 'DELETE' });
+    const res = await authFetch(`/api/coaches/lessons/${lesson.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      onRecordUndo({ kind: 'delete', lessonId: lesson.id }, t('coaches.calendar.lessonDeleted'));
+    }
     onClose();
     onUpdated();
   };
@@ -464,6 +476,9 @@ export function SchedulePanel() {
   const [newEvent, setNewEvent] = useState<NewEventState | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<ScheduleLesson | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const undoStackRef = useRef<UndoAction[]>([]);
+  const [toast, setToast] = useState<{ text: string; canUndo: boolean; key: number } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
 
   const fetchSchedule = useCallback(async () => {
     setLoading(true);
@@ -476,6 +491,57 @@ export function SchedulePanel() {
     }
     setLoading(false);
   }, [weekStart]);
+
+  const showToast = useCallback((text: string, canUndo: boolean) => {
+    setToast({ text, canUndo, key: Date.now() });
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 5000);
+  }, []);
+
+  const recordUndo = useCallback((action: UndoAction, toastText: string) => {
+    undoStackRef.current.push(action);
+    if (undoStackRef.current.length > 20) undoStackRef.current.shift();
+    showToast(toastText, true);
+  }, [showToast]);
+
+  const performUndo = useCallback(async () => {
+    const action = undoStackRef.current.pop();
+    if (!action) return;
+    try {
+      if (action.kind === 'edit') {
+        await authFetch(`/api/coaches/lessons/${action.lessonId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scheduled_at: action.prevScheduledAt,
+            duration_minutes: action.prevDuration,
+          }),
+        });
+      } else {
+        await authFetch(`/api/coaches/lessons/${action.lessonId}/restore`, { method: 'POST' });
+      }
+      showToast(t('coaches.calendar.undone'), false);
+      fetchSchedule();
+    } catch {
+      /* silently swallow — UI state will refetch */
+    }
+  }, [fetchSchedule, showToast, t]);
+
+  // Cmd/Ctrl+Z → undo most recent edit or delete. Skip when typing in a field.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isUndo = (e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z';
+      if (!isUndo) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      e.preventDefault();
+      performUndo();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [performUndo]);
 
   useEffect(() => { fetchSchedule(); }, [fetchSchedule]);
 
@@ -669,6 +735,7 @@ export function SchedulePanel() {
                       use24h={use24h}
                       onClose={() => setSelectedLesson(null)}
                       onUpdated={fetchSchedule}
+                      onRecordUndo={recordUndo}
                     />
                   )}
 
@@ -765,6 +832,24 @@ export function SchedulePanel() {
           </>
         )}
       </div>
+
+      {/* Undo toast — stays bottom-left, ⌘Z also undoes */}
+      {toast && (
+        <div
+          key={toast.key}
+          className="fixed bottom-6 left-6 z-50 flex items-center gap-3 px-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200"
+        >
+          <span className="text-sm text-slate-100">{toast.text}</span>
+          {toast.canUndo && (
+            <button
+              onClick={performUndo}
+              className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              {t('coaches.calendar.undo')}
+            </button>
+          )}
+        </div>
+      )}
     </PanelShell>
   );
 }

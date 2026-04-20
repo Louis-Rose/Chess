@@ -169,6 +169,7 @@ CREATE TABLE IF NOT EXISTS coach_lessons (
     pack_id INTEGER REFERENCES coach_packs(id) ON DELETE SET NULL,
     notes TEXT,
     meet_link TEXT,
+    deleted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -212,6 +212,11 @@ def init_db():
             conn.execute("ALTER TABLE coach_lessons ADD COLUMN meet_link TEXT")
             logger.info("Added meet_link column to coach_lessons")
 
+        # Migration: Add deleted_at for soft-delete (undoable lesson deletion)
+        if not _column_exists(conn, 'coach_lessons', 'deleted_at'):
+            conn.execute("ALTER TABLE coach_lessons ADD COLUMN deleted_at TIMESTAMP")
+            logger.info("Added deleted_at column to coach_lessons")
+
         # Migration: Add google_calendar_refresh_token to users
         if not _column_exists(conn, 'users', 'google_calendar_refresh_token'):
             conn.execute("ALTER TABLE users ADD COLUMN google_calendar_refresh_token TEXT")

@@ -798,7 +798,7 @@ def student_dashboard():
             SELECT p.id, p.total_lessons, p.price, p.currency, p.source, p.status, p.created_at,
                    COUNT(CASE WHEN l.status = 'completed' THEN 1 END) AS consumed
             FROM coach_packs p
-            LEFT JOIN coach_lessons l ON l.pack_id = p.id
+            LEFT JOIN coach_lessons l ON l.pack_id = p.id AND l.deleted_at IS NULL
             WHERE p.student_id = ? AND p.status = 'active'
             GROUP BY p.id
             ORDER BY p.created_at DESC
@@ -808,7 +808,7 @@ def student_dashboard():
         lessons = conn.execute('''
             SELECT id, scheduled_at, duration_minutes, status, created_at
             FROM coach_lessons
-            WHERE student_id = ?
+            WHERE student_id = ? AND deleted_at IS NULL
             ORDER BY scheduled_at DESC
             LIMIT 20
         ''', (student['id'],)).fetchall()

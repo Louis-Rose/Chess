@@ -1156,7 +1156,7 @@ def get_student_detail(student_id):
 
         lessons = conn.execute('''
             SELECT id, scheduled_at, duration_minutes, status, notes, meet_link, pack_id, created_at
-            FROM coach_lessons WHERE student_id = ?
+            FROM coach_lessons WHERE student_id = ? AND deleted_at IS NULL
             ORDER BY scheduled_at DESC
         ''', (student_id,)).fetchall()
 
@@ -1222,7 +1222,7 @@ def update_lesson(lesson_id):
         lesson = conn.execute('''
             SELECT cl.id, cs.coach_user_id FROM coach_lessons cl
             JOIN coach_students cs ON cl.student_id = cs.id
-            WHERE cl.id = ?
+            WHERE cl.id = ? AND cl.deleted_at IS NULL
         ''', (lesson_id,)).fetchone()
         if not lesson or lesson['coach_user_id'] != request.user_id:
             return jsonify({'error': 'Lesson not found'}), 404
@@ -1254,7 +1254,8 @@ def update_lesson(lesson_id):
 @coaches_bp.route('/api/coaches/lessons/<int:lesson_id>', methods=['DELETE'])
 @login_required
 def delete_lesson(lesson_id):
-    """Delete a lesson."""
+    """Soft-delete a lesson so it can be restored via ⌘Z / the restore endpoint.
+    Keeps the row (and any external link, e.g. Google Meet event id) intact."""
     with get_db() as conn:
         lesson = conn.execute('''
             SELECT cl.id, cs.coach_user_id FROM coach_lessons cl
@@ -1263,7 +1264,26 @@ def delete_lesson(lesson_id):
         ''', (lesson_id,)).fetchone()
         if not lesson or lesson['coach_user_id'] != request.user_id:
             return jsonify({'error': 'Lesson not found'}), 404
-        conn.execute('DELETE FROM coach_lessons WHERE id = ?', (lesson_id,))
+        conn.execute(
+            'UPDATE coach_lessons SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (lesson_id,),
+        )
+    return jsonify({'success': True})
+
+
+@coaches_bp.route('/api/coaches/lessons/<int:lesson_id>/restore', methods=['POST'])
+@login_required
+def restore_lesson(lesson_id):
+    """Undo a soft-delete. Keeps the original id (and meet_link)."""
+    with get_db() as conn:
+        lesson = conn.execute('''
+            SELECT cl.id, cs.coach_user_id FROM coach_lessons cl
+            JOIN coach_students cs ON cl.student_id = cs.id
+            WHERE cl.id = ?
+        ''', (lesson_id,)).fetchone()
+        if not lesson or lesson['coach_user_id'] != request.user_id:
+            return jsonify({'error': 'Lesson not found'}), 404
+        conn.execute('UPDATE coach_lessons SET deleted_at = NULL WHERE id = ?', (lesson_id,))
     return jsonify({'success': True})
 
 
@@ -1287,6 +1307,7 @@ def get_coach_schedule():
             FROM coach_lessons cl
             JOIN coach_students cs ON cl.student_id = cs.id
             WHERE cs.coach_user_id = ?
+              AND cl.deleted_at IS NULL
               AND cl.scheduled_at >= ?
               AND cl.scheduled_at < ?
             ORDER BY cl.scheduled_at
@@ -1483,7 +1504,7 @@ def get_coach_packs():
                    COUNT(CASE WHEN l.status = 'completed' THEN 1 END) AS consumed
             FROM coach_packs p
             JOIN coach_students s ON p.student_id = s.id
-            LEFT JOIN coach_lessons l ON l.pack_id = p.id
+            LEFT JOIN coach_lessons l ON l.pack_id = p.id AND l.deleted_at IS NULL
             WHERE s.coach_user_id = ?
         '''
         params = [request.user_id]
@@ -1723,7 +1744,7 @@ def get_onboarding_status():
         lesson = conn.execute('''
             SELECT cl.id FROM coach_lessons cl
             JOIN coach_students cs ON cl.student_id = cs.id
-            WHERE cs.coach_user_id = ? LIMIT 1
+            WHERE cs.coach_user_id = ? AND cl.deleted_at IS NULL LIMIT 1
         ''', (request.user_id,)).fetchone()
         has_lessons = bool(lesson)
 

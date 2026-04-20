@@ -181,6 +181,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.editLesson': 'Edit lesson',
     'coaches.calendar.deleteLesson': 'Delete lesson',
     'coaches.calendar.cancel': 'Cancel',
+    'coaches.calendar.lessonDeleted': 'Lesson deleted',
+    'coaches.calendar.lessonUpdated': 'Lesson updated',
+    'coaches.calendar.undo': 'Undo',
+    'coaches.calendar.undone': 'Undone',
     // Packs
     'coaches.packs.title': 'Lesson Packs',
     'coaches.packs.empty': 'No packs yet. Create one from a student\'s page or use the button above.',
@@ -472,6 +476,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.editLesson': 'Modifier le cours',
     'coaches.calendar.deleteLesson': 'Supprimer le cours',
     'coaches.calendar.cancel': 'Annuler',
+    'coaches.calendar.lessonDeleted': 'Cours supprimé',
+    'coaches.calendar.lessonUpdated': 'Cours modifié',
+    'coaches.calendar.undo': 'Annuler',
+    'coaches.calendar.undone': 'Annulé',
     // Packs
     'coaches.packs.title': 'Forfaits de cours',
     'coaches.packs.empty': 'Aucun forfait pour le moment. Créez-en un depuis la page d\'un élève ou via le bouton ci-dessus.',
@@ -763,6 +771,10 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.editLesson': 'Editar clase',
     'coaches.calendar.deleteLesson': 'Eliminar clase',
     'coaches.calendar.cancel': 'Cancelar',
+    'coaches.calendar.lessonDeleted': 'Clase eliminada',
+    'coaches.calendar.lessonUpdated': 'Clase actualizada',
+    'coaches.calendar.undo': 'Deshacer',
+    'coaches.calendar.undone': 'Deshecho',
     // Packs
     'coaches.packs.title': 'Paquetes de clases',
     'coaches.packs.empty': 'Aún no hay paquetes. Crea uno desde la página de un estudiante o con el botón de arriba.',
