@@ -1,21 +1,15 @@
 // Root app with routing
 
 import { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
-import posthog from 'posthog-js';
+import { Routes, Route } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
 
 function App() {
-  const location = useLocation();
   const { user } = useAuth();
   const { language, setLanguage } = useLanguage();
-
-  useEffect(() => {
-    posthog.capture('$pageview');
-  }, [location.pathname]);
 
   // Hydrate language from the server for returning users (page refresh with
   // valid session). On a fresh login, login() already sends the pre-login

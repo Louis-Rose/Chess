@@ -27,7 +27,10 @@ const posthogOptions = {
   person_profiles: 'identified_only' as const,
   session_idle_timeout_seconds: 600,
   enable_recording_console_log: false,
-  capture_pageview: false,
+  // Auto-capture $pageview on SPA route changes (pushState / popstate).
+  // Also gives rrweb a clean segment boundary so session replays don't
+  // stack DOM from two routes on top of each other.
+  capture_pageview: 'history_change' as const,
   capture_pageleave: true,
   session_recording: {
     maskAllInputs: false,
