@@ -507,8 +507,10 @@ export function SchedulePanel() {
   const [toast, setToast] = useState<{ text: string; canUndo: boolean; key: number } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
 
+  const hasLoadedRef = useRef(false);
   const fetchSchedule = useCallback(async () => {
-    setLoading(true);
+    // Only show the full-screen spinner on first paint. After that we refetch
+    // in place so create/edit/delete don't unmount the whole grid (flicker).
     const start = fmtDate(weekStart);
     const end = fmtDate(addDays(weekStart, 7));
     const res = await authFetch(`/api/coaches/schedule?start=${start}&end=${end}`);
@@ -516,7 +518,10 @@ export function SchedulePanel() {
       const data = await res.json();
       setLessons(data.lessons);
     }
-    setLoading(false);
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      setLoading(false);
+    }
   }, [weekStart]);
 
   const showToast = useCallback((text: string, canUndo: boolean) => {
