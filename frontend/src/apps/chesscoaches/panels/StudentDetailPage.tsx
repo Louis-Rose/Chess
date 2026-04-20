@@ -328,8 +328,12 @@ function InviteButton({ studentId, studentName, studentEmail }: { studentId: num
     <>
       <button
         onClick={openModal}
-        className="flex items-center gap-1.5 px-3 py-1.5 border border-purple-500/30 bg-purple-500/10 text-purple-400 text-xs rounded-lg transition-colors hover:bg-purple-500/20"
+        className="relative flex items-center gap-1.5 px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-purple-600/30 transition-colors animate-in fade-in duration-300"
       >
+        <span className="absolute -top-1 -right-1 flex w-2.5 h-2.5">
+          <span className="animate-ping absolute inline-flex w-full h-full rounded-full bg-purple-400 opacity-75" />
+          <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-purple-400" />
+        </span>
         <Link className="w-3.5 h-3.5" />
         {t('coaches.students.inviteToPlatform')}
       </button>
