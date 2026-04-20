@@ -269,8 +269,9 @@ const STATUS_OPTIONS = [
   { value: 'tbd', icon: HelpCircle, label: 'coaches.lessons.status.tbd', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
 ] as const;
 
-function LessonDetailPopup({ lesson, locale, use24h, onClose, onUpdated, onRecordUndo }: {
+function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated, onRecordUndo }: {
   lesson: ScheduleLesson;
+  dayIdx: number;
   locale: string;
   use24h: boolean;
   onClose: () => void;
@@ -366,14 +367,24 @@ function LessonDetailPopup({ lesson, locale, use24h, onClose, onUpdated, onRecor
     onUpdated();
   };
 
-  // Position near the lesson block
+  // Position next to the clicked lesson block (left / right depending on
+  // which half of the week it's in), mirroring CreateEventPopup and Google
+  // Calendar's detail panel.
   const startH = d.getHours() + d.getMinutes() / 60;
-  const top = Math.min((startH - START_HOUR) * HOUR_HEIGHT, TOTAL_HOURS * HOUR_HEIGHT - 280);
+  const top = Math.max(0, Math.min((startH - START_HOUR) * HOUR_HEIGHT - 8, TOTAL_HOURS * HOUR_HEIGHT - 280));
+  const colWidthPct = 100 / 7;
+  const dayLeftPct = dayIdx * colWidthPct;
+  const placeRight = dayIdx < 4;
 
   return (
     <div ref={popupRef}
       className="absolute z-30 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl w-72 animate-in fade-in zoom-in-95 duration-150"
-      style={{ left: '50%', transform: 'translateX(-50%)', top }}
+      style={{
+        left: placeRight
+          ? `calc(${dayLeftPct + colWidthPct}% + 8px)`
+          : `calc(${dayLeftPct}% - 288px - 8px)`,
+        top,
+      }}
       onClick={e => e.stopPropagation()}
     >
       <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -744,15 +755,22 @@ export function SchedulePanel() {
                   )}
 
                   {/* Lesson detail popup */}
-                  {selectedLesson && (
-                    <LessonDetailPopup
-                      lesson={selectedLesson}
-                      locale={locale}
-                      use24h={use24h}
-                      onClose={() => setSelectedLesson(null)}
-                      onUpdated={fetchSchedule}
-                      onRecordUndo={recordUndo}
-                    />
+                  {selectedLesson && (() => {
+                    const lessonKey = new Date(selectedLesson.scheduled_at);
+                    const lessonDateKey = `${lessonKey.getFullYear()}-${String(lessonKey.getMonth() + 1).padStart(2, '0')}-${String(lessonKey.getDate()).padStart(2, '0')}`;
+                    const dayIdx = Math.max(0, days.findIndex(day => fmtDate(day) === lessonDateKey));
+                    return (
+                      <LessonDetailPopup
+                        lesson={selectedLesson}
+                        dayIdx={dayIdx}
+                        locale={locale}
+                        use24h={use24h}
+                        onClose={() => setSelectedLesson(null)}
+                        onUpdated={fetchSchedule}
+                        onRecordUndo={recordUndo}
+                      />
+                    );
+                  })()}
                   )}
 
                   {days.map((day, dayIdx) => {
