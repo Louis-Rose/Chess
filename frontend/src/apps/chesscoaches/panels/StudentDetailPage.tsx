@@ -323,7 +323,7 @@ function InviteButton({ studentId, studentName, studentEmail }: { studentId: num
             </div>
             <div className="p-4 space-y-3">
               {!studentEmail ? (
-                <p className="text-sm text-amber-400">{t('coaches.students.inviteNoEmail')}</p>
+                <p className="text-sm text-red-400">{t('coaches.students.inviteNoEmail')}</p>
               ) : (
                 <>
                   <p className="text-xs text-slate-400">
