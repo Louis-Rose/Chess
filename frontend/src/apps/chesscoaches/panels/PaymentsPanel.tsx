@@ -36,6 +36,7 @@ interface UnpaidLesson {
   student_id: number;
   student_name: string;
   student_currency: string | null;
+  linked_user_id: number | null;
 }
 
 interface Student {
@@ -297,6 +298,31 @@ export function PaymentsPanel() {
     fetchUnpaid();
   };
 
+  const [remindedIds, setRemindedIds] = useState<Set<number>>(new Set());
+  const sendReminder = async (lesson: UnpaidLesson) => {
+    if (!lesson.linked_user_id) return;
+    const d = new Date(lesson.scheduled_at);
+    const dateStr = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    const content = t('coaches.payments.reminderTemplate')
+      .replace('{name}', lesson.student_name)
+      .replace('{date}', dateStr);
+    const res = await authFetch(`/api/messages/${lesson.linked_user_id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    if (res.ok) {
+      setRemindedIds(prev => new Set(prev).add(lesson.id));
+      window.setTimeout(() => {
+        setRemindedIds(prev => {
+          const next = new Set(prev);
+          next.delete(lesson.id);
+          return next;
+        });
+      }, 3000);
+    }
+  };
+
   const fetchStudents = useCallback(async () => {
     try {
       const res = await authFetch('/api/coaches/students');
@@ -383,14 +409,20 @@ export function PaymentsPanel() {
                 const d = new Date(l.scheduled_at);
                 const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
                 const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                const reminded = remindedIds.has(l.id);
+                const canRemind = !!l.linked_user_id;
                 return (
-                  <div key={l.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <button
-                      onClick={() => navigate(`/students/${l.student_id}`)}
-                      className="text-sm font-medium text-slate-100 hover:text-blue-400 transition-colors truncate"
-                    >
+                  <div
+                    key={l.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/students/${l.student_id}`)}
+                    onKeyDown={e => { if (e.key === 'Enter') navigate(`/students/${l.student_id}`); }}
+                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-700/40 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-slate-100 truncate">
                       {l.student_name}
-                    </button>
+                    </span>
                     <span className="text-xs text-slate-400 capitalize tabular-nums">
                       {dateStr} {timeStr}
                     </span>
@@ -398,8 +430,22 @@ export function PaymentsPanel() {
                       {l.duration_minutes}min
                     </span>
                     <button
-                      onClick={() => markLessonPaid(l.id)}
-                      className="ml-auto px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                      onClick={e => { e.stopPropagation(); if (canRemind) sendReminder(l); }}
+                      disabled={!canRemind || reminded}
+                      title={canRemind ? undefined : t('coaches.payments.reminderNoAccount')}
+                      className={`ml-auto px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
+                        reminded
+                          ? 'bg-emerald-500/15 text-emerald-400 cursor-default'
+                          : canRemind
+                            ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                            : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                      }`}
+                    >
+                      {reminded ? t('coaches.payments.reminderSent') : t('coaches.payments.remind')}
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); markLessonPaid(l.id); }}
+                      className="px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
                     >
                       {t('coaches.payments.markPaid')}
                     </button>

@@ -1325,7 +1325,8 @@ def get_unpaid_lessons():
     with get_db() as conn:
         rows = conn.execute('''
             SELECT cl.id, cl.scheduled_at, cl.duration_minutes,
-                   cs.id AS student_id, cs.student_name, cs.currency AS student_currency
+                   cs.id AS student_id, cs.student_name, cs.currency AS student_currency,
+                   cs.linked_user_id
             FROM coach_lessons cl
             JOIN coach_students cs ON cl.student_id = cs.id
             WHERE cs.coach_user_id = ?
