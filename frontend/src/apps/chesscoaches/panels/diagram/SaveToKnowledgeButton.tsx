@@ -118,10 +118,10 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
                     <button
                       type="button"
                       onClick={() => { setCreatingFolder(true); setNewFolderName(''); }}
-                      className="p-1.5 text-slate-300 hover:text-slate-100 border border-slate-600 rounded hover:border-slate-500"
-                      title={t('coaches.positions.newFolder')}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-200 hover:text-white border border-slate-600 rounded hover:border-slate-500 whitespace-nowrap"
                     >
                       <FolderPlus className="w-4 h-4" />
+                      <span>{t('coaches.positions.createNewFolder')}</span>
                     </button>
                   </div>
                 )}
