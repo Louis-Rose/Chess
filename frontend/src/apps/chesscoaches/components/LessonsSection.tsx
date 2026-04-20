@@ -1,8 +1,7 @@
 // Lessons section — upcoming + past lessons with expandable cards
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Clock, ChevronDown, ChevronRight, Video, ExternalLink, Check, Trash2 } from 'lucide-react';
+import { Clock, ChevronDown, ChevronRight, Video, ExternalLink, Check, Trash2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 
@@ -18,33 +17,18 @@ export interface Lesson {
 
 const PAST_STATUSES = ['done', 'cancelled', 'tbd'] as const;
 
-export function LessonsSection({ studentId, upcoming, past, onRefresh }: {
-  studentId: number;
+export function LessonsSection({ upcoming, past, onRefresh }: {
   upcoming: Lesson[];
   past: Lesson[];
   onRefresh: () => void;
 }) {
   const { t } = useLanguage();
-  const navigate = useNavigate();
-
-  // Single source of truth for lesson creation: jump to the calendar with
-  // this student pre-selected on the new-event popup.
-  const handleAdd = () => navigate('/calendar', { state: { preselectStudentId: studentId } });
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
-          {t('coaches.lessons.title')}
-        </h2>
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          {t('coaches.lessons.add')}
-        </button>
-      </div>
+      <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+        {t('coaches.lessons.title')}
+      </h2>
 
       {upcoming.length > 0 && (
         <div className="space-y-2">

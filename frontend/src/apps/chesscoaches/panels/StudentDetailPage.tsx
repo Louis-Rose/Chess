@@ -230,7 +230,7 @@ export function StudentDetailPage() {
           );
         })}
 
-        <LessonsSection studentId={student.id} upcoming={upcoming} past={past} onRefresh={fetchStudent} />
+        <LessonsSection upcoming={upcoming} past={past} onRefresh={fetchStudent} />
 
         {/* Delete student */}
         {!editing && (
