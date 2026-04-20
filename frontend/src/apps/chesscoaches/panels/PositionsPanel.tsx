@@ -109,17 +109,24 @@ export function PositionsPanel() {
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
         {/* Flat folder list */}
         <aside className="rounded-lg border border-slate-700 bg-slate-800/40 p-2 h-fit">
-          <div className="flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center mb-2 px-1">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('coaches.positions.folders')}</h3>
-            <button
-              type="button"
-              onClick={() => { setCreating(true); setCreateDraft(''); }}
-              className="p-1 rounded hover:bg-slate-700/50 text-slate-300"
-              title={t('coaches.positions.newFolder')}
-            >
-              <FolderPlus className="w-4 h-4" />
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setCreating(prev => !prev);
+              setCreateDraft('');
+            }}
+            className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-xs rounded border transition-colors mb-1 ${
+              creating
+                ? 'bg-slate-700 border-slate-500 text-white'
+                : 'border-slate-600 text-slate-200 hover:text-white hover:border-slate-500'
+            }`}
+          >
+            <FolderPlus className="w-4 h-4" />
+            <span>{t('coaches.positions.createNewFolder')}</span>
+          </button>
           {creating && (
             <FolderEditInput
               value={createDraft}
