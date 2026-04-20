@@ -28,12 +28,8 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
       .then(r => {
         const list = (r.data.folders ?? []) as KnowledgeFolder[];
         setFolders(list);
-        // Auto-pick the first folder; if the user has none, keep folderId=null
-        // and surface the inline "+ New folder" input immediately.
         if (list.length > 0) {
           setFolderId(prev => prev ?? list[0].id);
-        } else {
-          setCreatingFolder(true);
         }
       })
       .finally(() => setLoadingFolders(false));
@@ -117,8 +113,15 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
                     </select>
                     <button
                       type="button"
-                      onClick={() => { setCreatingFolder(true); setNewFolderName(''); }}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-200 hover:text-white border border-slate-600 rounded hover:border-slate-500 whitespace-nowrap"
+                      onClick={() => {
+                        setCreatingFolder(prev => !prev);
+                        setNewFolderName('');
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs border rounded whitespace-nowrap ${
+                        creatingFolder
+                          ? 'bg-slate-700 border-slate-500 text-white'
+                          : 'text-slate-200 hover:text-white border-slate-600 hover:border-slate-500'
+                      }`}
                     >
                       <FolderPlus className="w-4 h-4" />
                       <span>{t('coaches.positions.createNewFolder')}</span>
