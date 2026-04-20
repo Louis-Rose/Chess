@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon, Check, Ban, HelpCircle, ExternalLink, Trash2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
+import { TimeSelect } from '../components/TimeSelect';
 import { authFetch } from '../utils/authFetch';
 
 interface ScheduleLesson {
@@ -63,17 +64,31 @@ const TOTAL_HOURS = END_HOUR - START_HOUR;
 
 // ── Create Event Popup ──
 
-function CreateEventPopup({ event, students, locale, onClose, onCreated }: {
+function addMinutes(hhmm: string, delta: number): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const total = ((h * 60 + m + delta) % (24 * 60) + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function minutesBetween(startHHMM: string, endHHMM: string): number {
+  const [sh, sm] = startHHMM.split(':').map(Number);
+  const [eh, em] = endHHMM.split(':').map(Number);
+  return (eh * 60 + em) - (sh * 60 + sm);
+}
+
+function CreateEventPopup({ event, students, locale, use24h, onClose, onCreated }: {
   event: NewEventState;
   students: StudentOption[];
   locale: string;
+  use24h: boolean;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const { t } = useLanguage();
   const [studentId, setStudentId] = useState<number | ''>('');
-  const [time, setTime] = useState(`${String(event.hour).padStart(2, '0')}:${String(event.minute).padStart(2, '0')}`);
-  const [duration, setDuration] = useState('60');
+  const initialStart = `${String(event.hour).padStart(2, '0')}:${String(event.minute).padStart(2, '0')}`;
+  const [startTime, setStartTime] = useState(initialStart);
+  const [endTime, setEndTime] = useState(addMinutes(initialStart, 60));
   const [createMeet, setCreateMeet] = useState(false);
   const [calendarConnected, setCalendarConnected] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
@@ -94,20 +109,27 @@ function CreateEventPopup({ event, students, locale, onClose, onCreated }: {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  const d = new Date(`${event.date}T${time}:00`);
+  // Shift end by the same delta so duration is preserved, Google-Meet-style.
+  const handleStartChange = (next: string) => {
+    const duration = minutesBetween(startTime, endTime);
+    setStartTime(next);
+    setEndTime(addMinutes(next, duration > 0 ? duration : 60));
+  };
+
+  const d = new Date(`${event.date}T${startTime}:00`);
   const dateLabel = d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
-  const endTime = new Date(d.getTime() + parseInt(duration) * 60000);
-  const timeRange = `${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} – ${endTime.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
+  const duration = minutesBetween(startTime, endTime);
+  const validDuration = duration > 0;
 
   const handleSave = async () => {
-    if (!studentId || saving) return;
+    if (!studentId || saving || !validDuration) return;
     setSaving(true);
     try {
-      const scheduled_at = `${event.date}T${time}:00`;
+      const scheduled_at = `${event.date}T${startTime}:00`;
       const res = await authFetch(`/api/coaches/students/${studentId}/lessons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduled_at, duration_minutes: parseInt(duration), create_meet: createMeet }),
+        body: JSON.stringify({ scheduled_at, duration_minutes: duration, create_meet: createMeet }),
       });
       if (res.ok) {
         onCreated();
@@ -157,22 +179,11 @@ function CreateEventPopup({ event, students, locale, onClose, onCreated }: {
           <div className="flex-1">
             <p className="text-sm text-slate-200 capitalize">{dateLabel}</p>
             <div className="flex items-center gap-2 mt-1">
-              <input type="time" value={time} onChange={e => setTime(e.target.value)}
-                className="bg-slate-700 text-slate-100 text-xs rounded px-2 py-1 border border-slate-600 focus:border-blue-500 focus:outline-none w-24" />
+              <TimeSelect value={startTime} onChange={handleStartChange} use24h={use24h} />
               <span className="text-slate-500 text-xs">–</span>
-              <span className="text-xs text-slate-400">{timeRange.split('–')[1]?.trim()}</span>
+              <TimeSelect value={endTime} onChange={setEndTime} use24h={use24h} />
             </div>
           </div>
-        </div>
-
-        {/* Duration */}
-        <div className="flex items-center gap-2.5 pl-6">
-          <select value={duration} onChange={e => setDuration(e.target.value)}
-            className="bg-slate-700 text-slate-100 text-xs rounded-lg px-2.5 py-1.5 border border-slate-600 focus:border-blue-500 focus:outline-none">
-            <option value="60">1 hour</option>
-            <option value="90">1h30</option>
-            <option value="120">2 hours</option>
-          </select>
         </div>
 
         {/* Google Meet */}
@@ -189,7 +200,7 @@ function CreateEventPopup({ event, students, locale, onClose, onCreated }: {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 pt-1">
-          <button onClick={handleSave} disabled={!studentId || saving}
+          <button onClick={handleSave} disabled={!studentId || saving || !validDuration}
             className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors">
             {saving ? '...' : t('coaches.calendar.save')}
           </button>
@@ -381,6 +392,7 @@ export function SchedulePanel() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const locale = language === 'fr' ? 'fr-FR' : language === 'es' ? 'es-ES' : 'en-US';
+  const use24h = language === 'fr' || language === 'es';
   const weekLabel = `${weekStart.toLocaleDateString(locale, { month: 'long', day: 'numeric' })} — ${addDays(weekStart, 6).toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
   // Group lessons by day key
@@ -478,7 +490,6 @@ export function SchedulePanel() {
                 <div className="w-14 flex-shrink-0 relative">
                   {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => {
                     const h = START_HOUR + i;
-                    const use24h = language === 'fr' || language === 'es';
                     const label = use24h
                       ? `${String(h).padStart(2, '0')}:00`
                       : `${h % 12 === 0 ? 12 : h % 12} ${h < 12 ? 'AM' : 'PM'}`;
@@ -535,6 +546,7 @@ export function SchedulePanel() {
                       event={newEvent}
                       students={students}
                       locale={locale}
+                      use24h={use24h}
                       onClose={() => setNewEvent(null)}
                       onCreated={fetchSchedule}
                     />
