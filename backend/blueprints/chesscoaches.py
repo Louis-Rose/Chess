@@ -214,43 +214,33 @@ _avg_cache: dict = {}
 _AVG_CACHE_TTL = 120  # seconds
 
 
-def _get_model_avg_elapsed(feature, user_id=None):
-    """Get average elapsed seconds per model for a given feature (rounded up),
-    optionally filtered by user. Results are cached for 2 minutes per
-    (user_id, feature) key."""
+def _get_model_avg_elapsed(feature):
+    """Global average elapsed seconds per model for a feature (rounded up),
+    cached for 2 minutes. Everyone sees the same estimate so first-time
+    users aren't left without one."""
     global _avg_cache
     now = time_module.time()
-    key = (user_id, feature)
-    cached = _avg_cache.get(key)
+    cached = _avg_cache.get(feature)
     if cached is not None and (now - cached[0]) <= _AVG_CACHE_TTL:
         return cached[1]
     try:
         with get_db() as conn:
-            if user_id:
-                rows = conn.execute(
-                    """SELECT model_id, AVG(elapsed_seconds) as avg_elapsed
-                       FROM api_usage
-                       WHERE feature = ? AND error IS NULL AND elapsed_seconds > 0 AND user_id = ?
-                       GROUP BY model_id""",
-                    (feature, user_id)
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    """SELECT model_id, AVG(elapsed_seconds) as avg_elapsed
-                       FROM api_usage
-                       WHERE feature = ? AND error IS NULL AND elapsed_seconds > 0
-                       GROUP BY model_id""",
-                    (feature,)
-                ).fetchall()
+            rows = conn.execute(
+                """SELECT model_id, AVG(elapsed_seconds) as avg_elapsed
+                   FROM api_usage
+                   WHERE feature = ? AND error IS NULL AND elapsed_seconds > 0
+                   GROUP BY model_id""",
+                (feature,)
+            ).fetchall()
             result = {r['model_id']: int(math.ceil(r['avg_elapsed'])) for r in rows}
-            _avg_cache[key] = (now, result)
+            _avg_cache[feature] = (now, result)
             return result
     except Exception:
         return {}
 
-def _enrich_models_with_avg(feature, user_id=None):
+def _enrich_models_with_avg(feature):
     """Return model list with avg_elapsed field added for the given feature."""
-    avgs = _get_model_avg_elapsed(feature, user_id)
+    avgs = _get_model_avg_elapsed(feature)
     models = DIAGRAM_MODELS if feature == 'diagram' else []
     return [{**m, "avg_elapsed": avgs.get(m["id"])} for m in models]
 
@@ -1047,7 +1037,7 @@ def read_diagram():
     t.start()
 
     return _sse_response(result_queue, [t], 1,
-                         {'type': 'models', 'models': _enrich_models_with_avg('diagram', uid)}, 'Diagram')
+                         {'type': 'models', 'models': _enrich_models_with_avg('diagram')}, 'Diagram')
 
 
 # ── Coach Students Management ──
