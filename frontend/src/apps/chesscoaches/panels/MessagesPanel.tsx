@@ -390,7 +390,6 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
                             {position.notes && (
                               <p className="text-xs text-slate-200 whitespace-pre-wrap">{position.notes}</p>
                             )}
-                            <div className="text-[10px] font-mono text-slate-500 break-all">{position.fen}</div>
                           </div>
                         </div>
                       ) : (

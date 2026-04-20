@@ -309,10 +309,10 @@ function PositionCard({ position, onDelete, refresh, t }: { position: PositionRo
         <button
           type="button"
           onClick={() => setZoomOpen(true)}
-          className="flex gap-3 flex-1 min-w-0 text-left"
+          className="flex gap-3 flex-1 min-w-0 text-left cursor-pointer group"
         >
           {position.crop_data_url ? (
-            <img src={position.crop_data_url} alt="" className="w-28 h-28 object-contain rounded border border-slate-600 shrink-0" />
+            <img src={position.crop_data_url} alt="" className="w-28 h-28 object-contain rounded border border-slate-600 shrink-0 group-hover:border-slate-500 transition-colors" />
           ) : (
             <div className="w-28 h-28 rounded border border-slate-600 bg-slate-900/40 shrink-0" />
           )}
@@ -325,7 +325,6 @@ function PositionCard({ position, onDelete, refresh, t }: { position: PositionRo
               </div>
             )}
             <div className="text-xs text-slate-400">{sideToMove}</div>
-            <div className="text-xs font-mono text-slate-500 break-all">{position.fen}</div>
           </div>
         </button>
         <div className="flex flex-col gap-1 self-start">
@@ -403,7 +402,7 @@ function PositionZoomModal({ position, onClose, onDelete, onSendHomework, t }: {
   const hasPlayers = !!(position.white_player || position.black_player);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 md:pl-56 2xl:pl-64"
       onClick={onClose}
     >
       <div
@@ -447,7 +446,6 @@ function PositionZoomModal({ position, onClose, onDelete, onSendHomework, t }: {
             </div>
           )}
           <div className="text-xs text-slate-400 text-center">{sideToMove}</div>
-          <div className="text-xs font-mono text-slate-500 break-all bg-slate-800/60 rounded px-3 py-2">{position.fen}</div>
           {position.notes && (
             <div className="text-sm text-slate-200 whitespace-pre-wrap bg-slate-800/60 rounded px-3 py-2">{position.notes}</div>
           )}
