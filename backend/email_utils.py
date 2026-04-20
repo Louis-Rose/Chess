@@ -177,9 +177,15 @@ def send_student_invite_email(
         return False
 
     subject = f"{coach_name} invited you to Lumna"
-    note_html = (
-        f'<p style="margin:0 0 16px 0;color:#334155;white-space:pre-wrap;">{note}</p>'
-        if note else ''
+    # The coach's body already contains the invite URL + signature, so we just
+    # render it verbatim (line breaks preserved, URLs auto-linked, HTML-escaped
+    # so nothing the coach typed can break out of the body).
+    import html as _html
+    escaped = _html.escape(note or '')
+    linked = re.sub(
+        r'https?://[^\s<]+',
+        lambda m: f'<a href="{m.group(0)}" style="color:#8b5cf6;font-weight:600;">{m.group(0)}</a>',
+        escaped,
     )
     html_body = f"""
     <!DOCTYPE html>
@@ -201,43 +207,22 @@ def send_student_invite_email(
                 box-shadow: 0 2px 8px rgba(0,0,0,0.08);
                 border-top: 4px solid #8b5cf6;
             }}
-            h1 {{ font-size: 20px; margin: 0 0 4px 0; }}
-            .from {{ color: #64748b; font-size: 14px; margin-bottom: 20px; }}
-            .cta {{
-                display: inline-block;
-                margin-top: 4px;
-                background: #8b5cf6;
-                color: #ffffff !important;
-                padding: 10px 20px;
-                border-radius: 8px;
-                text-decoration: none;
-                font-weight: 600;
-                font-size: 14px;
-            }}
-            .fallback {{
-                color: #94a3b8;
-                font-size: 12px;
-                margin-top: 18px;
-                word-break: break-all;
+            .body {{
+                color: #334155;
+                white-space: pre-wrap;
+                line-height: 1.55;
+                font-size: 15px;
             }}
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>Join {coach_name} on Lumna</h1>
-            <div class="from">You've been invited</div>
-            {note_html}
-            <a class="cta" href="{invite_url}">Accept invitation</a>
-            <p class="fallback">Or paste this link in your browser:<br/>{invite_url}</p>
+            <div class="body">{linked}</div>
         </div>
     </body>
     </html>
     """
-    plain = (
-        f"{coach_name} invited you to Lumna\n\n"
-        + (f"{note}\n\n" if note else '')
-        + f"Accept the invitation: {invite_url}\n"
-    )
+    plain = note or f"Join {coach_name} on Lumna: {invite_url}"
 
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Pencil, Trash2, X, Link, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { authFetch } from '../utils/authFetch';
 import { StudentForm } from '../components/StudentForm';
 import { LessonsSection } from '../components/LessonsSection';
@@ -266,15 +267,33 @@ export function StudentDetailPage() {
 
 function InviteButton({ studentId, studentName, studentEmail }: { studentId: number; studentName: string; studentEmail: string | null }) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [preparing, setPreparing] = useState(false);
 
-  const openModal = () => {
-    setMessage(t('coaches.students.inviteDefault').replace('{name}', studentName));
+  const openModal = async () => {
     setSent(false);
     setOpen(true);
+    setPreparing(true);
+    try {
+      // Fetch or create the invite token so the default message contains a
+      // real, working link the coach can see before sending.
+      const res = await authFetch(`/api/coaches/students/${studentId}/invite`, { method: 'POST' });
+      const data = await res.json();
+      const url = data.token ? `${window.location.origin}/invite/${data.token}` : '';
+      const coachName = user?.name || '';
+      const firstName = (studentName || '').split(' ')[0] || studentName;
+      const template = t('coaches.students.inviteDefault')
+        .replace('{name}', firstName)
+        .replace('{link}', url)
+        .replace('{coach}', coachName);
+      setMessage(template);
+    } finally {
+      setPreparing(false);
+    }
   };
 
   const send = async () => {
@@ -334,9 +353,10 @@ function InviteButton({ studentId, studentName, studentEmail }: { studentId: num
                       {t('coaches.students.inviteMessageLabel')}
                     </label>
                     <textarea
-                      value={message}
+                      value={preparing ? '' : message}
                       onChange={e => setMessage(e.target.value)}
-                      rows={5}
+                      rows={9}
+                      placeholder={preparing ? t('coaches.students.inviteLoading') : ''}
                       className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -349,7 +369,7 @@ function InviteButton({ studentId, studentName, studentEmail }: { studentId: num
               </button>
               <button
                 onClick={send}
-                disabled={sending || sent || !studentEmail}
+                disabled={sending || sent || !studentEmail || preparing}
                 className="px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 disabled:opacity-70"
               >
                 {sent ? <><Check className="w-4 h-4" /> {t('coaches.students.inviteSent')}</>
