@@ -366,12 +366,14 @@ export function PaymentsPanel() {
   // Collect unique sources for filter
   const allSources = [...new Set(packs.map(p => p.source).filter(Boolean))] as string[];
 
+  const sectionClass = 'bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 space-y-3';
+
   return (
     <PanelShell title={t('coaches.packs.title')}>
-      <div className="max-w-3xl mx-auto space-y-4">
+      <div className="max-w-3xl mx-auto space-y-5">
         {/* Unpaid lessons — done but not marked paid */}
         {unpaid.length > 0 && (
-          <div className="space-y-2">
+          <section className={sectionClass}>
             <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
               {t('coaches.payments.unpaid')}
               <span className="ml-2 text-xs font-normal text-slate-400">({unpaid.length})</span>
@@ -405,21 +407,25 @@ export function PaymentsPanel() {
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Header row */}
-        {students.length > 0 && (
-        <div className="flex items-center justify-end">
-          <button
-            onClick={() => { setEditingPack(null); setShowForm(!showForm); }}
-            className={`flex items-center gap-1.5 ${btnPrimary('emerald')}`}
-          >
-            {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            {showForm ? t('coaches.packs.cancel') : t('coaches.packs.newPack')}
-          </button>
-        </div>
-        )}
+        {/* Bundle offers — packs of pre-paid lessons */}
+        <section className={sectionClass}>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+              {t('coaches.payments.bundleOffers')}
+            </h2>
+            {students.length > 0 && (
+              <button
+                onClick={() => { setEditingPack(null); setShowForm(!showForm); }}
+                className={`flex items-center gap-1.5 ${btnPrimary('emerald')}`}
+              >
+                {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                {showForm ? t('coaches.packs.cancel') : t('coaches.packs.newPack')}
+              </button>
+            )}
+          </div>
 
         {/* Source filter chips */}
         {allSources.length > 1 && (
@@ -522,6 +528,7 @@ export function PaymentsPanel() {
             ))}
           </div>
         )}
+        </section>
       </div>
     </PanelShell>
   );

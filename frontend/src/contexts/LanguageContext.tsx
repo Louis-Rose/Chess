@@ -188,7 +188,8 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.undone': 'Undone',
     // Packs
     'coaches.packs.title': 'Lesson Packs',
-    'coaches.payments.unpaid': 'Unpaid',
+    'coaches.payments.unpaid': 'Unpaid lessons',
+    'coaches.payments.bundleOffers': 'Bundle offers',
     'coaches.payments.markPaid': 'Mark paid',
     'coaches.payments.allPaid': 'All lessons paid — nothing outstanding.',
     'coaches.packs.empty': 'No packs yet. Create one from a student\'s page or use the button above.',
@@ -488,7 +489,8 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.undone': 'Annulé',
     // Packs
     'coaches.packs.title': 'Forfaits de cours',
-    'coaches.payments.unpaid': 'Non payés',
+    'coaches.payments.unpaid': 'Cours non payés',
+    'coaches.payments.bundleOffers': 'Forfaits',
     'coaches.payments.markPaid': 'Marquer payé',
     'coaches.payments.allPaid': 'Tous les cours sont payés — rien en attente.',
     'coaches.packs.empty': 'Aucun forfait pour le moment. Créez-en un depuis la page d\'un élève ou via le bouton ci-dessus.',
@@ -788,7 +790,8 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.undone': 'Deshecho',
     // Packs
     'coaches.packs.title': 'Paquetes de clases',
-    'coaches.payments.unpaid': 'Sin pagar',
+    'coaches.payments.unpaid': 'Clases sin pagar',
+    'coaches.payments.bundleOffers': 'Paquetes',
     'coaches.payments.markPaid': 'Marcar pagada',
     'coaches.payments.allPaid': 'Todas las clases pagadas — nada pendiente.',
     'coaches.packs.empty': 'Aún no hay paquetes. Crea uno desde la página de un estudiante o con el botón de arriba.',
