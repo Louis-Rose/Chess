@@ -410,24 +410,14 @@ function PositionZoomModal({ position, onClose, onDelete, onSendHomework, t }: {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onDelete}
-              className="p-1 text-slate-500 hover:text-red-400"
-              title={t('coaches.positions.delete')}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={onSendHomework}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-blue-300 hover:text-blue-200 border border-blue-500/40 rounded hover:border-blue-400"
-            >
-              <Send className="w-3.5 h-3.5" />
-              {t('coaches.positions.sendAsHomework')}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-1 text-slate-500 hover:text-red-400"
+            title={t('coaches.positions.delete')}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-200">
             <X className="w-4 h-4" />
           </button>
@@ -449,6 +439,16 @@ function PositionZoomModal({ position, onClose, onDelete, onSendHomework, t }: {
           {position.notes && (
             <div className="text-sm text-slate-200 whitespace-pre-wrap bg-slate-800/60 rounded px-3 py-2">{position.notes}</div>
           )}
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={onSendHomework}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-base font-semibold rounded-lg transition-colors"
+            >
+              <Send className="w-4 h-4" />
+              {t('coaches.positions.sendAsHomework')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
