@@ -1,7 +1,7 @@
 // Weekly schedule — Google Calendar-style grid (days as columns, hours as rows)
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon, Check, Ban, HelpCircle, ExternalLink, Trash2, Pencil } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
@@ -101,16 +101,17 @@ function formatTimeRange(start: Date, end: Date, locale: string): string {
   return `${startStr} – ${endStr}`;
 }
 
-function CreateEventPopup({ event, students, locale, use24h, onClose, onCreated }: {
+function CreateEventPopup({ event, students, locale, use24h, initialStudentId, onClose, onCreated }: {
   event: NewEventState;
   students: StudentOption[];
   locale: string;
   use24h: boolean;
+  initialStudentId?: number;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const { t } = useLanguage();
-  const [studentId, setStudentId] = useState<number | ''>('');
+  const [studentId, setStudentId] = useState<number | ''>(initialStudentId ?? '');
   const initialStart = `${String(event.hour).padStart(2, '0')}:${String(event.minute).padStart(2, '0')}`;
   const [startTime, setStartTime] = useState(initialStart);
   const [endTime, setEndTime] = useState(addMinutes(initialStart, 60));
@@ -511,11 +512,14 @@ function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated,
 
 export function SchedulePanel() {
   const { t, language } = useLanguage();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [lessons, setLessons] = useState<ScheduleLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [newEvent, setNewEvent] = useState<NewEventState | null>(null);
+  const [preselectStudentId, setPreselectStudentId] = useState<number | undefined>(undefined);
   const [selectedLesson, setSelectedLesson] = useState<ScheduleLesson | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const undoStackRef = useRef<UndoAction[]>([]);
@@ -607,6 +611,27 @@ export function SchedulePanel() {
       gridRef.current.scrollTop = HOUR_HEIGHT;
     }
   }, [loading]);
+
+  // If we landed here via "Add lesson" on a student page, pre-open the create
+  // popup at the next half-hour slot today with that student selected.
+  useEffect(() => {
+    const preselect = (location.state as { preselectStudentId?: number } | null)?.preselectStudentId;
+    if (!preselect) return;
+    const now = new Date();
+    const minutes = now.getMinutes();
+    let hour = now.getHours();
+    let minute = minutes < 30 ? 30 : 0;
+    if (minute === 0) hour = (hour + 1) % 24;
+    if (hour < START_HOUR) { hour = START_HOUR; minute = 0; }
+    if (hour >= END_HOUR) { hour = END_HOUR - 1; minute = 30; }
+    const dayIdx = days.findIndex(d => fmtDate(d) === fmtDate(now));
+    if (dayIdx < 0) return;
+    setPreselectStudentId(preselect);
+    setNewEvent({ date: fmtDate(days[dayIdx]), hour, minute, dayIdx });
+    // Clear router state so a back-and-forth doesn't reopen the popup.
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -770,7 +795,8 @@ export function SchedulePanel() {
                       students={students}
                       locale={locale}
                       use24h={use24h}
-                      onClose={() => setNewEvent(null)}
+                      initialStudentId={preselectStudentId}
+                      onClose={() => { setNewEvent(null); setPreselectStudentId(undefined); }}
                       onCreated={fetchSchedule}
                     />
                   )}

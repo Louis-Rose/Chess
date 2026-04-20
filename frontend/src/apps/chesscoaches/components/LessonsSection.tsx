@@ -1,6 +1,7 @@
 // Lessons section — upcoming + past lessons with expandable cards
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Clock, ChevronDown, ChevronRight, Video, ExternalLink, Check, Trash2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
@@ -24,65 +25,11 @@ export function LessonsSection({ studentId, upcoming, past, onRefresh }: {
   onRefresh: () => void;
 }) {
   const { t } = useLanguage();
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addDate, setAddDate] = useState('');
-  const [addTime, setAddTime] = useState('');
-  const [addDuration, setAddDuration] = useState('60');
-  const [createMeet, setCreateMeet] = useState(false);
-  const [calendarConnected, setCalendarConnected] = useState<boolean | null>(null);
-  const [adding, setAdding] = useState(false);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    authFetch('/api/auth/google-calendar/status')
-      .then(r => r.json())
-      .then(d => setCalendarConnected(d.connected))
-      .catch(() => {});
-  }, []);
-
-  const handleConnectCalendar = async () => {
-    const res = await authFetch('/api/auth/google-calendar/connect', { method: 'POST' });
-    const data = await res.json();
-    if (data.auth_url) {
-      const popup = window.open(data.auth_url, 'google-calendar', 'width=500,height=600');
-      const check = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(check);
-          window.removeEventListener('message', onMessage);
-          authFetch('/api/auth/google-calendar/status')
-            .then(r => r.json())
-            .then(d => { setCalendarConnected(d.connected); if (d.connected) setCreateMeet(true); });
-        }
-      }, 1000);
-      const onMessage = (e: MessageEvent) => {
-        if (e.origin === window.location.origin && e.data === 'calendar-connected') {
-          clearInterval(check);
-          window.removeEventListener('message', onMessage);
-          setCalendarConnected(true);
-          setCreateMeet(true);
-        }
-      };
-      window.addEventListener('message', onMessage);
-    }
-  };
-
-  const handleAdd = async () => {
-    if (!addDate || !addTime || adding) return;
-    setAdding(true);
-    try {
-      const scheduled_at = `${addDate}T${addTime}:00`;
-      await authFetch(`/api/coaches/students/${studentId}/lessons`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduled_at, duration_minutes: parseInt(addDuration), create_meet: createMeet }),
-      });
-      setShowAddForm(false);
-      setAddDate('');
-      setAddTime('');
-      onRefresh();
-    } finally {
-      setAdding(false);
-    }
-  };
+  // Single source of truth for lesson creation: jump to the calendar with
+  // this student pre-selected on the new-event popup.
+  const handleAdd = () => navigate('/calendar', { state: { preselectStudentId: studentId } });
 
   return (
     <div className="space-y-4">
@@ -91,65 +38,13 @@ export function LessonsSection({ studentId, upcoming, past, onRefresh }: {
           {t('coaches.lessons.title')}
         </h2>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={handleAdd}
           className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           {t('coaches.lessons.add')}
         </button>
       </div>
-
-      {showAddForm && (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Date</label>
-              <input type="date" value={addDate} onChange={e => setAddDate(e.target.value)}
-                className="w-full bg-slate-700 text-slate-100 text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Time</label>
-              <input type="time" value={addTime} onChange={e => setAddTime(e.target.value)}
-                className="w-full bg-slate-700 text-slate-100 text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Duration</label>
-              <select value={addDuration} onChange={e => setAddDuration(e.target.value)}
-                className="w-full bg-slate-700 text-slate-100 text-sm px-3 py-2 rounded-lg border border-slate-600 focus:border-blue-500 focus:outline-none">
-                <option value="60">1 hour</option>
-                <option value="90">1h30</option>
-                <option value="120">2 hours</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {calendarConnected ? (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={createMeet} onChange={e => setCreateMeet(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" />
-                <Video className="w-4 h-4 text-blue-400" />
-                <span className="text-sm text-slate-300">Create Google Meet link</span>
-              </label>
-            ) : calendarConnected === false ? (
-              <button onClick={handleConnectCalendar}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg transition-colors">
-                <Video className="w-3.5 h-3.5" />
-                Connect Google Calendar for Meet links
-              </button>
-            ) : null}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={handleAdd} disabled={!addDate || !addTime || adding}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
-              {adding ? '...' : 'Create'}
-            </button>
-            <button onClick={() => setShowAddForm(false)}
-              className="px-4 py-2 text-slate-400 hover:text-slate-200 text-xs transition-colors">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
 
       {upcoming.length > 0 && (
         <div className="space-y-2">
