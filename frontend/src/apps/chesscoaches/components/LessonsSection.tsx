@@ -1,7 +1,8 @@
 // Lessons section — upcoming + past lessons with expandable cards
 
 import { useState } from 'react';
-import { Clock, ChevronDown, ChevronRight, Video, ExternalLink, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Clock, ChevronDown, ChevronRight, Video, ExternalLink, Trash2, CalendarDays } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 
@@ -22,6 +23,7 @@ export function LessonsSection({ upcoming, past, onRefresh }: {
   onRefresh: () => void;
 }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-4">
@@ -52,9 +54,16 @@ export function LessonsSection({ upcoming, past, onRefresh }: {
       )}
 
       {upcoming.length === 0 && past.length === 0 && (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 text-center">
-          <Clock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 text-center space-y-3">
+          <Clock className="w-8 h-8 text-slate-600 mx-auto" />
           <p className="text-slate-500 text-sm">{t('coaches.lessons.empty')}</p>
+          <button
+            onClick={() => navigate('/schedule')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors"
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            {t('coaches.lessons.goToCalendar')}
+          </button>
         </div>
       )}
     </div>
