@@ -60,10 +60,18 @@ function fmtDate(d: Date): string {
   return `${y}-${m}-${dd}`;
 }
 
-const STATUS_BG: Record<string, string> = {
-  scheduled: 'bg-blue-500/80 hover:bg-blue-500/90 border-blue-400/50',
-  done: 'bg-emerald-500/70 hover:bg-emerald-500/80 border-emerald-400/50',
-};
+// Block colour mixes status + paid:
+//   done + paid    → green (all settled)
+//   done + unpaid  → red   (coach needs to collect)
+//   scheduled      → blue  (future)
+function blockColors(status: string, paid: number | boolean): string {
+  if (status === 'done') {
+    return paid
+      ? 'bg-emerald-500/70 hover:bg-emerald-500/80 border-emerald-400/50'
+      : 'bg-red-500/70 hover:bg-red-500/80 border-red-400/50';
+  }
+  return 'bg-blue-500/80 hover:bg-blue-500/90 border-blue-400/50';
+}
 
 const HOUR_HEIGHT = 42; // px per hour
 const START_HOUR = 7;
@@ -826,7 +834,7 @@ export function SchedulePanel() {
                           if (startH < START_HOUR || startH >= END_HOUR) return null;
                           const top = (startH - START_HOUR) * HOUR_HEIGHT;
                           const height = Math.max((durationMin / 60) * HOUR_HEIGHT, 24);
-                          const colors = STATUS_BG[l.status] || STATUS_BG.scheduled;
+                          const colors = blockColors(l.status, l.paid);
                           const timeStr = formatTimeRange(start, end, locale);
 
                           // Student's local time in their timezone
