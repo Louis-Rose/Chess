@@ -85,6 +85,22 @@ function minutesBetween(startHHMM: string, endHHMM: string): number {
   return (eh * 60 + em) - (sh * 60 + sm);
 }
 
+// "09:00 AM – 10:30 AM" → "09:00 – 10:30 AM" when both ends share a period.
+// 24-hour locales (fr/es) produce no AM/PM, so the regex no-ops and we just
+// get "09:00 – 10:30".
+function formatTimeRange(start: Date, end: Date, locale: string): string {
+  const opts = { hour: '2-digit', minute: '2-digit' } as const;
+  const startStr = start.toLocaleTimeString(locale, opts);
+  const endStr = end.toLocaleTimeString(locale, opts);
+  const periodRe = /\s?(AM|PM)$/i;
+  const sp = startStr.match(periodRe);
+  const ep = endStr.match(periodRe);
+  if (sp && ep && sp[1].toUpperCase() === ep[1].toUpperCase()) {
+    return `${startStr.replace(periodRe, '')} – ${endStr}`;
+  }
+  return `${startStr} – ${endStr}`;
+}
+
 function CreateEventPopup({ event, students, locale, use24h, onClose, onCreated }: {
   event: NewEventState;
   students: StudentOption[];
@@ -754,23 +770,25 @@ export function SchedulePanel() {
                       >
                         {dayLessons.map(l => {
                           const start = new Date(l.scheduled_at);
+                          const end = new Date(start.getTime() + l.duration_minutes * 60000);
                           const startH = start.getHours() + start.getMinutes() / 60;
                           if (startH < START_HOUR || startH >= END_HOUR) return null;
                           const top = (startH - START_HOUR) * HOUR_HEIGHT;
                           const height = Math.max((l.duration_minutes / 60) * HOUR_HEIGHT, 24);
                           const colors = STATUS_BG[l.status] || STATUS_BG.scheduled;
-                          const timeStr = start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+                          const timeStr = formatTimeRange(start, end, locale);
 
                           // Student's local time in their timezone
                           const studentTz = l.student_timezone && l.student_timezone !== 'UTC' ? l.student_timezone : null;
                           let studentTimeLabel = '';
                           if (studentTz) {
                             try {
-                              const studentTime = start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: studentTz });
+                              const coachStart = start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+                              const studentStart = start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone: studentTz });
                               const tzAbbr = new Intl.DateTimeFormat(locale, { timeZone: studentTz, timeZoneName: 'short' })
                                 .formatToParts(start).find(p => p.type === 'timeZoneName')?.value || '';
-                              if (studentTime !== timeStr) {
-                                studentTimeLabel = `${studentTime} ${tzAbbr}`;
+                              if (studentStart !== coachStart) {
+                                studentTimeLabel = `${studentStart} ${tzAbbr}`;
                               }
                             } catch { /* invalid tz */ }
                           }
