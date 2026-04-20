@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pencil, Trash2, X, Link, Copy, Check } from 'lucide-react';
+import { Pencil, Trash2, X, Link, Copy, Check } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { authFetch } from '../utils/authFetch';
 import { StudentForm } from '../components/StudentForm';
 import { LessonsSection } from '../components/LessonsSection';
 import { CreditBar } from '../components/CreditBar';
 import { Avatar } from '../components/Avatar';
+import { PanelHeader } from '../components/PanelHeader';
 import type { StudentFormData } from '../components/StudentForm';
 import type { Lesson } from '../components/LessonsSection';
 
@@ -124,17 +125,8 @@ export function StudentDetailPage() {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 mt-2">
-      {/* Header */}
-      <div className="flex flex-col pt-2">
-        <button
-          onClick={() => navigate('/students')}
-          className="flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors text-base px-2 md:px-4"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>{t('coaches.students.title')}</span>
-        </button>
-        <div className="border-t border-slate-700 mt-2" />
-      </div>
+      <PanelHeader />
+
 
       <div className="max-w-3xl mx-[5%] md:mx-auto mt-4 space-y-6">
         {editing ? (

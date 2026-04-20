@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface PanelHeaderProps {
-  title: string;
+  title?: string;
   onBack?: () => void;
 }
 
@@ -29,8 +29,12 @@ export function PanelHeader({ title, onBack }: PanelHeaderProps) {
         <span>{t('coaches.previous')}</span>
       </button>
       <div className="border-t border-slate-700 mt-2" />
-      <h1 className="text-lg font-bold text-slate-100 text-center mt-2">{title}</h1>
-      <div className="border-t border-slate-700 mt-2 mb-6" />
+      {title && (
+        <>
+          <h1 className="text-lg font-bold text-slate-100 text-center mt-2">{title}</h1>
+          <div className="border-t border-slate-700 mt-2 mb-6" />
+        </>
+      )}
     </div>
   );
 }
