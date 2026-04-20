@@ -440,7 +440,7 @@ function LessonDetailPopup({ lesson, locale, use24h, onClose, onUpdated, onRecor
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-1 border-t border-slate-700/50">
+        <div className={`flex items-center pt-1 border-t border-slate-700/50 ${editing ? 'justify-between' : 'justify-center'}`}>
           <button
             onClick={() => { onClose(); navigate(`/students/${lesson.student_id}`); }}
             className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
