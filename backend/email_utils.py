@@ -162,3 +162,104 @@ Time: {datetime.now().strftime('%B %d, %Y at %H:%M UTC')}
         return False
 
 
+def send_homework_email(
+    coach_name: str,
+    student_email: str,
+    student_name: str,
+    note: str,
+    fen: str,
+    app_url: str = 'https://lumna.co/messages',
+) -> bool:
+    """Notify a student by email that their coach sent them a new homework
+    position. The in-app message is still the canonical delivery — this is
+    just a nudge so they don't miss it."""
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        print("SMTP credentials not configured — skipping homework email")
+        return False
+
+    subject = f"New homework from {coach_name}"
+    note_html = (
+        f'<p style="margin:0 0 12px 0;color:#334155;white-space:pre-wrap;">{note}</p>'
+        if note else ''
+    )
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: #f8fafc;
+                padding: 20px;
+                color: #1e293b;
+            }}
+            .container {{
+                max-width: 520px;
+                margin: 0 auto;
+                background: #ffffff;
+                border-radius: 12px;
+                padding: 28px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                border-top: 4px solid #3b82f6;
+            }}
+            h1 {{ font-size: 20px; margin: 0 0 4px 0; }}
+            .from {{ color: #64748b; font-size: 14px; margin-bottom: 20px; }}
+            .fen {{
+                background: #f1f5f9;
+                border-radius: 8px;
+                padding: 10px 12px;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 12px;
+                color: #334155;
+                word-break: break-all;
+            }}
+            .cta {{
+                display: inline-block;
+                margin-top: 20px;
+                background: #3b82f6;
+                color: #ffffff !important;
+                padding: 10px 18px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 14px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>New homework for you</h1>
+            <div class="from">From {coach_name}</div>
+            {note_html}
+            <div class="fen">{fen}</div>
+            <a class="cta" href="{app_url}">Open in Lumna</a>
+        </div>
+    </body>
+    </html>
+    """
+    plain = (
+        f"New homework from {coach_name}\n\n"
+        + (f"{note}\n\n" if note else '')
+        + f"Position (FEN): {fen}\n\n"
+        + f"Open it in Lumna: {app_url}\n"
+    )
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"LUMNA <{SMTP_EMAIL}>"
+    msg['To'] = f"{student_name} <{student_email}>" if student_name else student_email
+    msg.attach(MIMEText(plain, 'plain'))
+    msg.attach(MIMEText(html_body, 'html'))
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+        print(f"Homework email sent to {student_email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send homework email to {student_email}: {e}")
+        return False
+
+

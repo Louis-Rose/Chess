@@ -20,7 +20,7 @@ from auth import (
     verify_google_token,
 )
 from database import get_db
-from email_utils import send_admin_deletion_alert
+from email_utils import send_admin_deletion_alert, send_homework_email
 
 logger = logging.getLogger(__name__)
 
@@ -760,19 +760,44 @@ def send_message(other_user_id):
         if not linked:
             return jsonify({'error': 'Not authorized to message this user'}), 403
 
+        homework_email_payload = None
         if position_id is not None:
             owns = conn.execute(
-                'SELECT 1 FROM knowledge_positions WHERE id = ? AND user_id = ?',
+                'SELECT fen FROM knowledge_positions WHERE id = ? AND user_id = ?',
                 (position_id, user_id),
             ).fetchone()
             if not owns:
                 return jsonify({'error': 'position not found'}), 404
+            # Look up both parties so the email can be fired after the commit.
+            parties = conn.execute(
+                '''SELECT s.name AS coach_name, r.name AS student_name, r.email AS student_email
+                   FROM users s, users r WHERE s.id = ? AND r.id = ?''',
+                (user_id, other_user_id),
+            ).fetchone()
+            if parties and parties['student_email']:
+                homework_email_payload = {
+                    'coach_name': parties['coach_name'] or 'Your coach',
+                    'student_name': parties['student_name'] or '',
+                    'student_email': parties['student_email'],
+                    'note': content,
+                    'fen': owns['fen'],
+                }
 
         cursor = conn.execute('''
             INSERT INTO messages (sender_id, receiver_id, content, position_id)
             VALUES (?, ?, ?, ?) RETURNING id, created_at
         ''', (user_id, other_user_id, content, position_id))
         row = cursor.fetchone()
+
+    # Fire the email alert in a background thread so the HTTP response isn't
+    # blocked on SMTP. Failure is logged but never surfaces to the caller.
+    if homework_email_payload is not None:
+        import threading
+        threading.Thread(
+            target=send_homework_email,
+            kwargs=homework_email_payload,
+            daemon=True,
+        ).start()
 
     return jsonify({
         'id': row['id'],
