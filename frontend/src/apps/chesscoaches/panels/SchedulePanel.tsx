@@ -817,7 +817,7 @@ export function SchedulePanel() {
                               className={`absolute left-0.5 right-0.5 rounded border cursor-pointer transition-colors overflow-hidden z-10 ${colors}`}
                               style={{ top, height }}
                             >
-                              <div className="px-1.5 py-0.5">
+                              <div className="px-1.5 py-0.5 leading-tight">
                                 <div className="flex items-center gap-1">
                                   <span className="text-sm font-semibold text-white truncate">
                                     {l.student_name}
