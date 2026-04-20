@@ -188,6 +188,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.undone': 'Undone',
     // Packs
     'coaches.packs.title': 'Lesson Packs',
+    'coaches.payments.unpaid': 'Unpaid',
+    'coaches.payments.markPaid': 'Mark paid',
+    'coaches.payments.allPaid': 'All lessons paid — nothing outstanding.',
     'coaches.packs.empty': 'No packs yet. Create one from a student\'s page or use the button above.',
     'coaches.packs.noStudents': 'First, add a student from the My Students page.',
     'coaches.packs.goToStudents': 'Go to My Students',
@@ -485,6 +488,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.undone': 'Annulé',
     // Packs
     'coaches.packs.title': 'Forfaits de cours',
+    'coaches.payments.unpaid': 'Non payés',
+    'coaches.payments.markPaid': 'Marquer payé',
+    'coaches.payments.allPaid': 'Tous les cours sont payés — rien en attente.',
     'coaches.packs.empty': 'Aucun forfait pour le moment. Créez-en un depuis la page d\'un élève ou via le bouton ci-dessus.',
     'coaches.packs.noStudents': 'Commencez par ajouter un élève depuis la page Mes élèves.',
     'coaches.packs.goToStudents': 'Aller à Mes élèves',
@@ -782,6 +788,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.undone': 'Deshecho',
     // Packs
     'coaches.packs.title': 'Paquetes de clases',
+    'coaches.payments.unpaid': 'Sin pagar',
+    'coaches.payments.markPaid': 'Marcar pagada',
+    'coaches.payments.allPaid': 'Todas las clases pagadas — nada pendiente.',
     'coaches.packs.empty': 'Aún no hay paquetes. Crea uno desde la página de un estudiante o con el botón de arriba.',
     'coaches.packs.noStudents': 'Primero añade un estudiante desde Mis estudiantes.',
     'coaches.packs.goToStudents': 'Ir a Mis estudiantes',

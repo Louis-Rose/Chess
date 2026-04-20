@@ -29,6 +29,15 @@ interface Pack {
   consumed: number;
 }
 
+interface UnpaidLesson {
+  id: number;
+  scheduled_at: string;
+  duration_minutes: number;
+  student_id: number;
+  student_name: string;
+  student_currency: string | null;
+}
+
 interface Student {
   id: number;
   student_name: string;
@@ -255,6 +264,7 @@ export function PaymentsPanel() {
 
   const [packs, setPacks] = useState<Pack[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [unpaid, setUnpaid] = useState<UnpaidLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -267,6 +277,25 @@ export function PaymentsPanel() {
       setPacks(json.packs || []);
     } catch { /* ignore */ }
   }, []);
+
+  const fetchUnpaid = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/coaches/lessons/unpaid');
+      const json = await res.json();
+      setUnpaid(json.lessons || []);
+    } catch { /* ignore */ }
+  }, []);
+
+  const markLessonPaid = async (lessonId: number) => {
+    // Optimistic: drop from the list immediately, then PUT.
+    setUnpaid(prev => prev.filter(l => l.id !== lessonId));
+    await authFetch(`/api/coaches/lessons/${lessonId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paid: true }),
+    });
+    fetchUnpaid();
+  };
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -281,8 +310,8 @@ export function PaymentsPanel() {
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchPacks(), fetchStudents()]).then(() => setLoading(false));
-  }, [fetchPacks, fetchStudents]);
+    Promise.all([fetchPacks(), fetchStudents(), fetchUnpaid()]).then(() => setLoading(false));
+  }, [fetchPacks, fetchStudents, fetchUnpaid]);
 
   const handleSave = async (form: PackFormData) => {
     const payload = {
@@ -340,6 +369,45 @@ export function PaymentsPanel() {
   return (
     <PanelShell title={t('coaches.packs.title')}>
       <div className="max-w-3xl mx-auto space-y-4">
+        {/* Unpaid lessons — done but not marked paid */}
+        {unpaid.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">
+              {t('coaches.payments.unpaid')}
+              <span className="ml-2 text-xs font-normal text-slate-400">({unpaid.length})</span>
+            </h2>
+            <div className="bg-slate-800 border border-slate-700 rounded-xl divide-y divide-slate-700/70">
+              {unpaid.map(l => {
+                const d = new Date(l.scheduled_at);
+                const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                return (
+                  <div key={l.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <button
+                      onClick={() => navigate(`/students/${l.student_id}`)}
+                      className="text-sm font-medium text-slate-100 hover:text-blue-400 transition-colors truncate"
+                    >
+                      {l.student_name}
+                    </button>
+                    <span className="text-xs text-slate-400 capitalize tabular-nums">
+                      {dateStr} {timeStr}
+                    </span>
+                    <span className="text-xs text-slate-500 tabular-nums">
+                      {l.duration_minutes}min
+                    </span>
+                    <button
+                      onClick={() => markLessonPaid(l.id)}
+                      className="ml-auto px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+                    >
+                      {t('coaches.payments.markPaid')}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Header row */}
         {students.length > 0 && (
         <div className="flex items-center justify-end">

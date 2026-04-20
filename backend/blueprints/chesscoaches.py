@@ -1317,6 +1317,32 @@ def get_coach_schedule():
     return jsonify({'lessons': result})
 
 
+@coaches_bp.route('/api/coaches/lessons/unpaid', methods=['GET'])
+@login_required
+def get_unpaid_lessons():
+    """Lessons that were done but haven't been marked paid yet.
+    Drives the "Unpaid" list on the Payments panel."""
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT cl.id, cl.scheduled_at, cl.duration_minutes,
+                   cs.id AS student_id, cs.student_name, cs.currency AS student_currency
+            FROM coach_lessons cl
+            JOIN coach_students cs ON cl.student_id = cs.id
+            WHERE cs.coach_user_id = ?
+              AND cl.deleted_at IS NULL
+              AND cl.status = 'done'
+              AND COALESCE(cl.paid, 0) = 0
+            ORDER BY cl.scheduled_at DESC
+        ''', (request.user_id,)).fetchall()
+    result = []
+    for r in rows:
+        d = dict(r)
+        if d.get('scheduled_at') is not None:
+            d['scheduled_at'] = d['scheduled_at'].isoformat()
+        result.append(d)
+    return jsonify({'lessons': result})
+
+
 @coaches_bp.route('/api/coaches/students/<int:student_id>/invite', methods=['POST'])
 @login_required
 def create_student_invite(student_id):
