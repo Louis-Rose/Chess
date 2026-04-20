@@ -138,7 +138,7 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
                         if (e.key === 'Enter') createFolder();
                         else if (e.key === 'Escape') { setCreatingFolder(false); setNewFolderName(''); }
                       }}
-                      placeholder={t('coaches.positions.folderNamePlaceholder')}
+                      placeholder={t('coaches.positions.newFolderNamePlaceholder')}
                       className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-blue-500"
                     />
                     <button

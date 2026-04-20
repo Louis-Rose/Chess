@@ -126,7 +126,7 @@ export function PositionsPanel() {
               onChange={setCreateDraft}
               onSubmit={createFolder}
               onCancel={() => { setCreating(false); setCreateDraft(''); }}
-              placeholder={t('coaches.positions.folderNamePlaceholder')}
+              placeholder={t('coaches.positions.newFolderNamePlaceholder')}
             />
           )}
           {treeQuery.isLoading ? (
