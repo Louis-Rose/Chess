@@ -236,7 +236,7 @@ export function PositionsPanel() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm text-slate-300">{pathLabel}</h2>
-            <span className="text-xs text-slate-500">{positions.length} {t('coaches.positions.positions')}</span>
+            <span className="text-xs text-slate-500">{positions.length} {t(positions.length === 1 ? 'coaches.positions.position' : 'coaches.positions.positions')}</span>
           </div>
           {positionsQuery.isLoading ? (
             <div className="flex items-center justify-center py-12">
