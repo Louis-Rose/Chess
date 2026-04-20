@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon, Check, Ban, HelpCircle, ExternalLink, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Video, Clock, Users, X, Video as VideoIcon, Check, Ban, HelpCircle, ExternalLink, Trash2, Pencil } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { TimeSelect } from '../components/TimeSelect';
@@ -249,9 +249,10 @@ const STATUS_OPTIONS = [
   { value: 'tbd', icon: HelpCircle, label: 'coaches.lessons.status.tbd', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
 ] as const;
 
-function LessonDetailPopup({ lesson, locale, onClose, onUpdated }: {
+function LessonDetailPopup({ lesson, locale, use24h, onClose, onUpdated }: {
   lesson: ScheduleLesson;
   locale: string;
+  use24h: boolean;
   onClose: () => void;
   onUpdated: () => void;
 }) {
@@ -259,6 +260,18 @@ function LessonDetailPopup({ lesson, locale, onClose, onUpdated }: {
   const navigate = useNavigate();
   const popupRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState(lesson.status);
+
+  const d = new Date(lesson.scheduled_at);
+  const endDate = new Date(d.getTime() + lesson.duration_minutes * 60000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const initialStart = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const initialEnd = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+  const lessonDateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const [editing, setEditing] = useState(false);
+  const [startTime, setStartTime] = useState(initialStart);
+  const [endTime, setEndTime] = useState(initialEnd);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -268,12 +281,46 @@ function LessonDetailPopup({ lesson, locale, onClose, onUpdated }: {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  const d = new Date(lesson.scheduled_at);
   const dateLabel = d.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
   const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-  const endTime = new Date(d.getTime() + lesson.duration_minutes * 60000);
-  const endStr = endTime.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  const endStr = endDate.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const isPast = d < new Date();
+
+  const handleStartChange = (next: string) => {
+    const dur = minutesBetween(startTime, endTime);
+    setStartTime(next);
+    setEndTime(addMinutes(next, dur > 0 ? dur : 60));
+  };
+
+  const editedDuration = minutesBetween(startTime, endTime);
+  const dirty = startTime !== initialStart || endTime !== initialEnd;
+
+  const handleSaveEdit = async () => {
+    if (savingEdit || editedDuration <= 0) return;
+    setSavingEdit(true);
+    try {
+      const res = await authFetch(`/api/coaches/lessons/${lesson.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduled_at: `${lessonDateStr}T${startTime}:00`,
+          duration_minutes: editedDuration,
+        }),
+      });
+      if (res.ok) {
+        setEditing(false);
+        onUpdated();
+      }
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setStartTime(initialStart);
+    setEndTime(initialEnd);
+    setEditing(false);
+  };
 
   const handleSetStatus = async (newStatus: string) => {
     setStatus(newStatus);
@@ -303,19 +350,42 @@ function LessonDetailPopup({ lesson, locale, onClose, onUpdated }: {
     >
       <div className="flex items-center justify-between px-4 pt-3 pb-1">
         <span className="text-sm font-semibold text-slate-100">{lesson.student_name}</span>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {!editing && (
+            <button onClick={() => setEditing(true)}
+              className="text-slate-400 hover:text-slate-200 transition-colors" title={t('coaches.calendar.editLesson')}>
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={handleDelete}
+            className="text-slate-400 hover:text-red-400 transition-colors" title={t('coaches.calendar.deleteLesson')}>
+            <Trash2 className="w-4 h-4" />
+          </button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="px-4 pb-4 space-y-3">
         {/* Date & time */}
         <div className="flex items-center gap-2.5">
           <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-slate-200 capitalize">{dateLabel}</p>
-            <p className="text-xs text-slate-400">{timeStr} – {endStr} ({lesson.duration_minutes}min)</p>
-          </div>
+          {editing ? (
+            <div className="flex-1">
+              <p className="text-sm text-slate-200 capitalize">{dateLabel}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <TimeSelect value={startTime} onChange={handleStartChange} use24h={use24h} />
+                <span className="text-slate-500 text-xs">–</span>
+                <TimeSelect value={endTime} onChange={setEndTime} use24h={use24h} />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-slate-200 capitalize">{dateLabel}</p>
+              <p className="text-xs text-slate-400">{timeStr} – {endStr} ({lesson.duration_minutes}min)</p>
+            </div>
+          )}
         </div>
 
         {/* Meet link */}
@@ -365,10 +435,18 @@ function LessonDetailPopup({ lesson, locale, onClose, onUpdated }: {
           >
             {t('coaches.calendar.viewStudent')}
           </button>
-          <button onClick={handleDelete}
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-400 transition-colors">
-            <Trash2 className="w-3 h-3" />
-          </button>
+          {editing && (
+            <div className="flex items-center gap-2">
+              <button onClick={handleCancelEdit}
+                className="text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                {t('coaches.calendar.cancel')}
+              </button>
+              <button onClick={handleSaveEdit} disabled={savingEdit || !dirty || editedDuration <= 0}
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-medium rounded-lg transition-colors">
+                {savingEdit ? '...' : t('coaches.calendar.save')}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -588,6 +666,7 @@ export function SchedulePanel() {
                     <LessonDetailPopup
                       lesson={selectedLesson}
                       locale={locale}
+                      use24h={use24h}
                       onClose={() => setSelectedLesson(null)}
                       onUpdated={fetchSchedule}
                     />

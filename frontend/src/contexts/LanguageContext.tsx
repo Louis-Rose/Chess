@@ -178,6 +178,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.setupTitle': 'Set your city',
     'coaches.calendar.setupDesc': 'So we can display lesson times in your timezone.',
     'coaches.calendar.myCity': 'My city',
+    'coaches.calendar.editLesson': 'Edit lesson',
+    'coaches.calendar.deleteLesson': 'Delete lesson',
+    'coaches.calendar.cancel': 'Cancel',
     // Packs
     'coaches.packs.title': 'Lesson Packs',
     'coaches.packs.empty': 'No packs yet. Create one from a student\'s page or use the button above.',
@@ -466,6 +469,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.setupTitle': 'Indiquez votre ville',
     'coaches.calendar.setupDesc': 'Pour afficher les heures de cours dans votre fuseau horaire.',
     'coaches.calendar.myCity': 'Ma ville',
+    'coaches.calendar.editLesson': 'Modifier le cours',
+    'coaches.calendar.deleteLesson': 'Supprimer le cours',
+    'coaches.calendar.cancel': 'Annuler',
     // Packs
     'coaches.packs.title': 'Forfaits de cours',
     'coaches.packs.empty': 'Aucun forfait pour le moment. Créez-en un depuis la page d\'un élève ou via le bouton ci-dessus.',
@@ -754,6 +760,9 @@ const translations: Record<Language, Record<string, string>> = {
     'coaches.calendar.setupTitle': 'Indica tu ciudad',
     'coaches.calendar.setupDesc': 'Para mostrar las horas de clase en tu zona horaria.',
     'coaches.calendar.myCity': 'Mi ciudad',
+    'coaches.calendar.editLesson': 'Editar clase',
+    'coaches.calendar.deleteLesson': 'Eliminar clase',
+    'coaches.calendar.cancel': 'Cancelar',
     // Packs
     'coaches.packs.title': 'Paquetes de clases',
     'coaches.packs.empty': 'Aún no hay paquetes. Crea uno desde la página de un estudiante o con el botón de arriba.',
