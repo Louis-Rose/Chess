@@ -205,7 +205,7 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
   const [saving, setSaving] = useState(false);
 
   const d = new Date(lesson.scheduled_at);
-  const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const dateStr = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
   const handleSaveNotes = async () => {
@@ -249,9 +249,9 @@ function LessonCard({ lesson, variant, onRefresh }: { lesson: Lesson; variant: '
         <div className="flex items-center gap-3">
           <Clock className={`w-4 h-4 ${variant === 'upcoming' ? 'text-blue-400' : 'text-slate-500'}`} />
           <div>
-            <span className="text-sm text-slate-200">{dateStr}</span>
-            <span className="text-xs text-slate-500 ml-2">{timeStr}</span>
-            <span className="text-xs text-slate-600 ml-2">{lesson.duration_minutes}min</span>
+            <span className="text-sm text-slate-200 capitalize">{dateStr}</span>
+            <span className="text-sm text-slate-100 ml-2 tabular-nums">{timeStr}</span>
+            <span className="text-sm text-slate-100 ml-2 tabular-nums">{lesson.duration_minutes}min</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
