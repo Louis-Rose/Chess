@@ -56,9 +56,22 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
   const save = async () => {
     setSaving(true);
     try {
+      // If the user filled the inline "New folder" input but didn't click ✓,
+      // create it as part of Save so the position lands in it.
+      let targetFolderId = folderId;
+      if (creatingFolder && newFolderName.trim()) {
+        const res = await axios.post('/api/knowledge/folders', { name: newFolderName.trim() });
+        const created = res.data as KnowledgeFolder;
+        targetFolderId = created.id;
+        setFolders(prev => [...prev, created]);
+        setFolderId(created.id);
+        setNewFolderName('');
+        setCreatingFolder(false);
+      }
+      if (targetFolderId === null) return;
       const activeColor = editedFen.split(' ')[1] ?? 'w';
       await axios.post('/api/knowledge/positions', {
-        folder_id: folderId,
+        folder_id: targetFolderId,
         fen: editedFen,
         white_player: diagram.white_player || null,
         black_player: diagram.black_player || null,
@@ -172,7 +185,11 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
             </div>
             <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-slate-700">
               <button onClick={() => setOpen(false)} disabled={saving} className="px-3 py-1.5 text-sm rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">{t('coaches.positions.cancel')}</button>
-              <button onClick={save} disabled={saving || saved || folderId === null} className="px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 disabled:opacity-70">
+              <button
+                onClick={save}
+                disabled={saving || saved || (folderId === null && !(creatingFolder && newFolderName.trim()))}
+                className="px-3 py-1.5 text-sm rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 disabled:opacity-70"
+              >
                 {saved ? <><Check className="w-4 h-4" /> {t('coaches.positions.saved')}</> : saving ? <Loader2 className="w-4 h-4 animate-spin" /> : t('coaches.positions.save')}
               </button>
             </div>
