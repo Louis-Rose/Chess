@@ -498,7 +498,7 @@ function SendHomeworkModal({ position, onClose, t }: {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 md:pl-56 2xl:pl-64"
       onClick={() => !sending && onClose()}
     >
       <div

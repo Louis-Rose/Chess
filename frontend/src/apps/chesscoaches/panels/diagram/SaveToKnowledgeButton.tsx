@@ -96,7 +96,7 @@ export function SaveToKnowledgeButton({ diagram, editedFen }: { diagram: Diagram
         <BookOpen className="w-4 h-4" /> {t('coaches.positions.saveToKnowledge')}
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4" onClick={() => !saving && setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 md:pl-56 2xl:pl-64" onClick={() => !saving && setOpen(false)}>
           <div className="w-full max-w-md rounded-lg border border-slate-700 bg-slate-900 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700">
               <h3 className="text-sm font-medium text-slate-100">{t('coaches.positions.saveToKnowledge')}</h3>
