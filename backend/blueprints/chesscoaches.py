@@ -736,13 +736,36 @@ def read_diagram():
         logger.info(f"[Diagram] Phase 1: locating regions with {model_id}")
         phase1_start = time_module.time()
         try:
-            resp_locate, tier, _ = _gemini_generate(
-                client_free, client_paid, model_id,
-                contents=[
-                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                    DIAGRAM_LOCATE_PROMPT,
-                ],
-            )
+            # Wrap the locate call in a 90s timeout + one retry. The Gemini SDK has no
+            # built-in request timeout; without this the worker can block indefinitely
+            # and the UI sits at 0% (heartbeat pings time out too, since the single
+            # worker is stuck).
+            LOCATE_TIMEOUT_SECONDS = 90
+            locate_contents = [
+                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                DIAGRAM_LOCATE_PROMPT,
+            ]
+            resp_locate = None
+            tier = 'paid'
+            locate_exc = None
+            for attempt in (1, 2):
+                pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                future = pool.submit(_gemini_generate, client_free, client_paid, model_id, locate_contents)
+                try:
+                    resp_locate, tier, _ = future.result(timeout=LOCATE_TIMEOUT_SECONDS)
+                    locate_exc = None
+                    break
+                except concurrent.futures.TimeoutError:
+                    locate_exc = TimeoutError(f"timeout after {LOCATE_TIMEOUT_SECONDS}s")
+                    logger.warning(f"[Diagram] Phase 1: timeout (attempt {attempt}/2)")
+                except Exception as e:
+                    locate_exc = e
+                    logger.warning(f"[Diagram] Phase 1: attempt {attempt}/2 failed: {e}")
+                finally:
+                    pool.shutdown(wait=False)
+            if locate_exc is not None or resp_locate is None:
+                raise locate_exc if locate_exc is not None else RuntimeError("Phase 1 returned no response")
+
             phase1_elapsed = round(time_module.time() - phase1_start)
             in_tok, out_tok, think_tok = _extract_usage_tokens(resp_locate)
             _log_api_usage('diagram', model_id, in_tok, out_tok, phase1_elapsed,
