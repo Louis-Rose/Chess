@@ -740,7 +740,7 @@ def read_diagram():
             # built-in request timeout; without this the worker can block indefinitely
             # and the UI sits at 0% (heartbeat pings time out too, since the single
             # worker is stuck).
-            LOCATE_TIMEOUT_SECONDS = 90
+            LOCATE_TIMEOUT_SECONDS = 45
             locate_contents = [
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
                 DIAGRAM_LOCATE_PROMPT,
