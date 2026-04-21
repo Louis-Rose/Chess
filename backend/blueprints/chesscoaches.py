@@ -292,19 +292,14 @@ Example output:
 
 DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a tightly-cropped image of a SINGLE chess board. The crop shows the 8x8 grid plus its printed rank labels (1-8) and file labels (a-h). There is no other content to read — just the board.
 
-Your job is to read which piece is on each square AND to mark the pixel bounds of the 8×8 playing area inside the crop.
-
 Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
 
-The object MUST have exactly two TOP-LEVEL fields, and BOTH are REQUIRED. Omitting either is a failure — do not return "squares" without "board_box", and do not return "board_box" without "squares".
-
-REQUIRED field 1 — "squares": an object mapping EVERY one of the 64 square names to a one-character symbol. Keys are "a1" through "h8". Values are:
+The object MUST have exactly ONE top-level field:
+- "squares": an object mapping EVERY one of the 64 square names to a one-character symbol. Keys are "a1" through "h8". Values are:
   - White pieces: "K" "Q" "R" "B" "N" "P"
   - Black pieces: "k" "q" "r" "b" "n" "p"
   - Empty square: "."
   You MUST include all 64 keys — every square from a1 to h8 — even empty ones. Any missing square is a failure.
-
-REQUIRED field 2 — "board_box": [ymin, xmin, ymax, xmax] — pixel bounds of the 8×8 PLAYING AREA ONLY, in your standard 0-1000 normalized coordinate system. EXCLUDE the rank labels (1-8) and file labels (a-h) printed along the edges; include only the grid of 64 squares. The box must tightly wrap from the top edge of rank 8 to the bottom edge of rank 1, and from the left edge of file a to the right edge of file h. All four numbers must satisfy 0 <= ymin < ymax <= 1000 and 0 <= xmin < xmax <= 1000.
 
 Procedure (follow exactly):
 - Visit each square one at a time, in a deterministic order (a8, b8, c8, …, h8, then a7, b7, …, h7, down to a1, …, h1).
@@ -314,7 +309,7 @@ Procedure (follow exactly):
 - When you are done, the object must contain exactly 64 entries.
 
 Example output (showing a few entries — the real output must have all 64):
-{"squares": {"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}, "board_box": [45, 38, 945, 962]}"""
+{"squares": {"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}}"""
 
 
 _VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
@@ -388,13 +383,9 @@ def _grid_to_fen(board, active_color):
 
 
 def _parse_and_validate_read(raw_text):
-    """Parse the single-region reader response and validate that BOTH required
-    fields are present and well-formed.
-
-    Returns (parsed_obj, squares, box_frac) on success. Raises ValueError /
-    JSONDecodeError if the JSON is malformed, the grid is invalid, or
-    'board_box' is missing/out-of-range. Used to decide whether to retry the
-    LLM call (see _gemini_read_single_with_validation)."""
+    """Parse the single-region reader response and validate that 'squares' is
+    present with all 64 entries. Raises ValueError / JSONDecodeError on
+    malformed JSON or invalid grid. Used by the structural retry wrapper."""
     raw = _strip_code_fences(raw_text)
     parsed = json_module.loads(raw)
     if isinstance(parsed, list):
@@ -403,22 +394,17 @@ def _parse_and_validate_read(raw_text):
     if not isinstance(squares, dict):
         raise ValueError("missing 'squares' object")
     _squares_to_grid(squares)  # raises ValueError if any of the 64 is missing/invalid
-    if 'board_box' not in parsed:
-        raise ValueError("missing 'board_box' field")
-    box_frac = _parse_board_box(parsed.get('board_box'))
-    if not box_frac:
-        raise ValueError(f"invalid 'board_box': {parsed.get('board_box')!r}")
-    return parsed, squares, box_frac
+    return parsed, squares
 
 
 def _gemini_read_single_with_validation(client_free, client_paid, model_id, contents, *, timeout_seconds, label, max_structural_retries=2):
     """Call the single-region reader and retry if the JSON is structurally
-    invalid (missing squares/board_box). Orthogonal to _gemini_call_with_retry,
+    invalid (missing/incomplete squares). Orthogonal to _gemini_call_with_retry,
     which only retries on timeouts/exceptions — this layer retries on
     successful responses whose payload is unusable.
 
-    Returns (resp, tier, attempt, parsed, squares, box_frac, raw_text). Raises
-    the last parse exception if all attempts produced invalid JSON."""
+    Returns (resp, tier, attempt, parsed, squares, raw_text). Raises the last
+    parse exception if all attempts produced invalid JSON."""
     last_exc = None
     last_resp = None
     last_tier = None
@@ -431,398 +417,18 @@ def _gemini_read_single_with_validation(client_free, client_paid, model_id, cont
         raw_text = resp.text or ''
         last_resp, last_tier, last_raw = resp, tier, raw_text
         try:
-            parsed, squares, box_frac = _parse_and_validate_read(raw_text)
+            parsed, squares = _parse_and_validate_read(raw_text)
             if attempt > 1:
                 logger.info(f"[{label}] recovered on structural retry {attempt}/{max_structural_retries}")
-            return resp, tier, attempt, parsed, squares, box_frac, raw_text
+            return resp, tier, attempt, parsed, squares, raw_text
         except (ValueError, json_module.JSONDecodeError) as ve:
             last_exc = ve
             logger.warning(f"[{label}] invalid JSON structure (attempt {attempt}/{max_structural_retries}): {ve}")
-    # All retries failed — re-raise so callers can return a proper error. Attach
-    # the last raw response on the exception so callers can still surface it.
     err = last_exc if last_exc is not None else RuntimeError(f"[{label}] no valid response")
     err.last_raw = last_raw  # type: ignore[attr-defined]
     err.last_resp = last_resp  # type: ignore[attr-defined]
     err.last_tier = last_tier  # type: ignore[attr-defined]
     raise err
-
-
-def _parse_board_box(board_box):
-    """Parse Gemini's [ymin, xmin, ymax, xmax] in 0-1000 space.
-    Returns (ymin, xmin, ymax, xmax) as 0-1 floats, or None if invalid."""
-    if not isinstance(board_box, (list, tuple)) or len(board_box) != 4:
-        return None
-    try:
-        ymin, xmin, ymax, xmax = [float(v) for v in board_box]
-    except (TypeError, ValueError):
-        return None
-    if not (0 <= xmin < xmax <= 1000 and 0 <= ymin < ymax <= 1000):
-        return None
-    return (ymin / 1000.0, xmin / 1000.0, ymax / 1000.0, xmax / 1000.0)
-
-
-def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
-    """Classify piece color by within-image, per-piece-type comparison.
-
-    For each piece type, sort fills and find the largest consecutive gap. If
-    it exceeds MIN_GAP, split there: upper = black, lower = white. The LLM's
-    color claims are never an input; only piece type + position are trusted.
-    Groups whose biggest gap is below MIN_GAP get 'no-check'.
-
-    Returns a dict with 'colors', 'verdicts', 'piece_groups', 'groups',
-    'means', 'dark_ratios', 'dark_threshold', 'board_box_px', or {} on failure.
-    board_box_frac = (ymin, xmin, ymax, xmax) in 0-1 fractions."""
-    from PIL import Image
-    import io
-    try:
-        img = Image.open(io.BytesIO(crop_bytes)).convert('L')
-    except Exception:
-        return {}
-    W, H = img.size
-    ymin, xmin, ymax, xmax = board_box_frac
-    left = int(xmin * W)
-    top = int(ymin * H)
-    right = int(xmax * W)
-    bottom = int(ymax * H)
-    board_w = right - left
-    board_h = bottom - top
-    if board_w < 64 or board_h < 64:
-        return {}
-    cell_w = board_w / 8.0
-    cell_h = board_h / 8.0
-    INSET = 0.0
-
-    # Collect inner pixels + mean per cell
-    cells = {}  # sq -> {'pixels': [...], 'mean': float, 'is_dark': bool}
-    for file_idx in range(8):
-        for rank_idx in range(8):  # 0 = rank 1 (bottom), 7 = rank 8 (top)
-            row_from_top = 7 - rank_idx
-            cl = left + file_idx * cell_w
-            ct = top + row_from_top * cell_h
-            ix_l = int(cl + cell_w * INSET)
-            iy_t = int(ct + cell_h * INSET)
-            ix_r = int(cl + cell_w * (1 - INSET))
-            iy_b = int(ct + cell_h * (1 - INSET))
-            if ix_r <= ix_l or iy_b <= iy_t:
-                continue
-            region = img.crop((ix_l, iy_t, ix_r, iy_b))
-            pixels = list(region.getdata())
-            if not pixels:
-                continue
-            sq = f"{'abcdefgh'[file_idx]}{rank_idx + 1}"
-            cells[sq] = {
-                'pixels': pixels,
-                'mean': round(sum(pixels) / len(pixels), 1),
-                'is_dark': (file_idx + rank_idx) % 2 == 0,
-            }
-
-    def _percentile(xs, p):
-        s = sorted(xs)
-        n = len(s)
-        if n == 0:
-            return None
-        k = max(0, min(n - 1, int(p * (n - 1) / 100.0)))
-        return s[k]
-
-    def _median_1d(xs):
-        s = sorted(xs)
-        n = len(s)
-        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
-
-    def _fills_gap(fills_in):
-        """L1-optimal 2-cluster gap for a list of fill ratios."""
-        if len(fills_in) < 2:
-            return 0.0
-        fills = sorted(fills_in)
-        best_cost = float('inf')
-        best_idx = -1
-        for i in range(1, len(fills)):
-            lo = fills[:i]
-            hi = fills[i:]
-            lm = _median_1d(lo)
-            hm = _median_1d(hi)
-            cost = sum(abs(x - lm) for x in lo) + sum(abs(x - hm) for x in hi)
-            if cost < best_cost:
-                best_cost = cost
-                best_idx = i
-        return fills[best_idx] - fills[best_idx - 1] if best_idx > 0 else 0.0
-
-    # Global fallback threshold — used for empty cells and as a sensible default
-    # echoed to the admin UI. Taken from the bottom ~7% of the full-board pixel
-    # distribution (typical positions have 6-10% piece-ink pixels, so the 7th
-    # percentile lands inside solid-ink brightness).
-    all_pixels = []
-    for c in cells.values():
-        all_pixels.extend(c['pixels'])
-    PERCENTILE_FALLBACK = 7
-    p_fallback = _percentile(all_pixels, PERCENTILE_FALLBACK)
-    if p_fallback is None:
-        return {}
-    dark_threshold = max(0, int(p_fallback))
-
-    # 256-bin histogram of all board pixels (admin visualization)
-    board_histogram = [0] * 256
-    for px in all_pixels:
-        if 0 <= px < 256:
-            board_histogram[px] += 1
-
-    # Unified auto-tune: pool pixels from ALL squares where the LLM placed a
-    # piece, sweep candidate percentiles, and pick the one whose resulting
-    # per-cell fills give the largest L1-optimal gap. One intensity threshold
-    # for every piece cell — simpler and more robust than per-type thresholds
-    # (14-32 samples instead of 2-8 means the gap-split is far less noisy).
-    piece_pixels = []
-    piece_cells = []  # sq names of squares the LLM said are occupied
-    for sq, c in cells.items():
-        sym = squares.get(sq, '.')
-        if sym == '.':
-            continue
-        piece_pixels.extend(c['pixels'])
-        piece_cells.append(sq)
-
-    AUTO_CANDIDATES = [4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0]
-
-    # Histogram of pooled piece-cell pixels (admin visualization)
-    pieces_histogram = [0] * 256
-    for px in piece_pixels:
-        if 0 <= px < 256:
-            pieces_histogram[px] += 1
-
-    def _eval_at_pool(p):
-        thr = _percentile(piece_pixels, p)
-        if thr is None:
-            return None, 0.0
-        fills = []
-        for sq in piece_cells:
-            px = cells[sq]['pixels']
-            dc = sum(1 for g in px if g <= thr)
-            fills.append(dc / len(px))
-        return thr, _fills_gap(fills)
-
-    pieces_percentile = PERCENTILE_FALLBACK
-    pieces_thr_raw = _percentile(piece_pixels, PERCENTILE_FALLBACK) if piece_pixels else None
-    best_gap = -1.0
-    for p in AUTO_CANDIDATES:
-        thr_cand, gap = _eval_at_pool(p)
-        if thr_cand is None:
-            continue
-        if gap > best_gap:
-            best_gap = gap
-            pieces_percentile = p
-            pieces_thr_raw = thr_cand
-    pieces_threshold = max(0, int(pieces_thr_raw)) if pieces_thr_raw is not None else dark_threshold
-
-    # Per-cell dark-pixel ratio, using the single pooled threshold for piece
-    # cells and the global fallback for empty cells.
-    dark_ratios = {}
-    for sq, c in cells.items():
-        sym = squares.get(sq, '.')
-        thr = pieces_threshold if sym != '.' else dark_threshold
-        px = c['pixels']
-        dark_count = sum(1 for g in px if g <= thr)
-        dark_ratios[sq] = round(dark_count / len(px), 3)
-
-    # Within-image classifier: one group covering ALL piece cells at once.
-    # Filled-ink pieces (black) cluster at higher fills than hollow-outline
-    # pieces (white) regardless of type, so a single L1-optimal split on the
-    # pooled fills gives a cleaner w-vs-b boundary than per-type splits with
-    # only 2-8 samples each.
-    MIN_GAP = 0.03
-    all_members = []  # [(sq, llm_color, fill, ptype)]
-    for sq in piece_cells:
-        sym = squares[sq]
-        ptype = sym.upper()
-        llm_color = 'w' if sym == ptype else 'b'
-        all_members.append((sq, llm_color, dark_ratios[sq], ptype))
-
-    groups_debug = {}
-    piece_groups = {}  # sq -> "K" (still tracked per-type for the diagnostic row-grid)
-    colors = {}
-    verdicts = {}  # sq -> 'ok' | 'flip?' | 'no-check'
-
-    def _classify_pool(members):
-        """L1-optimal 2-cluster split across ALL piece fills. Mutates the
-        outer groups_debug / piece_groups / colors / verdicts dicts."""
-        fills = sorted(r for (_, _, r, _) in members)
-        best_cost = float('inf')
-        best_idx = -1
-        best_lo = None
-        best_hi = None
-        for i in range(1, len(fills)):
-            lo = fills[:i]
-            hi = fills[i:]
-            lm = _median_1d(lo)
-            hm = _median_1d(hi)
-            cost = sum(abs(x - lm) for x in lo) + sum(abs(x - hm) for x in hi)
-            if cost < best_cost:
-                best_cost = cost
-                best_idx = i
-                best_lo = lm
-                best_hi = hm
-        if best_idx == -1:
-            biggest_gap = 0.0
-            gap_idx = -1
-        else:
-            biggest_gap = fills[best_idx] - fills[best_idx - 1]
-            gap_idx = best_idx - 1
-        can_check = gap_idx >= 0 and biggest_gap >= MIN_GAP
-        threshold = round((best_lo + best_hi) / 2.0, 3) if can_check and best_lo is not None and best_hi is not None else None
-
-        groups_debug['pieces'] = {
-            'threshold': threshold,
-            'gap': round(biggest_gap, 3) if len(fills) > 1 else None,
-            'min_gap': MIN_GAP,
-            'can_check': can_check,
-            'count_w': sum(1 for (_, c, _, _) in members if c == 'w'),
-            'count_b': sum(1 for (_, c, _, _) in members if c == 'b'),
-            'min_fill': round(fills[0], 3) if fills else None,
-            'max_fill': round(fills[-1], 3) if fills else None,
-        }
-        for sq, llm_color, fill, ptype in members:
-            piece_groups[sq] = ptype
-            if can_check and threshold is not None:
-                pred = 'b' if fill > threshold else 'w'
-                colors[sq] = pred
-                verdicts[sq] = 'ok' if pred == llm_color else 'flip?'
-            else:
-                verdicts[sq] = 'no-check'
-
-    if all_members:
-        _classify_pool(all_members)
-
-    # Auto-shift pass: if the LLM placed a piece off by one file, the claimed
-    # cell is essentially empty and a neighbor looks piece-filled. When that
-    # pattern is unambiguous, move the piece and re-classify. Absolute
-    # thresholds keep the rule easy to reason about.
-    SHIFT_OWN_MAX = 0.01      # own cell fills below 1% are "empty"
-    SHIFT_NEIGHBOR_MIN = 0.10  # neighbor fills above 10% look piece-filled
-    auto_shifts = []
-    shift_candidates = []
-    for sq in list(verdicts.keys()):
-        if verdicts[sq] != 'flip?':
-            continue
-        sym = squares.get(sq, '.')
-        if sym == '.':
-            continue
-        own_ratio = dark_ratios.get(sq)
-        if own_ratio is None or own_ratio >= SHIFT_OWN_MAX:
-            continue
-        file_idx = 'abcdefgh'.index(sq[0])
-        rank = sq[1]
-        left_sq = f"{'abcdefgh'[file_idx - 1]}{rank}" if file_idx > 0 else None
-        right_sq = f"{'abcdefgh'[file_idx + 1]}{rank}" if file_idx < 7 else None
-
-        def _nbr_ratio(nsq):
-            """Neighbor fill under the pooled pieces threshold, or None if the
-            neighbor isn't a free empty square."""
-            if nsq is None or nsq not in cells:
-                return None
-            if squares.get(nsq, '.') != '.':
-                return None
-            px = cells[nsq]['pixels']
-            if not px:
-                return None
-            dc = sum(1 for g in px if g <= pieces_threshold)
-            return dc / len(px)
-
-        left_r = _nbr_ratio(left_sq)
-        right_r = _nbr_ratio(right_sq)
-        left_q = left_r is not None and left_r > SHIFT_NEIGHBOR_MIN
-        right_q = right_r is not None and right_r > SHIFT_NEIGHBOR_MIN
-        if left_q and not right_q:
-            shift_candidates.append((sq, left_sq, sym, own_ratio, left_r))
-        elif right_q and not left_q:
-            shift_candidates.append((sq, right_sq, sym, own_ratio, right_r))
-        # Both qualifying or neither → skip (ambiguous or not a shift).
-
-    if shift_candidates:
-        for (from_sq, to_sq, sym, own_r, nbr_r) in shift_candidates:
-            # Guard against two candidates targeting the same neighbor.
-            if squares.get(to_sq, '.') != '.':
-                continue
-            squares[to_sq] = sym
-            squares[from_sq] = '.'
-            auto_shifts.append({
-                'from': from_sq,
-                'to': to_sq,
-                'type': sym.upper(),
-                'piece': sym,
-                'own_dark': round(own_r, 3),
-                'neighbor_dark': round(nbr_r, 3),
-            })
-
-        # Refresh dark_ratios for touched squares under the single threshold.
-        touched = set()
-        for (from_sq, to_sq, _, _, _) in auto_shifts:
-            touched.add(from_sq); touched.add(to_sq)
-        for sq in touched:
-            if sq not in cells:
-                continue
-            sym = squares.get(sq, '.')
-            thr = pieces_threshold if sym != '.' else dark_threshold
-            px = cells[sq]['pixels']
-            if not px:
-                continue
-            dc = sum(1 for g in px if g <= thr)
-            dark_ratios[sq] = round(dc / len(px), 3)
-
-        # Re-run the pooled classifier with the updated piece set.
-        refreshed_members = []
-        for sq in cells:
-            sym = squares.get(sq, '.')
-            if sym == '.':
-                continue
-            ptype = sym.upper()
-            llm_color = 'w' if sym == ptype else 'b'
-            refreshed_members.append((sq, llm_color, dark_ratios[sq], ptype))
-        piece_groups.clear()
-        colors.clear()
-        verdicts.clear()
-        groups_debug.clear()
-        if refreshed_members:
-            _classify_pool(refreshed_members)
-
-    # Diagnostic: for each square the classifier still wants to flip (after
-    # auto-shift), compute the dark-pixel ratio of its horizontal neighbors
-    # using the pooled pieces threshold. Admin display only.
-    flip_neighbors = {}
-    for sq, v in verdicts.items():
-        if v != 'flip?':
-            continue
-        sym = squares.get(sq, '.')
-        if sym == '.':
-            continue
-        file_idx = 'abcdefgh'.index(sq[0])
-        rank = sq[1]
-        left_sq = f"{'abcdefgh'[file_idx - 1]}{rank}" if file_idx > 0 else None
-        right_sq = f"{'abcdefgh'[file_idx + 1]}{rank}" if file_idx < 7 else None
-        def _ratio(nsq):
-            if nsq is None or nsq not in cells:
-                return None
-            px = cells[nsq]['pixels']
-            if not px:
-                return None
-            dc = sum(1 for g in px if g <= pieces_threshold)
-            return round(dc / len(px), 3)
-        flip_neighbors[sq] = {'left': _ratio(left_sq), 'right': _ratio(right_sq)}
-
-    return {
-        'colors': colors,
-        'verdicts': verdicts,
-        'piece_groups': piece_groups,
-        'groups': groups_debug,
-        'means': {sq: c['mean'] for sq, c in cells.items()},
-        'dark_ratios': dark_ratios,
-        'dark_threshold': dark_threshold,
-        'board_histogram': board_histogram,
-        'percentile_used': PERCENTILE_FALLBACK,
-        'pieces_percentile': pieces_percentile,
-        'pieces_threshold': pieces_threshold,
-        'pieces_histogram': pieces_histogram,
-        'flip_neighbors': flip_neighbors,
-        'auto_shifts': auto_shifts,
-        'board_box_px': {'left': left, 'top': top, 'right': right, 'bottom': bottom, 'crop_w': W, 'crop_h': H},
-    }
 
 
 def _strip_code_fences(raw):
@@ -890,7 +496,7 @@ def reread_region():
 
     call_start = time_module.time()
     try:
-        resp, tier, _, parsed, squares, box_frac, raw_text = _gemini_read_single_with_validation(
+        resp, tier, _, _parsed, squares, raw_text = _gemini_read_single_with_validation(
             client_free, client_paid, model_id, contents,
             timeout_seconds=90, label='Diagram reread',
         )
@@ -922,20 +528,7 @@ def reread_region():
     grid = _squares_to_grid(squares)
     fen = _grid_to_fen(grid, active_color)
 
-    pixel_colors = {}
-    pixel_debug = None
-    try:
-        pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
-        if pr:
-            pixel_colors = pr.get('colors') or {}
-            pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'pieces_percentile', 'pieces_threshold', 'pieces_histogram', 'flip_neighbors', 'auto_shifts') if k in pr}
-            # Auto-shift mutates `squares`; rebuild FEN so the moved pieces land in the response.
-            if pr.get('auto_shifts'):
-                fen = _grid_to_fen(_squares_to_grid(squares), active_color)
-    except Exception as pe:
-        logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
-
-    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed, 'pixel_colors': pixel_colors, 'pixel_debug': pixel_debug})
+    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed})
 
 
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
@@ -1112,7 +705,7 @@ def read_diagram():
             ]
 
             try:
-                resp_read, tier, succeeded_on_attempt, parsed, squares, box_frac, raw_text = _gemini_read_single_with_validation(
+                resp_read, tier, succeeded_on_attempt, _parsed, squares, raw_text = _gemini_read_single_with_validation(
                     client_free, client_paid, model_id, contents,
                     timeout_seconds=90, label=f'Diagram Region {idx + 1}',
                 )
@@ -1144,17 +737,8 @@ def read_diagram():
             if is_admin:
                 result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": raw_text, "attempt": succeeded_on_attempt})
 
-            pixel_result = {}
             grid = _squares_to_grid(squares)
             fen = _grid_to_fen(grid, meta['active_color'])
-            if is_admin:
-                try:
-                    pixel_result = _pixel_ratio_colors(meta['_crop_bytes'], squares, box_frac)
-                    # Auto-shift mutates `squares`; rebuild FEN so moved pieces land in the response.
-                    if pixel_result.get('auto_shifts'):
-                        fen = _grid_to_fen(_squares_to_grid(squares), meta['active_color'])
-                except Exception as pe:
-                    logger.warning(f"[Diagram] Region {idx + 1}: pixel_colors failed: {pe}")
 
             if fen:
                 diagram = {
@@ -1163,11 +747,8 @@ def read_diagram():
                     "black_player": meta['black_player'],
                     "region": meta['box'],
                     "diagram_number": meta['diagram_number'],
-                    "crop_data_url": meta['crop_data_url'],  # already base64-encoded in phase 1.5
+                    "crop_data_url": meta['crop_data_url'],
                 }
-                if is_admin and pixel_result:
-                    diagram['pixel_colors'] = pixel_result.get('colors') or {}
-                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'pieces_percentile', 'pieces_threshold', 'pieces_histogram', 'flip_neighbors', 'auto_shifts') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

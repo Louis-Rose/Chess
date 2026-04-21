@@ -20,34 +20,6 @@ export interface DiagramRegion {
   active_color?: 'w' | 'b';
 }
 
-export interface PixelGroupInfo {
-  threshold: number | null;
-  gap: number | null;
-  min_gap: number;
-  can_check: boolean;
-  count_w: number;
-  count_b: number;
-  min_fill: number | null;
-  max_fill: number | null;
-}
-
-export interface PixelDebug {
-  means: Record<string, number>;
-  dark_ratios: Record<string, number>;
-  dark_threshold: number;
-  board_histogram?: number[];
-  percentile_used?: number;
-  verdicts?: Record<string, 'ok' | 'flip?' | 'no-check'>;
-  piece_groups?: Record<string, string>;
-  groups?: Record<string, PixelGroupInfo>;
-  board_box_px?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
-  pieces_percentile?: number;
-  pieces_threshold?: number;
-  pieces_histogram?: number[];
-  flip_neighbors?: Record<string, { left: number | null; right: number | null }>;
-  auto_shifts?: Array<{ from: string; to: string; type: string; piece: string; own_dark: number; neighbor_dark: number }>;
-}
-
 export interface DiagramExtract {
   fen: string;
   white_player?: string;
@@ -55,8 +27,6 @@ export interface DiagramExtract {
   region?: DiagramRegion;
   diagram_number?: number | null;
   crop_data_url?: string;
-  pixel_colors?: Record<string, 'w' | 'b'>;
-  pixel_debug?: PixelDebug;
 }
 
 export interface DiagramModelResult {
