@@ -473,18 +473,41 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         k = max(0, min(n - 1, int(p * (n - 1) / 100.0)))
         return s[k]
 
-    # dark_threshold derived from the full-board pixel distribution.
-    # A typical position has ~6-10% of total pixels as piece ink, so the
-    # bottom 5% lands squarely inside solid-ink brightness — self-calibrating
-    # to the scan/render style without needing empty-cell-only sampling.
+    def _median_1d(xs):
+        s = sorted(xs)
+        n = len(s)
+        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
+
+    def _fills_gap(fills_in):
+        """L1-optimal 2-cluster gap for a list of fill ratios."""
+        if len(fills_in) < 2:
+            return 0.0
+        fills = sorted(fills_in)
+        best_cost = float('inf')
+        best_idx = -1
+        for i in range(1, len(fills)):
+            lo = fills[:i]
+            hi = fills[i:]
+            lm = _median_1d(lo)
+            hm = _median_1d(hi)
+            cost = sum(abs(x - lm) for x in lo) + sum(abs(x - hm) for x in hi)
+            if cost < best_cost:
+                best_cost = cost
+                best_idx = i
+        return fills[best_idx] - fills[best_idx - 1] if best_idx > 0 else 0.0
+
+    # Global fallback threshold — used for empty cells and as a sensible default
+    # echoed to the admin UI. Taken from the bottom ~7% of the full-board pixel
+    # distribution (typical positions have 6-10% piece-ink pixels, so the 7th
+    # percentile lands inside solid-ink brightness).
     all_pixels = []
     for c in cells.values():
         all_pixels.extend(c['pixels'])
-    PERCENTILE = 7
-    p = _percentile(all_pixels, PERCENTILE)
-    if p is None:
+    PERCENTILE_FALLBACK = 7
+    p_fallback = _percentile(all_pixels, PERCENTILE_FALLBACK)
+    if p_fallback is None:
         return {}
-    dark_threshold = max(0, int(p))
+    dark_threshold = max(0, int(p_fallback))
 
     # 256-bin histogram of all board pixels (admin visualization)
     board_histogram = [0] * 256
@@ -492,17 +515,75 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         if 0 <= px < 256:
             board_histogram[px] += 1
 
-    # Per-cell dark-pixel ratio (fraction of pixels below the threshold)
+    # Per-type auto-tune: for each piece type, pool its cells' pixels, sweep
+    # candidate percentiles, and pick the one whose resulting per-cell fill
+    # ratios give the largest L1-optimal cluster gap. Different types benefit
+    # from different percentiles (e.g. rooks have more ink than kings).
+    type_pixels = {}  # ptype -> [pixel intensities]
+    type_cells = {}   # ptype -> [sq names]
+    for sq, c in cells.items():
+        sym = squares.get(sq, '.')
+        if sym == '.':
+            continue
+        ptype = sym.upper()
+        type_pixels.setdefault(ptype, []).extend(c['pixels'])
+        type_cells.setdefault(ptype, []).append(sq)
+
+    AUTO_CANDIDATES = [4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0]
+    type_percentiles = {}
+    type_thresholds = {}
+    type_histograms = {}
+
+    def _eval_at(ptype, p):
+        thr = _percentile(type_pixels[ptype], p)
+        if thr is None:
+            return None, 0.0
+        fills = []
+        for sq in type_cells[ptype]:
+            px = cells[sq]['pixels']
+            dc = sum(1 for g in px if g <= thr)
+            fills.append(dc / len(px))
+        return thr, _fills_gap(fills)
+
+    for ptype, pixels in type_pixels.items():
+        # Threshold-independent histogram per type (admin visualization)
+        hist = [0] * 256
+        for px in pixels:
+            if 0 <= px < 256:
+                hist[px] += 1
+        type_histograms[ptype] = hist
+
+        best_p = PERCENTILE_FALLBACK
+        best_thr = _percentile(pixels, PERCENTILE_FALLBACK)
+        best_gap = -1.0
+        for p in AUTO_CANDIDATES:
+            thr_cand, gap = _eval_at(ptype, p)
+            if thr_cand is None:
+                continue
+            if gap > best_gap:
+                best_gap = gap
+                best_p = p
+                best_thr = thr_cand
+        type_percentiles[ptype] = best_p
+        type_thresholds[ptype] = max(0, int(best_thr)) if best_thr is not None else dark_threshold
+
+    # Per-cell dark-pixel ratio, using each cell's type threshold (or the
+    # global fallback for empty cells).
     dark_ratios = {}
     for sq, c in cells.items():
+        sym = squares.get(sq, '.')
+        if sym != '.' and sym.upper() in type_thresholds:
+            thr = type_thresholds[sym.upper()]
+        else:
+            thr = dark_threshold
         px = c['pixels']
-        dark_count = sum(1 for p in px if p <= dark_threshold)
+        dark_count = sum(1 for g in px if g <= thr)
         dark_ratios[sq] = round(dark_count / len(px), 3)
 
-    # Within-image classifier: one group per piece type. Background pixels
-    # sit above the dark_threshold so bg color doesn't meaningfully change
-    # fill-ratios; pieces of the same type cluster by color regardless of bg.
-    # For each group we find the largest fill-ratio gap and split there.
+    # Within-image classifier: one group per piece type. Pieces of the same
+    # type cluster by color regardless of background since bg pixels sit above
+    # the type threshold. For each group we find the largest fill-ratio gap
+    # and split there.
     MIN_GAP = 0.03
     groups = {}  # type_upper -> [(sq, llm_color, ratio)]
     for sq, c in cells.items():
@@ -517,11 +598,6 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     piece_groups = {}  # sq -> "K"
     colors = {}
     verdicts = {}  # sq -> 'ok' | 'flip?' | 'no-check'
-
-    def _median_1d(xs):
-        s = sorted(xs)
-        n = len(s)
-        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
 
     for ptype, members in groups.items():
         fills = sorted(r for (_, _, r) in members)
@@ -580,7 +656,10 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         'dark_ratios': dark_ratios,
         'dark_threshold': dark_threshold,
         'board_histogram': board_histogram,
-        'percentile_used': PERCENTILE,
+        'percentile_used': PERCENTILE_FALLBACK,
+        'type_percentiles': type_percentiles,
+        'type_thresholds': type_thresholds,
+        'type_histograms': type_histograms,
         'board_box_px': {'left': left, 'top': top, 'right': right, 'bottom': bottom, 'crop_w': W, 'crop_h': H},
     }
 
@@ -691,7 +770,7 @@ def reread_region():
             pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
             if pr:
                 pixel_colors = pr.get('colors') or {}
-                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pr}
+                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms') if k in pr}
         except Exception as pe:
             logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
 
@@ -991,7 +1070,7 @@ def read_diagram():
                 }
                 if is_admin and pixel_result:
                     diagram['pixel_colors'] = pixel_result.get('colors') or {}
-                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px') if k in pixel_result}
+                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

@@ -44,6 +44,9 @@ export interface PixelDebug {
   piece_groups?: Record<string, string>;
   groups?: Record<string, PixelGroupInfo>;
   board_box_px?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
+  type_percentiles?: Record<string, number>;
+  type_thresholds?: Record<string, number>;
+  type_histograms?: Record<string, number[]>;
 }
 
 export interface DiagramExtract {

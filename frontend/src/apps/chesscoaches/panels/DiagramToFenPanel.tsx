@@ -11,7 +11,7 @@ import { useEffectiveAdmin } from '../../../contexts/AuthContext';
 import { PanelShell } from '../components/PanelShell';
 import { useCoachesData } from '../contexts/CoachesDataContext';
 import { compressImage } from '../utils/compressImage';
-import type { DiagramModelResult, DiagramExtract, DiagramRegion, PixelGroupInfo } from '../contexts/CoachesDataContext';
+import type { DiagramModelResult, DiagramExtract, DiagramRegion } from '../contexts/CoachesDataContext';
 import { EditableBoard } from './diagram/EditableBoard';
 import { SaveToKnowledgeButton } from './diagram/SaveToKnowledgeButton';
 import { ComposedImage } from './diagram/ComposedImage';
@@ -495,36 +495,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     setAppliedFlips([]);
   }, [diagram.fen]);
 
-  // Admin-only: threshold explorer state. Image is loaded once so the
-  // debug tables below can recompute live as the slider moves.
-  const initialPercentile = diagram.pixel_debug?.percentile_used ?? 7;
-  const [percentile, setPercentile] = useState<number>(initialPercentile);
-  const [autoTune, setAutoTune] = useState<boolean>(true);
-  const [baseData, setBaseData] = useState<ImageData | null>(null);
-
-  useEffect(() => { setPercentile(initialPercentile); }, [initialPercentile, diagram.fen]);
-
-  useEffect(() => {
-    if (!effectiveAdmin || !diagram.crop_data_url) { setBaseData(null); return; }
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const cvs = document.createElement('canvas');
-      cvs.width = img.width;
-      cvs.height = img.height;
-      const ctx = cvs.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-      setBaseData(ctx.getImageData(0, 0, img.width, img.height));
-    };
-    img.src = diagram.crop_data_url;
-  }, [diagram.crop_data_url, effectiveAdmin]);
-
-  const live = useMemo(() => {
-    if (!baseData || !diagram.pixel_debug?.board_box_px || !diagram.fen) return null;
-    return classifyAtThreshold(baseData, diagram.pixel_debug.board_box_px, diagram.fen, percentile, autoTune);
-  }, [baseData, percentile, autoTune, diagram.pixel_debug?.board_box_px, diagram.fen]);
-
   // Per-square LLM color, frozen from the first-read FEN so the red ring
   // + left dot still reflect the LLM's original color even after auto-flip.
   const llmColors = useMemo<Record<string, 'w' | 'b'>>(() => {
@@ -542,15 +512,15 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
     return out;
   }, [diagram.fen]);
 
-  // Auto-flip colors based on classifier verdicts.
+  // Auto-flip colors based on backend classifier verdicts.
   useEffect(() => {
-    if (autoFlipsApplied || !live) return;
+    if (autoFlipsApplied) return;
+    const verdicts = diagram.pixel_debug?.verdicts;
+    if (!verdicts) return;
     const flipSqs: string[] = [];
-    for (const [sq, v] of Object.entries(live.verdicts)) {
+    for (const [sq, v] of Object.entries(verdicts)) {
       if (v === 'flip?') flipSqs.push(sq);
     }
-    // eslint-disable-next-line no-console
-    console.log('[auto-flip] flipSqs=', flipSqs, 'verdicts=', live.verdicts, 'dark_ratios=', live.dark_ratios, 'typeThresholds=', live.typeThresholds);
     setAutoFlipsApplied(true);
     if (flipSqs.length === 0) return;
     setAppliedFlips(flipSqs);
@@ -576,7 +546,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
       parts[0] = newRows.join('/');
       return parts.join(' ');
     });
-  }, [live, autoFlipsApplied]);
+  }, [diagram.pixel_debug?.verdicts, autoFlipsApplied]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => {
@@ -663,22 +633,9 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         </button>
       </div>
 
-      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? (live?.pixelColors ?? diagram.pixel_colors) : undefined} llmColors={effectiveAdmin ? llmColors : undefined} />
+      <EditableBoard fen={editedFen} onChange={handleBoardChange} pixelColors={effectiveAdmin ? diagram.pixel_colors : undefined} llmColors={effectiveAdmin ? llmColors : undefined} />
 
-      {diagram.crop_data_url && effectiveAdmin && (
-        <ThresholdExplorer
-          baseData={baseData}
-          percentile={percentile}
-          setPercentile={setPercentile}
-          initial={initialPercentile}
-          boardBox={diagram.pixel_debug?.board_box_px}
-          live={live}
-          autoTune={autoTune}
-          setAutoTune={setAutoTune}
-        />
-      )}
-
-      <PixelDebugPanel diagram={diagram} live={live} percentile={percentile} appliedFlips={appliedFlips} />
+      <PixelDebugPanel diagram={diagram} appliedFlips={appliedFlips} />
 
       <div className="flex flex-col gap-2">
         <button
@@ -694,439 +651,6 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
         <SaveToKnowledgeButton diagram={diagram} editedFen={editedFen} />
       </div>
     </div>
-  );
-}
-
-type LiveClassification = {
-  means: Record<string, number>;
-  dark_ratios: Record<string, number>;
-  pieceGroups: Record<string, string>;
-  groups: Record<string, PixelGroupInfo>;
-  verdicts: Record<string, 'ok' | 'flip?' | 'no-check'>;
-  pixelColors: Record<string, 'w' | 'b'>;
-  typeThresholds: Record<string, number>;
-  typePercentiles: Record<string, number>;
-  globalThreshold: number;
-  cellThresholds: Record<string, number>;
-  typeHistograms: Record<string, number[]>;
-};
-
-function classifyAtThreshold(
-  baseData: ImageData,
-  boardBox: { left: number; top: number; right: number; bottom: number },
-  fen: string,
-  percentile: number,  // 0-100
-  autoTune: boolean = false,
-): LiveClassification {
-  const w = baseData.width;
-  const { left, top, right, bottom } = boardBox;
-  const cellW = (right - left) / 8;
-  const cellH = (bottom - top) / 8;
-  const MIN_GAP = 0.03;
-
-  const occupancy: Record<string, string> = {};
-  fen.split(' ')[0].split('/').forEach((rankRow, r) => {
-    const rankNum = 8 - r;
-    let c = 0;
-    for (const ch of rankRow) {
-      if (ch >= '1' && ch <= '8') { c += parseInt(ch, 10); continue; }
-      occupancy[`${'abcdefgh'[c]}${rankNum}`] = ch;
-      c += 1;
-    }
-  });
-
-  // Pass 1: gather per-cell pixels + mean (darkRatio depends on threshold, computed later)
-  const cellPixels: Record<string, number[]> = {};
-  const means: Record<string, number> = {};
-  for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
-    for (let rankIdx = 0; rankIdx < 8; rankIdx++) {
-      const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
-      const cl = left + fileIdx * cellW;
-      const ct = top + (7 - rankIdx) * cellH;
-      const ix0 = Math.max(0, Math.floor(cl));
-      const iy0 = Math.max(0, Math.floor(ct));
-      const ix1 = Math.min(baseData.width, Math.floor(cl + cellW));
-      const iy1 = Math.min(baseData.height, Math.floor(ct + cellH));
-      const pixels: number[] = [];
-      let sum = 0;
-      for (let y = iy0; y < iy1; y++) {
-        for (let x = ix0; x < ix1; x++) {
-          const idx = (y * w + x) * 4;
-          const gray = (baseData.data[idx] + baseData.data[idx + 1] + baseData.data[idx + 2]) / 3;
-          sum += gray;
-          pixels.push(gray);
-        }
-      }
-      if (pixels.length > 0) {
-        cellPixels[sq] = pixels;
-        means[sq] = Math.round((sum / pixels.length) * 10) / 10;
-      }
-    }
-  }
-
-  const pctOf = (xs: number[], p: number) => {
-    if (!xs.length) return 0;
-    const s = [...xs].sort((a, b) => a - b);
-    const k = Math.max(0, Math.min(s.length - 1, Math.floor((p / 100) * (s.length - 1))));
-    return s[k];
-  };
-
-  // Per-type threshold = percentile of that type's pooled pixels.
-  const typePixels = new Map<string, number[]>();
-  for (const sq of Object.keys(cellPixels)) {
-    const piece = occupancy[sq];
-    if (!piece) continue;
-    const type = piece.toUpperCase();
-    if (!typePixels.has(type)) typePixels.set(type, []);
-    const arr = typePixels.get(type)!;
-    for (const g of cellPixels[sq]) arr.push(g);
-  }
-  const typeThresholds: Record<string, number> = {};
-  const typePercentiles: Record<string, number> = {};
-  const typeHistograms: Record<string, number[]> = {};
-
-  // L1-optimal gap for a given list of fills (sorted or not).
-  const fillsGap = (fillsIn: number[]): number => {
-    if (fillsIn.length < 2) return 0;
-    const fills = [...fillsIn].sort((a, b) => a - b);
-    let bestCost = Infinity;
-    let bestIdx = -1;
-    for (let i = 1; i < fills.length; i++) {
-      const lo = fills.slice(0, i);
-      const hi = fills.slice(i);
-      const lm = lo.length % 2 ? lo[Math.floor(lo.length / 2)] : (lo[lo.length / 2 - 1] + lo[lo.length / 2]) / 2;
-      const hm = hi.length % 2 ? hi[Math.floor(hi.length / 2)] : (hi[hi.length / 2 - 1] + hi[hi.length / 2]) / 2;
-      let c = 0;
-      for (const x of lo) c += Math.abs(x - lm);
-      for (const x of hi) c += Math.abs(x - hm);
-      if (c < bestCost) { bestCost = c; bestIdx = i; }
-    }
-    return bestIdx > 0 ? fills[bestIdx] - fills[bestIdx - 1] : 0;
-  };
-
-  const AUTO_CANDIDATES = [4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0];
-
-  for (const [type, pixels] of typePixels.entries()) {
-    // Histogram is threshold-independent, compute once.
-    const hist = new Array(256).fill(0);
-    for (const g of pixels) {
-      const b = Math.max(0, Math.min(255, Math.round(g)));
-      hist[b]++;
-    }
-    typeHistograms[type] = hist;
-
-    // Find this type's cells so we can compute fills at each candidate percentile.
-    const typeCells: string[] = [];
-    for (const sq of Object.keys(cellPixels)) {
-      if (occupancy[sq] && occupancy[sq].toUpperCase() === type) typeCells.push(sq);
-    }
-
-    const evalAt = (p: number): { thr: number; gap: number } => {
-      const thr = pctOf(pixels, p);
-      const fills: number[] = [];
-      for (const sq of typeCells) {
-        const px = cellPixels[sq];
-        let dc = 0;
-        for (const g of px) if (g <= thr) dc++;
-        fills.push(dc / px.length);
-      }
-      return { thr, gap: fillsGap(fills) };
-    };
-
-    if (autoTune) {
-      let bestP = percentile;
-      let best = evalAt(percentile);
-      for (const p of AUTO_CANDIDATES) {
-        const cur = evalAt(p);
-        if (cur.gap > best.gap) { best = cur; bestP = p; }
-      }
-      typePercentiles[type] = bestP;
-      typeThresholds[type] = best.thr;
-    } else {
-      typePercentiles[type] = percentile;
-      typeThresholds[type] = pctOf(pixels, percentile);
-    }
-  }
-
-  // Fallback (empty cells, canvas default): percentile of all board pixels.
-  const allPixels: number[] = [];
-  for (const sq of Object.keys(cellPixels)) {
-    for (const g of cellPixels[sq]) allPixels.push(g);
-  }
-  const globalThreshold = pctOf(allPixels, percentile);
-
-  // Pass 2: per-cell darkRatio using its cell's resolved threshold.
-  const darkRatios: Record<string, number> = {};
-  const cellThresholds: Record<string, number> = {};
-  for (const sq of Object.keys(cellPixels)) {
-    const piece = occupancy[sq];
-    const thr = piece ? typeThresholds[piece.toUpperCase()] : globalThreshold;
-    cellThresholds[sq] = thr;
-    const pixels = cellPixels[sq];
-    let darkCount = 0;
-    for (const g of pixels) if (g <= thr) darkCount++;
-    darkRatios[sq] = Math.round((darkCount / pixels.length) * 1000) / 1000;
-  }
-
-  type Member = { sq: string; llm: 'w' | 'b'; ratio: number; type: string };
-  const groupMembers = new Map<string, Member[]>();
-  for (let fileIdx = 0; fileIdx < 8; fileIdx++) {
-    for (let rankIdx = 0; rankIdx < 8; rankIdx++) {
-      const sq = `${'abcdefgh'[fileIdx]}${rankIdx + 1}`;
-      const piece = occupancy[sq];
-      if (!piece) continue;
-      const llm: 'w' | 'b' = piece === piece.toUpperCase() ? 'w' : 'b';
-      const type = piece.toUpperCase();
-      if (!groupMembers.has(type)) groupMembers.set(type, []);
-      groupMembers.get(type)!.push({ sq, llm, ratio: darkRatios[sq] ?? 0, type });
-    }
-  }
-
-  const groups: Record<string, PixelGroupInfo> = {};
-  const pieceGroups: Record<string, string> = {};
-  const pixelColors: Record<string, 'w' | 'b'> = {};
-  const verdicts: Record<string, 'ok' | 'flip?' | 'no-check'> = {};
-
-  const median1D = (xs: number[]) => {
-    const s = [...xs].sort((a, b) => a - b);
-    const n = s.length;
-    return n % 2 ? s[Math.floor(n / 2)] : (s[n / 2 - 1] + s[n / 2]) / 2;
-  };
-  // L1-optimal 2-cluster split: minimise sum of |fill − cluster median| over
-  // both clusters. Threshold = midpoint of cluster medians. Robust to
-  // within-cluster outliers (single rogue fill can't drag the centre).
-  const analyzeGroup = (members: Member[]) => {
-    const sorted = [...members].sort((a, b) => a.ratio - b.ratio);
-    const fills = sorted.map(m => m.ratio);
-    if (fills.length < 2) {
-      return { sorted, biggestGap: 0, gapIdx: -1, canCheck: false, thresh: null };
-    }
-    let bestCost = Infinity;
-    let bestIdx = 1;
-    let bestLo = 0, bestHi = 0;
-    for (let i = 1; i < fills.length; i++) {
-      const lo = fills.slice(0, i);
-      const hi = fills.slice(i);
-      const lm = median1D(lo);
-      const hm = median1D(hi);
-      let cost = 0;
-      for (const x of lo) cost += Math.abs(x - lm);
-      for (const x of hi) cost += Math.abs(x - hm);
-      if (cost < bestCost) { bestCost = cost; bestIdx = i; bestLo = lm; bestHi = hm; }
-    }
-    const biggestGap = fills[bestIdx] - fills[bestIdx - 1];
-    const canCheck = biggestGap >= MIN_GAP;
-    const thresh = canCheck ? (bestLo + bestHi) / 2 : null;
-    return { sorted, biggestGap, gapIdx: bestIdx - 1, canCheck, thresh };
-  };
-
-  const buildInfo = (members: Member[], analysis: ReturnType<typeof analyzeGroup>): PixelGroupInfo => ({
-    threshold: analysis.thresh !== null ? Math.round(analysis.thresh * 1000) / 1000 : null,
-    gap: analysis.sorted.length > 1 ? Math.round(analysis.biggestGap * 1000) / 1000 : null,
-    min_gap: MIN_GAP,
-    can_check: analysis.canCheck,
-    count_w: members.filter(m => m.llm === 'w').length,
-    count_b: members.filter(m => m.llm === 'b').length,
-    min_fill: analysis.sorted.length ? Math.round(analysis.sorted[0].ratio * 1000) / 1000 : null,
-    max_fill: analysis.sorted.length ? Math.round(analysis.sorted[analysis.sorted.length - 1].ratio * 1000) / 1000 : null,
-  });
-
-  // One group per piece type (bg ignored: background pixels sit above the
-  // dark_threshold so tile color doesn't affect fill-ratios meaningfully).
-  for (const [key, members] of groupMembers.entries()) {
-    const analysis = analyzeGroup(members);
-    groups[key] = buildInfo(members, analysis);
-    for (const m of members) {
-      pieceGroups[m.sq] = key;
-      if (analysis.canCheck && analysis.thresh !== null) {
-        const pred: 'w' | 'b' = m.ratio > analysis.thresh ? 'b' : 'w';
-        pixelColors[m.sq] = pred;
-        verdicts[m.sq] = pred === m.llm ? 'ok' : 'flip?';
-      } else {
-        verdicts[m.sq] = 'no-check';
-      }
-    }
-  }
-
-  return { means, dark_ratios: darkRatios, pieceGroups, groups, verdicts, pixelColors, typeThresholds, typePercentiles, globalThreshold, cellThresholds, typeHistograms };
-}
-
-interface ThresholdExplorerProps {
-  baseData: ImageData | null;
-  percentile: number;
-  setPercentile: (v: number) => void;
-  initial: number;
-  boardBox?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
-  live?: LiveClassification | null;
-  autoTune: boolean;
-  setAutoTune: (v: boolean) => void;
-}
-
-function ThresholdExplorer({ baseData, percentile, setPercentile, initial, boardBox, live, autoTune, setAutoTune }: ThresholdExplorerProps) {
-  const effectiveAdmin = useEffectiveAdmin();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Sample only pixels inside board_box so the percentage matches backend's
-  // percentile. The crop's dark book-frame and labels would otherwise skew it.
-  const cumHist = useMemo(() => {
-    if (!baseData) return null;
-    const w = baseData.width, h = baseData.height;
-    const left = boardBox ? Math.max(0, Math.floor(boardBox.left)) : 0;
-    const top = boardBox ? Math.max(0, Math.floor(boardBox.top)) : 0;
-    const right = boardBox ? Math.min(w, Math.ceil(boardBox.right)) : w;
-    const bottom = boardBox ? Math.min(h, Math.ceil(boardBox.bottom)) : h;
-    const hist = new Array(256).fill(0);
-    let total = 0;
-    for (let y = top; y < bottom; y++) {
-      for (let x = left; x < right; x++) {
-        const idx = (y * w + x) * 4;
-        const g = Math.round((baseData.data[idx] + baseData.data[idx + 1] + baseData.data[idx + 2]) / 3);
-        hist[g]++;
-        total++;
-      }
-    }
-    const cum = new Array(257).fill(0);
-    for (let i = 0; i < 256; i++) cum[i + 1] = cum[i] + hist[i];
-    return { cum, total };
-  }, [baseData, boardBox]);
-
-  useEffect(() => {
-    if (!baseData) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.width = baseData.width;
-    canvas.height = baseData.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const out = ctx.createImageData(baseData.width, baseData.height);
-    const src = baseData.data;
-    const dst = out.data;
-
-    // Per-pixel threshold: look up the cell's type threshold if inside the
-    // board_box; use globalThreshold everywhere else.
-    const cellThresholds = live?.cellThresholds ?? null;
-    const globalT = live?.globalThreshold ?? 0;
-    const fallbackT = globalT;
-    const W = baseData.width;
-    const H = baseData.height;
-    const boxed = boardBox && cellThresholds;
-    const bLeft = boardBox ? boardBox.left : 0;
-    const bTop = boardBox ? boardBox.top : 0;
-    const bRight = boardBox ? boardBox.right : 0;
-    const bBottom = boardBox ? boardBox.bottom : 0;
-    const cellW = boardBox ? (bRight - bLeft) / 8 : 0;
-    const cellH = boardBox ? (bBottom - bTop) / 8 : 0;
-
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        const i = (y * W + x) * 4;
-        const r = src[i], g = src[i + 1], b = src[i + 2];
-        const gray = (r + g + b) / 3;
-        let thr = fallbackT;
-        if (boxed && x >= bLeft && x < bRight && y >= bTop && y < bBottom) {
-          const fileIdx = Math.min(7, Math.floor((x - bLeft) / cellW));
-          const rankIdxFromTop = Math.min(7, Math.floor((y - bTop) / cellH));
-          const rankNum = 8 - rankIdxFromTop;
-          const sq = `${'abcdefgh'[fileIdx]}${rankNum}`;
-          thr = cellThresholds[sq] ?? fallbackT;
-        }
-        if (gray <= thr) {
-          dst[i] = 239; dst[i + 1] = 68; dst[i + 2] = 68; dst[i + 3] = 255;
-        } else {
-          dst[i] = r; dst[i + 1] = g; dst[i + 2] = b; dst[i + 3] = 255;
-        }
-      }
-    }
-    ctx.putImageData(out, 0, 0);
-
-    if (boardBox) {
-      ctx.strokeStyle = '#22d3ee';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 3]);
-      ctx.strokeRect(bLeft + 0.5, bTop + 0.5, bRight - bLeft - 1, bBottom - bTop - 1);
-      ctx.setLineDash([]);
-    }
-
-    if (boardBox && live?.pixelColors) {
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 2;
-      for (const sq in live.pixelColors) {
-        if (live.pixelColors[sq] !== 'b') continue;
-        const fileIdx = 'abcdefgh'.indexOf(sq[0]);
-        const rankIdx = parseInt(sq[1], 10) - 1;
-        if (fileIdx < 0 || isNaN(rankIdx)) continue;
-        const cl = bLeft + fileIdx * cellW;
-        const ct = bTop + (7 - rankIdx) * cellH;
-        ctx.strokeRect(cl + 1, ct + 1, cellW - 2, cellH - 2);
-      }
-    }
-  }, [baseData, percentile, boardBox, live]);
-
-  if (!effectiveAdmin || !baseData) return null;
-
-  const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v * 10) / 10));
-  const bump = (d: number) => setPercentile(clamp(percentile + d));
-  const total = cumHist?.total ?? 0;
-  const globalThr = Math.round(live?.globalThreshold ?? 0);
-  const below = cumHist ? cumHist.cum[globalThr] : 0;
-  const pctTinted = total > 0 ? (below / total) * 100 : 0;
-
-  return (
-    <details className="max-w-[400px] mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
-      <summary className="px-2 py-1 cursor-pointer text-slate-300">
-        <span className="block">Threshold explorer (admin)</span>
-        <span className="block">percentile: {percentile.toFixed(1)}% · global dark_thr ≈ {globalThr}</span>
-        <span className="block">≈{pctTinted.toFixed(2)}% of board tinted</span>
-      </summary>
-      <div className="px-2 py-2 space-y-2">
-        <canvas ref={canvasRef} className="mx-auto block rounded border border-slate-700 max-w-full" style={{ imageRendering: 'pixelated' }} />
-        <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={autoTune}
-            onChange={e => setAutoTune(e.target.checked)}
-            className="accent-blue-500"
-          />
-          <span>Auto-tune per type (sweep 4–7%, max gap)</span>
-        </label>
-        <div className={`flex items-center gap-2 ${autoTune ? 'opacity-50' : ''}`}>
-          <button
-            type="button"
-            onClick={() => bump(-0.5)}
-            className="px-2 py-0.5 rounded border border-slate-600 text-slate-300 hover:bg-slate-800 font-mono"
-            title="Decrease percentile by 0.5"
-          >
-            −
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={0.5}
-            value={percentile}
-            onChange={e => setPercentile(parseFloat(e.target.value))}
-            className="flex-1"
-          />
-          <button
-            type="button"
-            onClick={() => bump(0.5)}
-            className="px-2 py-0.5 rounded border border-slate-600 text-slate-300 hover:bg-slate-800 font-mono"
-            title="Increase percentile by 0.5"
-          >
-            +
-          </button>
-          <span className="font-mono w-14 text-right text-slate-300">{percentile.toFixed(1)}%</span>
-          <button
-            type="button"
-            onClick={() => setPercentile(initial)}
-            className="px-2 py-0.5 rounded border border-slate-600 text-slate-300 hover:bg-slate-800"
-            title="Reset to computed default percentile"
-          >
-            reset
-          </button>
-        </div>
-      </div>
-    </details>
   );
 }
 
@@ -1156,22 +680,24 @@ function DarkBgHistogram({ histogram, threshold, width = 420, height = 80 }: { h
   );
 }
 
-function PixelDebugPanel({ diagram, live, percentile, appliedFlips = [] }: { diagram: DiagramExtract; live?: LiveClassification | null; percentile?: number; appliedFlips?: string[] }) {
+function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtract; appliedFlips?: string[] }) {
   const effectiveAdmin = useEffectiveAdmin();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [zoomedHist, setZoomedHist] = useState<{ histogram: number[]; threshold: number; label: string } | null>(null);
   if (!effectiveAdmin) return null;
   const dbg = diagram.pixel_debug;
   if (!dbg) return null;
-  const colors = live?.pixelColors ?? diagram.pixel_colors ?? {};
-  const means = live?.means ?? dbg.means;
-  const darkRatios = live?.dark_ratios ?? dbg.dark_ratios;
-  const groupsMap = live?.groups ?? dbg.groups ?? {};
-  const pieceGroupsMap = live?.pieceGroups ?? dbg.piece_groups ?? {};
-  const verdictsMap = live?.verdicts ?? dbg.verdicts ?? {};
-  const displayedPercentile = percentile ?? dbg.percentile_used ?? 7;
-  const displayedGlobalThreshold = Math.round(live?.globalThreshold ?? dbg.dark_threshold);
-  const typeThresholds = live?.typeThresholds ?? {};
+  const colors = diagram.pixel_colors ?? {};
+  const means = dbg.means;
+  const darkRatios = dbg.dark_ratios;
+  const groupsMap = dbg.groups ?? {};
+  const pieceGroupsMap = dbg.piece_groups ?? {};
+  const verdictsMap = dbg.verdicts ?? {};
+  const displayedPercentile = dbg.percentile_used ?? 7;
+  const displayedGlobalThreshold = Math.round(dbg.dark_threshold);
+  const typeThresholds = dbg.type_thresholds ?? {};
+  const typePercentiles = dbg.type_percentiles ?? {};
+  const typeHistograms = dbg.type_histograms ?? {};
 
   // Reconstruct 64-square occupancy from the FEN so we can show every cell,
   // empty and occupied, with its measurements.
@@ -1265,7 +791,7 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFlips = [] }: { dia
       </summary>
 
       {(() => {
-        const typedHist = typeFilter !== 'all' ? live?.typeHistograms?.[typeFilter] : undefined;
+        const typedHist = typeFilter !== 'all' ? typeHistograms[typeFilter] : undefined;
         const histogram = typedHist ?? dbg.board_histogram;
         if (!histogram || !histogram.some(v => v > 0)) return null;
         const threshold = typedHist ? Math.round(typeThresholds[typeFilter] ?? 0) : displayedGlobalThreshold;
@@ -1356,7 +882,7 @@ function PixelDebugPanel({ diagram, live, percentile, appliedFlips = [] }: { dia
               {groupEntries.map(([k, g]) => {
                 const gapPct = g.gap != null ? `${(g.gap * 100).toFixed(1)}%` : '—';
                 const minGapPct = `${(g.min_gap * 100).toFixed(0)}%`;
-                const typePct = live?.typePercentiles?.[k];
+                const typePct = typePercentiles[k];
                 return (
                   <tr key={k} className={g.can_check ? '' : 'text-slate-500'}>
                     <td className="pr-3">{k}</td>
