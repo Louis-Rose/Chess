@@ -159,15 +159,15 @@ def _save_upload(user_id, image_bytes, mime_type, feature):
         logger.error(f"[Upload] Failed to save image: {e}")
 
 
-def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid', user_id=None, retry_free_error=None, retry_free_elapsed=None):
+def _log_api_usage(feature, model_id, input_tokens, output_tokens, elapsed, error=None, request_id=None, thinking_tokens=0, billing_tier='paid', user_id=None, retry_free_error=None, retry_free_elapsed=None, phase=None):
     """Log a Gemini API call to the api_usage table. Retries on DB lock."""
     for attempt in range(3):
         try:
             with get_db() as conn:
                 conn.execute(
-                    """INSERT INTO api_usage (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error, retry_free_error, retry_free_elapsed)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error, retry_free_error, retry_free_elapsed),
+                    """INSERT INTO api_usage (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed_seconds, error, retry_free_error, retry_free_elapsed, phase)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (user_id, request_id, feature, model_id, input_tokens, output_tokens, thinking_tokens, billing_tier, elapsed, error, retry_free_error, retry_free_elapsed, phase),
                 )
             return
         except Exception as e:
@@ -649,13 +649,13 @@ def reread_region():
     if last_exc is not None or resp is None:
         logger.error(f"[Diagram reread] failed after retry: {last_exc}")
         _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(last_exc),
-                       request_id=req_id, user_id=uid, billing_tier='paid')
+                       request_id=req_id, user_id=uid, billing_tier='paid', phase='read')
         return jsonify({'error': f'Read failed: {last_exc}'}), 502
 
     in_tok, out_tok, think_tok = _extract_usage_tokens(resp)
     _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed,
                    request_id=req_id, thinking_tokens=think_tok,
-                   billing_tier=tier, user_id=uid)
+                   billing_tier=tier, user_id=uid, phase='read')
 
     raw_text = resp.text or ''
     try:
@@ -770,7 +770,7 @@ def read_diagram():
             in_tok, out_tok, think_tok = _extract_usage_tokens(resp_locate)
             _log_api_usage('diagram', model_id, in_tok, out_tok, phase1_elapsed,
                            request_id=req_id, thinking_tokens=think_tok,
-                           billing_tier=tier, user_id=uid)
+                           billing_tier=tier, user_id=uid, phase='locate')
             if is_admin:
                 result_queue.put({"type": "debug", "phase": "locate", "raw": resp_locate.text})
             raw = _strip_code_fences(resp_locate.text)
@@ -860,7 +860,7 @@ def read_diagram():
             logger.error(f"[Diagram] Phase 1 failed: {e}")
             result_queue.put({"type": "result", "model_id": model_id, "name": model_name, "error": f"Region detection failed: {e}", "elapsed": elapsed})
             _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e),
-                           request_id=req_id, user_id=uid, billing_tier='paid')
+                           request_id=req_id, user_id=uid, billing_tier='paid', phase='locate')
             return
 
         if not diagrams_meta:
@@ -890,7 +890,7 @@ def read_diagram():
                 call_elapsed = round(time_module.time() - call_start)
                 _log_api_usage('diagram', DIAGRAM_JUDGE_MODEL_ID, in_tok, out_tok, call_elapsed,
                                request_id=req_id, thinking_tokens=think_tok,
-                               billing_tier=tier, user_id=uid)
+                               billing_tier=tier, user_id=uid, phase='judge')
                 raw = (resp_judge.text or '').strip().upper()
                 # Prefer tight when judge returns A; padded when B; default to tight on ambiguity.
                 if 'B' in raw and 'A' not in raw:
@@ -904,7 +904,7 @@ def read_diagram():
                 call_elapsed = round(time_module.time() - call_start)
                 logger.warning(f"[Diagram] Judge failed for region {idx + 1}: {e}; defaulting to padded")
                 _log_api_usage('diagram', DIAGRAM_JUDGE_MODEL_ID, 0, 0, call_elapsed, error=str(e),
-                               request_id=req_id, user_id=uid, billing_tier='paid')
+                               request_id=req_id, user_id=uid, billing_tier='paid', phase='judge')
                 meta['selected_variant'] = 'padded'
                 meta['box'] = meta['box_padded']
 
@@ -983,14 +983,14 @@ def read_diagram():
                 call_elapsed = round(time_module.time() - call_start)
                 logger.error(f"[Diagram] Region {idx + 1} failed after retry: {last_exc}")
                 _log_api_usage('diagram', model_id, 0, 0, call_elapsed, error=str(last_exc),
-                               request_id=req_id, user_id=uid, billing_tier='paid')
+                               request_id=req_id, user_id=uid, billing_tier='paid', phase='read')
                 return
 
             in_tok, out_tok, think_tok = _extract_usage_tokens(resp_read)
             call_elapsed = round(time_module.time() - call_start)
             _log_api_usage('diagram', model_id, in_tok, out_tok, call_elapsed,
                            request_id=req_id, thinking_tokens=think_tok,
-                           billing_tier=tier, user_id=uid)
+                           billing_tier=tier, user_id=uid, phase='read')
             if is_admin:
                 result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": resp_read.text, "attempt": succeeded_on_attempt})
 

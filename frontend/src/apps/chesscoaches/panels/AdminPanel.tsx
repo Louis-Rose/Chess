@@ -105,10 +105,18 @@ interface ApiInvocation {
   models: ApiInvocationModel[];
 }
 
+interface ApiUsageByPhase {
+  phase: 'locate' | 'judge' | 'read' | string;
+  call_count: number;
+  avg_elapsed: number;
+  error_count: number;
+}
+
 interface ApiUsageResponse {
   history: ApiUsageRow[];
   by_model: ApiUsageByModel[];
   by_feature: { feature: string; call_count: number; invocation_count?: number; total_input: number; total_output: number; cost_usd: number }[];
+  by_phase: ApiUsageByPhase[];
   invocations: ApiInvocation[];
   daily_invocations: { feature: string; date: string; count: number }[];
   daily_invocations_by_user: { feature: string; date: string; user_id: number; user_name: string | null; user_picture: string | null; count: number }[];
@@ -295,7 +303,7 @@ export function AdminPanel() {
   const { data: apiUsage } = useQuery({
     queryKey: ['admin-api-usage', userIdsParam],
     queryFn: async (): Promise<ApiUsageResponse> => {
-      if (nothingSelected) return { history: [], by_model: [], by_feature: [], invocations: [], daily_invocations: [], daily_invocations_by_user: [], total_cost_usd: 0, pricing: {} };
+      if (nothingSelected) return { history: [], by_model: [], by_feature: [], by_phase: [], invocations: [], daily_invocations: [], daily_invocations_by_user: [], total_cost_usd: 0, pricing: {} };
       const params: Record<string, string> = {};
       if (userIdsParam) params.user_ids = userIdsParam;
       const response = await axios.get('/api/admin/api-usage', { params });
@@ -384,7 +392,7 @@ export function AdminPanel() {
     const apiFeatures = PAGE_TO_API_FEATURES[selectedFeature];
     if (apiFeatures) apiFeatures.forEach(f => selectedApiFeatures.add(f));
     if (selectedApiFeatures.size === 0) {
-      return { ...apiUsage, by_feature: [], by_model: [], invocations: [], daily_invocations: [], daily_invocations_by_user: [], total_cost_usd: 0 };
+      return { ...apiUsage, by_feature: [], by_model: [], by_phase: [], invocations: [], daily_invocations: [], daily_invocations_by_user: [], total_cost_usd: 0 };
     }
     const filteredInvocations = apiUsage.invocations.filter(i => selectedApiFeatures.has(i.feature));
     // Recompute by_model from filtered invocations
@@ -422,6 +430,7 @@ export function AdminPanel() {
       ...apiUsage,
       by_feature: apiUsage.by_feature.filter(f => selectedApiFeatures.has(f.feature)),
       by_model: [...modelMap.values()],
+      by_phase: selectedApiFeatures.has('diagram') ? apiUsage.by_phase : [],
       invocations: filteredInvocations,
       daily_invocations: apiUsage.daily_invocations.filter(d => selectedApiFeatures.has(d.feature)),
       daily_invocations_by_user: apiUsage.daily_invocations_by_user.filter(d => selectedApiFeatures.has(d.feature)),
@@ -935,6 +944,36 @@ export function AdminPanel() {
                             : <span className="text-slate-600">0</span>}
                         </td>
                         <td className="px-3 py-2 text-green-400 text-right font-medium">{formatCost(m.cost_usd)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Diagram phase timings (locate / judge / read) */}
+            {filteredApiUsage.by_phase.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-slate-600/50">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-700/50 text-slate-400 text-xs uppercase tracking-wider">
+                      <th className="px-3 py-2 text-left">{t('coaches.admin.phase')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.calls')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.avgTime')}</th>
+                      <th className="px-3 py-2 text-center">{t('coaches.admin.errors')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {filteredApiUsage.by_phase.map(p => (
+                      <tr key={p.phase} className="hover:bg-slate-700/30">
+                        <td className="px-3 py-2 text-slate-200 font-mono text-xs">{p.phase}</td>
+                        <td className="px-3 py-2 text-slate-400 text-center">{p.call_count}</td>
+                        <td className="px-3 py-2 text-slate-400 text-center">{p.avg_elapsed}s</td>
+                        <td className="px-3 py-2 text-center">
+                          {p.error_count > 0
+                            ? <span className="text-red-400">{p.error_count}</span>
+                            : <span className="text-slate-600">0</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

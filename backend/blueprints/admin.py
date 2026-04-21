@@ -350,10 +350,31 @@ def get_api_usage():
             key=lambda r: (r['date'], r['feature'], -r['count']),
         )
 
+    # Per-phase aggregates for the diagram pipeline (locate / judge / read).
+    # Averages across all users; successful calls only so timeouts don't skew the mean.
+    with get_db() as conn:
+        cursor = conn.execute(f'''
+            SELECT phase,
+                   COUNT(*) as call_count,
+                   AVG(elapsed_seconds) as avg_elapsed,
+                   SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) as error_count
+            FROM api_usage
+            WHERE feature = 'diagram' AND phase IS NOT NULL AND error IS NULL {user_filter}
+            GROUP BY phase
+        ''', user_params)
+        by_phase = []
+        for r in cursor.fetchall():
+            row = dict(r)
+            row['avg_elapsed'] = round(row['avg_elapsed'] or 0, 1)
+            by_phase.append(row)
+        phase_order = {'locate': 0, 'judge': 1, 'read': 2}
+        by_phase.sort(key=lambda p: phase_order.get(p['phase'], 99))
+
     return jsonify({
         'history': rows,
         'by_model': by_model,
         'by_feature': by_feature,
+        'by_phase': by_phase,
         'invocations': invocations,
         'daily_invocations': daily_invocations,
         'daily_invocations_by_user': daily_invocations_by_user,

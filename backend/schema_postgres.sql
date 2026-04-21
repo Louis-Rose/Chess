@@ -271,6 +271,7 @@ CREATE TABLE IF NOT EXISTS api_usage (
     error TEXT,
     retry_free_error TEXT,
     retry_free_elapsed INTEGER,
+    phase TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -294,6 +295,7 @@ CREATE INDEX IF NOT EXISTS idx_coach_lessons_scheduled ON coach_lessons(schedule
 CREATE INDEX IF NOT EXISTS idx_coach_lessons_pack ON coach_lessons(pack_id);
 CREATE INDEX IF NOT EXISTS idx_api_usage_created ON api_usage(created_at);
 CREATE INDEX IF NOT EXISTS idx_api_usage_feature ON api_usage(feature);
+CREATE INDEX IF NOT EXISTS idx_api_usage_phase ON api_usage(phase);
 CREATE INDEX IF NOT EXISTS idx_knowledge_folders_user ON knowledge_folders(user_id);
 CREATE INDEX IF NOT EXISTS idx_knowledge_folders_parent ON knowledge_folders(parent_id);
 CREATE INDEX IF NOT EXISTS idx_knowledge_positions_user ON knowledge_positions(user_id);

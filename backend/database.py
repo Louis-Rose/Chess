@@ -299,3 +299,39 @@ def init_db():
             conn.execute("CREATE INDEX idx_knowledge_positions_user ON knowledge_positions(user_id)")
             conn.execute("CREATE INDEX idx_knowledge_positions_folder ON knowledge_positions(folder_id)")
             logger.info("Created knowledge_positions table")
+
+        # Migration: Add phase column to api_usage so we can break diagram timings
+        # into locate / judge / read. Backfills existing rows by the rules:
+        #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
+        #   - earliest pro-preview row per request_id   -> 'locate'
+        #   - remaining pro-preview rows                -> 'read'
+        # Non-diagram features stay NULL.
+        if not _column_exists(conn, 'api_usage', 'phase'):
+            conn.execute("ALTER TABLE api_usage ADD COLUMN phase TEXT")
+            conn.execute("""
+                UPDATE api_usage
+                SET phase = 'judge'
+                WHERE phase IS NULL
+                  AND feature = 'diagram'
+                  AND model_id = 'gemini-3.1-flash-lite-preview'
+            """)
+            conn.execute("""
+                WITH ranked AS (
+                    SELECT id,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY request_id
+                               ORDER BY created_at ASC, id ASC
+                           ) AS rn
+                    FROM api_usage
+                    WHERE phase IS NULL
+                      AND feature = 'diagram'
+                      AND request_id IS NOT NULL
+                      AND model_id <> 'gemini-3.1-flash-lite-preview'
+                )
+                UPDATE api_usage a
+                SET phase = CASE WHEN r.rn = 1 THEN 'locate' ELSE 'read' END
+                FROM ranked r
+                WHERE a.id = r.id
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_api_usage_phase ON api_usage(phase)")
+            logger.info("Added phase column to api_usage and backfilled diagram rows")
