@@ -956,6 +956,7 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
               <th className="pr-3">mean</th>
               <th className="pr-3">dark%</th>
               <th className="pr-3">g_thr%</th>
+              <th className="pr-3" title="Dark% on left and right neighbors — only computed for flipped pieces">L/R nbr%</th>
               <th>verdict</th>
             </tr>
           </thead>
@@ -963,6 +964,10 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
             {visiblePieceRows.map(row => {
               const darkPct = row.darkRatio !== undefined ? (row.darkRatio * 100).toFixed(1) : '—';
               const gThrPct = row.groupThresh != null ? (row.groupThresh * 100).toFixed(1) : '—';
+              const nbr = dbg.flip_neighbors?.[row.sq];
+              const fmtNbr = (v: number | null | undefined) =>
+                v == null ? '—' : `${(v * 100).toFixed(1)}`;
+              const nbrCell = nbr ? `${fmtNbr(nbr.left)} / ${fmtNbr(nbr.right)}` : '—';
               const cls =
                 row.verdict === 'flip?' ? 'text-red-400' :
                 row.verdict === 'no-check' ? 'text-amber-400' :
@@ -977,6 +982,7 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
                   <td className="pr-3">{row.mean ?? '—'}</td>
                   <td className="pr-3">{darkPct}</td>
                   <td className="pr-3">{gThrPct}</td>
+                  <td className="pr-3">{nbrCell}</td>
                   <td>{row.verdict ?? '—'}</td>
                 </tr>
               );

@@ -647,6 +647,36 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
             else:
                 verdicts[sq] = 'no-check'
 
+    # Diagnostic: for each square the classifier wants to flip, compute the
+    # dark-pixel ratio of its horizontal neighbors using the flipped piece's
+    # own type threshold. A low neighbor fill suggests the LLM shifted the
+    # piece off by one file (the neighbor would look empty). Nothing here
+    # changes verdicts — admin display only.
+    flip_neighbors = {}
+    for sq, v in verdicts.items():
+        if v != 'flip?':
+            continue
+        sym = squares.get(sq, '.')
+        if sym == '.':
+            continue
+        ptype = sym.upper()
+        thr = type_thresholds.get(ptype)
+        if thr is None:
+            continue
+        file_idx = 'abcdefgh'.index(sq[0])
+        rank = sq[1]
+        left_sq = f"{'abcdefgh'[file_idx - 1]}{rank}" if file_idx > 0 else None
+        right_sq = f"{'abcdefgh'[file_idx + 1]}{rank}" if file_idx < 7 else None
+        def _ratio(nsq):
+            if nsq is None or nsq not in cells:
+                return None
+            px = cells[nsq]['pixels']
+            if not px:
+                return None
+            dc = sum(1 for g in px if g <= thr)
+            return round(dc / len(px), 3)
+        flip_neighbors[sq] = {'left': _ratio(left_sq), 'right': _ratio(right_sq)}
+
     return {
         'colors': colors,
         'verdicts': verdicts,
@@ -660,6 +690,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         'type_percentiles': type_percentiles,
         'type_thresholds': type_thresholds,
         'type_histograms': type_histograms,
+        'flip_neighbors': flip_neighbors,
         'board_box_px': {'left': left, 'top': top, 'right': right, 'bottom': bottom, 'crop_w': W, 'crop_h': H},
     }
 
@@ -770,7 +801,7 @@ def reread_region():
             pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
             if pr:
                 pixel_colors = pr.get('colors') or {}
-                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms') if k in pr}
+                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms', 'flip_neighbors') if k in pr}
         except Exception as pe:
             logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
 
@@ -1070,7 +1101,7 @@ def read_diagram():
                 }
                 if is_admin and pixel_result:
                     diagram['pixel_colors'] = pixel_result.get('colors') or {}
-                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms') if k in pixel_result}
+                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms', 'flip_neighbors') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

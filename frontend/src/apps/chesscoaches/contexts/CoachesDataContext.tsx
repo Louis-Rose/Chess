@@ -47,6 +47,7 @@ export interface PixelDebug {
   type_percentiles?: Record<string, number>;
   type_thresholds?: Record<string, number>;
   type_histograms?: Record<string, number[]>;
+  flip_neighbors?: Record<string, { left: number | null; right: number | null }>;
 }
 
 export interface DiagramExtract {
