@@ -599,10 +599,10 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
     colors = {}
     verdicts = {}  # sq -> 'ok' | 'flip?' | 'no-check'
 
-    for ptype, members in groups.items():
+    def _classify_ptype(ptype, members):
+        """L1-optimal 2-cluster split for one piece type. Mutates the outer
+        groups_debug / piece_groups / colors / verdicts dicts."""
         fills = sorted(r for (_, _, r) in members)
-        # L1-optimal 2-cluster split: minimise sum of |fill - cluster median|
-        # over both clusters. Threshold = midpoint of cluster medians.
         best_cost = float('inf')
         best_idx = -1
         best_lo = None
@@ -637,7 +637,6 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
             'min_fill': round(fills[0], 3) if fills else None,
             'max_fill': round(fills[-1], 3) if fills else None,
         }
-
         for sq, llm_color, fill in members:
             piece_groups[sq] = ptype
             if can_check and threshold is not None:
@@ -647,11 +646,119 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
             else:
                 verdicts[sq] = 'no-check'
 
-    # Diagnostic: for each square the classifier wants to flip, compute the
-    # dark-pixel ratio of its horizontal neighbors using the flipped piece's
-    # own type threshold. A low neighbor fill suggests the LLM shifted the
-    # piece off by one file (the neighbor would look empty). Nothing here
-    # changes verdicts — admin display only.
+    for ptype, members in groups.items():
+        _classify_ptype(ptype, members)
+
+    # Auto-shift pass: if the LLM placed a piece off by one file, the claimed
+    # cell is essentially empty and a neighbor looks piece-filled. When that
+    # pattern is unambiguous, move the piece and re-classify the affected
+    # type group. Absolute thresholds keep the rule easy to reason about.
+    SHIFT_OWN_MAX = 0.01      # own cell fills below 1% are "empty"
+    SHIFT_NEIGHBOR_MIN = 0.10  # neighbor fills above 10% look piece-filled
+    auto_shifts = []
+    shift_candidates = []
+    for sq in list(verdicts.keys()):
+        if verdicts[sq] != 'flip?':
+            continue
+        sym = squares.get(sq, '.')
+        if sym == '.':
+            continue
+        own_ratio = dark_ratios.get(sq)
+        if own_ratio is None or own_ratio >= SHIFT_OWN_MAX:
+            continue
+        ptype = sym.upper()
+        thr = type_thresholds.get(ptype)
+        if thr is None:
+            continue
+        file_idx = 'abcdefgh'.index(sq[0])
+        rank = sq[1]
+        left_sq = f"{'abcdefgh'[file_idx - 1]}{rank}" if file_idx > 0 else None
+        right_sq = f"{'abcdefgh'[file_idx + 1]}{rank}" if file_idx < 7 else None
+
+        def _nbr_ratio(nsq):
+            """Neighbor fill under this piece's type threshold, or None if the
+            neighbor isn't a free empty square."""
+            if nsq is None or nsq not in cells:
+                return None
+            if squares.get(nsq, '.') != '.':
+                return None
+            px = cells[nsq]['pixels']
+            if not px:
+                return None
+            dc = sum(1 for g in px if g <= thr)
+            return dc / len(px)
+
+        left_r = _nbr_ratio(left_sq)
+        right_r = _nbr_ratio(right_sq)
+        left_q = left_r is not None and left_r > SHIFT_NEIGHBOR_MIN
+        right_q = right_r is not None and right_r > SHIFT_NEIGHBOR_MIN
+        if left_q and not right_q:
+            shift_candidates.append((sq, left_sq, sym, own_ratio, left_r))
+        elif right_q and not left_q:
+            shift_candidates.append((sq, right_sq, sym, own_ratio, right_r))
+        # Both qualifying or neither → skip (ambiguous or not a shift).
+
+    if shift_candidates:
+        affected_types = set()
+        for (from_sq, to_sq, sym, own_r, nbr_r) in shift_candidates:
+            # Guard against two candidates targeting the same neighbor.
+            if squares.get(to_sq, '.') != '.':
+                continue
+            squares[to_sq] = sym
+            squares[from_sq] = '.'
+            affected_types.add(sym.upper())
+            auto_shifts.append({
+                'from': from_sq,
+                'to': to_sq,
+                'type': sym.upper(),
+                'piece': sym,
+                'own_dark': round(own_r, 3),
+                'neighbor_dark': round(nbr_r, 3),
+            })
+
+        # Refresh dark_ratios for every square we touched: the vacated one
+        # reverts to the global threshold (empty), the new one uses its
+        # piece's type threshold.
+        touched = set()
+        for (from_sq, to_sq, _, _, _) in auto_shifts:
+            touched.add(from_sq); touched.add(to_sq)
+        for sq in touched:
+            if sq not in cells:
+                continue
+            sym = squares.get(sq, '.')
+            if sym != '.' and sym.upper() in type_thresholds:
+                thr = type_thresholds[sym.upper()]
+            else:
+                thr = dark_threshold
+            px = cells[sq]['pixels']
+            if not px:
+                continue
+            dc = sum(1 for g in px if g <= thr)
+            dark_ratios[sq] = round(dc / len(px), 3)
+
+        # Rebuild group membership for affected types and re-run the
+        # classifier. Only affected types change; everything else stays.
+        for ptype in affected_types:
+            new_members = []
+            for sq in cells:
+                sym = squares.get(sq, '.')
+                if sym == '.' or sym.upper() != ptype:
+                    continue
+                llm_color = 'w' if sym == ptype else 'b'
+                new_members.append((sq, llm_color, dark_ratios[sq]))
+            groups[ptype] = new_members
+            _classify_ptype(ptype, new_members)
+
+        # Squares that just became empty must not keep stale verdicts.
+        for (from_sq, _, _, _, _) in auto_shifts:
+            if squares.get(from_sq, '.') == '.':
+                verdicts.pop(from_sq, None)
+                colors.pop(from_sq, None)
+                piece_groups.pop(from_sq, None)
+
+    # Diagnostic: for each square the classifier still wants to flip (after
+    # auto-shift), compute the dark-pixel ratio of its horizontal neighbors
+    # using the flipped piece's own type threshold. Admin display only.
     flip_neighbors = {}
     for sq, v in verdicts.items():
         if v != 'flip?':
@@ -691,6 +798,7 @@ def _pixel_ratio_colors(crop_bytes, squares, board_box_frac):
         'type_thresholds': type_thresholds,
         'type_histograms': type_histograms,
         'flip_neighbors': flip_neighbors,
+        'auto_shifts': auto_shifts,
         'board_box_px': {'left': left, 'top': top, 'right': right, 'bottom': bottom, 'crop_w': W, 'crop_h': H},
     }
 
@@ -801,7 +909,10 @@ def reread_region():
             pr = _pixel_ratio_colors(crop_bytes, squares, box_frac)
             if pr:
                 pixel_colors = pr.get('colors') or {}
-                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms', 'flip_neighbors') if k in pr}
+                pixel_debug = {k: pr[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms', 'flip_neighbors', 'auto_shifts') if k in pr}
+                # Auto-shift mutates `squares`; rebuild FEN so the moved pieces land in the response.
+                if pr.get('auto_shifts'):
+                    fen = _grid_to_fen(_squares_to_grid(squares), active_color)
         except Exception as pe:
             logger.warning(f"[Diagram reread] pixel_colors failed: {pe}")
 
@@ -1084,6 +1195,9 @@ def read_diagram():
                     if box_frac:
                         try:
                             pixel_result = _pixel_ratio_colors(meta['_crop_bytes'], squares, box_frac)
+                            # Auto-shift mutates `squares`; rebuild FEN so moved pieces land in the response.
+                            if pixel_result.get('auto_shifts'):
+                                fen = _grid_to_fen(_squares_to_grid(squares), meta['active_color'])
                         except Exception as pe:
                             logger.warning(f"[Diagram] Region {idx + 1}: pixel_colors failed: {pe}")
             except (ValueError, json_module.JSONDecodeError) as ve:
@@ -1101,7 +1215,7 @@ def read_diagram():
                 }
                 if is_admin and pixel_result:
                     diagram['pixel_colors'] = pixel_result.get('colors') or {}
-                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms', 'flip_neighbors') if k in pixel_result}
+                    diagram['pixel_debug'] = {k: pixel_result[k] for k in ('means', 'dark_ratios', 'dark_threshold', 'board_histogram', 'percentile_used', 'verdicts', 'piece_groups', 'groups', 'board_box_px', 'type_percentiles', 'type_thresholds', 'type_histograms', 'flip_neighbors', 'auto_shifts') if k in pixel_result}
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

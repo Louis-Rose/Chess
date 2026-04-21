@@ -881,6 +881,34 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
         </div>
       )}
 
+      {dbg.auto_shifts && dbg.auto_shifts.length > 0 && (
+        <div className="px-2 py-2 border-b border-slate-700 text-[11px]">
+          <div className="text-slate-500 mb-1">Auto-shifts applied (horizontal off-by-one fix)</div>
+          <table className="w-full text-left font-mono text-[11px] text-slate-300">
+            <thead>
+              <tr className="text-slate-500 border-b border-slate-800">
+                <th className="pr-3">piece</th>
+                <th className="pr-3">from → to</th>
+                <th className="pr-3">own%</th>
+                <th className="pr-3">nbr%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dbg.auto_shifts
+                .filter(s => typeFilter === 'all' || s.type === typeFilter)
+                .map(s => (
+                <tr key={`${s.from}-${s.to}`}>
+                  <td className="pr-3">{s.piece}</td>
+                  <td className="pr-3">{s.from} → {s.to}</td>
+                  <td className="pr-3">{(s.own_dark * 100).toFixed(1)}</td>
+                  <td className="pr-3">{(s.neighbor_dark * 100).toFixed(1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {zoomedHist && (
         <div
           className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"

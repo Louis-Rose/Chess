@@ -48,6 +48,7 @@ export interface PixelDebug {
   type_thresholds?: Record<string, number>;
   type_histograms?: Record<string, number[]>;
   flip_neighbors?: Record<string, { left: number | null; right: number | null }>;
+  auto_shifts?: Array<{ from: string; to: string; type: string; piece: string; own_dark: number; neighbor_dark: number }>;
 }
 
 export interface DiagramExtract {
