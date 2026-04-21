@@ -43,7 +43,7 @@ export function DiagramToFenPanel() {
   const effectiveAdmin = useEffectiveAdmin();
   const fileRef = useRef<HTMLInputElement>(null);
   const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
-  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead, debugRawLocate, debugRawReads, rereading, rereadDone, rereadTotal, rereadStartTime } = diagram;
+  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead, debugRawLocate, debugRawReads, debugRawRereads, rereading, rereadDone, rereadTotal, rereadStartTime } = diagram;
   const [liveElapsed, setLiveElapsed] = useState(0);
 
   // Tick the elapsed counter while analysis or a re-read is running; freeze on completion.
@@ -163,7 +163,6 @@ export function DiagramToFenPanel() {
                 <ComposedImage
                   src={preview}
                   regions={regions}
-                  showCandidates={effectiveAdmin}
                   onClick={() => setShowImageModal(true)}
                   className={`rounded-xl cursor-pointer hover:opacity-90 transition-all w-auto ${
                     !analyzing && models.length === 0 ? 'max-h-[65vh]' : 'max-h-80'
@@ -171,7 +170,7 @@ export function DiagramToFenPanel() {
                 />
               </div>
 
-              {effectiveAdmin && (debugRawLocate || (debugRawReads && Object.keys(debugRawReads).length > 0)) && (
+              {effectiveAdmin && (debugRawLocate || (debugRawReads && Object.keys(debugRawReads).length > 0) || (debugRawRereads && Object.keys(debugRawRereads).length > 0)) && (
                 <div className="max-w-xl mx-auto space-y-2 text-xs">
                   {debugRawLocate && (
                     <details open className="bg-slate-900/60 border border-slate-700 rounded">
@@ -179,18 +178,36 @@ export function DiagramToFenPanel() {
                       <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{debugRawLocate}</pre>
                     </details>
                   )}
-                  {debugRawReads && Object.keys(debugRawReads).sort((a, b) => Number(a) - Number(b)).map(k => {
-                    const entry = debugRawReads[Number(k)];
-                    return (
-                      <details key={k} className="bg-slate-900/60 border border-slate-700 rounded">
-                        <summary className="px-2 py-1 cursor-pointer text-slate-300">
-                          Phase 2 (read) — region {Number(k) + 1}
-                          {entry.attempt ? ` — pass ${entry.attempt}` : ''}
-                        </summary>
-                        <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{entry.raw}</pre>
-                      </details>
-                    );
-                  })}
+                  {(() => {
+                    const readKeys = new Set<number>();
+                    if (debugRawReads) Object.keys(debugRawReads).forEach(k => readKeys.add(Number(k)));
+                    if (debugRawRereads) Object.keys(debugRawRereads).forEach(k => readKeys.add(Number(k)));
+                    return Array.from(readKeys).sort((a, b) => a - b).map(k => {
+                      const entry = debugRawReads?.[k];
+                      const rereadList = debugRawRereads?.[k] ?? [];
+                      return (
+                        <div key={k} className="space-y-1">
+                          {entry && (
+                            <details className="bg-slate-900/60 border border-slate-700 rounded">
+                              <summary className="px-2 py-1 cursor-pointer text-slate-300">
+                                Phase 2 (read) — region {k + 1}
+                                {entry.attempt ? ` — pass ${entry.attempt}` : ''}
+                              </summary>
+                              <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{entry.raw}</pre>
+                            </details>
+                          )}
+                          {rereadList.map((raw, i) => (
+                            <details key={i} className="bg-slate-900/60 border border-slate-700 rounded ml-4">
+                              <summary className="px-2 py-1 cursor-pointer text-slate-300">
+                                Re-read — region {k + 1} — #{i + 1}
+                              </summary>
+                              <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{raw}</pre>
+                            </details>
+                          ))}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
 
@@ -219,7 +236,6 @@ export function DiagramToFenPanel() {
           alt="Diagram"
           onClose={() => setShowImageModal(false)}
           regions={regions}
-          showCandidates={effectiveAdmin}
         />
       )}
     </PanelShell>
@@ -252,7 +268,7 @@ type DiagramEntry =
 function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions, liveElapsedSec, regions }: ResultsViewProps) {
   const { t } = useLanguage();
   const effectiveAdmin = useEffectiveAdmin();
-  const { diagram: diagramState, diagramRereadStart, diagramRereadTick, diagramRereadEnd } = useCoachesData();
+  const { diagram: diagramState, diagramRereadStart, diagramRereadTick, diagramRereadEnd, diagramRereadRawAdd } = useCoachesData();
   const { rereading, rereadTotal, rereadDone } = diagramState;
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
@@ -411,6 +427,9 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
             const requests = Array.from({ length: rereadCount }, () =>
               axios.post('/api/coaches/reread-region', { crop_data_url: cropUrl, active_color: activeColor })
                 .then(resp => {
+                  if (typeof resp.data?.raw === 'string') {
+                    diagramRereadRawAdd(originIdx, resp.data.raw);
+                  }
                   if (resp.data?.fen) {
                     successCount += 1;
                     const fresh: DiagramExtract = { ...meta, fen: resp.data.fen, pixel_colors: resp.data.pixel_colors, pixel_debug: resp.data.pixel_debug };
@@ -739,9 +758,9 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
   const verdictsMap = dbg.verdicts ?? {};
   const displayedPercentile = dbg.percentile_used ?? 7;
   const displayedGlobalThreshold = Math.round(dbg.dark_threshold);
-  const typeThresholds = dbg.type_thresholds ?? {};
-  const typePercentiles = dbg.type_percentiles ?? {};
-  const typeHistograms = dbg.type_histograms ?? {};
+  const piecesPercentile = dbg.pieces_percentile;
+  const piecesThreshold = dbg.pieces_threshold;
+  const piecesHistogram = dbg.pieces_histogram;
 
   // Reconstruct 64-square occupancy from the FEN so we can show every cell,
   // empty and occupied, with its measurements.
@@ -766,7 +785,6 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
     darkRatio: number | undefined;
     isDark: boolean;
     group: string | undefined;
-    groupThresh: number | null | undefined;
     verdict: 'ok' | 'flip?' | 'no-check' | undefined;
   };
   const rows: Row[] = [];
@@ -776,7 +794,6 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
       const piece = occupancy[sq] ?? null;
       const llm: 'w' | 'b' | null = piece ? (piece === piece.toUpperCase() ? 'w' : 'b') : null;
       const group = pieceGroupsMap[sq];
-      const groupInfo = group ? groupsMap[group] : undefined;
       rows.push({
         sq,
         piece,
@@ -786,7 +803,6 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
         darkRatio: darkRatios?.[sq],
         isDark: (fileIdx + rankIdx) % 2 === 0,
         group,
-        groupThresh: groupInfo?.threshold,
         verdict: verdictsMap[sq],
       });
     }
@@ -806,18 +822,11 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
     return a.sq[0] < b.sq[0] ? -1 : 1;
   });
 
-  const allGroupEntries = Object.entries(groupsMap).sort(([a], [b]) =>
-    PIECE_ORDER.indexOf(a) - PIECE_ORDER.indexOf(b)
-  );
-  const groupEntries = typeFilter === 'all'
-    ? allGroupEntries
-    : allGroupEntries.filter(([k]) => k === typeFilter);
+  // There is now a single pooled group keyed 'pieces'. Order is deterministic.
+  const allGroupEntries = Object.entries(groupsMap);
   const visiblePieceRows = typeFilter === 'all'
     ? pieceRows
     : pieceRows.filter(r => r.piece && r.piece.toUpperCase() === typeFilter);
-
-  const gapValues = groupEntries.map(([, g]) => g.gap).filter((v): v is number => v != null);
-  const avgGap = gapValues.length ? gapValues.reduce((a, b) => a + b, 0) / gapValues.length : null;
 
   const visibleFlips = typeFilter === 'all'
     ? appliedFlips
@@ -830,17 +839,17 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
   return (
     <details className="max-w-xl mx-auto bg-slate-900/60 border border-slate-700 rounded text-xs">
       <summary className="px-2 py-1 cursor-pointer text-slate-300">
-        Pixel-ratio debug — percentile={displayedPercentile.toFixed(1)}% · global_thr≈{displayedGlobalThreshold}
+        Pixel-ratio debug — pieces: pct={piecesPercentile != null ? `${piecesPercentile.toFixed(1)}%` : '—'} · thr≈{piecesThreshold ?? '—'} | fallback pct={displayedPercentile.toFixed(1)}% · thr≈{displayedGlobalThreshold}
         {dbg.board_box_px && <> | box=({dbg.board_box_px.left},{dbg.board_box_px.top})→({dbg.board_box_px.right},{dbg.board_box_px.bottom}) in {dbg.board_box_px.crop_w}×{dbg.board_box_px.crop_h}</>}
       </summary>
 
       {(() => {
-        const typedHist = typeFilter !== 'all' ? typeHistograms[typeFilter] : undefined;
-        const histogram = typedHist ?? dbg.board_histogram;
+        const usePieces = piecesHistogram && piecesHistogram.some(v => v > 0);
+        const histogram = usePieces ? piecesHistogram! : dbg.board_histogram;
         if (!histogram || !histogram.some(v => v > 0)) return null;
-        const threshold = typedHist ? Math.round(typeThresholds[typeFilter] ?? 0) : displayedGlobalThreshold;
-        const label = typedHist
-          ? `${typeFilter}-cell pixel histogram — threshold = ${typeFilter} dark_thr (${threshold})`
+        const threshold = usePieces ? Math.round(piecesThreshold ?? 0) : displayedGlobalThreshold;
+        const label = usePieces
+          ? `Piece-cell pixel histogram — threshold at ${piecesPercentile?.toFixed(1) ?? '?'}th percentile (${threshold})`
           : `All-board pixel histogram — threshold at ${dbg.percentile_used ?? '?'}th percentile`;
         return (
           <div className="px-2 py-2 border-b border-slate-700">
@@ -935,8 +944,7 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
       {allGroupEntries.length > 0 && (
         <div className="px-2 py-2 border-b border-slate-700">
           <div className="text-slate-500 mb-1 text-[11px]">
-            Groups (type) — threshold from largest gap in fills
-            {avgGap != null && <span className="ml-2 text-slate-300">avg gap: {(avgGap * 100).toFixed(1)}%</span>}
+            Pooled piece group — single threshold from largest gap in fills
           </div>
           <table className="w-full text-left font-mono text-[11px] text-slate-300">
             <thead>
@@ -951,16 +959,15 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
               </tr>
             </thead>
             <tbody>
-              {groupEntries.map(([k, g]) => {
+              {allGroupEntries.map(([k, g]) => {
                 const gapPct = g.gap != null ? `${(g.gap * 100).toFixed(1)}%` : '—';
                 const minGapPct = `${(g.min_gap * 100).toFixed(0)}%`;
-                const typePct = typePercentiles[k];
                 return (
                   <tr key={k} className={g.can_check ? '' : 'text-slate-500'}>
                     <td className="pr-3">{k}</td>
                     <td className="pr-3">{g.count_w + g.count_b}</td>
-                    <td className="pr-3">{typePct != null ? `${typePct.toFixed(1)}%` : '—'}</td>
-                    <td className="pr-3">{typeThresholds[k] != null ? Math.round(typeThresholds[k]) : '—'}</td>
+                    <td className="pr-3">{piecesPercentile != null ? `${piecesPercentile.toFixed(1)}%` : '—'}</td>
+                    <td className="pr-3">{piecesThreshold != null ? Math.round(piecesThreshold) : '—'}</td>
                     <td className="pr-3">{g.min_fill != null ? `${(g.min_fill * 100).toFixed(1)}%` : '—'}→{g.max_fill != null ? `${(g.max_fill * 100).toFixed(1)}%` : '—'}</td>
                     <td className="pr-3">{g.threshold != null ? `${(g.threshold * 100).toFixed(1)}%` : '—'}</td>
                     <td>{gapPct}{g.gap != null && (g.can_check ? ' ✓' : ` ✗ (<${minGapPct})`)}</td>
@@ -976,14 +983,13 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
         <table className="w-full text-left font-mono text-[11px] text-slate-300">
           <thead>
             <tr className="text-slate-500 border-b border-slate-700">
-              <th className="pr-3">group</th>
+              <th className="pr-3">piece</th>
               <th className="pr-3">sq</th>
               <th className="pr-3">sq_bg</th>
               <th className="pr-3">LLM</th>
               <th className="pr-3">Px</th>
               <th className="pr-3">mean</th>
               <th className="pr-3">dark%</th>
-              <th className="pr-3">g_thr%</th>
               <th className="pr-3" title="Dark% on left and right neighbors — only computed for flipped pieces">L/R nbr%</th>
               <th>verdict</th>
             </tr>
@@ -991,7 +997,6 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
           <tbody>
             {visiblePieceRows.map(row => {
               const darkPct = row.darkRatio !== undefined ? (row.darkRatio * 100).toFixed(1) : '—';
-              const gThrPct = row.groupThresh != null ? (row.groupThresh * 100).toFixed(1) : '—';
               const nbr = dbg.flip_neighbors?.[row.sq];
               const fmtNbr = (v: number | null | undefined) =>
                 v == null ? '—' : `${(v * 100).toFixed(1)}`;
@@ -1009,7 +1014,6 @@ function PixelDebugPanel({ diagram, appliedFlips = [] }: { diagram: DiagramExtra
                   <td className="pr-3">{row.px ?? '—'}</td>
                   <td className="pr-3">{row.mean ?? '—'}</td>
                   <td className="pr-3">{darkPct}</td>
-                  <td className="pr-3">{gThrPct}</td>
                   <td className="pr-3">{nbrCell}</td>
                   <td>{row.verdict ?? '—'}</td>
                 </tr>

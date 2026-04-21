@@ -5,9 +5,6 @@ import { useEffect, useRef } from 'react';
 
 export interface ComposedRegionBox { x: number; y: number; width: number; height: number; }
 export interface ComposedRegion extends ComposedRegionBox {
-  tight_box?: ComposedRegionBox;
-  padded_box?: ComposedRegionBox;
-  selected_variant?: 'tight' | 'padded';
   diagram_number?: number | null;
 }
 
@@ -25,12 +22,11 @@ const REGION_COLORS = [
 interface Props {
   src: string;
   regions?: ComposedRegion[];
-  showCandidates: boolean;
   className?: string;
   onClick?: () => void;
 }
 
-export function ComposedImage({ src, regions, showCandidates, className, onClick }: Props) {
+export function ComposedImage({ src, regions, className, onClick }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     if (!src) return;
@@ -52,23 +48,6 @@ export function ComposedImage({ src, regions, showCandidates, className, onClick
 
       regions.forEach((r, i) => {
         const color = REGION_COLORS[i % REGION_COLORS.length];
-        const rejected = showCandidates && r.tight_box && r.padded_box
-          ? (r.selected_variant === 'padded' ? r.tight_box : r.padded_box)
-          : null;
-        if (rejected) {
-          ctx.strokeStyle = color;
-          ctx.globalAlpha = 0.5;
-          ctx.lineWidth = strokeW * 0.45;
-          ctx.setLineDash([strokeW * 2.5, strokeW * 2]);
-          ctx.strokeRect(
-            (rejected.x / 100) * canvas.width,
-            (rejected.y / 100) * canvas.height,
-            (rejected.width / 100) * canvas.width,
-            (rejected.height / 100) * canvas.height,
-          );
-          ctx.globalAlpha = 1;
-          ctx.setLineDash([]);
-        }
         const x = (r.x / 100) * canvas.width;
         const y = (r.y / 100) * canvas.height;
         const w = (r.width / 100) * canvas.width;
@@ -82,6 +61,6 @@ export function ComposedImage({ src, regions, showCandidates, className, onClick
       });
     };
     img.src = src;
-  }, [src, regions, showCandidates]);
+  }, [src, regions]);
   return <canvas ref={canvasRef} className={className} onClick={onClick} />;
 }

@@ -13,9 +13,6 @@ export interface DiagramRegion {
   y: number;
   width: number;
   height: number;
-  tight_box?: { x: number; y: number; width: number; height: number };
-  padded_box?: { x: number; y: number; width: number; height: number };
-  selected_variant?: 'tight' | 'padded';
   crop_data_url?: string;
   white_player?: string;
   black_player?: string;
@@ -44,9 +41,9 @@ export interface PixelDebug {
   piece_groups?: Record<string, string>;
   groups?: Record<string, PixelGroupInfo>;
   board_box_px?: { left: number; top: number; right: number; bottom: number; crop_w: number; crop_h: number };
-  type_percentiles?: Record<string, number>;
-  type_thresholds?: Record<string, number>;
-  type_histograms?: Record<string, number[]>;
+  pieces_percentile?: number;
+  pieces_threshold?: number;
+  pieces_histogram?: number[];
   flip_neighbors?: Record<string, { left: number | null; right: number | null }>;
   auto_shifts?: Array<{ from: string; to: string; type: string; piece: string; own_dark: number; neighbor_dark: number }>;
 }
@@ -82,6 +79,7 @@ export interface DiagramState {
   regionsRead?: number;
   debugRawLocate?: string;
   debugRawReads?: Record<number, { raw: string; attempt?: number }>;
+  debugRawRereads?: Record<number, string[]>;
   rereading: boolean;
   rereadDone: number;
   rereadTotal: number;
@@ -176,6 +174,7 @@ interface CoachesDataContextType {
   diagramRereadStart: (total: number) => void;
   diagramRereadTick: () => void;
   diagramRereadEnd: () => void;
+  diagramRereadRawAdd: (originIdx: number, raw: string) => void;
 
   // Mistakes panel
   mistakes: MistakesState;
@@ -220,6 +219,16 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
   const diagramRereadStart = useCallback((total: number) => {
     setDiagram(prev => ({ ...prev, rereading: true, rereadDone: 0, rereadTotal: total, rereadStartTime: Date.now() }));
+  }, []);
+
+  const diagramRereadRawAdd = useCallback((originIdx: number, raw: string) => {
+    setDiagram(prev => {
+      const existing = prev.debugRawRereads?.[originIdx] ?? [];
+      return {
+        ...prev,
+        debugRawRereads: { ...(prev.debugRawRereads || {}), [originIdx]: [...existing, raw] },
+      };
+    });
   }, []);
 
   const diagramRereadTick = useCallback(() => {
@@ -364,7 +373,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
   return (
     <CoachesDataContext.Provider value={{
-      diagram, diagramSetImage, diagramAnalyze, diagramClear, diagramRereadStart, diagramRereadTick, diagramRereadEnd,
+      diagram, diagramSetImage, diagramAnalyze, diagramClear, diagramRereadStart, diagramRereadTick, diagramRereadEnd, diagramRereadRawAdd,
       mistakes: mistakesState, mistakesSetFile, mistakesAnalyze, mistakesClear, mistakesSetExpanded,
     }}>
       {children}
