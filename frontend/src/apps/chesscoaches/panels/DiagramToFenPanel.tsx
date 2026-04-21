@@ -43,18 +43,20 @@ export function DiagramToFenPanel() {
   const effectiveAdmin = useEffectiveAdmin();
   const fileRef = useRef<HTMLInputElement>(null);
   const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
-  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead, debugRawLocate, debugRawReads } = diagram;
+  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead, debugRawLocate, debugRawReads, rereading, rereadDone, rereadTotal, rereadStartTime } = diagram;
   const [liveElapsed, setLiveElapsed] = useState(0);
 
-  // Tick the elapsed counter while analysis is running; freeze on completion
+  // Tick the elapsed counter while analysis or a re-read is running; freeze on completion.
   useEffect(() => {
-    if (!startTime) { setLiveElapsed(0); return; }
-    if (!analyzing) return; // analysis finished — leave liveElapsed at its last value
-    const tick = () => setLiveElapsed(Math.round((Date.now() - startTime) / 1000));
+    const base = rereading ? rereadStartTime : startTime;
+    const active = rereading || analyzing;
+    if (!base) { setLiveElapsed(0); return; }
+    if (!active) return; // leave liveElapsed at its last value
+    const tick = () => setLiveElapsed(Math.round((Date.now() - base) / 1000));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [startTime, analyzing]);
+  }, [startTime, analyzing, rereading, rereadStartTime]);
   const [showImageModal, setShowImageModal] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -124,20 +126,26 @@ export function DiagramToFenPanel() {
             </div>
           ) : (
             <div className="space-y-4">
-              {(analyzing || models.length > 0) && (() => {
+              {(analyzing || rereading || models.length > 0) && (() => {
                 const finishedCount = models.filter(m => !!modelResults[m.id]?.elapsed).length;
-                const allDone = !analyzing && models.length > 0 && finishedCount === models.length;
-                // Progress: 20% for region detection, then 20-100% for reading each region
-                const pct = regionCount
-                  ? Math.round(20 + (regionsRead || 0) / regionCount * 80)
-                  : regions ? 20 : 0;
+                const scanDone = !analyzing && models.length > 0 && finishedCount === models.length;
+                const allDone = scanDone && !rereading;
+                // Reread overrides the scan bar while active. Otherwise: 20%
+                // for region detection, then 20-100% for reading each region.
+                const pct = rereading && rereadTotal > 0
+                  ? Math.round((rereadDone / rereadTotal) * 100)
+                  : regionCount
+                    ? Math.round(20 + (regionsRead || 0) / regionCount * 80)
+                    : regions ? 20 : 0;
                 const maxAvg = models.length > 0
                   ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)))
                   : 0;
                 const isPlural = (regionCount ?? 0) > 1;
-                const title = allDone
-                  ? t(isPlural ? 'coaches.diagram.donePlural' : 'coaches.diagram.done')
-                  : t(isPlural ? 'coaches.diagram.analyzingPlural' : 'coaches.diagram.analyzing');
+                const title = rereading
+                  ? t('coaches.diagram.rereading')
+                  : allDone
+                    ? t(isPlural ? 'coaches.diagram.donePlural' : 'coaches.diagram.done')
+                    : t(isPlural ? 'coaches.diagram.analyzingPlural' : 'coaches.diagram.analyzing');
                 return (
                   <ProcessingProgressBar
                     title={title}
@@ -243,6 +251,7 @@ type DiagramEntry =
 function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions, liveElapsedSec, regions }: ResultsViewProps) {
   const { t } = useLanguage();
   const effectiveAdmin = useEffectiveAdmin();
+  const { diagramRereadStart, diagramRereadTick, diagramRereadEnd } = useCoachesData();
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
   const [selectedDiagramIdx, setSelectedDiagramIdx] = useState(0);
@@ -363,9 +372,11 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
           if (!canReread || typeof originIdx !== 'number' || !originEntry) return;
           setRereading(true);
           setRereadError(null);
+          diagramRereadStart(rereadCount);
           try {
             const requests = Array.from({ length: rereadCount }, () =>
               axios.post('/api/coaches/reread-region', { crop_data_url: cropUrl, active_color: activeColor })
+                .finally(() => diagramRereadTick())
             );
             const results = await Promise.allSettled(requests);
             const fresh: DiagramExtract[] = [];
@@ -394,6 +405,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
             if (firstError && fresh.length === 0) setRereadError(firstError);
           } finally {
             setRereading(false);
+            diagramRereadEnd();
           }
         };
 

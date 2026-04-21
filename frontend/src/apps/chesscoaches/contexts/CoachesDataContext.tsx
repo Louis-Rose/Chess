@@ -80,10 +80,15 @@ export interface DiagramState {
   regionsRead?: number;
   debugRawLocate?: string;
   debugRawReads?: Record<number, { raw: string; attempt?: number }>;
+  rereading: boolean;
+  rereadDone: number;
+  rereadTotal: number;
+  rereadStartTime: number | null;
 }
 
 const DIAGRAM_INITIAL: DiagramState = {
   preview: null, imageFile: null, models: [], modelResults: {}, analyzing: false, startTime: null, error: '',
+  rereading: false, rereadDone: 0, rereadTotal: 0, rereadStartTime: null,
 };
 
 // ── Mistakes types ──
@@ -166,6 +171,9 @@ interface CoachesDataContextType {
   diagramSetImage: (file: File, preview: string) => void;
   diagramAnalyze: () => void;
   diagramClear: () => void;
+  diagramRereadStart: (total: number) => void;
+  diagramRereadTick: () => void;
+  diagramRereadEnd: () => void;
 
   // Mistakes panel
   mistakes: MistakesState;
@@ -206,6 +214,18 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
   const diagramClear = useCallback(() => {
     setDiagram(DIAGRAM_INITIAL);
+  }, []);
+
+  const diagramRereadStart = useCallback((total: number) => {
+    setDiagram(prev => ({ ...prev, rereading: true, rereadDone: 0, rereadTotal: total, rereadStartTime: Date.now() }));
+  }, []);
+
+  const diagramRereadTick = useCallback(() => {
+    setDiagram(prev => ({ ...prev, rereadDone: prev.rereadDone + 1 }));
+  }, []);
+
+  const diagramRereadEnd = useCallback(() => {
+    setDiagram(prev => ({ ...prev, rereading: false }));
   }, []);
 
   const diagramAnalyze = useCallback(async () => {
@@ -342,7 +362,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
   return (
     <CoachesDataContext.Provider value={{
-      diagram, diagramSetImage, diagramAnalyze, diagramClear,
+      diagram, diagramSetImage, diagramAnalyze, diagramClear, diagramRereadStart, diagramRereadTick, diagramRereadEnd,
       mistakes: mistakesState, mistakesSetFile, mistakesAnalyze, mistakesClear, mistakesSetExpanded,
     }}>
       {children}
