@@ -246,19 +246,21 @@ function localizeReaderName(name: string | undefined, readerLabel: string): stri
 type DiagramEntry =
   | { kind: 'ready'; diagram: DiagramExtract; originIdx: number }
   | { kind: 'pending'; region: DiagramRegion; originIdx: number }
-  | { kind: 'reread'; diagram: DiagramExtract; originIdx: number; rereadNum: number };
+  | { kind: 'reread'; diagram: DiagramExtract; originIdx: number; rereadNum: number }
+  | { kind: 'reread-pending'; originIdx: number; rereadNum: number; diagram_number: number | null | undefined };
 
 function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions, liveElapsedSec, regions }: ResultsViewProps) {
   const { t } = useLanguage();
   const effectiveAdmin = useEffectiveAdmin();
-  const { diagramRereadStart, diagramRereadTick, diagramRereadEnd } = useCoachesData();
+  const { diagram: diagramState, diagramRereadStart, diagramRereadTick, diagramRereadEnd } = useCoachesData();
+  const { rereading, rereadTotal, rereadDone } = diagramState;
   const readerLabel = t('coaches.diagram.readerLabel');
   const [selectedModelId, setSelectedModelId] = useState<string>(models[0]?.id || '');
   const [selectedDiagramIdx, setSelectedDiagramIdx] = useState(0);
   // Per-region-index re-read results (admin-only). Each region's array preserves arrival order.
   const [rereads, setRereads] = useState<Record<number, DiagramExtract[]>>({});
   const [rereadCount, setRereadCount] = useState(1);
-  const [rereading, setRereading] = useState(false);
+  const [rereadOriginIdx, setRereadOriginIdx] = useState<number | null>(null);
   const [rereadError, setRereadError] = useState<string | null>(null);
 
   // Ensure the selected model is always one that still exists
@@ -285,19 +287,32 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
   }
   // Phase 1 already returns diagram_number for every region, so pending entries can be
   // sorted the same way as ready ones — no need to wait for phase 2 to finish.
-  const entryNumber = (e: DiagramEntry) =>
-    e.kind === 'pending' ? e.region.diagram_number : e.diagram.diagram_number;
+  const entryNumber = (e: DiagramEntry) => {
+    if (e.kind === 'pending') return e.region.diagram_number;
+    if (e.kind === 'reread-pending') return e.diagram_number;
+    return e.diagram.diagram_number;
+  };
   const allHaveNumbers = rawEntries.length > 0 && rawEntries.every(e => typeof entryNumber(e) === 'number');
   const orderedEntries = allHaveNumbers
     ? [...rawEntries].sort((a, b) => (entryNumber(a) ?? 0) - (entryNumber(b) ?? 0))
     : rawEntries;
-  // Interleave re-reads right after their original entry.
+  // Interleave re-reads right after their original entry; while a reread
+  // batch is in flight for this origin, append disabled placeholders for
+  // the still-pending requests (same pattern used for phase-2 reads).
   const entries: DiagramEntry[] = [];
   for (const e of orderedEntries) {
     entries.push(e);
-    (rereads[e.originIdx] ?? []).forEach((rr, i) => {
+    const landed = rereads[e.originIdx] ?? [];
+    landed.forEach((rr, i) => {
       entries.push({ kind: 'reread', diagram: rr, originIdx: e.originIdx, rereadNum: i + 1 });
     });
+    if (rereading && rereadOriginIdx === e.originIdx) {
+      const pendingCount = Math.max(0, rereadTotal - rereadDone);
+      const originNum = entryNumber(e);
+      for (let i = 0; i < pendingCount; i++) {
+        entries.push({ kind: 'reread-pending', originIdx: e.originIdx, rereadNum: landed.length + i + 1, diagram_number: originNum });
+      }
+    }
   }
   const entryCount = entries.length;
 
@@ -338,13 +353,20 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
               {t('coaches.diagram.diagramLabel')} #1
             </option>
           ) : entries.map((entry, i) => {
-            const num = entry.kind === 'pending' ? entry.region.diagram_number : entry.diagram.diagram_number;
+            const num = entry.kind === 'pending'
+              ? entry.region.diagram_number
+              : entry.kind === 'reread-pending'
+                ? entry.diagram_number
+                : entry.diagram.diagram_number;
             const base = typeof num === 'number'
               ? `${t('coaches.diagram.diagramLabel')} #${num}`
               : `${t('coaches.diagram.diagramLabel')} ${i + 1} / ${entryCount || (analyzing ? '?' : 1)}`;
-            const label = entry.kind === 'reread' ? `${base} — Re-read ${entry.rereadNum}` : base;
+            const label = entry.kind === 'reread' || entry.kind === 'reread-pending'
+              ? `${base} — Re-read ${entry.rereadNum}`
+              : base;
+            const isPending = entry.kind === 'pending' || entry.kind === 'reread-pending';
             return (
-              <option key={i} value={i} disabled={entry.kind === 'pending'}>
+              <option key={i} value={i} disabled={isPending}>
                 {label}
               </option>
             );
@@ -370,41 +392,43 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
 
         const runReread = async () => {
           if (!canReread || typeof originIdx !== 'number' || !originEntry) return;
-          setRereading(true);
           setRereadError(null);
+          setRereadOriginIdx(originIdx);
           diagramRereadStart(rereadCount);
+          const meta: DiagramExtract = originEntry.kind === 'ready'
+            ? originEntry.diagram
+            : {
+                fen: '',
+                white_player: originEntry.region.white_player,
+                black_player: originEntry.region.black_player,
+                region: originEntry.region,
+                diagram_number: originEntry.region.diagram_number,
+                crop_data_url: originEntry.region.crop_data_url,
+              };
+          let firstError: string | null = null;
+          let successCount = 0;
           try {
             const requests = Array.from({ length: rereadCount }, () =>
               axios.post('/api/coaches/reread-region', { crop_data_url: cropUrl, active_color: activeColor })
+                .then(resp => {
+                  if (resp.data?.fen) {
+                    successCount += 1;
+                    const fresh: DiagramExtract = { ...meta, fen: resp.data.fen, pixel_colors: resp.data.pixel_colors, pixel_debug: resp.data.pixel_debug };
+                    setRereads(prev => ({ ...prev, [originIdx]: [...(prev[originIdx] ?? []), fresh] }));
+                  }
+                })
+                .catch(err => {
+                  if (!firstError) {
+                    const e = err as { response?: { data?: { error?: string } }; message?: string };
+                    firstError = e?.response?.data?.error ?? e?.message ?? 'Re-read failed';
+                  }
+                })
                 .finally(() => diagramRereadTick())
             );
-            const results = await Promise.allSettled(requests);
-            const fresh: DiagramExtract[] = [];
-            let firstError: string | null = null;
-            const meta: DiagramExtract = originEntry.kind === 'ready'
-              ? originEntry.diagram
-              : {
-                  fen: '',
-                  white_player: originEntry.region.white_player,
-                  black_player: originEntry.region.black_player,
-                  region: originEntry.region,
-                  diagram_number: originEntry.region.diagram_number,
-                  crop_data_url: originEntry.region.crop_data_url,
-                };
-            for (const r of results) {
-              if (r.status === 'fulfilled' && r.value.data?.fen) {
-                fresh.push({ ...meta, fen: r.value.data.fen, pixel_colors: r.value.data.pixel_colors, pixel_debug: r.value.data.pixel_debug });
-              } else if (r.status === 'rejected' && !firstError) {
-                firstError = (r.reason as { response?: { data?: { error?: string } }; message?: string })
-                  ?.response?.data?.error ?? (r.reason as Error)?.message ?? 'Re-read failed';
-              }
-            }
-            if (fresh.length > 0) {
-              setRereads(prev => ({ ...prev, [originIdx]: [...(prev[originIdx] ?? []), ...fresh] }));
-            }
-            if (firstError && fresh.length === 0) setRereadError(firstError);
+            await Promise.all(requests);
+            if (firstError && successCount === 0) setRereadError(firstError);
           } finally {
-            setRereading(false);
+            setRereadOriginIdx(null);
             diagramRereadEnd();
           }
         };
@@ -456,6 +480,14 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
             {(() => {
               const entry = entries[selectedDiagramIdx] ?? entries[0];
               if (entry.kind === 'pending') return <PendingDiagram region={entry.region} />;
+              if (entry.kind === 'reread-pending') {
+                // The user can't select a pending placeholder (disabled), but the
+                // fallback to entries[0] can land here momentarily during a render.
+                const originEntry = rawEntries.find(e => e.originIdx === entry.originIdx);
+                if (originEntry?.kind === 'pending') return <PendingDiagram region={originEntry.region} />;
+                if (originEntry?.kind === 'ready') return <FenEntry diagram={originEntry.diagram} previewSrc={previewSrc} />;
+                return null;
+              }
               return <FenEntry diagram={entry.diagram} previewSrc={previewSrc} />;
             })()}
           </div>
