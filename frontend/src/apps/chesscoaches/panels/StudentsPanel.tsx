@@ -8,6 +8,7 @@ import { PanelShell, btnPrimary } from '../components/PanelShell';
 import { StudentForm, EMPTY_STUDENT_FORM } from '../components/StudentForm';
 import type { StudentFormData } from '../components/StudentForm';
 import { Avatar } from '../components/Avatar';
+import { EmptyState } from '../components/EmptyState';
 
 // ── Types ──
 
@@ -113,12 +114,7 @@ export function StudentsPanel() {
             ))}
           </div>
         ) : students.length === 0 && !showAddForm ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-purple-600/10 flex items-center justify-center mb-4">
-              <Users className="w-8 h-8 text-purple-400" />
-            </div>
-            <p className="text-slate-200 text-lg whitespace-pre-line">{t('coaches.students.empty')}</p>
-          </div>
+          <EmptyState icon={Users} color="purple" title={t('coaches.students.empty')} />
         ) : students.length > 0 ? (
           <div className="space-y-2">
             {students

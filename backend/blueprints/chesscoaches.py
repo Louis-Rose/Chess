@@ -206,6 +206,31 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None, 
         return client_paid.models.generate_content(**kwargs), 'paid', retry_info
 
 
+def _gemini_call_with_retry(client_free, client_paid, model_id, contents, *, timeout_seconds, label):
+    """Run _gemini_generate with a hard timeout; retry once on timeout/error.
+
+    Gemini's SDK has no built-in request timeout; without this wrapper a stalled
+    call blocks the worker forever. Returns (response, billing_tier, attempt_number);
+    raises the last exception if both attempts fail. The stuck worker thread on
+    timeout is abandoned (pool.shutdown(wait=False)) rather than awaited."""
+    last_exc = None
+    for attempt in (1, 2):
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        future = pool.submit(_gemini_generate, client_free, client_paid, model_id, contents)
+        try:
+            resp, tier, _ = future.result(timeout=timeout_seconds)
+            return resp, tier, attempt
+        except concurrent.futures.TimeoutError:
+            last_exc = TimeoutError(f"timeout after {timeout_seconds}s")
+            logger.warning(f"[{label}] timeout (attempt {attempt}/2)")
+        except Exception as e:
+            last_exc = e
+            logger.warning(f"[{label}] attempt {attempt}/2 failed: {e}")
+        finally:
+            pool.shutdown(wait=False)
+    raise last_exc if last_exc is not None else RuntimeError(f"[{label}] no response")
+
+
 DIAGRAM_MODELS = [
     {"id": "gemini-3.1-pro-preview", "name": "gemini-3.1-pro"},
 ]
@@ -623,34 +648,20 @@ def reread_region():
         DIAGRAM_READ_SINGLE_PROMPT,
     ]
 
-    # Same 60s timeout + one retry policy as the batch pipeline.
-    READ_TIMEOUT_SECONDS = 90
-    resp = None
-    tier = 'paid'
-    last_exc = None
     call_start = time_module.time()
-    for attempt in (1, 2):
-        pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        future = pool.submit(_gemini_generate, client_free, client_paid, model_id, contents)
-        try:
-            resp, tier, _ = future.result(timeout=READ_TIMEOUT_SECONDS)
-            last_exc = None
-            break
-        except concurrent.futures.TimeoutError:
-            last_exc = TimeoutError(f'timeout after {READ_TIMEOUT_SECONDS}s')
-            logger.warning(f"[Diagram reread] timeout (attempt {attempt}/2)")
-        except Exception as e:
-            last_exc = e
-            logger.warning(f"[Diagram reread] attempt {attempt}/2 failed: {e}")
-        finally:
-            pool.shutdown(wait=False)
+    try:
+        resp, tier, _ = _gemini_call_with_retry(
+            client_free, client_paid, model_id, contents,
+            timeout_seconds=90, label='Diagram reread',
+        )
+    except Exception as e:
+        elapsed = round(time_module.time() - call_start)
+        logger.error(f"[Diagram reread] failed after retry: {e}")
+        _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e),
+                       request_id=req_id, user_id=uid, billing_tier='paid', phase='read')
+        return jsonify({'error': f'Read failed: {e}'}), 502
 
     elapsed = round(time_module.time() - call_start)
-    if last_exc is not None or resp is None:
-        logger.error(f"[Diagram reread] failed after retry: {last_exc}")
-        _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(last_exc),
-                       request_id=req_id, user_id=uid, billing_tier='paid', phase='read')
-        return jsonify({'error': f'Read failed: {last_exc}'}), 502
 
     in_tok, out_tok, think_tok = _extract_usage_tokens(resp)
     _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed,
@@ -736,36 +747,11 @@ def read_diagram():
         logger.info(f"[Diagram] Phase 1: locating regions with {model_id}")
         phase1_start = time_module.time()
         try:
-            # Wrap the locate call in a 90s timeout + one retry. The Gemini SDK has no
-            # built-in request timeout; without this the worker can block indefinitely
-            # and the UI sits at 0% (heartbeat pings time out too, since the single
-            # worker is stuck).
-            LOCATE_TIMEOUT_SECONDS = 60
-            locate_contents = [
-                types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                DIAGRAM_LOCATE_PROMPT,
-            ]
-            resp_locate = None
-            tier = 'paid'
-            locate_exc = None
-            for attempt in (1, 2):
-                pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                future = pool.submit(_gemini_generate, client_free, client_paid, model_id, locate_contents)
-                try:
-                    resp_locate, tier, _ = future.result(timeout=LOCATE_TIMEOUT_SECONDS)
-                    locate_exc = None
-                    break
-                except concurrent.futures.TimeoutError:
-                    locate_exc = TimeoutError(f"timeout after {LOCATE_TIMEOUT_SECONDS}s")
-                    logger.warning(f"[Diagram] Phase 1: timeout (attempt {attempt}/2)")
-                except Exception as e:
-                    locate_exc = e
-                    logger.warning(f"[Diagram] Phase 1: attempt {attempt}/2 failed: {e}")
-                finally:
-                    pool.shutdown(wait=False)
-            if locate_exc is not None or resp_locate is None:
-                raise locate_exc if locate_exc is not None else RuntimeError("Phase 1 returned no response")
-
+            resp_locate, tier, _ = _gemini_call_with_retry(
+                client_free, client_paid, model_id,
+                [types.Part.from_bytes(data=image_bytes, mime_type=mime_type), DIAGRAM_LOCATE_PROMPT],
+                timeout_seconds=60, label='Diagram Phase 1',
+            )
             phase1_elapsed = round(time_module.time() - phase1_start)
             in_tok, out_tok, think_tok = _extract_usage_tokens(resp_locate)
             _log_api_usage('diagram', model_id, in_tok, out_tok, phase1_elapsed,
@@ -952,37 +938,15 @@ def read_diagram():
                 DIAGRAM_READ_SINGLE_PROMPT,
             ]
 
-            # Wrap the call in a 60s timeout and retry once (fresh 60s) on timeout/error.
-            # The Gemini SDK has no built-in request timeout; if the server stalls, the
-            # call blocks forever and locks up the whole pipeline.
-            READ_TIMEOUT_SECONDS = 90
-            resp_read = None
-            tier = 'paid'
-            last_exc = None
-            succeeded_on_attempt = None
-            for attempt in (1, 2):
-                pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                future = pool.submit(_gemini_generate, client_free, client_paid, model_id, contents)
-                try:
-                    resp_read, tier, _ = future.result(timeout=READ_TIMEOUT_SECONDS)
-                    last_exc = None
-                    succeeded_on_attempt = attempt
-                    break
-                except concurrent.futures.TimeoutError:
-                    last_exc = TimeoutError(f"timeout after {READ_TIMEOUT_SECONDS}s")
-                    logger.warning(f"[Diagram] Region {idx + 1}: timeout (attempt {attempt}/2)")
-                except Exception as e:
-                    last_exc = e
-                    logger.warning(f"[Diagram] Region {idx + 1}: attempt {attempt}/2 failed: {e}")
-                finally:
-                    # Don't wait for the stuck Gemini call — let the worker thread leak
-                    # rather than block the retry. It'll eventually unblock or die.
-                    pool.shutdown(wait=False)
-
-            if last_exc is not None or resp_read is None:
+            try:
+                resp_read, tier, succeeded_on_attempt = _gemini_call_with_retry(
+                    client_free, client_paid, model_id, contents,
+                    timeout_seconds=90, label=f'Diagram Region {idx + 1}',
+                )
+            except Exception as e:
                 call_elapsed = round(time_module.time() - call_start)
-                logger.error(f"[Diagram] Region {idx + 1} failed after retry: {last_exc}")
-                _log_api_usage('diagram', model_id, 0, 0, call_elapsed, error=str(last_exc),
+                logger.error(f"[Diagram] Region {idx + 1} failed after retry: {e}")
+                _log_api_usage('diagram', model_id, 0, 0, call_elapsed, error=str(e),
                                request_id=req_id, user_id=uid, billing_tier='paid', phase='read')
                 return
 

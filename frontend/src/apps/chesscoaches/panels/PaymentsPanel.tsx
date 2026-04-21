@@ -7,6 +7,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell, btnPrimary } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
 import { CreditBar } from '../components/CreditBar';
+import { EmptyState } from '../components/EmptyState';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -519,25 +520,16 @@ export function PaymentsPanel() {
             {[1, 2, 3].map(i => <div key={i} className="h-20 bg-slate-800 rounded-xl animate-pulse" />)}
           </div>
         ) : students.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-600/10 flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-emerald-400" />
-            </div>
-            <p className="text-slate-200 text-lg">{t('coaches.packs.noStudents')}</p>
+          <EmptyState icon={Package} color="emerald" title={t('coaches.packs.noStudents')} titleClassName="text-slate-200 text-lg">
             <button
               onClick={() => navigate('/students')}
               className={`mt-4 flex items-center gap-1.5 ${btnPrimary('emerald')}`}
             >
               {t('coaches.packs.goToStudents')}
             </button>
-          </div>
+          </EmptyState>
         ) : packs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-600/10 flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-emerald-400" />
-            </div>
-            <p className="text-slate-400 text-sm">{t('coaches.packs.empty')}</p>
-          </div>
+          <EmptyState icon={Package} color="emerald" title={t('coaches.packs.empty')} titleClassName="text-slate-400 text-sm" />
         ) : sortedGroups.length === 0 ? (
           <div className="text-center py-8 text-sm text-slate-500">
             {t('coaches.packs.empty')}

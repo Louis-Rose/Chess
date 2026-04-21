@@ -7,6 +7,7 @@ import { useLanguage } from '../../../contexts/LanguageContext';
 import { PanelShell } from '../components/PanelShell';
 import { authFetch } from '../utils/authFetch';
 import { Avatar } from '../components/Avatar';
+import { EmptyState } from '../components/EmptyState';
 
 interface Conversation {
   user_id: number;
@@ -101,13 +102,13 @@ export function MessagesPanel() {
             ))}
           </div>
         ) : conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-blue-600/10 flex items-center justify-center mb-4">
-              <MessageCircle className="w-8 h-8 text-blue-400" />
-            </div>
-            <p className="text-slate-300 text-lg">{t('coaches.messages.empty')}</p>
-            <p className="text-slate-500 text-sm mt-1">{t('coaches.messages.emptyHint')}</p>
-          </div>
+          <EmptyState
+            icon={MessageCircle}
+            color="blue"
+            title={t('coaches.messages.empty')}
+            titleClassName="text-slate-300 text-lg"
+            subtitle={t('coaches.messages.emptyHint')}
+          />
         ) : (
           <div className="space-y-2">
             {conversations.map(c => (

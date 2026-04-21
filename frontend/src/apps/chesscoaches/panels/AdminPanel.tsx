@@ -562,16 +562,9 @@ export function AdminPanel() {
     );
   }
 
-  const SortIcon = ({ column }: { column: SortColumn }) => {
-    if (sortColumn !== column) return null;
-    return sortDirection === 'asc'
-      ? <ChevronUp className="w-3 h-3 inline ml-1" />
-      : <ChevronDown className="w-3 h-3 inline ml-1" />;
-  };
-
-  const HistorySortIcon = ({ column }: { column: HistorySortColumn }) => {
-    if (historySortColumn !== column) return null;
-    return historySortDirection === 'asc'
+  const SortIndicator = ({ active, direction }: { active: boolean; direction: SortDirection }) => {
+    if (!active) return null;
+    return direction === 'asc'
       ? <ChevronUp className="w-3 h-3 inline ml-1" />
       : <ChevronDown className="w-3 h-3 inline ml-1" />;
   };
@@ -626,19 +619,19 @@ export function AdminPanel() {
                   </th>
                   {!usersCollapsed && <>
                     <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('created_at'); }}>
-                      {t('coaches.admin.joined')} <SortIcon column="created_at" />
+                      {t('coaches.admin.joined')} <SortIndicator active={sortColumn === 'created_at'} direction={sortDirection} />
                     </th>
                     <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('last_active'); }}>
-                      {t('coaches.admin.lastActive')} <SortIcon column="last_active" />
+                      {t('coaches.admin.lastActive')} <SortIndicator active={sortColumn === 'last_active'} direction={sortDirection} />
                     </th>
                     <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('session_count'); }}>
-                      {t('coaches.admin.sessions')} <SortIcon column="session_count" />
+                      {t('coaches.admin.sessions')} <SortIndicator active={sortColumn === 'session_count'} direction={sortDirection} />
                     </th>
                     <th className="px-3 py-2 text-center cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('total_seconds'); }}>
-                      {t('coaches.admin.time')} <SortIcon column="total_seconds" />
+                      {t('coaches.admin.time')} <SortIndicator active={sortColumn === 'total_seconds'} direction={sortDirection} />
                     </th>
                     <th className="px-3 py-2 text-right cursor-pointer hover:text-slate-200" onClick={e => { e.stopPropagation(); handleSort('cost_usd'); }}>
-                      Cost <SortIcon column="cost_usd" />
+                      Cost <SortIndicator active={sortColumn === 'cost_usd'} direction={sortDirection} />
                     </th>
                   </>}
                 </tr>
@@ -989,13 +982,13 @@ export function AdminPanel() {
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 z-10 select-none">
                       <tr className="bg-slate-700 text-slate-400 uppercase tracking-wider">
-                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('created_at')}>{t('coaches.admin.time')}<HistorySortIcon column="created_at" /></th>
-                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('user_name')}>{t('coaches.admin.user')}<HistorySortIcon column="user_name" /></th>
-                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('feature')}>{t('coaches.admin.feature')}<HistorySortIcon column="feature" /></th>
-                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('model_count')}>{t('coaches.admin.models')}<HistorySortIcon column="model_count" /></th>
-                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('tokens')}>{t('coaches.admin.tokens')}<HistorySortIcon column="tokens" /></th>
-                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('elapsed_seconds')}>{t('coaches.admin.time')}<HistorySortIcon column="elapsed_seconds" /></th>
-                        <th className="px-2 py-1.5 text-right cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('cost_usd')}>{t('coaches.admin.cost')}<HistorySortIcon column="cost_usd" /></th>
+                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('created_at')}>{t('coaches.admin.time')}<SortIndicator active={historySortColumn === 'created_at'} direction={historySortDirection} /></th>
+                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('user_name')}>{t('coaches.admin.user')}<SortIndicator active={historySortColumn === 'user_name'} direction={historySortDirection} /></th>
+                        <th className="px-2 py-1.5 text-left cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('feature')}>{t('coaches.admin.feature')}<SortIndicator active={historySortColumn === 'feature'} direction={historySortDirection} /></th>
+                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('model_count')}>{t('coaches.admin.models')}<SortIndicator active={historySortColumn === 'model_count'} direction={historySortDirection} /></th>
+                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('tokens')}>{t('coaches.admin.tokens')}<SortIndicator active={historySortColumn === 'tokens'} direction={historySortDirection} /></th>
+                        <th className="px-2 py-1.5 text-center cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('elapsed_seconds')}>{t('coaches.admin.time')}<SortIndicator active={historySortColumn === 'elapsed_seconds'} direction={historySortDirection} /></th>
+                        <th className="px-2 py-1.5 text-right cursor-pointer hover:text-slate-200" onClick={() => toggleHistorySort('cost_usd')}>{t('coaches.admin.cost')}<SortIndicator active={historySortColumn === 'cost_usd'} direction={historySortDirection} /></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
