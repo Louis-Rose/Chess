@@ -1,6 +1,6 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { ImageIcon, Clock, Copy, Check, Loader2, RefreshCw } from 'lucide-react';
 import { ImageZoomModal } from '../components/ImageZoomModal';
