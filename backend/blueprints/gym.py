@@ -138,46 +138,77 @@ def _exercise_name(label: str) -> str:
     return ' '.join(cleaned).strip() or label.split('\n')[0].strip()
 
 
+_BODYWEIGHT_RE = re.compile(r'^\d+(?:\s*\+\s*\d+)*$')
+
+
 def _parse_cell_sets(cell_text: str) -> list[dict]:
-    """Return a list of {reps, weight_kg, is_warmup, raw_line} from one cell."""
+    """Return a list of {reps, weight_kg, is_warmup, raw_line} from one cell.
+
+    Handles:
+      - "10 x 52.3"           → 1 set of 10 reps @ 52.3kg
+      - "(10 x 27)"            → warmup
+      - "11, 12 x 4.5"         → 2 sets of 11 and 12 reps @ 4.5kg each
+      - "15,12 x 24.8,18"      → 2 sets: 15@24.8, 12@18 (dropset)
+      - "3 x 30% ROM"          → bodyweight working set (`%` = ROM, not weight)
+      - "4"                    → bodyweight: 1 set of 4 reps @ 0kg
+      - "2 + 4 (50%)"          → bodyweight: 2 sets (2 reps, 4 reps)
+      - "4 (slow, 50%)"        → bodyweight: 1 set of 4 reps
+    """
     out = []
     for raw_line in cell_text.split('\n'):
         line = raw_line.strip()
         if not line:
             continue
-        # Skip session ratings on their own line
         if line in {'+', '=', '-', '*', '→'}:
             continue
+
         is_warmup = line.startswith('(') and ')' in line
-        content = line.strip('()').split(')')[0] if is_warmup else line
-        # Strip trailing rating / annotation after whitespace
-        # Example lines to handle: "10 x 52.3", "11, 12 x 4.5",
-        # "15,12 x 24.8,18", "13+7 x 20.3", "4 (slow, 50%)", "3 x 30% ROM"
+        if is_warmup:
+            content = line[1:line.rindex(')')].strip()
+        else:
+            # Strip trailing "(...)" annotations on non-warmup lines
+            content = re.sub(r'\s*\([^)]*\)\s*$', '', line).strip()
+
         m = SET_RE.search(content)
-        if not m:
-            continue
-        reps_part = m.group(1)
-        weight_part = m.group(2)
-        # Reps: split on comma — multi-set shorthand. Otherwise single value.
-        rep_tokens = [t.strip() for t in reps_part.split(',') if t.strip()]
-        weight_tokens = [t.strip() for t in weight_part.split(',') if t.strip()]
-        if not rep_tokens or not weight_tokens:
-            continue
-        for i, rep_tok in enumerate(rep_tokens):
-            # Reps must be a plain integer (ignore things like "+7")
-            mrep = re.match(r'^(\d+)', rep_tok)
-            if not mrep:
+        if m:
+            reps_part = m.group(1)
+            weight_part = m.group(2)
+            rep_tokens = [t.strip() for t in reps_part.split(',') if t.strip()]
+            weight_tokens = [t.strip() for t in weight_part.split(',') if t.strip()]
+            if not rep_tokens or not weight_tokens:
                 continue
-            reps = int(mrep.group(1))
-            weight_tok = weight_tokens[i] if i < len(weight_tokens) else weight_tokens[-1]
-            mw = re.match(r'^(\d+(?:\.\d+)?)', weight_tok)
-            weight = float(mw.group(1)) if mw else 0.0
-            out.append({
-                'reps': reps,
-                'weight_kg': weight,
-                'is_warmup': is_warmup,
-                'raw_line': raw_line.strip(),
-            })
+            for i, rep_tok in enumerate(rep_tokens):
+                mrep = re.match(r'^(\d+)', rep_tok)
+                if not mrep:
+                    continue
+                reps = int(mrep.group(1))
+                weight_tok = weight_tokens[i] if i < len(weight_tokens) else weight_tokens[-1]
+                mw = re.match(r'^(\d+(?:\.\d+)?)', weight_tok)
+                # `30% ROM` means partial range of motion, not kilograms —
+                # the regex captured '30', but '%' follows in the raw content.
+                post = content[m.end(2):m.end(2) + 2] if mw else ''
+                if mw and '%' not in weight_tok and '%' not in post:
+                    weight = float(mw.group(1))
+                else:
+                    weight = 0.0
+                out.append({
+                    'reps': reps,
+                    'weight_kg': weight,
+                    'is_warmup': is_warmup,
+                    'raw_line': raw_line.strip(),
+                })
+            continue
+
+        # No `N x W` match — check for bodyweight shorthand: "4" or "2 + 4"
+        if _BODYWEIGHT_RE.match(content):
+            for part in re.split(r'\s*\+\s*', content):
+                reps = int(part)
+                out.append({
+                    'reps': reps,
+                    'weight_kg': 0.0,
+                    'is_warmup': is_warmup,
+                    'raw_line': raw_line.strip(),
+                })
     return out
 
 
