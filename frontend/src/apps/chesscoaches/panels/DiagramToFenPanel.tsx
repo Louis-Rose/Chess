@@ -24,16 +24,29 @@ function GridOverlay({ box }: { box: { x: number; y: number; width: number; heig
   const cellH = box.height / 8;
   const verticals = Array.from({ length: 9 }, (_, i) => box.x + i * cellW);
   const horizontals = Array.from({ length: 9 }, (_, i) => box.y + i * cellH);
+  // Bright magenta contrasts against both light and dark board squares. Inner lines
+  // are thinner than the outer frame to keep the 8x8 division legible without
+  // swallowing the pieces.
+  const lineColor = 'rgba(236, 72, 153, 0.95)';
+  const frameColor = 'rgba(236, 72, 153, 1)';
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
-      {verticals.map((x, i) => (
-        <line key={`v${i}`} x1={x} y1={box.y} x2={x} y2={box.y + box.height}
-              stroke="rgba(52, 211, 153, 0.85)" strokeWidth="0.25" vectorEffect="non-scaling-stroke" />
-      ))}
-      {horizontals.map((y, i) => (
-        <line key={`h${i}`} x1={box.x} y1={y} x2={box.x + box.width} y2={y}
-              stroke="rgba(52, 211, 153, 0.85)" strokeWidth="0.25" vectorEffect="non-scaling-stroke" />
-      ))}
+      {verticals.map((x, i) => {
+        const isEdge = i === 0 || i === 8;
+        return (
+          <line key={`v${i}`} x1={x} y1={box.y} x2={x} y2={box.y + box.height}
+                stroke={isEdge ? frameColor : lineColor}
+                strokeWidth={isEdge ? 2.5 : 1.25} vectorEffect="non-scaling-stroke" />
+        );
+      })}
+      {horizontals.map((y, i) => {
+        const isEdge = i === 0 || i === 8;
+        return (
+          <line key={`h${i}`} x1={box.x} y1={y} x2={box.x + box.width} y2={y}
+                stroke={isEdge ? frameColor : lineColor}
+                strokeWidth={isEdge ? 2.5 : 1.25} vectorEffect="non-scaling-stroke" />
+        );
+      })}
     </svg>
   );
 }
