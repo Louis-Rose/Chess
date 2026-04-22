@@ -179,12 +179,17 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
 
   // ── Diagram state ──
   const [diagram, setDiagram] = useState<DiagramState>(DIAGRAM_INITIAL);
+  const diagramAbortRef = useRef<AbortController | null>(null);
 
   const diagramSetImage = useCallback((file: File, preview: string) => {
+    diagramAbortRef.current?.abort();
+    diagramAbortRef.current = null;
     setDiagram({ ...DIAGRAM_INITIAL, preview, imageFile: file });
   }, []);
 
   const diagramClear = useCallback(() => {
+    diagramAbortRef.current?.abort();
+    diagramAbortRef.current = null;
     setDiagram(DIAGRAM_INITIAL);
   }, []);
 
@@ -214,13 +219,19 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     const file = diagram.imageFile;
     if (!file) return;
 
+    // Cancel any previous in-flight analyze so its SSE events can't leak into this run.
+    diagramAbortRef.current?.abort();
+    const controller = new AbortController();
+    diagramAbortRef.current = controller;
+    const { signal } = controller;
+
     setDiagram(prev => ({ ...prev, error: '', modelResults: {}, models: [], analyzing: true, startTime: Date.now(), locateCount: 0 }));
 
     try {
       const formData = new FormData();
       formData.append('image', file);
 
-      const res = await fetch('/api/coaches/read-diagram', { method: 'POST', body: formData });
+      const res = await fetch('/api/coaches/read-diagram', { method: 'POST', body: formData, signal });
 
       if (!res.ok) {
         const text = await res.text();
@@ -236,14 +247,17 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
       let streamDone = false;
 
       while (!streamDone) {
+        if (signal.aborted) { reader.cancel(); break; }
         const { done, value } = await reader.read();
         if (done) break;
+        if (signal.aborted) { reader.cancel(); break; }
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
         for (const line of lines) {
+          if (signal.aborted) { streamDone = true; break; }
           if (!line.startsWith('data: ')) continue;
           const payload = JSON.parse(line.slice(6));
 
@@ -298,9 +312,13 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (e) {
+      if (signal.aborted) return;
       setDiagram(prev => ({ ...prev, error: e instanceof Error ? e.message : 'Unknown error' }));
     } finally {
-      setDiagram(prev => ({ ...prev, analyzing: false }));
+      if (!signal.aborted) {
+        setDiagram(prev => ({ ...prev, analyzing: false }));
+      }
+      if (diagramAbortRef.current === controller) diagramAbortRef.current = null;
     }
   }, [diagram.imageFile]);
 
