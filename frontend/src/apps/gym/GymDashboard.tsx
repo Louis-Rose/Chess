@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Dumbbell, RefreshCw, ArrowLeft, Archive, ArchiveRestore, EyeOff, Eye } from 'lucide-react';
+import { Dumbbell, ArrowLeft, Archive, ArchiveRestore, EyeOff, Eye } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { BodyHeatmap } from './BodyHeatmap';
 
@@ -153,17 +153,9 @@ export function GymDashboard() {
           </button>
           <Dumbbell className="w-6 h-6 text-emerald-400" />
           <h1 className="text-xl font-semibold flex-1">Gym</h1>
-          <div className="hidden sm:block text-xs text-slate-500">
-            synced {fmtSync(data?.last_synced_at ?? null)}
+          <div className="text-xs text-slate-500">
+            {syncing ? 'syncing…' : `synced ${fmtSync(data?.last_synced_at ?? null)}`}
           </div>
-          <button
-            onClick={sync}
-            disabled={syncing}
-            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            Sync
-          </button>
         </div>
       </header>
 
