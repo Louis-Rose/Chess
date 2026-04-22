@@ -32,16 +32,16 @@ const MUSCLE_TO_GROUP: Record<string, string> = Object.fromEntries(
 );
 
 // Recency bucket → frequency count (1-indexed for the library)
-// bucket 1 = emerald (≤3d), 2 = lime (≤7d), 3 = amber (≤14d), 4 = red (>14d)
-const HIGHLIGHT_COLORS = ['#10b981', '#84cc16', '#f59e0b', '#ef4444'];
+// 1 = green (≤2d), 2 = yellow (3-5d), 3 = orange (6-7d), 4 = red (>7d)
+const HIGHLIGHT_COLORS = ['#10b981', '#eab308', '#f97316', '#ef4444'];
 const BODY_COLOR = '#334155';          // slate-700 — no data
 const SELECTED_OUTLINE = '#f8fafc';    // slate-50
 
 function bucket(days: number | null): number {
   if (days === null) return 0;
-  if (days <= 3)  return 1;
-  if (days <= 7)  return 2;
-  if (days <= 14) return 3;
+  if (days <= 2) return 1;
+  if (days <= 5) return 2;
+  if (days <= 7) return 3;
   return 4;
 }
 
@@ -75,10 +75,10 @@ export function BodyHeatmap({ stats, selected, onSelect }: Props) {
           Recency by body part
         </div>
         <div className="flex items-center gap-2 text-[10px] text-slate-500">
-          <LegendSwatch color={HIGHLIGHT_COLORS[0]} label="≤3d" />
-          <LegendSwatch color={HIGHLIGHT_COLORS[1]} label="≤7d" />
-          <LegendSwatch color={HIGHLIGHT_COLORS[2]} label="≤14d" />
-          <LegendSwatch color={HIGHLIGHT_COLORS[3]} label=">14d" />
+          <LegendSwatch color={HIGHLIGHT_COLORS[0]} label="≤2d" />
+          <LegendSwatch color={HIGHLIGHT_COLORS[1]} label="3-5d" />
+          <LegendSwatch color={HIGHLIGHT_COLORS[2]} label="6-7d" />
+          <LegendSwatch color={HIGHLIGHT_COLORS[3]} label=">7d" />
           <LegendSwatch color={BODY_COLOR} label="—" />
         </div>
       </div>

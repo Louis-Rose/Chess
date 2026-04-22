@@ -23,9 +23,9 @@ interface Dashboard {
 }
 
 function daysSinceColor(d: number) {
-  if (d <= 3) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
-  if (d <= 7) return 'text-lime-400 bg-lime-500/10 border-lime-500/30';
-  if (d <= 14) return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+  if (d <= 2) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+  if (d <= 5) return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
+  if (d <= 7) return 'text-orange-400 bg-orange-500/10 border-orange-500/30';
   return 'text-red-400 bg-red-500/10 border-red-500/30';
 }
 
