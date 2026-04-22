@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
-import { Users, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, CalendarDays, AlertTriangle, BookOpen } from 'lucide-react';
+import { Users, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, MessageCircle, CalendarDays, AlertTriangle, BookOpen, Dumbbell } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
@@ -80,6 +80,15 @@ function PlayerMenuItems({ onClose, align }: { onClose: () => void; align: 'cent
         >
           <Shield className="w-4 h-4" />
           {t('coaches.navAdmin')}
+        </button>
+      )}
+      {user.email === 'rose.louis.mail@gmail.com' && (
+        <button
+          onClick={() => { onClose(); navigate('/gym'); }}
+          className={`${rowBase} ${justify} text-emerald-400 border-b border-slate-700`}
+        >
+          <Dumbbell className="w-4 h-4" />
+          Gym
         </button>
       )}
       <button

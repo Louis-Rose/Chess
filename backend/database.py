@@ -300,6 +300,35 @@ def init_db():
             conn.execute("CREATE INDEX idx_knowledge_positions_folder ON knowledge_positions(folder_id)")
             logger.info("Created knowledge_positions table")
 
+        # Migration: Gym sub-app — flat set log synced from Notion
+        if not _table_exists(conn, 'gym_sets'):
+            conn.execute("""
+                CREATE TABLE gym_sets (
+                    id SERIAL PRIMARY KEY,
+                    session_date DATE NOT NULL,
+                    muscle_group TEXT NOT NULL,
+                    exercise TEXT NOT NULL,
+                    reps INTEGER,
+                    weight_kg REAL,
+                    raw_line TEXT,
+                    is_warmup BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_gym_sets_exercise ON gym_sets(exercise)")
+            conn.execute("CREATE INDEX idx_gym_sets_date ON gym_sets(session_date)")
+            logger.info("Created gym_sets table")
+
+        if not _table_exists(conn, 'gym_sync_meta'):
+            conn.execute("""
+                CREATE TABLE gym_sync_meta (
+                    id INTEGER PRIMARY KEY,
+                    last_synced_at TIMESTAMP,
+                    last_status TEXT
+                )
+            """)
+            logger.info("Created gym_sync_meta table")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

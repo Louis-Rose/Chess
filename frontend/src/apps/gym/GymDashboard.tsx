@@ -1,0 +1,247 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Dumbbell, RefreshCw, ArrowLeft, Flame, TrendingUp } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface WeeklyPoint { week: string; sets: number }
+interface Exercise {
+  exercise: string;
+  muscle_group: string;
+  last_date: string;
+  days_since: number;
+  total_sets: number;
+  sets_last_7d: number;
+  best_weight_kg: number;
+  weekly_sets: WeeklyPoint[];
+}
+interface Dashboard {
+  last_synced_at: string | null;
+  today: string;
+  exercises: Exercise[];
+}
+
+function daysSinceColor(d: number) {
+  if (d <= 3) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+  if (d <= 7) return 'text-lime-400 bg-lime-500/10 border-lime-500/30';
+  if (d <= 14) return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+  return 'text-red-400 bg-red-500/10 border-red-500/30';
+}
+
+function fmtDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function fmtSync(iso: string | null) {
+  if (!iso) return 'never';
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.round(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.round(diff / 3600)}h ago`;
+  return d.toLocaleDateString();
+}
+
+export function GymDashboard() {
+  const navigate = useNavigate();
+  const [data, setData] = useState<Dashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [muscleFilter, setMuscleFilter] = useState<string>('ALL');
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/gym/dashboard', { credentials: 'include' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setData(await r.json());
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function sync() {
+    setSyncing(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/gym/sync', { method: 'POST', credentials: 'include' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await load();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const muscles = useMemo(() => {
+    if (!data) return ['ALL'];
+    return ['ALL', ...Array.from(new Set(data.exercises.map(e => e.muscle_group)))];
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    return muscleFilter === 'ALL'
+      ? data.exercises
+      : data.exercises.filter(e => e.muscle_group === muscleFilter);
+  }, [data, muscleFilter]);
+
+  const summary = useMemo(() => {
+    if (!data || data.exercises.length === 0) return null;
+    const totalSetsLast7 = data.exercises.reduce((s, e) => s + e.sets_last_7d, 0);
+    const overdue = data.exercises.filter(e => e.days_since > 14).length;
+    return { totalSetsLast7, overdue, exerciseCount: data.exercises.length };
+  }, [data]);
+
+  return (
+    <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
+      <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <Dumbbell className="w-6 h-6 text-emerald-400" />
+          <h1 className="text-xl font-semibold flex-1">Gym</h1>
+          <div className="hidden sm:block text-xs text-slate-500">
+            synced {fmtSync(data?.last_synced_at ?? null)}
+          </div>
+          <button
+            onClick={sync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            Sync
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
+        {loading && !data && (
+          <div className="h-64 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
+          </div>
+        )}
+
+        {data && data.exercises.length === 0 && (
+          <div className="text-center py-16 text-slate-500">
+            <Dumbbell className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>No data yet. Click <span className="font-semibold text-slate-300">Sync</span> to pull from Notion.</p>
+          </div>
+        )}
+
+        {summary && (
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <SummaryCard icon={<Dumbbell className="w-4 h-4" />} label="Exercises" value={summary.exerciseCount} />
+            <SummaryCard icon={<Flame className="w-4 h-4" />} label="Sets, last 7d" value={summary.totalSetsLast7} />
+            <SummaryCard icon={<TrendingUp className="w-4 h-4" />} label="Overdue (>14d)" value={summary.overdue} color={summary.overdue > 0 ? 'text-red-400' : 'text-emerald-400'} />
+          </div>
+        )}
+
+        {data && data.exercises.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {muscles.map(m => (
+              <button
+                key={m}
+                onClick={() => setMuscleFilter(m)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  muscleFilter === m
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {filtered.map(ex => <ExerciseCard key={ex.exercise} ex={ex} />)}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function SummaryCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color?: string }) {
+  return (
+    <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
+      <div className="flex items-center gap-1.5 text-slate-400 text-xs mb-1">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className={`text-2xl font-semibold ${color ?? 'text-slate-100'}`}>{value}</div>
+    </div>
+  );
+}
+
+function ExerciseCard({ ex }: { ex: Exercise }) {
+  const [expanded, setExpanded] = useState(false);
+  const color = daysSinceColor(ex.days_since);
+  const last12 = ex.weekly_sets.slice(-12);
+
+  return (
+    <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 flex items-center gap-4 text-left hover:bg-slate-800 transition-colors"
+      >
+        <div className={`flex-shrink-0 w-16 h-16 rounded-lg border flex flex-col items-center justify-center ${color}`}>
+          <div className="text-xl font-bold leading-none">{ex.days_since}</div>
+          <div className="text-[10px] uppercase tracking-wider mt-0.5">day{ex.days_since === 1 ? '' : 's'}</div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <div className="font-medium text-slate-100 truncate">{ex.exercise}</div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{ex.muscle_group}</div>
+          </div>
+          <div className="text-xs text-slate-400 mt-1 flex gap-3 flex-wrap">
+            <span>Last: {fmtDate(ex.last_date)}</span>
+            <span>•</span>
+            <span>{ex.sets_last_7d} set{ex.sets_last_7d === 1 ? '' : 's'} last 7d</span>
+            {ex.best_weight_kg > 0 && (<><span>•</span><span>Best: {ex.best_weight_kg}kg</span></>)}
+          </div>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-slate-700 p-4">
+          <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">Sets per week (last 12)</div>
+          <div className="h-40">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={last12} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                <XAxis dataKey="week" stroke="#64748b" tick={{ fontSize: 10 }} />
+                <YAxis stroke="#64748b" tick={{ fontSize: 10 }} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
+                  labelStyle={{ color: '#cbd5e1' }}
+                  itemStyle={{ color: '#10b981' }}
+                />
+                <Bar dataKey="sets" fill="#10b981" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="text-xs text-slate-500 mt-2">{ex.total_sets} total working sets</div>
+        </div>
+      )}
+    </div>
+  );
+}

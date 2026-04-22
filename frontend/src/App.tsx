@@ -6,6 +6,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
+const GymApp = lazy(() => import('./apps/gym/GymApp').then(m => ({ default: m.GymApp })));
 
 function App() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ function App() {
   return (
     <Suspense fallback={<div className="h-dvh bg-slate-800" />}>
       <Routes>
+        <Route path="/gym/*" element={<GymApp />} />
         <Route path="/*" element={<ChessCoachesApp />} />
       </Routes>
     </Suspense>
