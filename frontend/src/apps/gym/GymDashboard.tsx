@@ -94,7 +94,11 @@ export function GymDashboard() {
 
   const muscles = useMemo(() => {
     if (!data) return ['ALL'];
-    return ['ALL', ...Array.from(new Set(data.exercises.map(e => e.muscle_group)))];
+    const order = ['SHOULDERS', 'CHEST', 'BACK', 'BICEPS', 'TRICEPS', 'ABS', 'LEGS', 'OTHER'];
+    const present = new Set(data.exercises.map(e => e.muscle_group));
+    const known = order.filter(m => present.has(m));
+    const unknown = [...present].filter(m => !order.includes(m));
+    return ['ALL', ...known, ...unknown];
   }, [data]);
 
   const filtered = useMemo(() => {
