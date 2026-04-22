@@ -276,22 +276,30 @@ def sync_gym():
     })
 
 
+AUTO_ARCHIVE_DAYS = 30
+
+
 @gym_bp.route('/api/gym/exercises/ignore', methods=['POST'])
 @owner_required
 def gym_toggle_ignore():
+    """Archive or restore an exercise.
+
+    state='archived'     → always ignored
+    state='forced_active' → never auto-archived even if days_since > threshold
+    no row               → auto-archive applies (ignored iff days_since > 30)
+    """
     body = request.get_json(silent=True) or {}
     exercise = (body.get('exercise') or '').strip()
     ignored = bool(body.get('ignored'))
     if not exercise:
         return jsonify({'error': 'exercise required'}), 400
+    new_state = 'archived' if ignored else 'forced_active'
     with get_db() as conn:
-        if ignored:
-            conn.execute(
-                'INSERT INTO gym_ignored_exercises (exercise) VALUES (?) ON CONFLICT (exercise) DO NOTHING',
-                (exercise,)
-            )
-        else:
-            conn.execute('DELETE FROM gym_ignored_exercises WHERE exercise = ?', (exercise,))
+        conn.execute(
+            """INSERT INTO gym_ignored_exercises (exercise, state) VALUES (?, ?)
+               ON CONFLICT (exercise) DO UPDATE SET state = EXCLUDED.state""",
+            (exercise, new_state)
+        )
     return jsonify({'ok': True, 'exercise': exercise, 'ignored': ignored})
 
 
@@ -313,8 +321,8 @@ def gym_dashboard():
                WHERE is_warmup = FALSE
                ORDER BY session_date ASC"""
         ).fetchall()
-        ignored = {r['exercise'] for r in conn.execute(
-            'SELECT exercise FROM gym_ignored_exercises'
+        states = {r['exercise']: r['state'] for r in conn.execute(
+            'SELECT exercise, state FROM gym_ignored_exercises'
         ).fetchall()}
 
     by_ex: dict[str, dict] = {}
@@ -348,16 +356,24 @@ def gym_dashboard():
             [{'week': w, 'sets': n} for (e, w), n in weekly_by_ex.items() if e == ex],
             key=lambda x: x['week'],
         )
+        days_since = (today - slot['last_date']).days
+        state = states.get(ex)
+        if state == 'archived':
+            is_ignored = True
+        elif state == 'forced_active':
+            is_ignored = False
+        else:
+            is_ignored = days_since > AUTO_ARCHIVE_DAYS
         exercises.append({
             'exercise': ex,
             'muscle_group': slot['muscle_group'],
             'last_date': slot['last_date'].isoformat(),
-            'days_since': (today - slot['last_date']).days,
+            'days_since': days_since,
             'total_sets': slot['set_count'],
             'sets_last_7d': slot['sets_last_7d'],
             'best_weight_kg': slot['best_weight_kg'],
             'weekly_sets': series,
-            'ignored': ex in ignored,
+            'ignored': is_ignored,
         })
 
     exercises.sort(key=lambda e: e['days_since'], reverse=True)

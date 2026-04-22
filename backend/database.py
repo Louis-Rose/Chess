@@ -323,10 +323,15 @@ def init_db():
             conn.execute("""
                 CREATE TABLE gym_ignored_exercises (
                     exercise TEXT PRIMARY KEY,
+                    state TEXT NOT NULL DEFAULT 'archived',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             logger.info("Created gym_ignored_exercises table")
+
+        if not _column_exists(conn, 'gym_ignored_exercises', 'state'):
+            conn.execute("ALTER TABLE gym_ignored_exercises ADD COLUMN state TEXT NOT NULL DEFAULT 'archived'")
+            logger.info("Added state column to gym_ignored_exercises")
 
         if not _table_exists(conn, 'gym_sync_meta'):
             conn.execute("""

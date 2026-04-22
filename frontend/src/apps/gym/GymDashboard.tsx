@@ -274,11 +274,12 @@ function ExerciseCard({ ex, onToggleIgnore }: { ex: Exercise; onToggleIgnore: (e
         </button>
         <button
           onClick={() => onToggleIgnore(ex.exercise, !ex.ignored)}
-          className="px-4 text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors border-l border-slate-700"
+          className="flex flex-col items-center justify-center gap-1 px-4 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors border-l border-slate-700 text-[11px] font-medium"
           title={ex.ignored ? 'Restore to active exercises' : 'Archive — keep data, hide from dashboard'}
-          aria-label={ex.ignored ? 'Restore exercise' : 'Archive exercise'}
         >
-          {ex.ignored ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+          {ex.ignored
+            ? <><ArchiveRestore className="w-4 h-4" /><span>Restore</span></>
+            : <><Archive className="w-4 h-4" /><span>Archive</span></>}
         </button>
       </div>
 
