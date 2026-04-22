@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { Dumbbell, RefreshCw, ArrowLeft, Archive, ArchiveRestore, EyeOff, Eye } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { BodyHeatmap } from './BodyHeatmap';
@@ -59,12 +60,7 @@ export function GymDashboard() {
       exercises: prev.exercises.map(e => e.exercise === exercise ? { ...e, ignored } : e),
     } : prev);
     try {
-      await fetch('/api/gym/exercises/ignore', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exercise, ignored }),
-      });
+      await axios.post('/api/gym/exercises/ignore', { exercise, ignored });
     } catch (e) {
       setError(String(e));
     }
@@ -74,9 +70,8 @@ export function GymDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch('/api/gym/dashboard', { credentials: 'include' });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      setData(await r.json());
+      const r = await axios.get<Dashboard>('/api/gym/dashboard');
+      setData(r.data);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -88,8 +83,7 @@ export function GymDashboard() {
     setSyncing(true);
     setError(null);
     try {
-      const r = await fetch('/api/gym/sync', { method: 'POST', credentials: 'include' });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      await axios.post('/api/gym/sync');
       await load();
     } catch (e) {
       setError(String(e));
@@ -107,7 +101,7 @@ export function GymDashboard() {
   useEffect(() => {
     if (!data || syncing) return;
     const stale = !data.last_synced_at
-      || (Date.now() - new Date(data.last_synced_at).getTime()) > 15 * 60 * 1000;
+      || (Date.now() - new Date(data.last_synced_at).getTime()) > 12 * 60 * 60 * 1000;
     if (stale) sync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.last_synced_at]);

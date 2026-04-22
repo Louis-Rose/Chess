@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 
 const GymDashboard = lazy(() => import('./GymDashboard').then(m => ({ default: m.GymDashboard })));
@@ -16,9 +17,8 @@ export function GymApp() {
   useEffect(() => {
     if (isLoading) return;
     if (!user) { setAccessChecked(true); setAllowed(false); return; }
-    fetch('/api/gym/access', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => { setAllowed(!!d.allowed); setAccessChecked(true); })
+    axios.get('/api/gym/access')
+      .then(r => { setAllowed(!!r.data?.allowed); setAccessChecked(true); })
       .catch(() => { setAllowed(false); setAccessChecked(true); });
   }, [user, isLoading]);
 
