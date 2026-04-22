@@ -1,6 +1,6 @@
 // Diagram → FEN panel — thin view, state lives in CoachesDataContext
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { ImageIcon, Clock, Copy, Check, Loader2, RefreshCw } from 'lucide-react';
 import { ImageZoomModal } from '../components/ImageZoomModal';
@@ -58,13 +58,20 @@ function GridOverlay({ box, colorIndex }: {
 // look dark enough, and an amber dashed ring on squares whose pixels look like
 // black-piece ink but the LLM didn't place a black piece there. Rendered above
 // the click layer so the markers stay visible when a cell is selected.
-function MismatchLayer({ cellRects, falsePositives, falseNegatives }: {
+function MismatchLayer({ cellRects, falsePositives, falseNegatives, autoSwaps }: {
   cellRects: Record<string, { x: number; y: number; width: number; height: number }>;
   falsePositives: string[];
   falseNegatives: string[];
+  autoSwaps: Array<{ from: string; to: string }>;
 }) {
+  const swapColor = 'rgba(34,211,238,1)'; // cyan
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+      <defs>
+        <marker id="swap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill={swapColor} />
+        </marker>
+      </defs>
       {falsePositives.map(sq => {
         const r = cellRects[sq]; if (!r) return null;
         return <rect key={`fp-${sq}`} x={r.x + 0.3} y={r.y + 0.3} width={r.width - 0.6} height={r.height - 0.6}
@@ -74,6 +81,22 @@ function MismatchLayer({ cellRects, falsePositives, falseNegatives }: {
         const r = cellRects[sq]; if (!r) return null;
         return <rect key={`fn-${sq}`} x={r.x + 0.3} y={r.y + 0.3} width={r.width - 0.6} height={r.height - 0.6}
                      fill="none" stroke="rgba(251,146,60,1)" strokeWidth={3} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />;
+      })}
+      {autoSwaps.flatMap(({ from, to }) => {
+        const rf = cellRects[from]; const rt = cellRects[to];
+        if (!rf || !rt) return [];
+        const cx1 = rf.x + rf.width / 2;
+        const cy1 = rf.y + rf.height / 2;
+        const cx2 = rt.x + rt.width / 2;
+        const cy2 = rt.y + rt.height / 2;
+        return [
+          <rect key={`sw-from-${from}`} x={rf.x + 0.3} y={rf.y + 0.3} width={rf.width - 0.6} height={rf.height - 0.6}
+                fill="none" stroke={swapColor} strokeWidth={2.5} strokeDasharray="2 2" vectorEffect="non-scaling-stroke" />,
+          <rect key={`sw-to-${to}`} x={rt.x + 0.3} y={rt.y + 0.3} width={rt.width - 0.6} height={rt.height - 0.6}
+                fill="none" stroke={swapColor} strokeWidth={2.5} vectorEffect="non-scaling-stroke" />,
+          <line key={`sw-line-${from}-${to}`} x1={cx1} y1={cy1} x2={cx2} y2={cy2}
+                stroke={swapColor} strokeWidth={2} vectorEffect="non-scaling-stroke" markerEnd="url(#swap-arrow)" />,
+        ];
       })}
     </svg>
   );
@@ -120,14 +143,24 @@ function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell
   colorIndex: number;
   selectedCell?: string | null;
   onSelectCell?: (sq: string | null) => void;
-  mismatches?: { falsePositives: string[]; falseNegatives: string[] };
+  mismatches?: { falsePositives: string[]; falseNegatives: string[]; autoSwaps: Array<{ from: string; to: string }> };
 }) {
+  const showMismatches = !!(mismatches && (
+    mismatches.falsePositives.length > 0 ||
+    mismatches.falseNegatives.length > 0 ||
+    mismatches.autoSwaps.length > 0
+  ));
   return (
     <div className="relative mx-auto max-w-[400px] w-full">
       <img src={src} alt="" className="rounded-lg border border-slate-600 w-full block" />
       {showGrid && gridBox && <GridOverlay box={gridBox} colorIndex={colorIndex} />}
-      {showGrid && cellRects && mismatches && (mismatches.falsePositives.length > 0 || mismatches.falseNegatives.length > 0) && (
-        <MismatchLayer cellRects={cellRects} falsePositives={mismatches.falsePositives} falseNegatives={mismatches.falseNegatives} />
+      {showGrid && cellRects && mismatches && showMismatches && (
+        <MismatchLayer
+          cellRects={cellRects}
+          falsePositives={mismatches.falsePositives}
+          falseNegatives={mismatches.falseNegatives}
+          autoSwaps={mismatches.autoSwaps}
+        />
       )}
       {showGrid && cellRects && onSelectCell && (
         <CellClickLayer cellRects={cellRects} selectedCell={selectedCell ?? null} onSelect={onSelectCell} colorIndex={colorIndex} />
@@ -195,10 +228,16 @@ function parseFenPlacement(fen: string): Record<string, string> {
   return out;
 }
 
-// Empirical threshold: a cell is "black-piece-like" when >3% of its pixels are
-// pure black (luma exactly 0). Used to cross-check the LLM's piece read against
-// raw pixel evidence. Tunable if this turns out to misfire on specific boards.
-const BLACK_PIECE_PURE_BLACK_THRESHOLD = 0.03;
+// Empirical threshold: a cell "has a black piece" when ≥7% of its pixels are
+// near-black (luma ≤ 20). Derived from observed separation between the highest
+// non-black-piece cell (~4.3%) and the lowest confirmed black-piece cell
+// (~7.1%). Tunable if boards with different contrast land us in the gap.
+const BLACK_PIECE_DARK_THRESHOLD = 0.07;
+const BLACK_PIECE_LUMA_CUTOFF = 20;
+
+function cellLooksLikeBlackPiece(bins: number[]): boolean {
+  return darkPixelFraction(bins, BLACK_PIECE_LUMA_CUTOFF) >= BLACK_PIECE_DARK_THRESHOLD;
+}
 
 function isBlackPieceChar(ch: string): boolean {
   return 'pnbrqk'.includes(ch);
@@ -213,6 +252,105 @@ function sortSquaresForDisplay(squares: string[]): string[] {
     if (ra !== rb) return rb - ra;
     return a.charCodeAt(0) - b.charCodeAt(0);
   });
+}
+
+// Rebuild the placement portion of a FEN from a {square → char} map, keeping
+// the other five FEN fields (active color, castling, ep, halfmove, fullmove)
+// intact.
+function rebuildFenFromPlacement(placement: Record<string, string>, originalFen: string): string {
+  const parts = (originalFen || '').split(' ');
+  const ranks: string[] = [];
+  for (let r = 8; r >= 1; r--) {
+    let rankStr = '';
+    let empty = 0;
+    for (let f = 0; f < 8; f++) {
+      const sq = `${String.fromCharCode(97 + f)}${r}`;
+      const ch = placement[sq] ?? '.';
+      if (ch === '.') {
+        empty++;
+      } else {
+        if (empty) { rankStr += String(empty); empty = 0; }
+        rankStr += ch;
+      }
+    }
+    if (empty) rankStr += String(empty);
+    ranks.push(rankStr);
+  }
+  parts[0] = ranks.join('/');
+  return parts.join(' ');
+}
+
+export interface BlackPieceAudit {
+  // Cells the LLM called as black pieces but whose pixels disagree, after
+  // consuming any that got auto-swapped. These stay surfaced as mismatches.
+  unresolvedFalsePositives: string[];
+  // Cells the pixels flag as black pieces but the LLM left empty/white, after
+  // consuming any that got auto-swapped.
+  unresolvedFalseNegatives: string[];
+  // One-file-drift pairs we auto-corrected: the LLM's black piece moved from
+  // `from` to the adjacent empty square `to`.
+  autoSwaps: Array<{ from: string; to: string }>;
+  // FN cells that had BOTH left and right neighbors as valid FPs — ambiguous,
+  // not auto-swapped, surfaced for manual review.
+  ambiguousFalseNegatives: string[];
+  correctedFen: string;
+}
+
+function runBlackPieceAudit(rawFen: string, cellHistograms: Record<string, number[]>): BlackPieceAudit {
+  const placement = parseFenPlacement(rawFen);
+  const fps: string[] = [];
+  const fns: string[] = [];
+  for (const [sq, bins] of Object.entries(cellHistograms)) {
+    const pixelsBlack = cellLooksLikeBlackPiece(bins);
+    const llmBlack = isBlackPieceChar(placement[sq] ?? '.');
+    if (llmBlack && !pixelsBlack) fps.push(sq);
+    if (!llmBlack && pixelsBlack) fns.push(sq);
+  }
+  // Pair each FN with an adjacent-file FP on the same rank. Only swap when:
+  //   - the FN cell is empty per the LLM (don't kick other pieces),
+  //   - the FP cell actually holds a black piece,
+  //   - exactly one neighbor qualifies (ambiguous pairs are left alone).
+  const fpSet = new Set(fps);
+  const consumedFps = new Set<string>();
+  const consumedFns = new Set<string>();
+  const autoSwaps: Array<{ from: string; to: string }> = [];
+  const ambiguous: string[] = [];
+  for (const fn of fns) {
+    if ((placement[fn] ?? '.') !== '.') continue;
+    const file = fn.charCodeAt(0) - 97;
+    const rank = fn[1];
+    const left = file > 0 ? `${String.fromCharCode(96 + file)}${rank}` : null;
+    const right = file < 7 ? `${String.fromCharCode(98 + file)}${rank}` : null;
+    const leftOk = !!(left && fpSet.has(left) && !consumedFps.has(left) && isBlackPieceChar(placement[left] ?? '.'));
+    const rightOk = !!(right && fpSet.has(right) && !consumedFps.has(right) && isBlackPieceChar(placement[right] ?? '.'));
+    if (leftOk && rightOk) {
+      ambiguous.push(fn);
+    } else if (leftOk && left) {
+      autoSwaps.push({ from: left, to: fn });
+      consumedFps.add(left);
+      consumedFns.add(fn);
+    } else if (rightOk && right) {
+      autoSwaps.push({ from: right, to: fn });
+      consumedFps.add(right);
+      consumedFns.add(fn);
+    }
+  }
+  // Apply swaps to a placement copy to derive the corrected FEN.
+  const correctedPlacement = { ...placement };
+  for (const { from, to } of autoSwaps) {
+    correctedPlacement[to] = correctedPlacement[from];
+    correctedPlacement[from] = '.';
+  }
+  const ambiguousSet = new Set(ambiguous);
+  return {
+    unresolvedFalsePositives: sortSquaresForDisplay(fps.filter(s => !consumedFps.has(s))),
+    // Unresolved FNs that AREN'T flagged as ambiguous — ambiguous get their
+    // own bucket so the audit row doesn't double-report them.
+    unresolvedFalseNegatives: sortSquaresForDisplay(fns.filter(s => !consumedFns.has(s) && !ambiguousSet.has(s))),
+    autoSwaps,
+    ambiguousFalseNegatives: sortSquaresForDisplay(ambiguous),
+    correctedFen: rebuildFenFromPlacement(correctedPlacement, rawFen),
+  };
 }
 
 // Average darkness score over the listed squares, taking each cell's histogram.
@@ -902,14 +1040,26 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
   // Reset cell selection when the source diagram changes (new scan, re-read landed).
   useEffect(() => { setSelectedCell(null); }, [diagram.fen, diagram.crop_data_url]);
   const { white_player, black_player, region } = diagram;
-  const [editedFen, setEditedFen] = useState(diagram.fen);
+
+  // Pixel-vs-LLM audit: classify each cell by ≥7% luma-≤20 fraction, pair up
+  // adjacent-file FN/FP mismatches, derive a corrected FEN. Non-admins see
+  // only the corrected result on the board; admins also see which swaps were
+  // applied and any unresolved mismatches.
+  const audit = useMemo<BlackPieceAudit | null>(() => {
+    if (!diagram.fen || !diagram.cell_histograms) return null;
+    return runBlackPieceAudit(diagram.fen, diagram.cell_histograms);
+  }, [diagram.fen, diagram.cell_histograms]);
+  const initialFen = audit?.correctedFen ?? diagram.fen;
+
+  const [editedFen, setEditedFen] = useState(initialFen);
   const historyRef = useRef<string[]>([]);
 
-  // Reset edited FEN and undo stack when the source diagram changes
+  // Reset edited FEN and undo stack when the source diagram (or audit result)
+  // changes — e.g. new scan lands, admin re-read refreshes histograms.
   useEffect(() => {
-    setEditedFen(diagram.fen);
+    setEditedFen(initialFen);
     historyRef.current = [];
-  }, [diagram.fen]);
+  }, [initialFen]);
 
   const handleBoardChange = useCallback((newBoard: (string | null)[][]) => {
     setEditedFen(prev => {
@@ -994,22 +1144,13 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
   return (
     <div className="space-y-3">
       {(() => {
-        // Cross-check: compare pure-black pixel fraction vs LLM's piece read.
-        // FP = LLM said black piece but pixels disagree. FN = pixels look like
-        // black-piece ink but LLM did not place a black piece there.
-        let mismatches: { falsePositives: string[]; falseNegatives: string[] } | undefined;
-        if (effectiveAdmin && diagram.cell_histograms && diagram.fen) {
-          const placement = parseFenPlacement(diagram.fen);
-          const fps: string[] = [];
-          const fns: string[] = [];
-          for (const [sq, bins] of Object.entries(diagram.cell_histograms)) {
-            const pixelsBlack = darkPixelFraction(bins, 0) > BLACK_PIECE_PURE_BLACK_THRESHOLD;
-            const llmBlack = isBlackPieceChar(placement[sq] ?? '.');
-            if (llmBlack && !pixelsBlack) fps.push(sq);
-            if (!llmBlack && pixelsBlack) fns.push(sq);
-          }
-          mismatches = { falsePositives: sortSquaresForDisplay(fps), falseNegatives: sortSquaresForDisplay(fns) };
-        }
+        // Admin overlay: red = unresolved FP, amber = unresolved FN, cyan =
+        // auto-swapped pair (visible evidence of what was moved).
+        const mismatches = effectiveAdmin && audit ? {
+          falsePositives: audit.unresolvedFalsePositives,
+          falseNegatives: [...audit.unresolvedFalseNegatives, ...audit.ambiguousFalseNegatives],
+          autoSwaps: audit.autoSwaps,
+        } : undefined;
         if (diagram.crop_data_url) {
           return (
             <BoardCrop
@@ -1035,34 +1176,40 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
         if (!bins) return null;
         const label = selectedCell ?? 'full grid';
 
-        // Audit row: LLM black-piece read vs >3% pure-black pixels.
+        // Audit row: FN/FP mismatches left over after auto-swap pairing, plus
+        // the list of auto-swaps themselves so admins see exactly what was
+        // moved without asking.
         let auditRow: React.ReactNode = null;
-        const cellHistogramsForAudit = diagram.cell_histograms;
-        if (cellHistogramsForAudit && diagram.fen) {
-          const placement = parseFenPlacement(diagram.fen);
-          const fps: string[] = [];
-          const fns: string[] = [];
-          for (const [sq, binsForSq] of Object.entries(cellHistogramsForAudit)) {
-            const pixelsBlack = darkPixelFraction(binsForSq, 0) > BLACK_PIECE_PURE_BLACK_THRESHOLD;
-            const llmBlack = isBlackPieceChar(placement[sq] ?? '.');
-            if (llmBlack && !pixelsBlack) fps.push(sq);
-            if (!llmBlack && pixelsBlack) fns.push(sq);
-          }
-          const fpsSorted = sortSquaresForDisplay(fps);
-          const fnsSorted = sortSquaresForDisplay(fns);
-          if (fpsSorted.length > 0 || fnsSorted.length > 0) {
+        if (audit) {
+          const fps = audit.unresolvedFalsePositives;
+          const fns = audit.unresolvedFalseNegatives;
+          const ambiguous = audit.ambiguousFalseNegatives;
+          const swaps = audit.autoSwaps;
+          if (fps.length > 0 || fns.length > 0 || ambiguous.length > 0 || swaps.length > 0) {
             auditRow = (
               <div className="mx-auto max-w-[400px] w-full text-[11px] font-mono space-y-0.5 mb-1">
-                {fpsSorted.length > 0 && (
-                  <div className="text-rose-300">
-                    <span className="inline-block w-3 text-center">■</span> LLM: black piece · pixels disagree ({fpsSorted.length}):{' '}
-                    <span className="text-rose-200">{fpsSorted.join(', ')}</span>
+                {swaps.length > 0 && (
+                  <div className="text-cyan-300">
+                    <span className="inline-block w-3 text-center">↔</span> Auto-swap ({swaps.length}):{' '}
+                    <span className="text-cyan-200">{swaps.map(s => `${s.from}→${s.to}`).join(', ')}</span>
                   </div>
                 )}
-                {fnsSorted.length > 0 && (
+                {fps.length > 0 && (
+                  <div className="text-rose-300">
+                    <span className="inline-block w-3 text-center">■</span> LLM: black piece · pixels disagree ({fps.length}):{' '}
+                    <span className="text-rose-200">{fps.join(', ')}</span>
+                  </div>
+                )}
+                {fns.length > 0 && (
                   <div className="text-amber-300">
-                    <span className="inline-block w-3 text-center">▢</span> Pixels: black piece · LLM disagrees ({fnsSorted.length}):{' '}
-                    <span className="text-amber-200">{fnsSorted.join(', ')}</span>
+                    <span className="inline-block w-3 text-center">▢</span> Pixels: black piece · LLM disagrees ({fns.length}):{' '}
+                    <span className="text-amber-200">{fns.join(', ')}</span>
+                  </div>
+                )}
+                {ambiguous.length > 0 && (
+                  <div className="text-amber-300">
+                    <span className="inline-block w-3 text-center">?</span> Ambiguous (both neighbors FP, manual review) ({ambiguous.length}):{' '}
+                    <span className="text-amber-200">{ambiguous.join(', ')}</span>
                   </div>
                 )}
               </div>
