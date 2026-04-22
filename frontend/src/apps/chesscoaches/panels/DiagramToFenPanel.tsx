@@ -53,6 +53,32 @@ function GridOverlay({ box, colorIndex }: {
   );
 }
 
+// Flags cells whose pixel evidence disagrees with the LLM's black-piece read.
+// Draws a red solid ring on squares the LLM called black but whose pixels don't
+// look dark enough, and an amber dashed ring on squares whose pixels look like
+// black-piece ink but the LLM didn't place a black piece there. Rendered above
+// the click layer so the markers stay visible when a cell is selected.
+function MismatchLayer({ cellRects, falsePositives, falseNegatives }: {
+  cellRects: Record<string, { x: number; y: number; width: number; height: number }>;
+  falsePositives: string[];
+  falseNegatives: string[];
+}) {
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+      {falsePositives.map(sq => {
+        const r = cellRects[sq]; if (!r) return null;
+        return <rect key={`fp-${sq}`} x={r.x + 0.3} y={r.y + 0.3} width={r.width - 0.6} height={r.height - 0.6}
+                     fill="none" stroke="rgba(239,68,68,1)" strokeWidth={3} vectorEffect="non-scaling-stroke" />;
+      })}
+      {falseNegatives.map(sq => {
+        const r = cellRects[sq]; if (!r) return null;
+        return <rect key={`fn-${sq}`} x={r.x + 0.3} y={r.y + 0.3} width={r.width - 0.6} height={r.height - 0.6}
+                     fill="none" stroke="rgba(251,146,60,1)" strokeWidth={3} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />;
+      })}
+    </svg>
+  );
+}
+
 // Admin-only clickable layer of 64 transparent cells sitting over the crop.
 // Clicking a cell toggles it as the selected square; selected cell gets a
 // semi-transparent fill in the region's color.
@@ -86,7 +112,7 @@ function CellClickLayer({ cellRects, selectedCell, onSelect, colorIndex }: {
   );
 }
 
-function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell, onSelectCell }: {
+function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell, onSelectCell, mismatches }: {
   src: string;
   gridBox?: { x: number; y: number; width: number; height: number } | null;
   cellRects?: Record<string, { x: number; y: number; width: number; height: number }> | null;
@@ -94,11 +120,15 @@ function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell
   colorIndex: number;
   selectedCell?: string | null;
   onSelectCell?: (sq: string | null) => void;
+  mismatches?: { falsePositives: string[]; falseNegatives: string[] };
 }) {
   return (
     <div className="relative mx-auto max-w-[400px] w-full">
       <img src={src} alt="" className="rounded-lg border border-slate-600 w-full block" />
       {showGrid && gridBox && <GridOverlay box={gridBox} colorIndex={colorIndex} />}
+      {showGrid && cellRects && mismatches && (mismatches.falsePositives.length > 0 || mismatches.falseNegatives.length > 0) && (
+        <MismatchLayer cellRects={cellRects} falsePositives={mismatches.falsePositives} falseNegatives={mismatches.falseNegatives} />
+      )}
       {showGrid && cellRects && onSelectCell && (
         <CellClickLayer cellRects={cellRects} selectedCell={selectedCell ?? null} onSelect={onSelectCell} colorIndex={colorIndex} />
       )}
@@ -163,6 +193,26 @@ function parseFenPlacement(fen: string): Record<string, string> {
     }
   }
   return out;
+}
+
+// Empirical threshold: a cell is "black-piece-like" when >3% of its pixels are
+// pure black (luma exactly 0). Used to cross-check the LLM's piece read against
+// raw pixel evidence. Tunable if this turns out to misfire on specific boards.
+const BLACK_PIECE_PURE_BLACK_THRESHOLD = 0.03;
+
+function isBlackPieceChar(ch: string): boolean {
+  return 'pnbrqk'.includes(ch);
+}
+
+// Order squares top-to-bottom then left-to-right as a human would read the
+// board — rank 8..1, file a..h within each rank.
+function sortSquaresForDisplay(squares: string[]): string[] {
+  return squares.slice().sort((a, b) => {
+    const ra = parseInt(a[1], 10);
+    const rb = parseInt(b[1], 10);
+    if (ra !== rb) return rb - ra;
+    return a.charCodeAt(0) - b.charCodeAt(0);
+  });
 }
 
 // Average darkness score over the listed squares, taking each cell's histogram.
@@ -943,17 +993,39 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
 
   return (
     <div className="space-y-3">
-      {diagram.crop_data_url
-        ? <BoardCrop
-            src={diagram.crop_data_url}
-            gridBox={diagram.grid_box}
-            cellRects={diagram.cell_rects}
-            showGrid={effectiveAdmin}
-            colorIndex={colorIndex}
-            selectedCell={selectedCell}
-            onSelectCell={setSelectedCell}
-          />
-        : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
+      {(() => {
+        // Cross-check: compare pure-black pixel fraction vs LLM's piece read.
+        // FP = LLM said black piece but pixels disagree. FN = pixels look like
+        // black-piece ink but LLM did not place a black piece there.
+        let mismatches: { falsePositives: string[]; falseNegatives: string[] } | undefined;
+        if (effectiveAdmin && diagram.cell_histograms && diagram.fen) {
+          const placement = parseFenPlacement(diagram.fen);
+          const fps: string[] = [];
+          const fns: string[] = [];
+          for (const [sq, bins] of Object.entries(diagram.cell_histograms)) {
+            const pixelsBlack = darkPixelFraction(bins, 0) > BLACK_PIECE_PURE_BLACK_THRESHOLD;
+            const llmBlack = isBlackPieceChar(placement[sq] ?? '.');
+            if (llmBlack && !pixelsBlack) fps.push(sq);
+            if (!llmBlack && pixelsBlack) fns.push(sq);
+          }
+          mismatches = { falsePositives: sortSquaresForDisplay(fps), falseNegatives: sortSquaresForDisplay(fns) };
+        }
+        if (diagram.crop_data_url) {
+          return (
+            <BoardCrop
+              src={diagram.crop_data_url}
+              gridBox={diagram.grid_box}
+              cellRects={diagram.cell_rects}
+              showGrid={effectiveAdmin}
+              colorIndex={colorIndex}
+              selectedCell={selectedCell}
+              onSelectCell={setSelectedCell}
+              mismatches={mismatches}
+            />
+          );
+        }
+        return previewSrc && region ? <CroppedRegion src={previewSrc} region={region} /> : null;
+      })()}
 
       {effectiveAdmin && (() => {
         // Prefer the cell-specific histogram when a cell is selected; fall back
@@ -962,6 +1034,41 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
         const bins = cellBins ?? diagram.pixel_histogram?.bins ?? null;
         if (!bins) return null;
         const label = selectedCell ?? 'full grid';
+
+        // Audit row: LLM black-piece read vs >3% pure-black pixels.
+        let auditRow: React.ReactNode = null;
+        const cellHistogramsForAudit = diagram.cell_histograms;
+        if (cellHistogramsForAudit && diagram.fen) {
+          const placement = parseFenPlacement(diagram.fen);
+          const fps: string[] = [];
+          const fns: string[] = [];
+          for (const [sq, binsForSq] of Object.entries(cellHistogramsForAudit)) {
+            const pixelsBlack = darkPixelFraction(binsForSq, 0) > BLACK_PIECE_PURE_BLACK_THRESHOLD;
+            const llmBlack = isBlackPieceChar(placement[sq] ?? '.');
+            if (llmBlack && !pixelsBlack) fps.push(sq);
+            if (!llmBlack && pixelsBlack) fns.push(sq);
+          }
+          const fpsSorted = sortSquaresForDisplay(fps);
+          const fnsSorted = sortSquaresForDisplay(fns);
+          if (fpsSorted.length > 0 || fnsSorted.length > 0) {
+            auditRow = (
+              <div className="mx-auto max-w-[400px] w-full text-[11px] font-mono space-y-0.5 mb-1">
+                {fpsSorted.length > 0 && (
+                  <div className="text-rose-300">
+                    <span className="inline-block w-3 text-center">■</span> LLM: black piece · pixels disagree ({fpsSorted.length}):{' '}
+                    <span className="text-rose-200">{fpsSorted.join(', ')}</span>
+                  </div>
+                )}
+                {fnsSorted.length > 0 && (
+                  <div className="text-amber-300">
+                    <span className="inline-block w-3 text-center">▢</span> Pixels: black piece · LLM disagrees ({fnsSorted.length}):{' '}
+                    <span className="text-amber-200">{fnsSorted.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+            );
+          }
+        }
 
         // Group averages: classify each of the 64 squares by (light/dark) × (empty/piece)
         // using the LLM's original FEN so the buckets reflect the model's read.
@@ -999,6 +1106,7 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
 
         return (
           <>
+            {auditRow}
             {groupRow}
             <PixelHistogram bins={bins} label={label} colorIndex={colorIndex} onZoom={() => setHistogramZoomed(true)} />
             {histogramZoomed && (
