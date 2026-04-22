@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Dumbbell, ArrowLeft, Archive, ArchiveRestore, EyeOff, Eye } from 'lucide-react';
+import { Dumbbell, ArrowLeft, Archive, ArchiveRestore, EyeOff, Eye, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { BodyHeatmap } from './BodyHeatmap';
 
@@ -153,9 +153,15 @@ export function GymDashboard() {
           </button>
           <Dumbbell className="w-6 h-6 text-emerald-400" />
           <h1 className="text-xl font-semibold flex-1">Gym</h1>
-          <div className="text-xs text-slate-500">
+          <button
+            onClick={sync}
+            disabled={syncing}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-200 disabled:opacity-50 transition-colors"
+            title="Re-sync from Notion"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'syncing…' : `synced ${fmtSync(data?.last_synced_at ?? null)}`}
-          </div>
+          </button>
         </div>
       </header>
 
