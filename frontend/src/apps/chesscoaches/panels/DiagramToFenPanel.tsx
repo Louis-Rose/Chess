@@ -108,6 +108,19 @@ function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell
 
 // Renders the 256-bin grayscale histogram as an SVG bar chart.
 // `heightPx` scales the y-axis resolution; the component fills its container width.
+// Mean "darkness" of a 256-bin grayscale histogram, expressed as a 0..1 ratio.
+// 0 = every pixel is pure white (luma 255), 1 = every pixel is pure black (luma 0).
+// Independent of cell pixel count, so values are directly comparable across cells.
+function darknessScore(bins: number[]): number {
+  let total = 0;
+  let darkSum = 0;
+  for (let i = 0; i < bins.length; i++) {
+    total += bins[i];
+    darkSum += (255 - i) * bins[i];
+  }
+  return total > 0 ? darkSum / (total * 255) : 0;
+}
+
 function HistogramChart({ bins, colorIndex, heightPx }: {
   bins: number[];
   colorIndex: number;
@@ -155,10 +168,15 @@ function PixelHistogram({ bins, label, colorIndex, onZoom }: {
       </div>
     );
   }
+  const score = darknessScore(bins);
   return (
     <div className="mx-auto max-w-[400px] w-full">
-      <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-mono">
-        <span>Darkness · <span className="text-slate-200">{label}</span></span>
+      <div className="flex justify-between items-baseline text-[11px] text-slate-400 mb-1 font-mono">
+        <span>
+          Darkness · <span className="text-slate-200">{label}</span>
+          <span className="text-slate-500"> · </span>
+          <span className="text-slate-200">{(score * 100).toFixed(1)}%</span>
+        </span>
         <button type="button" onClick={onZoom} className="text-slate-500 hover:text-slate-300">zoom</button>
       </div>
       <button type="button" onClick={onZoom} className="w-full block cursor-zoom-in" aria-label="Zoom histogram">
@@ -186,7 +204,11 @@ function HistogramZoomModal({ bins, label, colorIndex, onClose }: {
       <div onClick={(e) => e.stopPropagation()}
            className="m-auto w-full max-w-[min(90vw,1100px)] bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-xl">
         <div className="flex items-center justify-between mb-3 text-sm text-slate-300">
-          <span>Pixel darkness · <span className="text-slate-100 font-mono">{label}</span></span>
+          <span>
+            Pixel darkness · <span className="text-slate-100 font-mono">{label}</span>
+            <span className="text-slate-500"> · </span>
+            <span className="text-slate-100 font-mono">{(darknessScore(bins) * 100).toFixed(1)}%</span>
+          </span>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-xs">Close (Esc)</button>
         </div>
         <div style={{ height: 'min(60vh, 500px)' }}>
