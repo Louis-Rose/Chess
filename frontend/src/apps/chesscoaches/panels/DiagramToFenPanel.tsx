@@ -121,6 +121,54 @@ function darknessScore(bins: number[]): number {
   return total > 0 ? darkSum / (total * 255) : 0;
 }
 
+// Chess convention: a1 is a dark square. (file_idx + rank) odd → dark, even → light.
+function isDarkSquare(name: string): boolean {
+  const file = name.charCodeAt(0) - 97;
+  const rank = parseInt(name[1], 10);
+  return (file + rank) % 2 === 1;
+}
+
+// Parses the placement portion of a FEN into a {square → piece char} map,
+// using '.' for empty squares. Square names are standard a1..h8.
+function parseFenPlacement(fen: string): Record<string, string> {
+  const placement = (fen || '').split(' ')[0] ?? '';
+  const ranks = placement.split('/');
+  const out: Record<string, string> = {};
+  for (let r = 0; r < 8; r++) {
+    const rankStr = ranks[r] ?? '';
+    let file = 0;
+    for (const ch of rankStr) {
+      if (/\d/.test(ch)) {
+        const n = parseInt(ch, 10);
+        for (let i = 0; i < n && file < 8; i++) {
+          out[`${String.fromCharCode(97 + file)}${8 - r}`] = '.';
+          file++;
+        }
+      } else if (file < 8) {
+        out[`${String.fromCharCode(97 + file)}${8 - r}`] = ch;
+        file++;
+      }
+    }
+  }
+  return out;
+}
+
+// Average darkness score over the listed squares, taking each cell's histogram.
+// Unweighted mean of per-cell darkness (cells are near-equal area), so the
+// four group stats are directly comparable. Returns null if no samples.
+function groupDarkness(squares: string[], histograms: Record<string, number[]>): number | null {
+  let sum = 0;
+  let n = 0;
+  for (const sq of squares) {
+    const bins = histograms[sq];
+    if (bins && bins.length > 0) {
+      sum += darknessScore(bins);
+      n += 1;
+    }
+  }
+  return n > 0 ? sum / n : null;
+}
+
 function HistogramChart({ bins, colorIndex, heightPx }: {
   bins: number[];
   colorIndex: number;
@@ -882,8 +930,44 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
         const bins = cellBins ?? diagram.pixel_histogram?.bins ?? null;
         if (!bins) return null;
         const label = selectedCell ?? 'full grid';
+
+        // Group averages: classify each of the 64 squares by (light/dark) × (empty/piece)
+        // using the LLM's original FEN so the buckets reflect the model's read.
+        let groupRow: React.ReactNode = null;
+        const cellHistograms = diagram.cell_histograms;
+        if (cellHistograms) {
+          const placement = parseFenPlacement(diagram.fen);
+          const buckets: Record<'emptyLight' | 'emptyDark' | 'pieceLight' | 'pieceDark', string[]> = {
+            emptyLight: [], emptyDark: [], pieceLight: [], pieceDark: [],
+          };
+          for (const sq of Object.keys(cellHistograms)) {
+            const dark = isDarkSquare(sq);
+            const occupied = (placement[sq] ?? '.') !== '.';
+            const key = occupied
+              ? (dark ? 'pieceDark' : 'pieceLight')
+              : (dark ? 'emptyDark' : 'emptyLight');
+            buckets[key].push(sq);
+          }
+          const stats = {
+            emptyLight: groupDarkness(buckets.emptyLight, cellHistograms),
+            emptyDark: groupDarkness(buckets.emptyDark, cellHistograms),
+            pieceLight: groupDarkness(buckets.pieceLight, cellHistograms),
+            pieceDark: groupDarkness(buckets.pieceDark, cellHistograms),
+          };
+          const fmt = (v: number | null) => v == null ? '—' : `${(v * 100).toFixed(1)}%`;
+          groupRow = (
+            <div className="mx-auto max-w-[400px] w-full text-[11px] font-mono text-slate-400 grid grid-cols-2 gap-x-3 gap-y-0.5 mb-1">
+              <div>Empty · light: <span className="text-slate-200">{fmt(stats.emptyLight)}</span> <span className="text-slate-500">({buckets.emptyLight.length})</span></div>
+              <div>Empty · dark: <span className="text-slate-200">{fmt(stats.emptyDark)}</span> <span className="text-slate-500">({buckets.emptyDark.length})</span></div>
+              <div>Piece · light: <span className="text-slate-200">{fmt(stats.pieceLight)}</span> <span className="text-slate-500">({buckets.pieceLight.length})</span></div>
+              <div>Piece · dark: <span className="text-slate-200">{fmt(stats.pieceDark)}</span> <span className="text-slate-500">({buckets.pieceDark.length})</span></div>
+            </div>
+          );
+        }
+
         return (
           <>
+            {groupRow}
             <PixelHistogram bins={bins} label={label} colorIndex={colorIndex} onZoom={() => setHistogramZoomed(true)} />
             {histogramZoomed && (
               <HistogramZoomModal bins={bins} label={label} colorIndex={colorIndex} onClose={() => setHistogramZoomed(false)} />
