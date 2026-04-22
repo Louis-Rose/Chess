@@ -18,6 +18,8 @@ export interface DiagramRegion {
   black_player?: string;
   diagram_number?: number | null;
   active_color?: 'w' | 'b';
+  has_labels?: boolean;
+  orientation?: 'white_bottom' | 'black_bottom';
 }
 
 export interface DiagramExtract {

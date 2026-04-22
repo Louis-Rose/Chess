@@ -327,7 +327,7 @@ def _enrich_models_with_avg(feature):
 DIAGRAM_LOCATE_PROMPT = """Find every chess diagram in the image. The image ALWAYS contains at least one diagram.
 
 For each diagram, return:
-- A tight bounding box around the 8x8 board that INCLUDES the rank labels (1-8) along one side and the file labels (a-h) along one side. Do NOT include the player names, captions, diagram number, turn-to-move arrow, or any other surrounding text — just the board grid and its edge labels.
+- A tight bounding box around the 8x8 board that INCLUDES any rank labels (1-8) and file labels (a-h) printed on its edge, when present. Do NOT include the player names, captions, diagram number, turn-to-move arrow, or any other surrounding text — just the board grid (plus its edge labels if any).
 - The surrounding metadata read directly from text/markings near the board.
 
 Return ONLY a JSON array. No markdown, no commentary, no code fences.
@@ -338,13 +338,36 @@ Each array element MUST have these fields:
 - "black_player": the black player's name as printed near the diagram, or "" if not visible.
 - "diagram_number": the integer number printed on or next to the diagram (often inside a circle), or null if none. This is a label identifying the diagram in a book/article — NOT a move number or piece count.
 - "active_color": "w" or "b" — whose turn it is, inferred from arrows, "White to move"/"Black to move" captions, or surrounding context. Default to "w" if unclear.
+- "has_labels": true if rank labels (1-8) AND file labels (a-h) are printed directly on this board's edge, false if the 8x8 grid is shown without printed coordinates.
+- "orientation": "white_bottom" or "black_bottom" — which side's pieces appear on the bottom half of the board as drawn. Always return this field, even when has_labels is true (we use it as a cross-check). Inference rule: on a standard chess board, a1 is a DARK square. Look at the bottom-left square of the 8x8 grid — if it is DARKER than its diagonal neighbor, the board is "white_bottom"; if LIGHTER, it is "black_bottom". Cross-check with the pieces (the king/queen row should be on rank 1 for the side that is on the bottom). If corner color and piece layout disagree, trust the pieces.
 
 Order diagrams top-to-bottom, then left-to-right (by the midpoint of box_2d).
 
 Example output:
-[{"box_2d": [120, 80, 620, 480], "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18, "active_color": "b"}]"""
+[{"box_2d": [120, 80, 620, 480], "white_player": "Kasparov", "black_player": "Karpov", "diagram_number": 18, "active_color": "b", "has_labels": true, "orientation": "white_bottom"}]"""
 
-DIAGRAM_READ_SINGLE_PROMPT = """You are analyzing a tightly-cropped image of a SINGLE chess board. The crop shows the 8x8 grid plus its printed rank labels (1-8) and file labels (a-h). There is no other content to read — just the board.
+
+def _build_read_prompt(has_labels, orientation):
+    """Phase-2 prompt. Branches the anchoring instruction on whether the cropped
+    board has printed rank/file labels: when labels are present we tell the model
+    to use them; otherwise we hand it the corner→square mapping derived from the
+    board's orientation."""
+    if has_labels:
+        anchor_lines = (
+            "- The image includes printed rank labels (1-8) along one side and file labels (a-h) along one side. "
+            "Use them as your anchor: for each square, trace straight down to read the file and straight across to read the rank."
+        )
+    elif orientation == 'black_bottom':
+        anchor_lines = (
+            "- The image does NOT have printed rank/file labels. Black is on the BOTTOM of this view.\n"
+            "- Corner mapping: top-left of the board = h1, top-right = a1, bottom-left = h8, bottom-right = a8. Use these corners to anchor every square."
+        )
+    else:
+        anchor_lines = (
+            "- The image does NOT have printed rank/file labels. White is on the BOTTOM of this view.\n"
+            "- Corner mapping: top-left of the board = a8, top-right = h8, bottom-left = a1, bottom-right = h1. Use these corners to anchor every square."
+        )
+    return f"""You are analyzing a tightly-cropped image of a SINGLE chess board. There is no other content to read — just the 8x8 grid.
 
 Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
 
@@ -356,14 +379,14 @@ The object MUST have exactly ONE top-level field:
   You MUST include all 64 keys — every square from a1 to h8 — even empty ones. Any missing square is a failure.
 
 Procedure (follow exactly):
+{anchor_lines}
 - Visit each square one at a time, in a deterministic order (a8, b8, c8, …, h8, then a7, b7, …, h7, down to a1, …, h1).
-- For each square, look AT that specific square in the image. Read the printed file label (a-h) along the bottom and rank label (1-8) along the left to anchor which square you are looking at — trace straight down for the file and straight across for the rank.
-- Write the symbol for what you see on that square in the image: a piece symbol if a piece is centered on that square, or "." if the square is empty.
-- Do not guess based on neighbors. Do not skip squares. Do not count from the edge — use the printed labels.
+- For each square, look AT that specific square in the image and write the symbol for what you see: a piece symbol if a piece is centered on that square, or "." if the square is empty.
+- Do not guess based on neighbors. Do not skip squares.
 - When you are done, the object must contain exactly 64 entries.
 
 Example output (showing a few entries — the real output must have all 64):
-{"squares": {"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}}"""
+{{"squares": {{"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}}}}"""
 
 
 _VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
@@ -524,6 +547,9 @@ def reread_region():
     data = request.get_json() or {}
     crop_data_url = data.get('crop_data_url') or ''
     active_color = data.get('active_color', 'w')
+    has_labels = bool(data.get('has_labels', True))
+    orient_raw = str(data.get('orientation', 'white_bottom')).lower()
+    orientation = 'black_bottom' if 'black' in orient_raw else 'white_bottom'
     if not crop_data_url.startswith('data:'):
         return jsonify({'error': 'crop_data_url required'}), 400
     try:
@@ -543,7 +569,7 @@ def reread_region():
     model_id = DIAGRAM_MODELS[0]['id']
     contents = [
         types.Part.from_bytes(data=crop_bytes, mime_type=crop_mime),
-        DIAGRAM_READ_SINGLE_PROMPT,
+        _build_read_prompt(has_labels, orientation),
     ]
 
     call_start = time_module.time()
@@ -712,12 +738,17 @@ def read_diagram():
                 except (TypeError, ValueError):
                     diagram_number = None
                 active_color = 'w' if str(r.get('active_color', 'w')).lower().startswith('w') else 'b'
+                has_labels = bool(r.get('has_labels', True))
+                orient_raw = str(r.get('orientation', 'white_bottom')).lower()
+                orientation = 'black_bottom' if 'black' in orient_raw else 'white_bottom'
                 valid_diagrams.append({
                     'box': clamped_box,
                     'white_player': white,
                     'black_player': black,
                     'diagram_number': diagram_number,
                     'active_color': active_color,
+                    'has_labels': has_labels,
+                    'orientation': orientation,
                 })
             # Sort: top-to-bottom, then left-to-right (using box midpoint)
             valid_diagrams.sort(key=lambda d: (d['box']['y'] + d['box']['height'] / 2, d['box']['x'] + d['box']['width'] / 2))
@@ -753,6 +784,8 @@ def read_diagram():
                 'black_player': m['black_player'],
                 'diagram_number': m['diagram_number'],
                 'active_color': m['active_color'],
+                'has_labels': m['has_labels'],
+                'orientation': m['orientation'],
             }
             for m in diagrams_meta
         ]
@@ -762,11 +795,12 @@ def read_diagram():
         diagrams_by_idx = {}
 
         def read_region(idx, meta):
-            logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(diagrams_meta)}")
+            logger.info(f"[Diagram] Phase 2: reading region {idx + 1}/{len(diagrams_meta)} "
+                        f"(has_labels={meta['has_labels']}, orientation={meta['orientation']})")
             call_start = time_module.time()
             contents = [
                 types.Part.from_bytes(data=meta['_crop_bytes'], mime_type=meta['_crop_mime']),
-                DIAGRAM_READ_SINGLE_PROMPT,
+                _build_read_prompt(meta['has_labels'], meta['orientation']),
             ]
 
             try:
@@ -814,7 +848,7 @@ def read_diagram():
                     "fen": fen,
                     "white_player": meta['white_player'],
                     "black_player": meta['black_player'],
-                    "region": meta['box'],
+                    "region": {**meta['box'], 'has_labels': meta['has_labels'], 'orientation': meta['orientation']},
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],
                 }

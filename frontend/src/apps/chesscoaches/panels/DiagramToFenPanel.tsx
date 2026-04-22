@@ -413,6 +413,11 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
         const activeColor = originEntry?.kind === 'ready'
           ? (originEntry.diagram.fen.split(' ')[1] ?? 'w')
           : (originEntry?.region.active_color ?? 'w');
+        const originRegion = originEntry?.kind === 'ready'
+          ? originEntry.diagram.region
+          : originEntry?.region;
+        const hasLabels = originRegion?.has_labels ?? true;
+        const orientation = originRegion?.orientation ?? 'white_bottom';
 
         const runReread = async () => {
           if (!canReread || typeof originIdx !== 'number' || !originEntry) return;
@@ -433,7 +438,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
           let successCount = 0;
           try {
             const requests = Array.from({ length: rereadCount }, () =>
-              axios.post('/api/coaches/reread-region', { crop_data_url: cropUrl, active_color: activeColor })
+              axios.post('/api/coaches/reread-region', { crop_data_url: cropUrl, active_color: activeColor, has_labels: hasLabels, orientation })
                 .then(resp => {
                   if (typeof resp.data?.raw === 'string') {
                     diagramRereadRawAdd(originIdx, resp.data.raw);
