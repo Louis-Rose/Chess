@@ -17,6 +17,40 @@ import { SaveToKnowledgeButton } from './diagram/SaveToKnowledgeButton';
 import { ComposedImage } from './diagram/ComposedImage';
 import { BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
 
+// Admin overlay: draw the 8x8 grid reported by Phase 2 on top of the crop so
+// we can eyeball whether grid_box aligns with the actual board edges.
+function GridOverlay({ box }: { box: { x: number; y: number; width: number; height: number } }) {
+  const cellW = box.width / 8;
+  const cellH = box.height / 8;
+  const verticals = Array.from({ length: 9 }, (_, i) => box.x + i * cellW);
+  const horizontals = Array.from({ length: 9 }, (_, i) => box.y + i * cellH);
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+      {verticals.map((x, i) => (
+        <line key={`v${i}`} x1={x} y1={box.y} x2={x} y2={box.y + box.height}
+              stroke="rgba(52, 211, 153, 0.85)" strokeWidth="0.25" vectorEffect="non-scaling-stroke" />
+      ))}
+      {horizontals.map((y, i) => (
+        <line key={`h${i}`} x1={box.x} y1={y} x2={box.x + box.width} y2={y}
+              stroke="rgba(52, 211, 153, 0.85)" strokeWidth="0.25" vectorEffect="non-scaling-stroke" />
+      ))}
+    </svg>
+  );
+}
+
+function BoardCrop({ src, gridBox, showGrid }: {
+  src: string;
+  gridBox?: { x: number; y: number; width: number; height: number } | null;
+  showGrid?: boolean;
+}) {
+  return (
+    <div className="relative mx-auto max-w-[400px] w-full">
+      <img src={src} alt="" className="rounded-lg border border-slate-600 w-full block" />
+      {showGrid && gridBox && <GridOverlay box={gridBox} />}
+    </div>
+  );
+}
+
 function CroppedRegion({ src, region }: { src: string; region: { x: number; y: number; width: number; height: number } }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -445,7 +479,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
                   }
                   if (resp.data?.fen) {
                     successCount += 1;
-                    const fresh: DiagramExtract = { ...meta, fen: resp.data.fen };
+                    const fresh: DiagramExtract = { ...meta, fen: resp.data.fen, grid_box: resp.data.grid_box ?? meta.grid_box ?? null };
                     setRereads(prev => ({ ...prev, [originIdx]: [...(prev[originIdx] ?? []), fresh] }));
                   }
                 })
@@ -555,6 +589,7 @@ function rebuildFen(oldFen: string, newPlacement: string): string {
 
 function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc?: string }) {
   const { t } = useLanguage();
+  const effectiveAdmin = useEffectiveAdmin();
   const [copied, setCopied] = useState(false);
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
@@ -616,7 +651,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   return (
     <div className="space-y-3">
       {diagram.crop_data_url
-        ? <img src={diagram.crop_data_url} alt="" className="mx-auto rounded-lg border border-slate-600 max-w-[400px] w-full" />
+        ? <BoardCrop src={diagram.crop_data_url} gridBox={diagram.grid_box} showGrid={effectiveAdmin} />
         : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
 
       {hasPlayers && (

@@ -371,8 +371,11 @@ def _build_read_prompt(has_labels, orientation):
 
 Return ONLY a JSON object (NOT an array). No markdown, no commentary, no code fences.
 
-The object MUST have exactly ONE top-level field:
-- "squares": an object mapping EVERY one of the 64 square names to a one-character symbol. Keys are "a1" through "h8". Values are:
+The object MUST have exactly TWO top-level fields:
+
+1. "grid_box": an object {{"x", "y", "width", "height"}} giving the tight bounding rectangle around the 8x8 playing grid itself (NOT including any printed label strip), in 0-100 percentages relative to the image we sent you. x/y are the top-left corner, width/height are the box dimensions. The 8x8 cells are evenly spaced inside this box, so width and height should be roughly equal. Typical values: x and y between 0 and 20, width and height between 70 and 100.
+
+2. "squares": an object mapping EVERY one of the 64 square names to a one-character symbol. Keys are "a1" through "h8". Values are:
   - White pieces: "K" "Q" "R" "B" "N" "P"
   - Black pieces: "k" "q" "r" "b" "n" "p"
   - Empty square: "."
@@ -386,7 +389,7 @@ Procedure (follow exactly):
 - When you are done, the object must contain exactly 64 entries.
 
 Example output (showing a few entries — the real output must have all 64):
-{{"squares": {{"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}}}}"""
+{{"grid_box": {{"x": 6.5, "y": 4.0, "width": 88.0, "height": 88.0}}, "squares": {{"a8":"r","b8":"n","c8":"b","d8":"q","e8":"k","f8":"b","g8":"n","h8":"r","a7":"p","b7":"p","c7":"p","d7":"p","e7":"p","f7":"p","g7":"p","h7":"p","a6":".","b6":".","c6":".","d6":".","e6":".","f6":".","g6":".","h6":".","a5":".","b5":".","c5":".","d5":".","e5":".","f5":".","g5":".","h5":".","a4":".","b4":".","c4":".","d4":".","e4":"P","f4":".","g4":".","h4":".","a3":".","b3":".","c3":".","d3":".","e3":".","f3":".","g3":".","h3":".","a2":"P","b2":"P","c2":"P","d2":"P","e2":".","f2":"P","g2":"P","h2":"P","a1":"R","b1":"N","c1":"B","d1":"Q","e1":"K","f1":"B","g1":"N","h1":"R"}}}}"""
 
 
 _VALID_SQUARE_CHARS = set('KQRBNPkqrbnp.')
@@ -461,8 +464,9 @@ def _grid_to_fen(board, active_color):
 
 def _parse_and_validate_read(raw_text):
     """Parse the single-region reader response and validate that 'squares' is
-    present with all 64 entries. Raises ValueError / JSONDecodeError on
-    malformed JSON or invalid grid. Used by the structural retry wrapper."""
+    present with all 64 entries plus a sane 'grid_box'. Raises
+    ValueError / JSONDecodeError on malformed JSON or invalid structure.
+    Used by the structural retry wrapper."""
     raw = _strip_code_fences(raw_text)
     parsed = json_module.loads(raw)
     if isinstance(parsed, list):
@@ -471,7 +475,35 @@ def _parse_and_validate_read(raw_text):
     if not isinstance(squares, dict):
         raise ValueError("missing 'squares' object")
     _squares_to_grid(squares)  # raises ValueError if any of the 64 is missing/invalid
+    grid_box = _validate_grid_box(parsed.get('grid_box'))
+    parsed['grid_box'] = grid_box
     return parsed, squares
+
+
+def _validate_grid_box(raw):
+    """Normalize the Phase 2 grid_box into {x, y, width, height} floats in
+    [0, 100]. Raises ValueError when the box is malformed. Returns None if
+    raw is None (tolerate missing grid_box on the first rollout rather than
+    failing the whole pipeline)."""
+    if raw is None:
+        return None
+    if not isinstance(raw, dict) or not all(k in raw for k in ('x', 'y', 'width', 'height')):
+        raise ValueError("grid_box must be an object with x, y, width, height")
+    try:
+        x = float(raw['x']); y = float(raw['y'])
+        w = float(raw['width']); h = float(raw['height'])
+    except (TypeError, ValueError):
+        raise ValueError("grid_box fields must be numeric")
+    if w <= 0 or h <= 0:
+        raise ValueError("grid_box width/height must be positive")
+    # Clamp to [0, 100]; tolerate mild overshoot by clipping rather than rejecting.
+    left = max(0.0, min(100.0, x))
+    top = max(0.0, min(100.0, y))
+    right = max(0.0, min(100.0, x + w))
+    bottom = max(0.0, min(100.0, y + h))
+    if right - left <= 0 or bottom - top <= 0:
+        raise ValueError("grid_box collapsed after clamping")
+    return {'x': left, 'y': top, 'width': right - left, 'height': bottom - top}
 
 
 def _gemini_read_single_with_validation(client_free, client_paid, model_id, contents, *, timeout_seconds, label, max_structural_retries=2):
@@ -574,7 +606,7 @@ def reread_region():
 
     call_start = time_module.time()
     try:
-        raw_text, usage, tier, _attempt, _parsed, squares = _gemini_read_single_with_validation(
+        raw_text, usage, tier, _attempt, parsed, squares = _gemini_read_single_with_validation(
             client_free, client_paid, model_id, contents,
             timeout_seconds=90, label='Diagram reread',
         )
@@ -607,7 +639,8 @@ def reread_region():
     grid = _squares_to_grid(squares)
     fen = _grid_to_fen(grid, active_color)
 
-    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed})
+    grid_box = parsed.get('grid_box') if isinstance(parsed, dict) else None
+    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed, 'grid_box': grid_box})
 
 
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
@@ -804,7 +837,7 @@ def read_diagram():
             ]
 
             try:
-                raw_text, usage, tier, succeeded_on_attempt, _parsed, squares = _gemini_read_single_with_validation(
+                raw_text, usage, tier, succeeded_on_attempt, parsed, squares = _gemini_read_single_with_validation(
                     client_free, client_paid, model_id, contents,
                     timeout_seconds=90, label=f'Diagram Region {idx + 1}',
                 )
@@ -851,6 +884,7 @@ def read_diagram():
                     "region": {**meta['box'], 'has_labels': meta['has_labels'], 'orientation': meta['orientation']},
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],
+                    "grid_box": parsed.get('grid_box') if isinstance(parsed, dict) else None,
                 }
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})

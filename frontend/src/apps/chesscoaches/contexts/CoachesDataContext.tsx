@@ -29,6 +29,7 @@ export interface DiagramExtract {
   region?: DiagramRegion;
   diagram_number?: number | null;
   crop_data_url?: string;
+  grid_box?: { x: number; y: number; width: number; height: number } | null;
 }
 
 export interface DiagramModelResult {
