@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dumbbell, RefreshCw, ArrowLeft, Flame, TrendingUp } from 'lucide-react';
+import { Dumbbell, RefreshCw, ArrowLeft } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface WeeklyPoint { week: string; sets: number }
@@ -108,13 +108,6 @@ export function GymDashboard() {
       : data.exercises.filter(e => e.muscle_group === muscleFilter);
   }, [data, muscleFilter]);
 
-  const summary = useMemo(() => {
-    if (!data || data.exercises.length === 0) return null;
-    const totalSetsLast7 = data.exercises.reduce((s, e) => s + e.sets_last_7d, 0);
-    const overdue = data.exercises.filter(e => e.days_since > 14).length;
-    return { totalSetsLast7, overdue, exerciseCount: data.exercises.length };
-  }, [data]);
-
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
       <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
@@ -162,14 +155,6 @@ export function GymDashboard() {
           </div>
         )}
 
-        {summary && (
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <SummaryCard icon={<Dumbbell className="w-4 h-4" />} label="Exercises" value={summary.exerciseCount} />
-            <SummaryCard icon={<Flame className="w-4 h-4" />} label="Sets, last 7d" value={summary.totalSetsLast7} />
-            <SummaryCard icon={<TrendingUp className="w-4 h-4" />} label="Overdue (>14d)" value={summary.overdue} color={summary.overdue > 0 ? 'text-red-400' : 'text-emerald-400'} />
-          </div>
-        )}
-
         {data && data.exercises.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-2">
             {muscles.map(m => (
@@ -192,18 +177,6 @@ export function GymDashboard() {
           {filtered.map(ex => <ExerciseCard key={ex.exercise} ex={ex} />)}
         </div>
       </main>
-    </div>
-  );
-}
-
-function SummaryCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color?: string }) {
-  return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3">
-      <div className="flex items-center gap-1.5 text-slate-400 text-xs mb-1">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <div className={`text-2xl font-semibold ${color ?? 'text-slate-100'}`}>{value}</div>
     </div>
   );
 }
