@@ -195,9 +195,11 @@ export function DiagramToFenPanel() {
                         <div key={k} className="space-y-1">
                           {entry && (
                             <details className="bg-slate-900/60 border border-slate-700 rounded">
-                              <summary className="px-2 py-1 cursor-pointer text-slate-300">
+                              <summary className={`px-2 py-1 cursor-pointer ${entry.timedOut ? 'text-rose-300' : 'text-slate-300'}`}>
                                 Phase 2 (read) — region {k + 1}
-                                {entry.attempt ? ` — pass ${entry.attempt}` : ''}
+                                {entry.timedOut
+                                  ? ` — timed out after ${entry.timeoutSeconds ?? '?'}s · ${entry.partialChars ?? entry.raw?.length ?? 0} chars streamed`
+                                  : entry.attempt ? ` — pass ${entry.attempt}` : ''}
                               </summary>
                               <pre className="px-2 py-2 text-slate-400 whitespace-pre-wrap break-words font-mono">{entry.raw}</pre>
                             </details>

@@ -206,12 +206,16 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None, 
         return client_paid.models.generate_content(**kwargs), 'paid', retry_info
 
 
-def _gemini_stream_paid(client_paid, model_id, contents, *, timeout_seconds, label, on_progress):
-    """Streaming variant for paid-only models. Retries once on timeout/error.
+def _gemini_stream_paid(client_paid, model_id, contents, *, timeout_seconds, label, on_progress=None, retries=2):
+    """Streaming variant for paid-only models. Retries on timeout/error.
     Calls on_progress(accumulated_text) after each chunk so callers can emit
-    incremental progress. Returns (full_text, usage_tuple)."""
+    incremental progress. Returns (full_text, usage_tuple).
+
+    On final failure, the raised exception has `.partial_text` with whatever
+    the model had streamed before the timeout (empty string if nothing)."""
     last_exc = None
-    for attempt in (1, 2):
+    last_partial = ''
+    for attempt in range(1, retries + 1):
         state = {'text': '', 'usage': (0, 0, 0), 'error': None}
         done = threading.Event()
 
@@ -223,10 +227,11 @@ def _gemini_stream_paid(client_paid, model_id, contents, *, timeout_seconds, lab
                     piece = getattr(chunk, 'text', None)
                     if piece:
                         state['text'] += piece
-                        try:
-                            on_progress(state['text'])
-                        except Exception:
-                            pass
+                        if on_progress is not None:
+                            try:
+                                on_progress(state['text'])
+                            except Exception:
+                                pass
                     last_chunk = chunk
                 if last_chunk is not None:
                     state['usage'] = _extract_usage_tokens(last_chunk)
@@ -241,11 +246,18 @@ def _gemini_stream_paid(client_paid, model_id, contents, *, timeout_seconds, lab
             if state['error'] is None:
                 return state['text'], state['usage']
             last_exc = state['error']
-            logger.warning(f"[{label}] attempt {attempt}/2 failed: {last_exc}")
+            last_partial = state['text']
+            logger.warning(f"[{label}] attempt {attempt}/{retries} failed: {last_exc} (partial {len(last_partial)} chars)")
         else:
+            last_partial = state['text']
             last_exc = TimeoutError(f"timeout after {timeout_seconds}s")
-            logger.warning(f"[{label}] timeout (attempt {attempt}/2)")
-    raise last_exc if last_exc is not None else RuntimeError(f"[{label}] no response")
+            logger.warning(f"[{label}] timeout (attempt {attempt}/{retries}) — {len(last_partial)} chars streamed so far")
+    exc = last_exc if last_exc is not None else RuntimeError(f"[{label}] no response")
+    try:
+        exc.partial_text = last_partial  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    raise exc
 
 
 def _gemini_call_with_retry(client_free, client_paid, model_id, contents, *, timeout_seconds, label):
@@ -441,35 +453,33 @@ def _parse_and_validate_read(raw_text):
 
 def _gemini_read_single_with_validation(client_free, client_paid, model_id, contents, *, timeout_seconds, label, max_structural_retries=2):
     """Call the single-region reader and retry if the JSON is structurally
-    invalid (missing/incomplete squares). Orthogonal to _gemini_call_with_retry,
-    which only retries on timeouts/exceptions — this layer retries on
-    successful responses whose payload is unusable.
+    invalid (missing/incomplete squares). Uses streaming so that on timeout
+    we can surface the partial output (attached to the raised exception as
+    `.partial_text`) rather than losing everything the model had generated.
 
-    Returns (resp, tier, attempt, parsed, squares, raw_text). Raises the last
+    Returns (raw_text, usage, tier, attempt, parsed, squares). Raises the last
     parse exception if all attempts produced invalid JSON."""
     last_exc = None
-    last_resp = None
-    last_tier = None
     last_raw = ''
+    last_usage = (0, 0, 0)
     for attempt in range(1, max_structural_retries + 1):
-        resp, tier, _ = _gemini_call_with_retry(
-            client_free, client_paid, model_id, contents,
-            timeout_seconds=timeout_seconds, label=label,
+        raw_text, usage = _gemini_stream_paid(
+            client_paid, model_id, contents,
+            timeout_seconds=timeout_seconds, label=label, retries=1,
         )
-        raw_text = resp.text or ''
-        last_resp, last_tier, last_raw = resp, tier, raw_text
+        last_raw, last_usage = raw_text, usage
         try:
             parsed, squares = _parse_and_validate_read(raw_text)
             if attempt > 1:
                 logger.info(f"[{label}] recovered on structural retry {attempt}/{max_structural_retries}")
-            return resp, tier, attempt, parsed, squares, raw_text
+            return raw_text, usage, 'paid', attempt, parsed, squares
         except (ValueError, json_module.JSONDecodeError) as ve:
             last_exc = ve
             logger.warning(f"[{label}] invalid JSON structure (attempt {attempt}/{max_structural_retries}): {ve}")
     err = last_exc if last_exc is not None else RuntimeError(f"[{label}] no valid response")
     err.last_raw = last_raw  # type: ignore[attr-defined]
-    err.last_resp = last_resp  # type: ignore[attr-defined]
-    err.last_tier = last_tier  # type: ignore[attr-defined]
+    err.last_usage = last_usage  # type: ignore[attr-defined]
+    err.last_tier = 'paid'  # type: ignore[attr-defined]
     raise err
 
 
@@ -538,16 +548,16 @@ def reread_region():
 
     call_start = time_module.time()
     try:
-        resp, tier, _, _parsed, squares, raw_text = _gemini_read_single_with_validation(
+        raw_text, usage, tier, _attempt, _parsed, squares = _gemini_read_single_with_validation(
             client_free, client_paid, model_id, contents,
             timeout_seconds=90, label='Diagram reread',
         )
     except (ValueError, json_module.JSONDecodeError) as ve:
         elapsed = round(time_module.time() - call_start)
         last_raw = getattr(ve, 'last_raw', '')
-        last_resp = getattr(ve, 'last_resp', None)
+        last_usage = getattr(ve, 'last_usage', (0, 0, 0))
         last_tier = getattr(ve, 'last_tier', 'paid')
-        in_tok, out_tok, think_tok = _extract_usage_tokens(last_resp) if last_resp is not None else (0, 0, 0)
+        in_tok, out_tok, think_tok = last_usage
         _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed, error=f"invalid JSON: {ve}",
                        request_id=req_id, thinking_tokens=think_tok,
                        billing_tier=last_tier, user_id=uid, phase='read')
@@ -555,14 +565,15 @@ def reread_region():
         return jsonify({'error': f'Invalid grid: {ve}', 'raw': last_raw}), 502
     except Exception as e:
         elapsed = round(time_module.time() - call_start)
-        logger.error(f"[Diagram reread] failed after retry: {e}")
+        partial = getattr(e, 'partial_text', '') or ''
+        logger.error(f"[Diagram reread] failed after retry: {e} (partial {len(partial)} chars)")
         _log_api_usage('diagram', model_id, 0, 0, elapsed, error=str(e),
                        request_id=req_id, user_id=uid, billing_tier='paid', phase='read')
-        return jsonify({'error': f'Read failed: {e}'}), 502
+        return jsonify({'error': f'Read failed: {e}', 'raw': partial}), 502
 
     elapsed = round(time_module.time() - call_start)
 
-    in_tok, out_tok, think_tok = _extract_usage_tokens(resp)
+    in_tok, out_tok, think_tok = usage
     _log_api_usage('diagram', model_id, in_tok, out_tok, elapsed,
                    request_id=req_id, thinking_tokens=think_tok,
                    billing_tier=tier, user_id=uid, phase='read')
@@ -759,16 +770,16 @@ def read_diagram():
             ]
 
             try:
-                resp_read, tier, succeeded_on_attempt, _parsed, squares, raw_text = _gemini_read_single_with_validation(
+                raw_text, usage, tier, succeeded_on_attempt, _parsed, squares = _gemini_read_single_with_validation(
                     client_free, client_paid, model_id, contents,
                     timeout_seconds=90, label=f'Diagram Region {idx + 1}',
                 )
             except (ValueError, json_module.JSONDecodeError) as ve:
                 call_elapsed = round(time_module.time() - call_start)
                 last_raw = getattr(ve, 'last_raw', '')
-                last_resp = getattr(ve, 'last_resp', None)
+                last_usage = getattr(ve, 'last_usage', (0, 0, 0))
                 last_tier = getattr(ve, 'last_tier', 'paid')
-                in_tok, out_tok, think_tok = _extract_usage_tokens(last_resp) if last_resp is not None else (0, 0, 0)
+                in_tok, out_tok, think_tok = last_usage
                 _log_api_usage('diagram', model_id, in_tok, out_tok, call_elapsed, error=f"invalid JSON: {ve}",
                                request_id=req_id, thinking_tokens=think_tok,
                                billing_tier=last_tier, user_id=uid, phase='read')
@@ -778,12 +789,16 @@ def read_diagram():
                 return
             except Exception as e:
                 call_elapsed = round(time_module.time() - call_start)
-                logger.error(f"[Diagram] Region {idx + 1} failed after retry: {e}")
+                partial = getattr(e, 'partial_text', '') or ''
+                logger.error(f"[Diagram] Region {idx + 1} failed after retry: {e} (partial {len(partial)} chars)")
                 _log_api_usage('diagram', model_id, 0, 0, call_elapsed, error=str(e),
                                request_id=req_id, user_id=uid, billing_tier='paid', phase='read')
+                # Surface the partial stream to admins so we can tune the timeout.
+                if is_admin and partial:
+                    result_queue.put({"type": "debug", "phase": "read", "index": idx, "raw": partial, "attempt": None, "timed_out": True, "timeout_seconds": 90, "partial_chars": len(partial)})
                 return
 
-            in_tok, out_tok, think_tok = _extract_usage_tokens(resp_read)
+            in_tok, out_tok, think_tok = usage
             call_elapsed = round(time_module.time() - call_start)
             _log_api_usage('diagram', model_id, in_tok, out_tok, call_elapsed,
                            request_id=req_id, thinking_tokens=think_tok,

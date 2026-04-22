@@ -49,7 +49,7 @@ export interface DiagramState {
   regionsRead?: number;
   locateCount?: number;
   debugRawLocate?: string;
-  debugRawReads?: Record<number, { raw: string; attempt?: number }>;
+  debugRawReads?: Record<number, { raw: string; attempt?: number; timedOut?: boolean; timeoutSeconds?: number; partialChars?: number }>;
   debugRawRereads?: Record<number, string[]>;
   rereading: boolean;
   rereadDone: number;
@@ -302,7 +302,13 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
                   ...prev,
                   debugRawReads: {
                     ...(prev.debugRawReads || {}),
-                    [payload.index]: { raw: payload.raw, attempt: payload.attempt },
+                    [payload.index]: {
+                      raw: payload.raw,
+                      attempt: payload.attempt,
+                      timedOut: payload.timed_out,
+                      timeoutSeconds: payload.timeout_seconds,
+                      partialChars: payload.partial_chars,
+                    },
                   },
                 };
               }
