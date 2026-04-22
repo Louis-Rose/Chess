@@ -53,43 +53,146 @@ function GridOverlay({ box, colorIndex }: {
   );
 }
 
-function BoardCrop({ src, gridBox, showGrid, colorIndex }: {
+// Admin-only clickable layer of 64 transparent cells sitting over the crop.
+// Clicking a cell toggles it as the selected square; selected cell gets a
+// semi-transparent fill in the region's color.
+function CellClickLayer({ cellRects, selectedCell, onSelect, colorIndex }: {
+  cellRects: Record<string, { x: number; y: number; width: number; height: number }>;
+  selectedCell: string | null;
+  onSelect: (sq: string | null) => void;
+  colorIndex: number;
+}) {
+  const fillSelected = regionColor(colorIndex, 0.35);
+  const strokeSelected = regionColor(colorIndex, 1);
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+      {Object.entries(cellRects).map(([name, r]) => {
+        const isSelected = name === selectedCell;
+        return (
+          <rect
+            key={name}
+            x={r.x} y={r.y} width={r.width} height={r.height}
+            fill={isSelected ? fillSelected : 'transparent'}
+            stroke={isSelected ? strokeSelected : 'transparent'}
+            strokeWidth={isSelected ? 2.5 : 0} vectorEffect="non-scaling-stroke"
+            style={{ cursor: 'pointer' }}
+            onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : name); }}
+          >
+            <title>{name}</title>
+          </rect>
+        );
+      })}
+    </svg>
+  );
+}
+
+function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell, onSelectCell }: {
   src: string;
   gridBox?: { x: number; y: number; width: number; height: number } | null;
+  cellRects?: Record<string, { x: number; y: number; width: number; height: number }> | null;
   showGrid?: boolean;
   colorIndex: number;
+  selectedCell?: string | null;
+  onSelectCell?: (sq: string | null) => void;
 }) {
   return (
     <div className="relative mx-auto max-w-[400px] w-full">
       <img src={src} alt="" className="rounded-lg border border-slate-600 w-full block" />
       {showGrid && gridBox && <GridOverlay box={gridBox} colorIndex={colorIndex} />}
+      {showGrid && cellRects && onSelectCell && (
+        <CellClickLayer cellRects={cellRects} selectedCell={selectedCell ?? null} onSelect={onSelectCell} colorIndex={colorIndex} />
+      )}
     </div>
   );
 }
 
-// Admin-only: grayscale pixel-darkness histogram of the region inside grid_box.
-// 256 bars, each pixel-wide in the viewBox so peaks/valleys are legible.
-function PixelHistogram({ hist, colorIndex }: {
-  hist: { bins: number[]; total: number };
+// Renders the 256-bin grayscale histogram as an SVG bar chart.
+// `heightPx` scales the y-axis resolution; the component fills its container width.
+function HistogramChart({ bins, colorIndex, heightPx }: {
+  bins: number[];
   colorIndex: number;
+  heightPx?: number;
 }) {
-  if (!hist || !hist.bins || hist.bins.length === 0) return null;
-  const max = Math.max(...hist.bins);
+  const max = Math.max(...bins);
   if (!max) return null;
   const barColor = regionColor(colorIndex, 0.9);
   return (
+    <svg viewBox="0 0 256 80" preserveAspectRatio="none"
+         style={heightPx ? { height: heightPx } : { width: '100%', height: '100%' }}
+         className="bg-slate-900/60 rounded border border-slate-700 block w-full">
+      {bins.map((n, i) => {
+        const h = (n / max) * 80;
+        return <rect key={i} x={i} y={80 - h} width={1} height={h} fill={barColor} />;
+      })}
+    </svg>
+  );
+}
+
+function HistogramAxis() {
+  return (
+    <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
+      <span>0 · black</span>
+      <span>128</span>
+      <span>255 · white</span>
+    </div>
+  );
+}
+
+// Admin-only: grayscale pixel-darkness histogram. Click to zoom. If a cell is
+// selected, renders that cell's histogram instead of the whole-grid one.
+function PixelHistogram({ bins, label, colorIndex, onZoom }: {
+  bins: number[];
+  label: string;
+  colorIndex: number;
+  onZoom: () => void;
+}) {
+  if (!bins || bins.length === 0) return null;
+  const max = Math.max(...bins);
+  if (!max) {
+    return (
+      <div className="mx-auto max-w-[400px] w-full text-[11px] text-slate-500 italic text-center py-3">
+        No pixels in {label}
+      </div>
+    );
+  }
+  return (
     <div className="mx-auto max-w-[400px] w-full">
-      <svg viewBox="0 0 256 80" preserveAspectRatio="none"
-           className="w-full h-20 bg-slate-900/60 rounded border border-slate-700 block">
-        {hist.bins.map((n, i) => {
-          const h = (n / max) * 80;
-          return <rect key={i} x={i} y={80 - h} width={1} height={h} fill={barColor} />;
-        })}
-      </svg>
-      <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
-        <span>0 · black</span>
-        <span>128</span>
-        <span>255 · white</span>
+      <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-mono">
+        <span>Darkness · <span className="text-slate-200">{label}</span></span>
+        <button type="button" onClick={onZoom} className="text-slate-500 hover:text-slate-300">zoom</button>
+      </div>
+      <button type="button" onClick={onZoom} className="w-full block cursor-zoom-in" aria-label="Zoom histogram">
+        <HistogramChart bins={bins} colorIndex={colorIndex} heightPx={80} />
+      </button>
+      <HistogramAxis />
+    </div>
+  );
+}
+
+function HistogramZoomModal({ bins, label, colorIndex, onClose }: {
+  bins: number[];
+  label: string;
+  colorIndex: number;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div onClick={onClose}
+         className="fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/70 backdrop-blur-[2px] cursor-zoom-out overflow-auto p-6 flex">
+      <div onClick={(e) => e.stopPropagation()}
+           className="m-auto w-full max-w-[min(90vw,1100px)] bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-xl">
+        <div className="flex items-center justify-between mb-3 text-sm text-slate-300">
+          <span>Pixel darkness · <span className="text-slate-100 font-mono">{label}</span></span>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-xs">Close (Esc)</button>
+        </div>
+        <div style={{ height: 'min(60vh, 500px)' }}>
+          <HistogramChart bins={bins} colorIndex={colorIndex} heightPx={0} />
+        </div>
+        <HistogramAxis />
       </div>
     </div>
   );
@@ -529,6 +632,7 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
                       grid_box: resp.data.grid_box ?? meta.grid_box ?? null,
                       cell_rects: resp.data.cell_rects ?? meta.cell_rects ?? null,
                       pixel_histogram: resp.data.pixel_histogram ?? meta.pixel_histogram ?? null,
+                      cell_histograms: resp.data.cell_histograms ?? meta.cell_histograms ?? null,
                     };
                     setRereads(prev => ({ ...prev, [originIdx]: [...(prev[originIdx] ?? []), fresh] }));
                   }
@@ -641,6 +745,10 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
   const { t } = useLanguage();
   const effectiveAdmin = useEffectiveAdmin();
   const [copied, setCopied] = useState(false);
+  const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  const [histogramZoomed, setHistogramZoomed] = useState(false);
+  // Reset cell selection when the source diagram changes (new scan, re-read landed).
+  useEffect(() => { setSelectedCell(null); }, [diagram.fen, diagram.crop_data_url]);
   const { white_player, black_player, region } = diagram;
   const [editedFen, setEditedFen] = useState(diagram.fen);
   const historyRef = useRef<string[]>([]);
@@ -701,12 +809,33 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
   return (
     <div className="space-y-3">
       {diagram.crop_data_url
-        ? <BoardCrop src={diagram.crop_data_url} gridBox={diagram.grid_box} showGrid={effectiveAdmin} colorIndex={colorIndex} />
+        ? <BoardCrop
+            src={diagram.crop_data_url}
+            gridBox={diagram.grid_box}
+            cellRects={diagram.cell_rects}
+            showGrid={effectiveAdmin}
+            colorIndex={colorIndex}
+            selectedCell={selectedCell}
+            onSelectCell={setSelectedCell}
+          />
         : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
 
-      {effectiveAdmin && diagram.pixel_histogram && (
-        <PixelHistogram hist={diagram.pixel_histogram} colorIndex={colorIndex} />
-      )}
+      {effectiveAdmin && (() => {
+        // Prefer the cell-specific histogram when a cell is selected; fall back
+        // to the whole-grid histogram otherwise.
+        const cellBins = selectedCell ? diagram.cell_histograms?.[selectedCell] : null;
+        const bins = cellBins ?? diagram.pixel_histogram?.bins ?? null;
+        if (!bins) return null;
+        const label = selectedCell ?? 'full grid';
+        return (
+          <>
+            <PixelHistogram bins={bins} label={label} colorIndex={colorIndex} onZoom={() => setHistogramZoomed(true)} />
+            {histogramZoomed && (
+              <HistogramZoomModal bins={bins} label={label} colorIndex={colorIndex} onClose={() => setHistogramZoomed(false)} />
+            )}
+          </>
+        );
+      })()}
 
       {hasPlayers && (
         <div className="flex items-center justify-center gap-2 text-sm font-medium">

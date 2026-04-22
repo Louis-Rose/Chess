@@ -584,6 +584,36 @@ def _build_cell_rects(grid_box, orientation):
     return rects
 
 
+def _compute_cell_histograms(image_bytes, cell_rects):
+    """Per-cell grayscale histograms. Returns {square_name: list[int] of length
+    256}, or None if inputs are unusable. Uses the same L-mode luma as the
+    whole-grid histogram so bins are directly comparable."""
+    if not cell_rects:
+        return None
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(image_bytes)).convert('L')
+        w, h = img.size
+        out = {}
+        for name, rect in cell_rects.items():
+            left = int(rect['x'] / 100.0 * w)
+            top = int(rect['y'] / 100.0 * h)
+            right = int((rect['x'] + rect['width']) / 100.0 * w)
+            bottom = int((rect['y'] + rect['height']) / 100.0 * h)
+            if right <= left or bottom <= top:
+                out[name] = [0] * 256
+                continue
+            bins = img.crop((left, top, right, bottom)).histogram()[:256]
+            if len(bins) < 256:
+                bins = bins + [0] * (256 - len(bins))
+            out[name] = bins
+        return out
+    except Exception as e:
+        logger.warning(f"[Diagram] per-cell histograms failed: {e}")
+        return None
+
+
 def _compute_pixel_histogram(image_bytes, grid_box):
     """Grayscale pixel histogram of the image region inside grid_box (0-100 %).
     Returns {'bins': list[int] of length 256, 'total': int}, or None if inputs
@@ -703,6 +733,7 @@ def reread_region():
     grid_box = parsed.get('grid_box') if isinstance(parsed, dict) else None
     cell_rects = _build_cell_rects(grid_box, orientation)
     pixel_histogram = _compute_pixel_histogram(crop_bytes, grid_box)
+    cell_histograms = _compute_cell_histograms(crop_bytes, cell_rects)
     return jsonify({
         'fen': fen,
         'raw': raw_text,
@@ -710,6 +741,7 @@ def reread_region():
         'grid_box': grid_box,
         'cell_rects': cell_rects,
         'pixel_histogram': pixel_histogram,
+        'cell_histograms': cell_histograms,
     })
 
 
@@ -948,6 +980,7 @@ def read_diagram():
 
             if fen:
                 grid_box_out = parsed.get('grid_box') if isinstance(parsed, dict) else None
+                cell_rects_out = _build_cell_rects(grid_box_out, meta['orientation'])
                 diagram = {
                     "fen": fen,
                     "white_player": meta['white_player'],
@@ -956,8 +989,9 @@ def read_diagram():
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],
                     "grid_box": grid_box_out,
-                    "cell_rects": _build_cell_rects(grid_box_out, meta['orientation']),
+                    "cell_rects": cell_rects_out,
                     "pixel_histogram": _compute_pixel_histogram(meta['_crop_bytes'], grid_box_out),
+                    "cell_histograms": _compute_cell_histograms(meta['_crop_bytes'], cell_rects_out),
                 }
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
