@@ -551,6 +551,67 @@ def _strip_code_fences(raw):
     return raw
 
 
+_FILES = 'abcdefgh'
+
+
+def _build_cell_rects(grid_box, orientation):
+    """Given the 0-100 grid_box and the board orientation, return a dict mapping
+    each of the 64 square names (a1..h8) to its {x, y, width, height} rect in
+    the same 0-100 percent space as grid_box. Cells are produced by even 8x8
+    slicing of grid_box; orientation decides which image-space (col, row)
+    corresponds to each square."""
+    if not grid_box:
+        return None
+    cell_w = grid_box['width'] / 8.0
+    cell_h = grid_box['height'] / 8.0
+    gx = grid_box['x']
+    gy = grid_box['y']
+    rects = {}
+    for file_idx, file_ch in enumerate(_FILES):
+        for rank in range(1, 9):
+            if orientation == 'black_bottom':
+                col = 7 - file_idx        # a at the right, h at the left
+                row = rank - 1            # rank 1 at the top
+            else:
+                col = file_idx            # a at the left, h at the right
+                row = 8 - rank            # rank 1 at the bottom
+            rects[f"{file_ch}{rank}"] = {
+                'x': gx + col * cell_w,
+                'y': gy + row * cell_h,
+                'width': cell_w,
+                'height': cell_h,
+            }
+    return rects
+
+
+def _compute_pixel_histogram(image_bytes, grid_box):
+    """Grayscale pixel histogram of the image region inside grid_box (0-100 %).
+    Returns {'bins': list[int] of length 256, 'total': int}, or None if inputs
+    are unusable. Luma is computed via PIL's standard L conversion (ITU-R 601-2)."""
+    if not grid_box:
+        return None
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(image_bytes))
+        w, h = img.size
+        left = int(grid_box['x'] / 100.0 * w)
+        top = int(grid_box['y'] / 100.0 * h)
+        right = int((grid_box['x'] + grid_box['width']) / 100.0 * w)
+        bottom = int((grid_box['y'] + grid_box['height']) / 100.0 * h)
+        if right <= left or bottom <= top:
+            return None
+        gray = img.crop((left, top, right, bottom)).convert('L')
+        bins = gray.histogram()[:256]
+        # Pad to 256 defensively (L mode should always give 256).
+        if len(bins) < 256:
+            bins = bins + [0] * (256 - len(bins))
+        return {'bins': bins, 'total': sum(bins)}
+    except Exception as e:
+        logger.warning(f"[Diagram] pixel histogram failed: {e}")
+        return None
+
+
 def _crop_image_region(image_bytes, mime_type, region):
     """Crop a region from an image. Region has x, y, width, height as percentages."""
     from PIL import Image
@@ -640,7 +701,16 @@ def reread_region():
     fen = _grid_to_fen(grid, active_color)
 
     grid_box = parsed.get('grid_box') if isinstance(parsed, dict) else None
-    return jsonify({'fen': fen, 'raw': raw_text, 'elapsed': elapsed, 'grid_box': grid_box})
+    cell_rects = _build_cell_rects(grid_box, orientation)
+    pixel_histogram = _compute_pixel_histogram(crop_bytes, grid_box)
+    return jsonify({
+        'fen': fen,
+        'raw': raw_text,
+        'elapsed': elapsed,
+        'grid_box': grid_box,
+        'cell_rects': cell_rects,
+        'pixel_histogram': pixel_histogram,
+    })
 
 
 @coaches_bp.route('/api/coaches/read-diagram', methods=['POST'])
@@ -877,6 +947,7 @@ def read_diagram():
             fen = _grid_to_fen(grid, meta['active_color'])
 
             if fen:
+                grid_box_out = parsed.get('grid_box') if isinstance(parsed, dict) else None
                 diagram = {
                     "fen": fen,
                     "white_player": meta['white_player'],
@@ -884,7 +955,9 @@ def read_diagram():
                     "region": {**meta['box'], 'has_labels': meta['has_labels'], 'orientation': meta['orientation']},
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],
-                    "grid_box": parsed.get('grid_box') if isinstance(parsed, dict) else None,
+                    "grid_box": grid_box_out,
+                    "cell_rects": _build_cell_rects(grid_box_out, meta['orientation']),
+                    "pixel_histogram": _compute_pixel_histogram(meta['_crop_bytes'], grid_box_out),
                 }
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})

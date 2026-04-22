@@ -67,6 +67,34 @@ function BoardCrop({ src, gridBox, showGrid, colorIndex }: {
   );
 }
 
+// Admin-only: grayscale pixel-darkness histogram of the region inside grid_box.
+// 256 bars, each pixel-wide in the viewBox so peaks/valleys are legible.
+function PixelHistogram({ hist, colorIndex }: {
+  hist: { bins: number[]; total: number };
+  colorIndex: number;
+}) {
+  if (!hist || !hist.bins || hist.bins.length === 0) return null;
+  const max = Math.max(...hist.bins);
+  if (!max) return null;
+  const barColor = regionColor(colorIndex, 0.9);
+  return (
+    <div className="mx-auto max-w-[400px] w-full">
+      <svg viewBox="0 0 256 80" preserveAspectRatio="none"
+           className="w-full h-20 bg-slate-900/60 rounded border border-slate-700 block">
+        {hist.bins.map((n, i) => {
+          const h = (n / max) * 80;
+          return <rect key={i} x={i} y={80 - h} width={1} height={h} fill={barColor} />;
+        })}
+      </svg>
+      <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
+        <span>0 · black</span>
+        <span>128</span>
+        <span>255 · white</span>
+      </div>
+    </div>
+  );
+}
+
 function CroppedRegion({ src, region }: { src: string; region: { x: number; y: number; width: number; height: number } }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -495,7 +523,13 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
                   }
                   if (resp.data?.fen) {
                     successCount += 1;
-                    const fresh: DiagramExtract = { ...meta, fen: resp.data.fen, grid_box: resp.data.grid_box ?? meta.grid_box ?? null };
+                    const fresh: DiagramExtract = {
+                      ...meta,
+                      fen: resp.data.fen,
+                      grid_box: resp.data.grid_box ?? meta.grid_box ?? null,
+                      cell_rects: resp.data.cell_rects ?? meta.cell_rects ?? null,
+                      pixel_histogram: resp.data.pixel_histogram ?? meta.pixel_histogram ?? null,
+                    };
                     setRereads(prev => ({ ...prev, [originIdx]: [...(prev[originIdx] ?? []), fresh] }));
                   }
                 })
@@ -669,6 +703,10 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
       {diagram.crop_data_url
         ? <BoardCrop src={diagram.crop_data_url} gridBox={diagram.grid_box} showGrid={effectiveAdmin} colorIndex={colorIndex} />
         : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
+
+      {effectiveAdmin && diagram.pixel_histogram && (
+        <PixelHistogram hist={diagram.pixel_histogram} colorIndex={colorIndex} />
+      )}
 
       {hasPlayers && (
         <div className="flex items-center justify-center gap-2 text-sm font-medium">
