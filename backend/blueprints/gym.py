@@ -355,10 +355,9 @@ def gym_dashboard():
             'SELECT last_synced_at FROM gym_sync_meta WHERE id = 1'
         ).fetchone()
         sets = conn.execute(
-            """SELECT session_date, muscle_group, exercise, reps, weight_kg
+            """SELECT session_date, muscle_group, exercise, reps, weight_kg, is_warmup
                FROM gym_sets
-               WHERE is_warmup = FALSE
-               ORDER BY session_date ASC"""
+               ORDER BY session_date ASC, id ASC"""
         ).fetchall()
         states = {r['exercise']: r['state'] for r in conn.execute(
             'SELECT exercise, state FROM gym_ignored_exercises'
@@ -366,9 +365,19 @@ def gym_dashboard():
 
     by_ex: dict[str, dict] = {}
     weekly_by_ex: dict[tuple[str, str], int] = {}
+    sessions_by_ex: dict[str, dict[str, list]] = {}
     for s in sets:
         ex = s['exercise']
         d = s['session_date']
+        # Collect per-session set lists (warmups included for display)
+        session_map = sessions_by_ex.setdefault(ex, {})
+        session_map.setdefault(d.isoformat(), []).append({
+            'reps': s['reps'],
+            'weight_kg': s['weight_kg'],
+            'is_warmup': s['is_warmup'],
+        })
+        if s['is_warmup']:
+            continue
         slot = by_ex.setdefault(ex, {
             'exercise': ex,
             'muscle_group': s['muscle_group'],
@@ -384,7 +393,6 @@ def gym_dashboard():
             slot['sets_last_7d'] += 1
         if (s['weight_kg'] or 0) > slot['best_weight_kg']:
             slot['best_weight_kg'] = s['weight_kg'] or 0
-        # Week key: ISO year-week of the session date
         iso_year, iso_week, _ = d.isocalendar()
         wkey = f'{iso_year}-W{iso_week:02d}'
         weekly_by_ex[(ex, wkey)] = weekly_by_ex.get((ex, wkey), 0) + 1
@@ -401,6 +409,10 @@ def gym_dashboard():
             is_ignored = False
         else:
             is_ignored = days_since > AUTO_ARCHIVE_DAYS
+        sessions = [
+            {'date': d, 'sets': sets_list}
+            for d, sets_list in sorted(sessions_by_ex.get(ex, {}).items(), reverse=True)
+        ][:20]  # keep payload bounded
         exercises.append({
             'exercise': ex,
             'muscle_group': slot['muscle_group'],
@@ -411,6 +423,7 @@ def gym_dashboard():
             'best_weight_kg': slot['best_weight_kg'],
             'weekly_sets': series,
             'ignored': is_ignored,
+            'sessions': sessions,
         })
 
     exercises.sort(key=lambda e: e['days_since'], reverse=True)

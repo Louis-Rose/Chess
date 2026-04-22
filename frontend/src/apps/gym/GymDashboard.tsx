@@ -6,6 +6,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { BodyHeatmap } from './BodyHeatmap';
 
 interface WeeklyPoint { week: string; sets: number }
+interface SetEntry { reps: number; weight_kg: number; is_warmup: boolean }
+interface SessionEntry { date: string; sets: SetEntry[] }
 interface Exercise {
   exercise: string;
   muscle_group: string;
@@ -16,6 +18,7 @@ interface Exercise {
   best_weight_kg: number;
   weekly_sets: WeeklyPoint[];
   ignored: boolean;
+  sessions: SessionEntry[];
 }
 interface Dashboard {
   last_synced_at: string | null;
@@ -276,24 +279,56 @@ function ExerciseCard({ ex, onToggleIgnore }: { ex: Exercise; onToggleIgnore: (e
       </div>
 
       {expanded && (
-        <div className="border-t border-slate-700 p-4">
-          <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">Sets per week (last 12)</div>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={last12} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="week" stroke="#64748b" tick={{ fontSize: 10 }} />
-                <YAxis stroke="#64748b" tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
-                  labelStyle={{ color: '#cbd5e1' }}
-                  itemStyle={{ color: '#10b981' }}
-                />
-                <Bar dataKey="sets" fill="#10b981" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="border-t border-slate-700 p-4 space-y-4">
+          <div>
+            <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">Sets per week (last 12)</div>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={last12} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                  <XAxis dataKey="week" stroke="#64748b" tick={{ fontSize: 10 }} />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 10 }} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
+                    labelStyle={{ color: '#cbd5e1' }}
+                    itemStyle={{ color: '#10b981' }}
+                  />
+                  <Bar dataKey="sets" fill="#10b981" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div className="text-xs text-slate-500 mt-2">{ex.total_sets} total working sets</div>
+
+          {ex.sessions.length > 0 && (
+            <div>
+              <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">
+                Session history ({ex.sessions.length} most recent)
+              </div>
+              <div className="space-y-1.5">
+                {ex.sessions.map(s => (
+                  <div key={s.date} className="flex gap-3 text-xs">
+                    <div className="w-16 flex-shrink-0 text-slate-400 font-mono">{fmtDate(s.date)}</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {s.sets.map((set, i) => (
+                        <span
+                          key={i}
+                          className={`px-1.5 py-0.5 rounded ${
+                            set.is_warmup
+                              ? 'bg-slate-800 text-slate-500 italic'
+                              : 'bg-slate-700 text-slate-200'
+                          }`}
+                        >
+                          {set.reps}×{set.weight_kg > 0 ? `${set.weight_kg}kg` : 'BW'}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="text-xs text-slate-500">{ex.total_sets} total working sets</div>
         </div>
       )}
     </div>
