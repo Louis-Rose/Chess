@@ -14,21 +14,23 @@ import { compressImage } from '../utils/compressImage';
 import type { DiagramModelResult, DiagramExtract, DiagramRegion } from '../contexts/CoachesDataContext';
 import { EditableBoard } from './diagram/EditableBoard';
 import { SaveToKnowledgeButton } from './diagram/SaveToKnowledgeButton';
-import { ComposedImage } from './diagram/ComposedImage';
+import { ComposedImage, regionColor } from './diagram/ComposedImage';
 import { BOARD_LIGHT as LIGHT, BOARD_DARK as DARK } from '../utils/pieces';
 
 // Admin overlay: draw the 8x8 grid reported by Phase 2 on top of the crop so
 // we can eyeball whether grid_box aligns with the actual board edges.
-function GridOverlay({ box }: { box: { x: number; y: number; width: number; height: number } }) {
+function GridOverlay({ box, colorIndex }: {
+  box: { x: number; y: number; width: number; height: number };
+  colorIndex: number;
+}) {
   const cellW = box.width / 8;
   const cellH = box.height / 8;
   const verticals = Array.from({ length: 9 }, (_, i) => box.x + i * cellW);
   const horizontals = Array.from({ length: 9 }, (_, i) => box.y + i * cellH);
-  // Bright magenta contrasts against both light and dark board squares. Inner lines
-  // are thinner than the outer frame to keep the 8x8 division legible without
-  // swallowing the pieces.
-  const lineColor = 'rgba(236, 72, 153, 0.95)';
-  const frameColor = 'rgba(236, 72, 153, 1)';
+  // Match the Phase 1 region box color so one diagram's highlight and its grid
+  // overlay share a visual identity.
+  const lineColor = regionColor(colorIndex, 0.95);
+  const frameColor = regionColor(colorIndex, 1);
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
       {verticals.map((x, i) => {
@@ -51,15 +53,16 @@ function GridOverlay({ box }: { box: { x: number; y: number; width: number; heig
   );
 }
 
-function BoardCrop({ src, gridBox, showGrid }: {
+function BoardCrop({ src, gridBox, showGrid, colorIndex }: {
   src: string;
   gridBox?: { x: number; y: number; width: number; height: number } | null;
   showGrid?: boolean;
+  colorIndex: number;
 }) {
   return (
     <div className="relative mx-auto max-w-[400px] w-full">
       <img src={src} alt="" className="rounded-lg border border-slate-600 w-full block" />
-      {showGrid && gridBox && <GridOverlay box={gridBox} />}
+      {showGrid && gridBox && <GridOverlay box={gridBox} colorIndex={colorIndex} />}
     </div>
   );
 }
@@ -564,10 +567,10 @@ function ResultsView({ models, modelResults, analyzing, previewSrc, totalRegions
                 // fallback to entries[0] can land here momentarily during a render.
                 const originEntry = rawEntries.find(e => e.originIdx === entry.originIdx);
                 if (originEntry?.kind === 'pending') return <PendingDiagram region={originEntry.region} />;
-                if (originEntry?.kind === 'ready') return <FenEntry diagram={originEntry.diagram} previewSrc={previewSrc} />;
+                if (originEntry?.kind === 'ready') return <FenEntry diagram={originEntry.diagram} previewSrc={previewSrc} colorIndex={originEntry.originIdx} />;
                 return null;
               }
-              return <FenEntry diagram={entry.diagram} previewSrc={previewSrc} />;
+              return <FenEntry diagram={entry.diagram} previewSrc={previewSrc} colorIndex={entry.originIdx} />;
             })()}
           </div>
         ) : !mr ? (
@@ -600,7 +603,7 @@ function rebuildFen(oldFen: string, newPlacement: string): string {
   return parts.join(' ');
 }
 
-function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc?: string }) {
+function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract; previewSrc?: string; colorIndex: number }) {
   const { t } = useLanguage();
   const effectiveAdmin = useEffectiveAdmin();
   const [copied, setCopied] = useState(false);
@@ -664,7 +667,7 @@ function FenEntry({ diagram, previewSrc }: { diagram: DiagramExtract; previewSrc
   return (
     <div className="space-y-3">
       {diagram.crop_data_url
-        ? <BoardCrop src={diagram.crop_data_url} gridBox={diagram.grid_box} showGrid={effectiveAdmin} />
+        ? <BoardCrop src={diagram.crop_data_url} gridBox={diagram.grid_box} showGrid={effectiveAdmin} colorIndex={colorIndex} />
         : previewSrc && region && <CroppedRegion src={previewSrc} region={region} />}
 
       {hasPlayers && (

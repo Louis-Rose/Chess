@@ -8,16 +8,26 @@ export interface ComposedRegion extends ComposedRegionBox {
   diagram_number?: number | null;
 }
 
-const REGION_COLORS = [
-  'rgba(99,102,241,0.7)',   // indigo
-  'rgba(168,85,247,0.7)',   // purple
-  'rgba(20,184,166,0.7)',   // teal
-  'rgba(245,158,11,0.7)',   // amber
-  'rgba(239,68,68,0.7)',    // red
-  'rgba(34,197,94,0.7)',    // green
-  'rgba(59,130,246,0.7)',   // blue
-  'rgba(236,72,153,0.7)',   // pink
+// Shared palette used for Phase 1 region boxes on the whole-page preview AND
+// the Phase 2 grid overlay on each per-diagram crop, so one diagram's box and
+// its grid share a color.
+export const REGION_RGB: [number, number, number][] = [
+  [99, 102, 241],   // indigo
+  [168, 85, 247],   // purple
+  [20, 184, 166],   // teal
+  [245, 158, 11],   // amber
+  [239, 68, 68],    // red
+  [34, 197, 94],    // green
+  [59, 130, 246],   // blue
+  [236, 72, 153],   // pink
 ];
+
+export function regionColor(index: number, alpha = 1): string {
+  const [r, g, b] = REGION_RGB[((index % REGION_RGB.length) + REGION_RGB.length) % REGION_RGB.length];
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+const REGION_COLORS = REGION_RGB.map(([r, g, b]) => `rgba(${r},${g},${b},0.7)`);
 
 interface Props {
   src: string;
