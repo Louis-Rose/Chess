@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dumbbell, RefreshCw, ArrowLeft } from 'lucide-react';
+import { Dumbbell, RefreshCw, ArrowLeft, Archive, ArchiveRestore, EyeOff, Eye } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface WeeklyPoint { week: string; sets: number }
@@ -13,6 +13,7 @@ interface Exercise {
   sets_last_7d: number;
   best_weight_kg: number;
   weekly_sets: WeeklyPoint[];
+  ignored: boolean;
 }
 interface Dashboard {
   last_synced_at: string | null;
@@ -49,6 +50,24 @@ export function GymDashboard() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [muscleFilter, setMuscleFilter] = useState<string>('ALL');
+  const [showIgnored, setShowIgnored] = useState(false);
+
+  async function toggleIgnore(exercise: string, ignored: boolean) {
+    setData(prev => prev ? {
+      ...prev,
+      exercises: prev.exercises.map(e => e.exercise === exercise ? { ...e, ignored } : e),
+    } : prev);
+    try {
+      await fetch('/api/gym/exercises/ignore', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exercise, ignored }),
+      });
+    } catch (e) {
+      setError(String(e));
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -103,10 +122,16 @@ export function GymDashboard() {
 
   const filtered = useMemo(() => {
     if (!data) return [];
-    return muscleFilter === 'ALL'
-      ? data.exercises
-      : data.exercises.filter(e => e.muscle_group === muscleFilter);
-  }, [data, muscleFilter]);
+    return data.exercises.filter(e =>
+      (showIgnored || !e.ignored)
+      && (muscleFilter === 'ALL' || e.muscle_group === muscleFilter)
+    );
+  }, [data, muscleFilter, showIgnored]);
+
+  const ignoredCount = useMemo(
+    () => data?.exercises.filter(e => e.ignored).length ?? 0,
+    [data]
+  );
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -156,7 +181,7 @@ export function GymDashboard() {
         )}
 
         {data && data.exercises.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             {muscles.map(m => (
               <button
                 key={m}
@@ -170,45 +195,73 @@ export function GymDashboard() {
                 {m}
               </button>
             ))}
+            {ignoredCount > 0 && (
+              <button
+                onClick={() => setShowIgnored(v => !v)}
+                className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  showIgnored
+                    ? 'bg-slate-700 text-slate-200'
+                    : 'bg-slate-800 text-slate-500 hover:bg-slate-700 hover:text-slate-300'
+                }`}
+              >
+                {showIgnored ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                {showIgnored ? 'Hide' : 'Show'} archived ({ignoredCount})
+              </button>
+            )}
           </div>
         )}
 
         <div className="space-y-3">
-          {filtered.map(ex => <ExerciseCard key={ex.exercise} ex={ex} />)}
+          {filtered.map(ex => (
+            <ExerciseCard key={ex.exercise} ex={ex} onToggleIgnore={toggleIgnore} />
+          ))}
         </div>
       </main>
     </div>
   );
 }
 
-function ExerciseCard({ ex }: { ex: Exercise }) {
+function ExerciseCard({ ex, onToggleIgnore }: { ex: Exercise; onToggleIgnore: (exercise: string, ignored: boolean) => void }) {
   const [expanded, setExpanded] = useState(false);
-  const color = daysSinceColor(ex.days_since);
+  const color = ex.ignored
+    ? 'text-slate-500 bg-slate-700/30 border-slate-700'
+    : daysSinceColor(ex.days_since);
   const last12 = ex.weekly_sets.slice(-12);
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full p-4 flex items-center gap-4 text-left hover:bg-slate-800 transition-colors"
-      >
-        <div className={`flex-shrink-0 w-16 h-16 rounded-lg border flex flex-col items-center justify-center ${color}`}>
-          <div className="text-xl font-bold leading-none">{ex.days_since}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-0.5">day{ex.days_since === 1 ? '' : 's'}</div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <div className="font-medium text-slate-100 truncate">{ex.exercise}</div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{ex.muscle_group}</div>
+    <div className={`bg-slate-800/50 border border-slate-700 rounded-lg overflow-hidden ${ex.ignored ? 'opacity-60' : ''}`}>
+      <div className="flex items-stretch">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex-1 p-4 flex items-center gap-4 text-left hover:bg-slate-800 transition-colors min-w-0"
+        >
+          <div className={`flex-shrink-0 w-16 h-16 rounded-lg border flex flex-col items-center justify-center ${color}`}>
+            <div className="text-xl font-bold leading-none">{ex.days_since}</div>
+            <div className="text-[10px] uppercase tracking-wider mt-0.5">day{ex.days_since === 1 ? '' : 's'}</div>
           </div>
-          <div className="text-xs text-slate-400 mt-1 flex gap-3 flex-wrap">
-            <span>Last: {fmtDate(ex.last_date)}</span>
-            <span>•</span>
-            <span>{ex.sets_last_7d} set{ex.sets_last_7d === 1 ? '' : 's'} last 7d</span>
-            {ex.best_weight_kg > 0 && (<><span>•</span><span>Best: {ex.best_weight_kg}kg</span></>)}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <div className="font-medium text-slate-100 truncate">{ex.exercise}</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{ex.muscle_group}</div>
+              {ex.ignored && <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">• archived</div>}
+            </div>
+            <div className="text-xs text-slate-400 mt-1 flex gap-3 flex-wrap">
+              <span>Last: {fmtDate(ex.last_date)}</span>
+              <span>•</span>
+              <span>{ex.sets_last_7d} set{ex.sets_last_7d === 1 ? '' : 's'} last 7d</span>
+              {ex.best_weight_kg > 0 && (<><span>•</span><span>Best: {ex.best_weight_kg}kg</span></>)}
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+        <button
+          onClick={() => onToggleIgnore(ex.exercise, !ex.ignored)}
+          className="px-4 text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors border-l border-slate-700"
+          title={ex.ignored ? 'Restore to active exercises' : 'Archive — keep data, hide from dashboard'}
+          aria-label={ex.ignored ? 'Restore exercise' : 'Archive exercise'}
+        >
+          {ex.ignored ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+        </button>
+      </div>
 
       {expanded && (
         <div className="border-t border-slate-700 p-4">

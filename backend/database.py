@@ -319,6 +319,15 @@ def init_db():
             conn.execute("CREATE INDEX idx_gym_sets_date ON gym_sets(session_date)")
             logger.info("Created gym_sets table")
 
+        if not _table_exists(conn, 'gym_ignored_exercises'):
+            conn.execute("""
+                CREATE TABLE gym_ignored_exercises (
+                    exercise TEXT PRIMARY KEY,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            logger.info("Created gym_ignored_exercises table")
+
         if not _table_exists(conn, 'gym_sync_meta'):
             conn.execute("""
                 CREATE TABLE gym_sync_meta (

@@ -276,6 +276,25 @@ def sync_gym():
     })
 
 
+@gym_bp.route('/api/gym/exercises/ignore', methods=['POST'])
+@owner_required
+def gym_toggle_ignore():
+    body = request.get_json(silent=True) or {}
+    exercise = (body.get('exercise') or '').strip()
+    ignored = bool(body.get('ignored'))
+    if not exercise:
+        return jsonify({'error': 'exercise required'}), 400
+    with get_db() as conn:
+        if ignored:
+            conn.execute(
+                'INSERT INTO gym_ignored_exercises (exercise) VALUES (?) ON CONFLICT (exercise) DO NOTHING',
+                (exercise,)
+            )
+        else:
+            conn.execute('DELETE FROM gym_ignored_exercises WHERE exercise = ?', (exercise,))
+    return jsonify({'ok': True, 'exercise': exercise, 'ignored': ignored})
+
+
 @gym_bp.route('/api/gym/dashboard', methods=['GET'])
 @owner_required
 def gym_dashboard():
@@ -294,6 +313,9 @@ def gym_dashboard():
                WHERE is_warmup = FALSE
                ORDER BY session_date ASC"""
         ).fetchall()
+        ignored = {r['exercise'] for r in conn.execute(
+            'SELECT exercise FROM gym_ignored_exercises'
+        ).fetchall()}
 
     by_ex: dict[str, dict] = {}
     weekly_by_ex: dict[tuple[str, str], int] = {}
@@ -335,6 +357,7 @@ def gym_dashboard():
             'sets_last_7d': slot['sets_last_7d'],
             'best_weight_kg': slot['best_weight_kg'],
             'weekly_sets': series,
+            'ignored': ex in ignored,
         })
 
     exercises.sort(key=lambda e: e['days_since'], reverse=True)
