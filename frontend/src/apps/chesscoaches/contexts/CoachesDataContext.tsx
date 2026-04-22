@@ -47,6 +47,7 @@ export interface DiagramState {
   regions?: DiagramRegion[];
   regionCount?: number;
   regionsRead?: number;
+  locateCount?: number;
   debugRawLocate?: string;
   debugRawReads?: Record<number, { raw: string; attempt?: number }>;
   debugRawRereads?: Record<number, string[]>;
@@ -213,7 +214,7 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     const file = diagram.imageFile;
     if (!file) return;
 
-    setDiagram(prev => ({ ...prev, error: '', modelResults: {}, models: [], analyzing: true, startTime: Date.now() }));
+    setDiagram(prev => ({ ...prev, error: '', modelResults: {}, models: [], analyzing: true, startTime: Date.now(), locateCount: 0 }));
 
     try {
       const formData = new FormData();
@@ -252,6 +253,8 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
             break;
           } else if (payload.type === 'models') {
             setDiagram(prev => ({ ...prev, models: payload.models }));
+          } else if (payload.type === 'locate_progress') {
+            setDiagram(prev => ({ ...prev, locateCount: payload.count }));
           } else if (payload.type === 'regions') {
             setDiagram(prev => ({ ...prev, regions: payload.regions, regionCount: payload.count, regionsRead: 0 }));
           } else if (payload.type === 'diagram') {

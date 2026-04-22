@@ -43,7 +43,7 @@ export function DiagramToFenPanel() {
   const effectiveAdmin = useEffectiveAdmin();
   const fileRef = useRef<HTMLInputElement>(null);
   const { diagram, diagramSetImage, diagramAnalyze, diagramClear } = useCoachesData();
-  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead, debugRawLocate, debugRawReads, debugRawRereads, rereading, rereadDone, rereadTotal, rereadStartTime } = diagram;
+  const { preview, models, modelResults, analyzing, startTime, error, regions, regionCount, regionsRead, locateCount, debugRawLocate, debugRawReads, debugRawRereads, rereading, rereadDone, rereadTotal, rereadStartTime } = diagram;
   const [liveElapsed, setLiveElapsed] = useState(0);
 
   // Tick the elapsed counter while analysis or a re-read is running; freeze on completion.
@@ -141,11 +141,17 @@ export function DiagramToFenPanel() {
                   ? Math.round(Math.max(...models.map(m => m.avg_elapsed || 0)))
                   : 0;
                 const isPlural = (regionCount ?? 0) > 1;
+                const locatePlural = (locateCount ?? 0) !== 1;
+                const locateTitle = (locateCount ?? 0) > 0
+                  ? t(locatePlural ? 'coaches.diagram.locatingFoundPlural' : 'coaches.diagram.locatingFound').replace('{count}', String(locateCount))
+                  : t('coaches.diagram.locating');
                 const title = rereading
                   ? t('coaches.diagram.rereading')
                   : allDone
                     ? t(isPlural ? 'coaches.diagram.donePlural' : 'coaches.diagram.done')
-                    : t(isPlural ? 'coaches.diagram.analyzingPlural' : 'coaches.diagram.analyzing');
+                    : analyzing && !regions
+                      ? locateTitle
+                      : t(isPlural ? 'coaches.diagram.analyzingPlural' : 'coaches.diagram.analyzing');
                 return (
                   <ProcessingProgressBar
                     title={title}

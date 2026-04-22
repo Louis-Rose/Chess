@@ -206,6 +206,48 @@ def _gemini_generate(client_free, client_paid, model_id, contents, config=None, 
         return client_paid.models.generate_content(**kwargs), 'paid', retry_info
 
 
+def _gemini_stream_paid(client_paid, model_id, contents, *, timeout_seconds, label, on_progress):
+    """Streaming variant for paid-only models. Retries once on timeout/error.
+    Calls on_progress(accumulated_text) after each chunk so callers can emit
+    incremental progress. Returns (full_text, usage_tuple)."""
+    last_exc = None
+    for attempt in (1, 2):
+        state = {'text': '', 'usage': (0, 0, 0), 'error': None}
+        done = threading.Event()
+
+        def worker():
+            try:
+                stream = client_paid.models.generate_content_stream(model=model_id, contents=contents)
+                last_chunk = None
+                for chunk in stream:
+                    piece = getattr(chunk, 'text', None)
+                    if piece:
+                        state['text'] += piece
+                        try:
+                            on_progress(state['text'])
+                        except Exception:
+                            pass
+                    last_chunk = chunk
+                if last_chunk is not None:
+                    state['usage'] = _extract_usage_tokens(last_chunk)
+            except Exception as e:
+                state['error'] = e
+            finally:
+                done.set()
+
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+        if done.wait(timeout=timeout_seconds):
+            if state['error'] is None:
+                return state['text'], state['usage']
+            last_exc = state['error']
+            logger.warning(f"[{label}] attempt {attempt}/2 failed: {last_exc}")
+        else:
+            last_exc = TimeoutError(f"timeout after {timeout_seconds}s")
+            logger.warning(f"[{label}] timeout (attempt {attempt}/2)")
+    raise last_exc if last_exc is not None else RuntimeError(f"[{label}] no response")
+
+
 def _gemini_call_with_retry(client_free, client_paid, model_id, contents, *, timeout_seconds, label):
     """Run _gemini_generate with a hard timeout; retry once on timeout/error.
 
@@ -579,20 +621,32 @@ def read_diagram():
         # ── Phase 1: Locate diagram regions ──
         logger.info(f"[Diagram] Phase 1: locating regions with {model_id}")
         phase1_start = time_module.time()
+        # Stream progress so the UI can show "N diagrams detected so far..." while
+        # the locate call is still running. Count complete "box_2d" entries in the
+        # accumulated text as a cheap partial-parse.
+        progress_state = {'last': 0}
+
+        def _locate_progress(accumulated):
+            n = accumulated.count('"box_2d"')
+            if n > progress_state['last']:
+                progress_state['last'] = n
+                result_queue.put({"type": "locate_progress", "count": n})
+
         try:
-            resp_locate, tier, _ = _gemini_call_with_retry(
-                client_free, client_paid, model_id,
+            raw_text, usage = _gemini_stream_paid(
+                client_paid, model_id,
                 [types.Part.from_bytes(data=image_bytes, mime_type=mime_type), DIAGRAM_LOCATE_PROMPT],
-                timeout_seconds=60, label='Diagram Phase 1',
+                timeout_seconds=90, label='Diagram Phase 1', on_progress=_locate_progress,
             )
+            tier = 'paid'
             phase1_elapsed = round(time_module.time() - phase1_start)
-            in_tok, out_tok, think_tok = _extract_usage_tokens(resp_locate)
+            in_tok, out_tok, think_tok = usage
             _log_api_usage('diagram', model_id, in_tok, out_tok, phase1_elapsed,
                            request_id=req_id, thinking_tokens=think_tok,
                            billing_tier=tier, user_id=uid, phase='locate')
             if is_admin:
-                result_queue.put({"type": "debug", "phase": "locate", "raw": resp_locate.text})
-            raw = _strip_code_fences(resp_locate.text)
+                result_queue.put({"type": "debug", "phase": "locate", "raw": raw_text})
+            raw = _strip_code_fences(raw_text)
             raw_items = json_module.loads(raw)
             if not isinstance(raw_items, list):
                 raw_items = [raw_items]
