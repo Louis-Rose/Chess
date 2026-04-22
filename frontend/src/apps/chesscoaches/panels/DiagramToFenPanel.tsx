@@ -108,6 +108,18 @@ function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell
 
 // Renders the 256-bin grayscale histogram as an SVG bar chart.
 // `heightPx` scales the y-axis resolution; the component fills its container width.
+// Fraction of pixels whose luma is in [0, threshold] — a count of "pretty much
+// black" pixels, useful for spotting dense black-piece ink on a cell.
+function darkPixelFraction(bins: number[], threshold: number): number {
+  let total = 0;
+  let dark = 0;
+  for (let i = 0; i < bins.length; i++) {
+    total += bins[i];
+    if (i <= threshold) dark += bins[i];
+  }
+  return total > 0 ? dark / total : 0;
+}
+
 // Mean "darkness" of a 256-bin grayscale histogram, expressed as a 0..1 ratio.
 // 0 = every pixel is pure white (luma 255), 1 = every pixel is pure black (luma 0).
 // Independent of cell pixel count, so values are directly comparable across cells.
@@ -217,15 +229,27 @@ function PixelHistogram({ bins, label, colorIndex, onZoom }: {
     );
   }
   const score = darknessScore(bins);
+  const pctBlackEq0 = darkPixelFraction(bins, 0);
+  const pctBlackLe20 = darkPixelFraction(bins, 20);
+  const pctBlackLe50 = darkPixelFraction(bins, 50);
+  const fmt = (v: number) => `${(v * 100).toFixed(1)}%`;
   return (
     <div className="mx-auto max-w-[400px] w-full">
       <div className="flex justify-between items-baseline text-[11px] text-slate-400 mb-1 font-mono">
         <span>
           Darkness · <span className="text-slate-200">{label}</span>
           <span className="text-slate-500"> · </span>
-          <span className="text-slate-200">{(score * 100).toFixed(1)}%</span>
+          <span className="text-slate-200">{fmt(score)}</span>
         </span>
         <button type="button" onClick={onZoom} className="text-slate-500 hover:text-slate-300">zoom</button>
+      </div>
+      <div className="text-[11px] text-slate-400 mb-1 font-mono">
+        Black pixels ·{' '}
+        <span title="pure-black pixels (luma exactly 0)">=0: <span className="text-slate-200">{fmt(pctBlackEq0)}</span></span>
+        <span className="text-slate-500"> · </span>
+        <span title="near-black pixels (luma ≤ 20)">≤20: <span className="text-slate-200">{fmt(pctBlackLe20)}</span></span>
+        <span className="text-slate-500"> · </span>
+        <span title="dark pixels (luma ≤ 50)">≤50: <span className="text-slate-200">{fmt(pctBlackLe50)}</span></span>
       </div>
       <button type="button" onClick={onZoom} className="w-full block cursor-zoom-in" aria-label="Zoom histogram">
         <HistogramChart bins={bins} colorIndex={colorIndex} heightPx={80} />
@@ -251,13 +275,21 @@ function HistogramZoomModal({ bins, label, colorIndex, onClose }: {
          className="fixed inset-0 md:left-56 2xl:left-64 z-50 bg-slate-900/70 backdrop-blur-[2px] cursor-zoom-out overflow-auto p-6 flex">
       <div onClick={(e) => e.stopPropagation()}
            className="m-auto w-full max-w-[min(90vw,1100px)] bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-xl">
-        <div className="flex items-center justify-between mb-3 text-sm text-slate-300">
+        <div className="flex items-center justify-between mb-2 text-sm text-slate-300">
           <span>
             Pixel darkness · <span className="text-slate-100 font-mono">{label}</span>
             <span className="text-slate-500"> · </span>
             <span className="text-slate-100 font-mono">{(darknessScore(bins) * 100).toFixed(1)}%</span>
           </span>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-xs">Close (Esc)</button>
+        </div>
+        <div className="text-xs text-slate-400 mb-3 font-mono">
+          Black pixels ·{' '}
+          <span>=0: <span className="text-slate-200">{(darkPixelFraction(bins, 0) * 100).toFixed(1)}%</span></span>
+          <span className="text-slate-500"> · </span>
+          <span>≤20: <span className="text-slate-200">{(darkPixelFraction(bins, 20) * 100).toFixed(1)}%</span></span>
+          <span className="text-slate-500"> · </span>
+          <span>≤50: <span className="text-slate-200">{(darkPixelFraction(bins, 50) * 100).toFixed(1)}%</span></span>
         </div>
         <div style={{ height: 'min(60vh, 500px)' }}>
           <HistogramChart bins={bins} colorIndex={colorIndex} heightPx={0} />
