@@ -78,7 +78,19 @@ export function GymDashboard() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    (async () => {
+      await load();
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!data || syncing) return;
+    const stale = !data.last_synced_at
+      || (Date.now() - new Date(data.last_synced_at).getTime()) > 15 * 60 * 1000;
+    if (stale) sync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.last_synced_at]);
 
   const muscles = useMemo(() => {
     if (!data) return ['ALL'];
