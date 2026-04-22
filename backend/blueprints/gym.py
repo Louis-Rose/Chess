@@ -311,6 +311,14 @@ def gym_dashboard():
     Excludes warmups from all stats.
     """
     today = date.today()
+    # Build a list of the last 12 ISO week keys ending at this week, so
+    # charts show empty weeks instead of silently compressing gaps.
+    week_window = []
+    for i in range(11, -1, -1):
+        d = today - timedelta(weeks=i)
+        iso_year, iso_week, _ = d.isocalendar()
+        week_window.append(f'{iso_year}-W{iso_week:02d}')
+
     with get_db() as conn:
         sync_row = conn.execute(
             'SELECT last_synced_at FROM gym_sync_meta WHERE id = 1'
@@ -352,10 +360,8 @@ def gym_dashboard():
 
     exercises = []
     for ex, slot in by_ex.items():
-        series = sorted(
-            [{'week': w, 'sets': n} for (e, w), n in weekly_by_ex.items() if e == ex],
-            key=lambda x: x['week'],
-        )
+        ex_weekly = {w: n for (e, w), n in weekly_by_ex.items() if e == ex}
+        series = [{'week': w, 'sets': ex_weekly.get(w, 0)} for w in week_window]
         days_since = (today - slot['last_date']).days
         state = states.get(ex)
         if state == 'archived':
