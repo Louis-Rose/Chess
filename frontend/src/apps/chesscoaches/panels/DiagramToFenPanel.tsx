@@ -787,6 +787,39 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
     return () => window.removeEventListener('keydown', onKey);
   }, [undo]);
 
+  // Arrow keys step the selected cell around the grid, in screen space (so
+  // visual Up/Down/Left/Right always feel right regardless of orientation).
+  // No-ops when no cell is selected — user has to click first to start.
+  useEffect(() => {
+    if (!selectedCell || !diagram.cell_rects) return;
+    const orientation = diagram.region?.orientation ?? 'white_bottom';
+    const onKey = (e: KeyboardEvent) => {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      const file = selectedCell.charCodeAt(0) - 97;
+      const rank = parseInt(selectedCell[1], 10);
+      let dFile = 0, dRank = 0;
+      if (orientation === 'black_bottom') {
+        if (e.key === 'ArrowUp')    dRank = -1;
+        if (e.key === 'ArrowDown')  dRank = 1;
+        if (e.key === 'ArrowLeft')  dFile = 1;
+        if (e.key === 'ArrowRight') dFile = -1;
+      } else {
+        if (e.key === 'ArrowUp')    dRank = 1;
+        if (e.key === 'ArrowDown')  dRank = -1;
+        if (e.key === 'ArrowLeft')  dFile = -1;
+        if (e.key === 'ArrowRight') dFile = 1;
+      }
+      const nf = Math.max(0, Math.min(7, file + dFile));
+      const nr = Math.max(1, Math.min(8, rank + dRank));
+      setSelectedCell(`${String.fromCharCode(97 + nf)}${nr}`);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedCell, diagram.cell_rects, diagram.region?.orientation]);
+
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(editedFen); }
     catch {
