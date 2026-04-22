@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dumbbell, RefreshCw, ArrowLeft, Archive, ArchiveRestore, EyeOff, Eye } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BodyHeatmap } from './BodyHeatmap';
 
 interface WeeklyPoint { week: string; sets: number }
 interface Exercise {
@@ -133,6 +134,18 @@ export function GymDashboard() {
     [data]
   );
 
+  const muscleStats = useMemo(() => {
+    const out: Record<string, { minDaysSince: number | null }> = {};
+    for (const ex of data?.exercises ?? []) {
+      if (ex.ignored) continue;
+      const cur = out[ex.muscle_group]?.minDaysSince;
+      if (cur === undefined || cur === null || ex.days_since < cur) {
+        out[ex.muscle_group] = { minDaysSince: ex.days_since };
+      }
+    }
+    return out;
+  }, [data]);
+
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
       <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
@@ -177,6 +190,12 @@ export function GymDashboard() {
           <div className="text-center py-16 text-slate-500">
             <Dumbbell className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No data yet. Click <span className="font-semibold text-slate-300">Sync</span> to pull from Notion.</p>
+          </div>
+        )}
+
+        {data && data.exercises.length > 0 && (
+          <div className="mb-4">
+            <BodyHeatmap stats={muscleStats} selected={muscleFilter} onSelect={setMuscleFilter} />
           </div>
         )}
 
