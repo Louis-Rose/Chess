@@ -1185,20 +1185,23 @@ def read_diagram():
                     logger.warning(f"[Diagram] Phase 1 entry dropped (no valid box): {r}")
                     continue
                 # Clamp the LLM's raw tight box to [0, 100], then expand by
-                # PHASE1_PAD on each side. The padding gives phase 2 breathing
-                # room: Gemini can localize the grid more precisely inside a
-                # slightly larger crop than it can against the image edge, and
-                # downstream gradient-based refinement needs pixels outside the
-                # board to latch onto the outer frame.
-                PHASE1_PAD = 3.0  # percent of full image per side
+                # PHASE1_PAD_FRAC of the box's own dimensions on each side.
+                # The padding gives phase 2 breathing room: Gemini can localize
+                # the grid more precisely inside a slightly larger crop than it
+                # can against the image edge, and downstream gradient-based
+                # refinement needs pixels outside the board to latch onto the
+                # outer frame.
+                PHASE1_PAD_FRAC = 0.03
                 bx = float(box['x'])
                 by = float(box['y'])
                 bw = float(box['width'])
                 bh = float(box['height'])
-                left = max(0.0, bx - PHASE1_PAD)
-                top = max(0.0, by - PHASE1_PAD)
-                right = min(100.0, bx + bw + PHASE1_PAD)
-                bottom = min(100.0, by + bh + PHASE1_PAD)
+                pad_x = bw * PHASE1_PAD_FRAC
+                pad_y = bh * PHASE1_PAD_FRAC
+                left = max(0.0, bx - pad_x)
+                top = max(0.0, by - pad_y)
+                right = min(100.0, bx + bw + pad_x)
+                bottom = min(100.0, by + bh + pad_y)
                 clamped_box = {'x': left, 'y': top, 'width': max(0.0, right - left), 'height': max(0.0, bottom - top)}
 
                 # Extract metadata
