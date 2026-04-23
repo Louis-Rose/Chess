@@ -30,6 +30,7 @@ export interface DiagramExtract {
   diagram_number?: number | null;
   crop_data_url?: string;
   grid_box?: { x: number; y: number; width: number; height: number } | null;
+  raw_grid_box?: { x: number; y: number; width: number; height: number } | null;
   cell_rects?: Record<string, { x: number; y: number; width: number; height: number }> | null;
   pixel_histogram?: { bins: number[]; total: number } | null;
   cell_histograms?: Record<string, number[]> | null;
