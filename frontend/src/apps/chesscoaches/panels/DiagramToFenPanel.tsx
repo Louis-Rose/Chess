@@ -1254,6 +1254,16 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
         return (
           <>
             {auditRow}
+            {diagram.masked_crop_data_url && (
+              <div className="mx-auto max-w-[400px] w-full space-y-1">
+                <div className="text-[11px] font-mono text-slate-400">Background-masked (empty-cell calibration)</div>
+                <img
+                  src={diagram.masked_crop_data_url}
+                  alt="board with empty-square background masked out"
+                  className="w-full rounded-lg border border-slate-600"
+                />
+              </div>
+            )}
             {groupRow}
             <PixelHistogram bins={bins} label={label} colorIndex={colorIndex} onZoom={() => setHistogramZoomed(true)} />
             {histogramZoomed && (

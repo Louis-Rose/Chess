@@ -642,6 +642,97 @@ def _compute_pixel_histogram(image_bytes, grid_box):
         return None
 
 
+def _mask_board_background(crop_bytes, cell_rects, squares):
+    """For each cell, mask pixels whose LAB color is close to the expected background
+    (light or dark square, calibrated from LLM-called-empty cells of the same parity),
+    replacing them with white. Returns PNG bytes, or None on failure / when there is
+    not enough empty-cell evidence to calibrate.
+
+    Parity convention: a1 is dark. For any square `<file><rank>`, is_dark iff
+    (file_idx + rank_idx) is even.
+    """
+    if not cell_rects or not squares:
+        return None
+    try:
+        import io
+        import numpy as np
+        from PIL import Image
+
+        img = Image.open(io.BytesIO(crop_bytes)).convert('RGB')
+        W, H = img.size
+        rgb = np.array(img, dtype=np.uint8)
+        lab = np.array(img.convert('LAB'), dtype=np.int16)
+
+        def _is_dark(sq):
+            return (ord(sq[0]) - ord('a') + int(sq[1]) - 1) % 2 == 0
+
+        def _cell_box(rect):
+            left = int(rect['x'] / 100.0 * W)
+            top = int(rect['y'] / 100.0 * H)
+            right = int((rect['x'] + rect['width']) / 100.0 * W)
+            bottom = int((rect['y'] + rect['height']) / 100.0 * H)
+            return left, top, right, bottom
+
+        empty_light = []
+        empty_dark = []
+        for sq, rect in cell_rects.items():
+            if squares.get(sq, '.') != '.':
+                continue
+            left, top, right, bottom = _cell_box(rect)
+            cw, ch = right - left, bottom - top
+            if cw <= 4 or ch <= 4:
+                continue
+            # Inset ~1/6 of each side to skip grid-line pixels and corner artifacts.
+            ix = max(1, cw // 6)
+            iy = max(1, ch // 6)
+            sample = lab[top + iy:bottom - iy, left + ix:right - ix, :]
+            if sample.size == 0:
+                continue
+            med = np.median(sample.reshape(-1, 3), axis=0)
+            (empty_dark if _is_dark(sq) else empty_light).append(med)
+
+        if not empty_light and not empty_dark:
+            return None
+        light_bg = np.median(np.stack(empty_light), axis=0) if empty_light else None
+        dark_bg = np.median(np.stack(empty_dark), axis=0) if empty_dark else None
+        if light_bg is None:
+            light_bg = dark_bg
+        if dark_bg is None:
+            dark_bg = light_bg
+
+        def _tol(samples, center):
+            # 95th percentile in-group spread + small buffer; floor at 15 so a single
+            # empty cell doesn't mask nothing.
+            if not samples or center is None:
+                return 25.0
+            ds = np.sqrt(np.sum((np.stack(samples).astype(np.float32) - center.astype(np.float32)) ** 2, axis=1))
+            return max(15.0, float(np.percentile(ds, 95)) + 15.0)
+
+        tol_light = _tol(empty_light, light_bg)
+        tol_dark = _tol(empty_dark, dark_bg)
+
+        out = rgb.copy()
+        for sq, rect in cell_rects.items():
+            left, top, right, bottom = _cell_box(rect)
+            if right <= left or bottom <= top:
+                continue
+            is_dark = _is_dark(sq)
+            bg = dark_bg if is_dark else light_bg
+            tol = tol_dark if is_dark else tol_light
+            cell_lab = lab[top:bottom, left:right, :].astype(np.int32)
+            diff = cell_lab - bg.astype(np.int32)
+            dist2 = np.sum(diff * diff, axis=-1)
+            mask = dist2 <= (tol * tol)
+            out[top:bottom, left:right][mask] = 255
+
+        buf = io.BytesIO()
+        Image.fromarray(out, 'RGB').save(buf, format='PNG')
+        return buf.getvalue()
+    except Exception as e:
+        logger.warning(f"[Diagram] background masking failed: {e}")
+        return None
+
+
 def _crop_image_region(image_bytes, mime_type, region):
     """Crop a region from an image. Region has x, y, width, height as percentages."""
     from PIL import Image
@@ -993,6 +1084,12 @@ def read_diagram():
                     "pixel_histogram": _compute_pixel_histogram(meta['_crop_bytes'], grid_box_out),
                     "cell_histograms": _compute_cell_histograms(meta['_crop_bytes'], cell_rects_out),
                 }
+                if is_admin:
+                    masked_bytes = _mask_board_background(meta['_crop_bytes'], cell_rects_out, squares)
+                    if masked_bytes:
+                        diagram["masked_crop_data_url"] = (
+                            f"data:image/png;base64,{base64.b64encode(masked_bytes).decode('ascii')}"
+                        )
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
