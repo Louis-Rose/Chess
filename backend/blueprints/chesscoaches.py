@@ -791,7 +791,12 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
         tol_light = _tol(empty_light_stack, light_template)
         tol_dark = _tol(empty_dark_stack, dark_template)
 
-        K = 2  # neighborhood half-width tolerating per-cell phase drift
+        K = 0  # strict pixel-wise subtraction — no neighborhood slack. The ±2
+               # slack we had before turned self-defeating on high-frequency
+               # patterns (hatching) where every piece pixel could find a
+               # same-color template pixel within the window, masking out
+               # outlines and fills. With K=0, matching requires the template
+               # pixel at the exact coordinate to match, which preserves pieces.
         light_template_i = light_template.astype(np.int32)
         dark_template_i = dark_template.astype(np.int32)
 
