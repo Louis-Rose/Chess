@@ -1251,21 +1251,45 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
           );
         }
 
+        // Mismatches overlay — same data as the top BoardCrop so the masked
+        // preview shows the identical red/amber/cyan markers.
+        const mismatchOverlay = audit ? {
+          falsePositives: audit.unresolvedFalsePositives,
+          falseNegatives: [...audit.unresolvedFalseNegatives, ...audit.ambiguousFalseNegatives],
+          autoSwaps: audit.autoSwaps,
+        } : undefined;
+
+        // Reusable per-image analysis block: group averages, cell darkness,
+        // black-pixel ratios, and the histogram itself. Rendered once under the
+        // original board and once under the masked preview so each image has its
+        // own read-out without needing to scroll.
+        const histogramBlock = (
+          <>
+            {groupRow}
+            <PixelHistogram bins={bins} label={label} colorIndex={colorIndex} onZoom={() => setHistogramZoomed(true)} />
+          </>
+        );
+
         return (
           <>
             {auditRow}
+            {histogramBlock}
             {diagram.masked_crop_data_url && (
               <div className="mx-auto max-w-[400px] w-full space-y-1">
                 <div className="text-[11px] font-mono text-slate-400">Background-masked (empty-cell calibration)</div>
-                <img
+                <BoardCrop
                   src={diagram.masked_crop_data_url}
-                  alt="board with empty-square background masked out"
-                  className="w-full rounded-lg border border-slate-600"
+                  gridBox={diagram.grid_box}
+                  cellRects={diagram.cell_rects}
+                  showGrid={true}
+                  colorIndex={colorIndex}
+                  selectedCell={selectedCell}
+                  onSelectCell={setSelectedCell}
+                  mismatches={mismatchOverlay}
                 />
               </div>
             )}
-            {groupRow}
-            <PixelHistogram bins={bins} label={label} colorIndex={colorIndex} onZoom={() => setHistogramZoomed(true)} />
+            {histogramBlock}
             {histogramZoomed && (
               <HistogramZoomModal bins={bins} label={label} colorIndex={colorIndex} onClose={() => setHistogramZoomed(false)} />
             )}
