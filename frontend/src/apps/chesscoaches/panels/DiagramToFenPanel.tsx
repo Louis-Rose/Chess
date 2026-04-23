@@ -381,14 +381,21 @@ function HistogramChart({ bins, colorIndex, heightPx }: {
   if (!max) return null;
   const barColor = regionColor(colorIndex, 0.9);
   return (
-    <svg viewBox="0 0 256 80" preserveAspectRatio="none"
-         style={heightPx ? { height: heightPx } : { width: '100%', height: '100%' }}
-         className="bg-slate-900/60 rounded border border-slate-700 block w-full">
-      {bins.map((n, i) => {
-        const h = (n / max) * 80;
-        return <rect key={i} x={i} y={80 - h} width={1} height={h} fill={barColor} />;
-      })}
-    </svg>
+    <div className="relative w-full" style={heightPx ? { height: heightPx } : { height: '100%' }}>
+      <svg viewBox="0 0 256 80" preserveAspectRatio="none"
+           style={{ width: '100%', height: '100%' }}
+           className="bg-slate-900/60 rounded border border-slate-700 block">
+        {bins.map((n, i) => {
+          const h = (n / max) * 80;
+          return <rect key={i} x={i} y={80 - h} width={1} height={h} fill={barColor} />;
+        })}
+      </svg>
+      {/* Peak Y-axis label — scales per chart so the bar shape is readable
+          even when overall pixel counts differ between cells. */}
+      <span className="absolute top-0.5 left-1.5 text-[10px] text-slate-500 font-mono pointer-events-none">
+        {max.toLocaleString()}
+      </span>
+    </div>
   );
 }
 
@@ -423,6 +430,7 @@ function PixelHistogram({ bins, label, colorIndex, onZoom }: {
   const pctBlackEq0 = darkPixelFraction(bins, 0);
   const pctBlackLe20 = darkPixelFraction(bins, 20);
   const pctBlackLe50 = darkPixelFraction(bins, 50);
+  const totalPx = bins.reduce((a, b) => a + b, 0);
   const fmt = (v: number) => `${(v * 100).toFixed(1)}%`;
   return (
     <div className="mx-auto max-w-[400px] w-full">
@@ -431,6 +439,8 @@ function PixelHistogram({ bins, label, colorIndex, onZoom }: {
           Darkness · <span className="text-slate-200">{label}</span>
           <span className="text-slate-500"> · </span>
           <span className="text-slate-200">{fmt(score)}</span>
+          <span className="text-slate-500"> · </span>
+          <span title="total foreground pixels counted in this histogram" className="text-slate-200">{totalPx.toLocaleString()} px</span>
         </span>
         <button type="button" onClick={onZoom} className="text-slate-500 hover:text-slate-300">zoom</button>
       </div>
@@ -471,6 +481,8 @@ function HistogramZoomModal({ bins, label, colorIndex, onClose }: {
             Pixel darkness · <span className="text-slate-100 font-mono">{label}</span>
             <span className="text-slate-500"> · </span>
             <span className="text-slate-100 font-mono">{(darknessScore(bins) * 100).toFixed(1)}%</span>
+            <span className="text-slate-500"> · </span>
+            <span className="text-slate-100 font-mono">{bins.reduce((a, b) => a + b, 0).toLocaleString()} px</span>
           </span>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-xs">Close (Esc)</button>
         </div>
