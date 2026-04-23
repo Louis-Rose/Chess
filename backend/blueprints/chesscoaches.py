@@ -832,6 +832,21 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
             mask = dist2 <= (tol * tol)
             out[top:bottom, left:right][mask] = 255
 
+        # Also whiteout a ±3 px band around every grid line. Pieces never span a
+        # cell boundary, so this is safe and catches seam residuals (AA edges,
+        # corner intersection pixels, thin line-colored strips) that the
+        # color-distance mask above can't classify.
+        xs, ys = set(), set()
+        for rect in cell_rects.values():
+            left, top, right, bottom = _cell_box(rect)
+            xs.add(left); xs.add(right)
+            ys.add(top); ys.add(bottom)
+        BAND = 3
+        for y in ys:
+            out[max(0, y - BAND):min(H, y + BAND + 1), :] = 255
+        for x in xs:
+            out[:, max(0, x - BAND):min(W, x + BAND + 1)] = 255
+
         buf = io.BytesIO()
         Image.fromarray(out, 'RGB').save(buf, format='PNG')
         return buf.getvalue()
