@@ -921,16 +921,6 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
             strict_piece = min_dist2 > (tol * tol)
             closed_piece = _binary_closing_3x3(strict_piece, iterations=1)
             filled_piece = _binary_fill_holes(closed_piece)
-            # Noise filter: a real piece silhouette covers 20-40% of its cell,
-            # while template-subtraction noise leaves a handful of isolated
-            # pixels (< 1%). If the surviving foreground is below 2 % of the
-            # cell area (with a 10-px floor for very small cells), treat the
-            # whole cell as empty.
-            cell_area = int(filled_piece.size)
-            if cell_area > 0:
-                min_piece_area = max(10, int(cell_area * 0.02))
-                if int(filled_piece.sum()) < min_piece_area:
-                    filled_piece[:] = False
             mask = ~filled_piece
 
             out[top:bottom, left:right][mask] = 255
@@ -954,6 +944,26 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
             x0, x1 = max(0, x - BAND), min(W, x + BAND + 1)
             out[:, x0:x1] = 255
             skip_mask[:, x0:x1] = True
+
+        # Noise filter — run AFTER grid-band whiteout so the threshold sees the
+        # pixel count that will actually reach the histogram. If fewer than
+        # max(10, 2 % of cell area) foreground pixels survive inside a cell,
+        # clear the whole cell (treat as empty). A real piece silhouette covers
+        # 20-40 % of its cell, so 2 % is safely below any real piece and well
+        # above typical template-subtraction noise.
+        for sq, rect in cell_rects.items():
+            left, top, right, bottom = _cell_box(rect)
+            if right <= left or bottom <= top:
+                continue
+            cell_skip = skip_mask[top:bottom, left:right]
+            cell_area = int(cell_skip.size)
+            if cell_area == 0:
+                continue
+            foreground = cell_area - int(cell_skip.sum())
+            min_piece_area = max(10, int(cell_area * 0.02))
+            if foreground < min_piece_area:
+                out[top:bottom, left:right] = 255
+                skip_mask[top:bottom, left:right] = True
 
         buf = io.BytesIO()
         Image.fromarray(out, 'RGB').save(buf, format='PNG')
