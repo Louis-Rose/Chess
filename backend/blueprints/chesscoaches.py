@@ -813,12 +813,14 @@ def _refine_grid_box(crop_bytes, grid_box):
 
 
 def _mask_board_background(crop_bytes, cell_rects, squares):
-    """For each cell, mask pixels whose LAB color is close to the expected background
-    (light or dark square, calibrated from LLM-called-empty cells of the same parity),
-    replacing them with white. Returns (png_bytes, skip_mask) where skip_mask is a
-    bool ndarray of shape (H, W) marking every pixel that was masked (True = skip
-    this pixel for any downstream analysis). Returns None on failure / when there
-    is not enough empty-cell evidence to calibrate.
+    """Mask pixels that look like an "empty cell of this parity" pattern, replacing
+    them with white. Uses per-pixel template subtraction (not a single color): a
+    pixel is masked iff there exists an offset (dy, dx) within ±K pixels such
+    that the cell pixel's LAB matches the template pixel at that shifted location
+    within tolerance. This generalizes flat-color backgrounds (where the template
+    is uniform) to patterned ones (hatching, textures) and tolerates a few pixels
+    of phase drift between cells. Returns (png_bytes, skip_mask) where skip_mask
+    is bool (H, W); returns None on calibration failure.
 
     Parity convention: a1 is dark. For any square `<file><rank>`, is_dark iff
     (file_idx + rank_idx) is even.
@@ -846,56 +848,97 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
             bottom = int((rect['y'] + rect['height']) / 100.0 * H)
             return left, top, right, bottom
 
-        empty_light = []
-        empty_dark = []
+        # Canonical cell size — the template is defined at this resolution so
+        # empty cells from across the board can stack for per-pixel median.
+        widths, heights = [], []
+        for rect in cell_rects.values():
+            l, t, r, b = _cell_box(rect)
+            widths.append(r - l)
+            heights.append(b - t)
+        if not widths:
+            return None
+        cw_ref = int(np.median(widths))
+        ch_ref = int(np.median(heights))
+        if cw_ref <= 4 or ch_ref <= 4:
+            return None
+
+        # Collect empty cells by parity at canonical size. Skip edge cells that
+        # can't provide a full (ch_ref, cw_ref) slab — they'd need padding that
+        # would bias the template.
+        empty_light_stack = []
+        empty_dark_stack = []
         for sq, rect in cell_rects.items():
             if squares.get(sq, '.') != '.':
                 continue
-            left, top, right, bottom = _cell_box(rect)
-            cw, ch = right - left, bottom - top
-            if cw <= 4 or ch <= 4:
+            l, t, _r, _b = _cell_box(rect)
+            cell = lab[t:t + ch_ref, l:l + cw_ref, :]
+            if cell.shape[0] != ch_ref or cell.shape[1] != cw_ref:
                 continue
-            # Inset ~1/6 of each side to skip grid-line pixels and corner artifacts.
-            ix = max(1, cw // 6)
-            iy = max(1, ch // 6)
-            sample = lab[top + iy:bottom - iy, left + ix:right - ix, :]
-            if sample.size == 0:
-                continue
-            med = np.median(sample.reshape(-1, 3), axis=0)
-            (empty_dark if _is_dark(sq) else empty_light).append(med)
+            (empty_dark_stack if _is_dark(sq) else empty_light_stack).append(cell)
 
-        if not empty_light and not empty_dark:
+        if not empty_light_stack and not empty_dark_stack:
             return None
-        light_bg = np.median(np.stack(empty_light), axis=0) if empty_light else None
-        dark_bg = np.median(np.stack(empty_dark), axis=0) if empty_dark else None
-        if light_bg is None:
-            light_bg = dark_bg
-        if dark_bg is None:
-            dark_bg = light_bg
+        light_template = np.median(np.stack(empty_light_stack), axis=0) if empty_light_stack else None
+        dark_template = np.median(np.stack(empty_dark_stack), axis=0) if empty_dark_stack else None
+        if light_template is None:
+            light_template = dark_template
+        if dark_template is None:
+            dark_template = light_template
 
-        def _tol(samples, center):
-            # 95th percentile in-group spread + small buffer; floor at 15 so a single
-            # empty cell doesn't mask nothing.
-            if not samples or center is None:
+        # Tolerance: 95th percentile of per-pixel residual between each empty cell
+        # and its template, with a 15-unit buffer and a 15-unit floor. Pixels that
+        # differ from the template by more than this are assumed to be piece ink.
+        def _tol(stack, template):
+            if not stack:
                 return 25.0
-            ds = np.sqrt(np.sum((np.stack(samples).astype(np.float32) - center.astype(np.float32)) ** 2, axis=1))
-            return max(15.0, float(np.percentile(ds, 95)) + 15.0)
+            arr = np.stack(stack).astype(np.float32) - template.astype(np.float32)
+            dists = np.sqrt(np.sum(arr * arr, axis=-1))
+            return max(15.0, float(np.percentile(dists, 95)) + 15.0)
 
-        tol_light = _tol(empty_light, light_bg)
-        tol_dark = _tol(empty_dark, dark_bg)
+        tol_light = _tol(empty_light_stack, light_template)
+        tol_dark = _tol(empty_dark_stack, dark_template)
+
+        K = 2  # neighborhood half-width tolerating per-cell phase drift
+        light_template_i = light_template.astype(np.int32)
+        dark_template_i = dark_template.astype(np.int32)
 
         out = rgb.copy()
         for sq, rect in cell_rects.items():
             left, top, right, bottom = _cell_box(rect)
-            if right <= left or bottom <= top:
+            ch_c = bottom - top
+            cw_c = right - left
+            if ch_c <= 0 or cw_c <= 0:
                 continue
-            is_dark = _is_dark(sq)
-            bg = dark_bg if is_dark else light_bg
-            tol = tol_dark if is_dark else tol_light
+            template = dark_template_i if _is_dark(sq) else light_template_i
+            tol = tol_dark if _is_dark(sq) else tol_light
+
+            # Resize the template to this cell's exact pixel size (nearest neighbor —
+            # sub-pixel accuracy isn't worth the cost for the ±1 px size variations
+            # we see from rounding).
+            if template.shape[0] != ch_c or template.shape[1] != cw_c:
+                ys_idx = np.linspace(0, template.shape[0] - 1, ch_c).round().astype(int)
+                xs_idx = np.linspace(0, template.shape[1] - 1, cw_c).round().astype(int)
+                tt = template[ys_idx[:, None], xs_idx[None, :]]
+            else:
+                tt = template
+
+            # Pad by K on each side so template[y+dy, x+dx] is always in-bounds.
+            tt_padded = np.pad(tt, ((K, K), (K, K), (0, 0)), mode='edge')
+
             cell_lab = lab[top:bottom, left:right, :].astype(np.int32)
-            diff = cell_lab - bg.astype(np.int32)
-            dist2 = np.sum(diff * diff, axis=-1)
-            mask = dist2 <= (tol * tol)
+
+            # Minimum squared LAB distance over all (dy, dx) in [-K, K]². Brute
+            # force but vectorized per shift — (2K+1)² = 25 iterations × one
+            # per-pixel diff each. Plenty fast for 64 cells.
+            min_dist2 = None
+            for dy in range(-K, K + 1):
+                for dx in range(-K, K + 1):
+                    shifted = tt_padded[K + dy:K + dy + ch_c, K + dx:K + dx + cw_c, :]
+                    diff = cell_lab - shifted
+                    d2 = np.sum(diff * diff, axis=-1)
+                    min_dist2 = d2 if min_dist2 is None else np.minimum(min_dist2, d2)
+
+            mask = min_dist2 <= (tol * tol)
             out[top:bottom, left:right][mask] = 255
             skip_mask[top:bottom, left:right] |= mask
 
