@@ -762,8 +762,12 @@ def _refine_grid_box(crop_bytes, grid_box):
         signal_x = np.concatenate([[0.0], signal_x])
 
         def _best_fit(signal, start0, step0, axis_len):
-            """Find (start, step) maximizing sum of signal at start + k*step for
-            k=0..8. Search ±5 % of board size around the initial guess for start,
+            """Find (start, step) maximizing signal at just the two board-frame
+            endpoints (k=0 and k=8). The 7 internal lines are implicit from the
+            equal-spacing constraint, so only the outer frame needs to score —
+            this avoids being fooled by patterned interiors (hatching, textures)
+            whose internal boundaries don't produce full-width transitions.
+            Search ±5 % of board size around the initial guess for start,
             ±3 % for step. Returns (best_start, best_step)."""
             slack_start = max(3, int(round(step0 * 8 * 0.05)))
             slack_step = max(1, int(round(step0 * 0.03)))
@@ -777,15 +781,15 @@ def _refine_grid_box(crop_bytes, grid_box):
                     last = start + 8 * step
                     if start < 0 or last >= axis_len:
                         continue
-                    # Robustness: sample a ±1 px window around each predicted line
-                    # and take the max. Handles sub-pixel drift without widening
-                    # the search grid.
-                    score = 0.0
-                    for k in range(9):
-                        y = start + k * step
-                        score += max(signal[y - 1] if y > 0 else 0.0,
-                                     signal[y],
-                                     signal[y + 1] if y + 1 < axis_len else 0.0)
+                    # Score the two frame endpoints with a ±1 px window each to
+                    # handle sub-pixel drift.
+                    def _window_max(idx):
+                        return max(
+                            signal[idx - 1] if idx > 0 else 0.0,
+                            signal[idx],
+                            signal[idx + 1] if idx + 1 < axis_len else 0.0,
+                        )
+                    score = _window_max(start) + _window_max(last)
                     if score > best_score:
                         best_score = score
                         best_start = start
