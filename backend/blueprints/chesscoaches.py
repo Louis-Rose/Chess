@@ -705,6 +705,80 @@ def _compute_cell_histograms_skip(image_bytes, cell_rects, skip_mask):
         return None
 
 
+def _binary_dilate_3x3(m):
+    """3x3 square-kernel binary dilation in pure numpy. Expands True region by
+    one pixel in every direction (including diagonals)."""
+    import numpy as np  # noqa: F401 (captured by enclosing scope when called)
+    out = m.copy()
+    out[1:, :]   |= m[:-1, :]
+    out[:-1, :]  |= m[1:, :]
+    out[:, 1:]   |= m[:, :-1]
+    out[:, :-1]  |= m[:, 1:]
+    out[1:, 1:]    |= m[:-1, :-1]
+    out[:-1, :-1]  |= m[1:, 1:]
+    out[1:, :-1]   |= m[:-1, 1:]
+    out[:-1, 1:]   |= m[1:, :-1]
+    return out
+
+
+def _binary_erode_3x3(m):
+    """3x3 square-kernel binary erosion in pure numpy. Shrinks True region by
+    one pixel in every direction (including diagonals). Border pixels erode to
+    False because we treat off-grid as False."""
+    import numpy as np
+    out = m.copy()
+    # Center must be True AND all 8 neighbors True. Shift neighbor values into
+    # place and AND; out-of-bounds neighbors are treated as False (pad edges).
+    out[1:, :]   &= m[:-1, :]
+    out[:-1, :]  &= m[1:, :]
+    out[:, 1:]   &= m[:, :-1]
+    out[:, :-1]  &= m[:, 1:]
+    out[1:, 1:]    &= m[:-1, :-1]
+    out[:-1, :-1]  &= m[1:, 1:]
+    out[1:, :-1]   &= m[:-1, 1:]
+    out[:-1, 1:]   &= m[1:, :-1]
+    # Edges: set to False since we can't verify all 8 neighbors.
+    out[0, :] = False
+    out[-1, :] = False
+    out[:, 0] = False
+    out[:, -1] = False
+    return out
+
+
+def _binary_closing_3x3(m, iterations=1):
+    """Dilation followed by erosion — fills small gaps, connects fragmented
+    outlines, preserves overall shape. `iterations` controls how much gap
+    closing, up to ~1 px of bridging per iteration."""
+    for _ in range(iterations):
+        m = _binary_dilate_3x3(m)
+    for _ in range(iterations):
+        m = _binary_erode_3x3(m)
+    return m
+
+
+def _binary_fill_holes(mask):
+    """Fill regions of False pixels fully enclosed by True pixels. Seeds the
+    outside from the border, iteratively floods inward through False pixels,
+    and whatever remains False at convergence is an enclosed hole.
+    """
+    import numpy as np
+    outside = ~mask
+    seed = np.zeros_like(mask)
+    # Seed from the border (but only where mask itself is False — True border
+    # pixels are part of the foreground and shouldn't seed).
+    seed[0, :]  = outside[0, :]
+    seed[-1, :] = outside[-1, :]
+    seed[:, 0]  = outside[:, 0]
+    seed[:, -1] = outside[:, -1]
+    while True:
+        grown = _binary_dilate_3x3(seed) & outside
+        if np.array_equal(grown, seed):
+            break
+        seed = grown
+    # Holes = False pixels not reachable from the border via False-path.
+    return mask | (outside & ~seed)
+
+
 def _mask_board_background(crop_bytes, cell_rects, squares):
     """Mask pixels that look like an "empty cell of this parity" pattern, replacing
     them with white. Uses per-pixel template subtraction (not a single color): a
@@ -826,8 +900,9 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
             cell_lab = lab[top:bottom, left:right, :].astype(np.int32)
 
             # Minimum squared LAB distance over all (dy, dx) in [-K, K]². Brute
-            # force but vectorized per shift — (2K+1)² = 25 iterations × one
-            # per-pixel diff each. Plenty fast for 64 cells.
+            # force but vectorized per shift — (2K+1)² iterations × one
+            # per-pixel diff each. With K=0 this collapses to a single direct
+            # subtraction.
             min_dist2 = None
             for dy in range(-K, K + 1):
                 for dx in range(-K, K + 1):
@@ -836,7 +911,18 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
                     d2 = np.sum(diff * diff, axis=-1)
                     min_dist2 = d2 if min_dist2 is None else np.minimum(min_dist2, d2)
 
-            mask = min_dist2 <= (tol * tol)
+            # Shape completion via fill-holes: strict subtraction alone can't
+            # distinguish a piece pixel whose color coincides with the template
+            # color (white body on light square, black body on template stripe).
+            # So we compute the "confidently piece" pixels (residual above
+            # tolerance), close small gaps in the outline, then fill any
+            # regions enclosed by piece pixels. Anything *outside* that filled
+            # region is background.
+            strict_piece = min_dist2 > (tol * tol)
+            closed_piece = _binary_closing_3x3(strict_piece, iterations=1)
+            filled_piece = _binary_fill_holes(closed_piece)
+            mask = ~filled_piece
+
             out[top:bottom, left:right][mask] = 255
             skip_mask[top:bottom, left:right] |= mask
 
