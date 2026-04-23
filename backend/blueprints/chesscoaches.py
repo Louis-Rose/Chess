@@ -921,6 +921,16 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
             strict_piece = min_dist2 > (tol * tol)
             closed_piece = _binary_closing_3x3(strict_piece, iterations=1)
             filled_piece = _binary_fill_holes(closed_piece)
+            # Noise filter: a real piece silhouette covers 20-40% of its cell,
+            # while template-subtraction noise leaves a handful of isolated
+            # pixels (< 1%). If the surviving foreground is below 2 % of the
+            # cell area (with a 10-px floor for very small cells), treat the
+            # whole cell as empty.
+            cell_area = int(filled_piece.size)
+            if cell_area > 0:
+                min_piece_area = max(10, int(cell_area * 0.02))
+                if int(filled_piece.sum()) < min_piece_area:
+                    filled_piece[:] = False
             mask = ~filled_piece
 
             out[top:bottom, left:right][mask] = 255
