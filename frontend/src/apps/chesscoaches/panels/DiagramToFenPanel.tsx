@@ -135,11 +135,14 @@ function CellClickLayer({ cellRects, selectedCell, onSelect, colorIndex }: {
   );
 }
 
-function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell, onSelectCell, mismatches }: {
+function BoardCrop({ src, gridBox, cellRects, showGrid, hideGridLines, colorIndex, selectedCell, onSelectCell, mismatches }: {
   src: string;
   gridBox?: { x: number; y: number; width: number; height: number } | null;
   cellRects?: Record<string, { x: number; y: number; width: number; height: number }> | null;
   showGrid?: boolean;
+  // When true, suppresses just the blue grid overlay while keeping
+  // mismatch markers and the click layer active.
+  hideGridLines?: boolean;
   colorIndex: number;
   selectedCell?: string | null;
   onSelectCell?: (sq: string | null) => void;
@@ -153,7 +156,7 @@ function BoardCrop({ src, gridBox, cellRects, showGrid, colorIndex, selectedCell
   return (
     <div className="relative mx-auto max-w-[400px] w-full">
       <img src={src} alt="" className="rounded-lg border border-slate-600 w-full block" />
-      {showGrid && gridBox && <GridOverlay box={gridBox} colorIndex={colorIndex} />}
+      {showGrid && !hideGridLines && gridBox && <GridOverlay box={gridBox} colorIndex={colorIndex} />}
       {showGrid && cellRects && mismatches && showMismatches && (
         <MismatchLayer
           cellRects={cellRects}
@@ -1036,7 +1039,8 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
   const effectiveAdmin = useEffectiveAdmin();
   const [copied, setCopied] = useState(false);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
-  const [histogramZoomed, setHistogramZoomed] = useState(false);
+  const [zoomedHist, setZoomedHist] = useState<{ bins: number[]; label: string } | null>(null);
+  const [hideGridLines, setHideGridLines] = useState(false);
   // Reset cell selection when the source diagram changes (new scan, re-read landed).
   useEffect(() => { setSelectedCell(null); }, [diagram.fen, diagram.crop_data_url]);
   const { white_player, black_player, region } = diagram;
@@ -1158,6 +1162,7 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
               gridBox={diagram.grid_box}
               cellRects={diagram.cell_rects}
               showGrid={effectiveAdmin}
+              hideGridLines={hideGridLines}
               colorIndex={colorIndex}
               selectedCell={selectedCell}
               onSelectCell={setSelectedCell}
@@ -1169,11 +1174,25 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
       })()}
 
       {effectiveAdmin && (() => {
-        // Prefer the cell-specific histogram when a cell is selected; fall back
-        // to the whole-grid histogram otherwise.
-        const cellBins = selectedCell ? diagram.cell_histograms?.[selectedCell] : null;
-        const bins = cellBins ?? diagram.pixel_histogram?.bins ?? null;
-        if (!bins) return null;
+        // Each board gets its own analysis block computed from its own pixels:
+        // the top block reads the original crop, the bottom block reads the
+        // masked crop so the histogram/darkness reflect "what's left after
+        // masking". When a specific cell is selected, prefer that cell's
+        // histogram; otherwise fall back to the whole-grid histogram.
+        const maskedCellHists = diagram.masked_cell_histograms ?? null;
+        const maskedPixelHist = diagram.masked_pixel_histogram ?? null;
+
+        const binsFor = (
+          cellHists: Record<string, number[]> | null | undefined,
+          pixelHist: { bins: number[]; total: number } | null | undefined,
+        ): number[] | null => {
+          const cellBins = selectedCell ? cellHists?.[selectedCell] : null;
+          return cellBins ?? pixelHist?.bins ?? null;
+        };
+
+        const originalBins = binsFor(diagram.cell_histograms, diagram.pixel_histogram);
+        const maskedBins = binsFor(maskedCellHists, maskedPixelHist) ?? originalBins;
+        if (!originalBins) return null;
         const label = selectedCell ?? 'full grid';
 
         // Audit row: FN/FP mismatches left over after auto-swap pairing, plus
@@ -1219,14 +1238,17 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
 
         // Group averages: classify each of the 64 squares by (light/dark) × (empty/piece)
         // using the LLM's original FEN so the buckets reflect the model's read.
-        let groupRow: React.ReactNode = null;
-        const cellHistograms = diagram.cell_histograms;
-        if (cellHistograms) {
+        // Stats are computed against whichever cell-histogram set is passed in,
+        // so the block can be rendered against original pixels or masked pixels.
+        const buildGroupRow = (
+          cellHists: Record<string, number[]> | null | undefined,
+        ): React.ReactNode => {
+          if (!cellHists) return null;
           const placement = parseFenPlacement(diagram.fen);
           const buckets: Record<'emptyLight' | 'emptyDark' | 'pieceLight' | 'pieceDark', string[]> = {
             emptyLight: [], emptyDark: [], pieceLight: [], pieceDark: [],
           };
-          for (const sq of Object.keys(cellHistograms)) {
+          for (const sq of Object.keys(cellHists)) {
             const dark = isDarkSquare(sq);
             const occupied = (placement[sq] ?? '.') !== '.';
             const key = occupied
@@ -1235,13 +1257,13 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
             buckets[key].push(sq);
           }
           const stats = {
-            emptyLight: groupDarkness(buckets.emptyLight, cellHistograms),
-            emptyDark: groupDarkness(buckets.emptyDark, cellHistograms),
-            pieceLight: groupDarkness(buckets.pieceLight, cellHistograms),
-            pieceDark: groupDarkness(buckets.pieceDark, cellHistograms),
+            emptyLight: groupDarkness(buckets.emptyLight, cellHists),
+            emptyDark: groupDarkness(buckets.emptyDark, cellHists),
+            pieceLight: groupDarkness(buckets.pieceLight, cellHists),
+            pieceDark: groupDarkness(buckets.pieceDark, cellHists),
           };
           const fmt = (v: number | null) => v == null ? '—' : `${(v * 100).toFixed(1)}%`;
-          groupRow = (
+          return (
             <div className="mx-auto max-w-[400px] w-full text-[11px] font-mono text-slate-400 grid grid-cols-2 gap-x-3 gap-y-0.5 mb-1">
               <div>Empty · light: <span className="text-slate-200">{fmt(stats.emptyLight)}</span> <span className="text-slate-500">({buckets.emptyLight.length})</span></div>
               <div>Empty · dark: <span className="text-slate-200">{fmt(stats.emptyDark)}</span> <span className="text-slate-500">({buckets.emptyDark.length})</span></div>
@@ -1249,7 +1271,7 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
               <div>Piece · dark: <span className="text-slate-200">{fmt(stats.pieceDark)}</span> <span className="text-slate-500">({buckets.pieceDark.length})</span></div>
             </div>
           );
-        }
+        };
 
         // Mismatches overlay — same data as the top BoardCrop so the masked
         // preview shows the identical red/amber/cyan markers.
@@ -1259,21 +1281,33 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
           autoSwaps: audit.autoSwaps,
         } : undefined;
 
-        // Reusable per-image analysis block: group averages, cell darkness,
-        // black-pixel ratios, and the histogram itself. Rendered once under the
-        // original board and once under the masked preview so each image has its
-        // own read-out without needing to scroll.
-        const histogramBlock = (
+        const renderBlock = (bins: number[]) => (
           <>
-            {groupRow}
-            <PixelHistogram bins={bins} label={label} colorIndex={colorIndex} onZoom={() => setHistogramZoomed(true)} />
+            {buildGroupRow(bins === maskedBins ? (maskedCellHists ?? diagram.cell_histograms) : diagram.cell_histograms)}
+            <PixelHistogram
+              bins={bins}
+              label={label}
+              colorIndex={colorIndex}
+              onZoom={() => setZoomedHist({ bins, label })}
+            />
           </>
         );
 
         return (
           <>
+            <div className="mx-auto max-w-[400px] w-full flex justify-end">
+              <label className="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-400 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hideGridLines}
+                  onChange={(e) => setHideGridLines(e.target.checked)}
+                  className="accent-slate-400 w-3 h-3"
+                />
+                hide LLM grid
+              </label>
+            </div>
             {auditRow}
-            {histogramBlock}
+            {renderBlock(originalBins)}
             {diagram.masked_crop_data_url && (
               <div className="mx-auto max-w-[400px] w-full space-y-1">
                 <div className="text-[11px] font-mono text-slate-400">Background-masked (empty-cell calibration)</div>
@@ -1282,6 +1316,7 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
                   gridBox={diagram.grid_box}
                   cellRects={diagram.cell_rects}
                   showGrid={true}
+                  hideGridLines={hideGridLines}
                   colorIndex={colorIndex}
                   selectedCell={selectedCell}
                   onSelectCell={setSelectedCell}
@@ -1289,9 +1324,9 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
                 />
               </div>
             )}
-            {histogramBlock}
-            {histogramZoomed && (
-              <HistogramZoomModal bins={bins} label={label} colorIndex={colorIndex} onClose={() => setHistogramZoomed(false)} />
+            {maskedBins && renderBlock(maskedBins)}
+            {zoomedHist && (
+              <HistogramZoomModal bins={zoomedHist.bins} label={zoomedHist.label} colorIndex={colorIndex} onClose={() => setZoomedHist(null)} />
             )}
           </>
         );

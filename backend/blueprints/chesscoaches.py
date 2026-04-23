@@ -1213,6 +1213,11 @@ def read_diagram():
                         diagram["masked_crop_data_url"] = (
                             f"data:image/png;base64,{base64.b64encode(masked_bytes).decode('ascii')}"
                         )
+                        # Recompute histograms on the masked image so the admin
+                        # panel can show "what's left after masking" without
+                        # mixing in empty-square pixels.
+                        diagram["masked_pixel_histogram"] = _compute_pixel_histogram(masked_bytes, grid_box_out)
+                        diagram["masked_cell_histograms"] = _compute_cell_histograms(masked_bytes, cell_rects_out)
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")

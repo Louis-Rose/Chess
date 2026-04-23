@@ -34,6 +34,8 @@ export interface DiagramExtract {
   pixel_histogram?: { bins: number[]; total: number } | null;
   cell_histograms?: Record<string, number[]> | null;
   masked_crop_data_url?: string;
+  masked_pixel_histogram?: { bins: number[]; total: number } | null;
+  masked_cell_histograms?: Record<string, number[]> | null;
 }
 
 export interface DiagramModelResult {
