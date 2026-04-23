@@ -705,117 +705,6 @@ def _compute_cell_histograms_skip(image_bytes, cell_rects, skip_mask):
         return None
 
 
-def _refine_grid_box(crop_bytes, grid_box):
-    """Snap an approximate grid_box onto the real 9 horizontal + 9 vertical grid
-    lines of a chess board crop. Exploits two facts: (1) every grid line spans
-    the full board width/height because dark↔light alternation forces a color
-    jump in every column at every row boundary (and vice-versa); (2) all 9 lines
-    are equally spaced. Piece edges are localized and don't produce a full-width
-    jump, so they drop out naturally.
-
-    Uses the "fraction of columns/rows with perpendicular gradient > τ" signal
-    and fits (top, row_height) and (left, col_width) independently by brute-force
-    2D search in a ±5 %-of-box window. Returns a new grid_box (same 0-100 % space)
-    or the original on any failure.
-    """
-    if not grid_box:
-        return grid_box
-    try:
-        import io
-        import numpy as np
-        from PIL import Image
-
-        img = Image.open(io.BytesIO(crop_bytes)).convert('L')
-        W, H = img.size
-        arr = np.array(img, dtype=np.int16)  # (H, W)
-
-        # Absolute pixel bounds of the initial guess.
-        gx0 = grid_box['x'] / 100.0 * W
-        gy0 = grid_box['y'] / 100.0 * H
-        gw0 = grid_box['width'] / 100.0 * W
-        gh0 = grid_box['height'] / 100.0 * H
-
-        # Perpendicular-only gradients: for horizontal grid lines use vertical diffs
-        # (|arr[y] - arr[y-1]|, summed/thresholded across x); for vertical grid lines
-        # use horizontal diffs. Threshold of 12 luma levels is a cell-transition jump
-        # that piece-interior noise rarely matches.
-        dv = np.abs(np.diff(arr, axis=0))  # (H-1, W): jump between row y-1 and y
-        dh = np.abs(np.diff(arr, axis=1))  # (H, W-1): jump between col x-1 and x
-        JUMP_TAU = 12
-
-        # 1D signal along Y: fraction of columns (within the horizontal span of the
-        # box) with a vertical jump >= τ. Indexed such that signal_y[y] is the
-        # "strength" of a horizontal grid line at pixel row y.
-        x_lo = max(0, int(gx0))
-        x_hi = min(W, int(gx0 + gw0))
-        if x_hi - x_lo < 8:
-            return grid_box
-        signal_y = (dv[:, x_lo:x_hi] >= JUMP_TAU).mean(axis=1)  # length H-1
-        # Pad to length H so signal_y[y] corresponds to the row boundary "above y".
-        signal_y = np.concatenate([[0.0], signal_y])
-
-        y_lo = max(0, int(gy0))
-        y_hi = min(H, int(gy0 + gh0))
-        if y_hi - y_lo < 8:
-            return grid_box
-        signal_x = (dh[y_lo:y_hi, :] >= JUMP_TAU).mean(axis=0)  # length W-1
-        signal_x = np.concatenate([[0.0], signal_x])
-
-        def _best_fit(signal, start0, step0, axis_len):
-            """Find (start, step) maximizing signal at just the two board-frame
-            endpoints (k=0 and k=8). The 7 internal lines are implicit from the
-            equal-spacing constraint, so only the outer frame needs to score —
-            this avoids being fooled by patterned interiors (hatching, textures)
-            whose internal boundaries don't produce full-width transitions.
-            Search ±5 % of board size around the initial guess for start,
-            ±3 % for step. Returns (best_start, best_step)."""
-            slack_start = max(3, int(round(step0 * 8 * 0.05)))
-            slack_step = max(1, int(round(step0 * 0.03)))
-            best_score = -1.0
-            best_start = start0
-            best_step = step0
-            for start in range(int(round(start0)) - slack_start, int(round(start0)) + slack_start + 1):
-                for step in range(int(round(step0)) - slack_step, int(round(step0)) + slack_step + 1):
-                    if step <= 0:
-                        continue
-                    last = start + 8 * step
-                    if start < 0 or last >= axis_len:
-                        continue
-                    # Score the two frame endpoints with a ±1 px window each to
-                    # handle sub-pixel drift.
-                    def _window_max(idx):
-                        return max(
-                            signal[idx - 1] if idx > 0 else 0.0,
-                            signal[idx],
-                            signal[idx + 1] if idx + 1 < axis_len else 0.0,
-                        )
-                    score = _window_max(start) + _window_max(last)
-                    if score > best_score:
-                        best_score = score
-                        best_start = start
-                        best_step = step
-            return best_start, best_step
-
-        top_px, row_h = _best_fit(signal_y, gy0, gh0 / 8.0, len(signal_y))
-        left_px, col_w = _best_fit(signal_x, gx0, gw0 / 8.0, len(signal_x))
-
-        new_box = {
-            'x': max(0.0, left_px / W * 100.0),
-            'y': max(0.0, top_px / H * 100.0),
-            'width': min(100.0, (col_w * 8) / W * 100.0),
-            'height': min(100.0, (row_h * 8) / H * 100.0),
-        }
-        # Clamp so x+width <= 100 and y+height <= 100.
-        if new_box['x'] + new_box['width'] > 100.0:
-            new_box['width'] = 100.0 - new_box['x']
-        if new_box['y'] + new_box['height'] > 100.0:
-            new_box['height'] = 100.0 - new_box['y']
-        return new_box
-    except Exception as e:
-        logger.warning(f"[Diagram] grid_box refinement failed: {e}")
-        return grid_box
-
-
 def _mask_board_background(crop_bytes, cell_rects, squares):
     """Mask pixels that look like an "empty cell of this parity" pattern, replacing
     them with white. Uses per-pixel template subtraction (not a single color): a
@@ -1319,8 +1208,7 @@ def read_diagram():
             fen = _grid_to_fen(grid, meta['active_color'])
 
             if fen:
-                raw_grid_box = parsed.get('grid_box') if isinstance(parsed, dict) else None
-                grid_box_out = _refine_grid_box(meta['_crop_bytes'], raw_grid_box)
+                grid_box_out = parsed.get('grid_box') if isinstance(parsed, dict) else None
                 cell_rects_out = _build_cell_rects(grid_box_out, meta['orientation'])
                 diagram = {
                     "fen": fen,
@@ -1330,7 +1218,6 @@ def read_diagram():
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],
                     "grid_box": grid_box_out,
-                    "raw_grid_box": raw_grid_box,
                     "cell_rects": cell_rects_out,
                     "pixel_histogram": _compute_pixel_histogram(meta['_crop_bytes'], grid_box_out),
                     "cell_histograms": _compute_cell_histograms(meta['_crop_bytes'], cell_rects_out),
