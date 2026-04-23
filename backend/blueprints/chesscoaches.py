@@ -705,98 +705,6 @@ def _compute_cell_histograms_skip(image_bytes, cell_rects, skip_mask):
         return None
 
 
-def _trim_grid_box_border(crop_bytes, grid_box, max_border_frac=0.03):
-    """If the LLM's grid_box encloses a visible frame line (as is common on
-    printed diagrams), shrink the box inward on each edge by the frame's
-    thickness. Detects the frame row-by-row (or column-by-column) via per-row
-    luma std-dev: frame rows have very low std (uniform dark band), cell rows
-    have high std (alternating colors + piece content). Borderless diagrams
-    leave the box untouched — the edge row already shows cell variation, so no
-    shrink happens.
-
-    Returns a new grid_box in 0-100 % space (or the input unchanged on failure /
-    when no border is detected).
-
-    Parameters:
-        max_border_frac: safety cap on how much we shrink per edge, as a
-                         fraction of the grid_box dimension on that axis.
-    """
-    if not grid_box:
-        return grid_box
-    try:
-        import io
-        import numpy as np
-        from PIL import Image
-
-        img = Image.open(io.BytesIO(crop_bytes)).convert('L')
-        W, H = img.size
-        arr = np.array(img, dtype=np.int16)
-
-        gx = grid_box['x'] / 100.0 * W
-        gy = grid_box['y'] / 100.0 * H
-        gw = grid_box['width'] / 100.0 * W
-        gh = grid_box['height'] / 100.0 * H
-        x0 = int(round(gx))
-        y0 = int(round(gy))
-        x1 = int(round(gx + gw))
-        y1 = int(round(gy + gh))
-        x0 = max(0, min(W, x0))
-        y0 = max(0, min(H, y0))
-        x1 = max(0, min(W, x1))
-        y1 = max(0, min(H, y1))
-        if x1 - x0 < 16 or y1 - y0 < 16:
-            return grid_box
-
-        LOW_STD = 20.0   # below this, the strip looks uniform (border)
-        HIGH_STD = 40.0  # above this, the strip clearly has cell content
-        max_border_y = max(1, int(round((y1 - y0) * max_border_frac)))
-        max_border_x = max(1, int(round((x1 - x0) * max_border_frac)))
-
-        def _scan(get_strip, limit):
-            """Walk from the edge inward, advancing the edge past any strip with
-            std < LOW_STD. Stop when std exceeds HIGH_STD (clear cell content)
-            or we hit `limit`. Returns the number of pixels to shrink by."""
-            shrink = 0
-            while shrink < limit:
-                strip = get_strip(shrink)
-                if strip.size == 0:
-                    break
-                s = float(strip.std())
-                if s < LOW_STD:
-                    shrink += 1
-                    continue
-                if s >= HIGH_STD:
-                    break
-                # Ambiguous (LOW < s < HIGH): assume AA edge of the border,
-                # advance one more pixel but don't run forever.
-                shrink += 1
-            return shrink
-
-        # Top: row arr[y0 + k, x0:x1]. Bottom: row arr[y1 - 1 - k, x0:x1].
-        trim_top = _scan(lambda k: arr[y0 + k, x0:x1], max_border_y)
-        trim_bot = _scan(lambda k: arr[y1 - 1 - k, x0:x1], max_border_y)
-        # Left: col arr[y0:y1, x0 + k]. Right: col arr[y0:y1, x1 - 1 - k].
-        trim_left = _scan(lambda k: arr[y0:y1, x0 + k], max_border_x)
-        trim_right = _scan(lambda k: arr[y0:y1, x1 - 1 - k], max_border_x)
-
-        new_x0 = x0 + trim_left
-        new_y0 = y0 + trim_top
-        new_x1 = x1 - trim_right
-        new_y1 = y1 - trim_bot
-        if new_x1 - new_x0 < 16 or new_y1 - new_y0 < 16:
-            return grid_box
-
-        return {
-            'x': new_x0 / W * 100.0,
-            'y': new_y0 / H * 100.0,
-            'width': (new_x1 - new_x0) / W * 100.0,
-            'height': (new_y1 - new_y0) / H * 100.0,
-        }
-    except Exception as e:
-        logger.warning(f"[Diagram] grid_box border trim failed: {e}")
-        return grid_box
-
-
 def _mask_board_background(crop_bytes, cell_rects, squares):
     """Mask pixels that look like an "empty cell of this parity" pattern, replacing
     them with white. Uses per-pixel template subtraction (not a single color): a
@@ -1300,10 +1208,7 @@ def read_diagram():
             fen = _grid_to_fen(grid, meta['active_color'])
 
             if fen:
-                raw_grid_box = parsed.get('grid_box') if isinstance(parsed, dict) else None
-                # Trim any frame border off the LLM's box so "divide by 8" lands
-                # on real cell boundaries; this is a no-op when no border exists.
-                grid_box_out = _trim_grid_box_border(meta['_crop_bytes'], raw_grid_box)
+                grid_box_out = parsed.get('grid_box') if isinstance(parsed, dict) else None
                 cell_rects_out = _build_cell_rects(grid_box_out, meta['orientation'])
                 diagram = {
                     "fen": fen,
@@ -1313,7 +1218,6 @@ def read_diagram():
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],
                     "grid_box": grid_box_out,
-                    "raw_grid_box": raw_grid_box,
                     "cell_rects": cell_rects_out,
                     "pixel_histogram": _compute_pixel_histogram(meta['_crop_bytes'], grid_box_out),
                     "cell_histograms": _compute_cell_histograms(meta['_crop_bytes'], cell_rects_out),
