@@ -1041,6 +1041,7 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const [zoomedHist, setZoomedHist] = useState<{ bins: number[]; label: string } | null>(null);
   const [hideGridLines, setHideGridLines] = useState(false);
+  const [showRawGrid, setShowRawGrid] = useState(false);
   // Reset cell selection when the source diagram changes (new scan, re-read landed).
   useEffect(() => { setSelectedCell(null); }, [diagram.fen, diagram.crop_data_url]);
   const { white_player, black_player, region } = diagram;
@@ -1159,7 +1160,7 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
           return (
             <BoardCrop
               src={diagram.crop_data_url}
-              gridBox={diagram.grid_box}
+              gridBox={(showRawGrid ? diagram.raw_grid_box : null) ?? diagram.grid_box}
               cellRects={diagram.cell_rects}
               showGrid={effectiveAdmin}
               hideGridLines={hideGridLines}
@@ -1295,7 +1296,17 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
 
         return (
           <>
-            <div className="mx-auto max-w-[400px] w-full flex justify-end">
+            <div className="mx-auto max-w-[400px] w-full flex justify-end gap-3">
+              <label className="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-400 select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showRawGrid}
+                  disabled={!diagram.raw_grid_box}
+                  onChange={(e) => setShowRawGrid(e.target.checked)}
+                  className="accent-slate-400 w-3 h-3 disabled:opacity-40"
+                />
+                raw LLM grid
+              </label>
               <label className="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-400 select-none cursor-pointer">
                 <input
                   type="checkbox"
@@ -1313,7 +1324,7 @@ function FenEntry({ diagram, previewSrc, colorIndex }: { diagram: DiagramExtract
                 <div className="text-[11px] font-mono text-slate-400">Background-masked (empty-cell calibration)</div>
                 <BoardCrop
                   src={diagram.masked_crop_data_url}
-                  gridBox={diagram.grid_box}
+                  gridBox={(showRawGrid ? diagram.raw_grid_box : null) ?? diagram.grid_box}
                   cellRects={diagram.cell_rects}
                   showGrid={true}
                   hideGridLines={hideGridLines}

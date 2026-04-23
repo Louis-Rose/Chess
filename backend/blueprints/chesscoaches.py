@@ -1319,8 +1319,8 @@ def read_diagram():
             fen = _grid_to_fen(grid, meta['active_color'])
 
             if fen:
-                grid_box_out = parsed.get('grid_box') if isinstance(parsed, dict) else None
-                grid_box_out = _refine_grid_box(meta['_crop_bytes'], grid_box_out)
+                raw_grid_box = parsed.get('grid_box') if isinstance(parsed, dict) else None
+                grid_box_out = _refine_grid_box(meta['_crop_bytes'], raw_grid_box)
                 cell_rects_out = _build_cell_rects(grid_box_out, meta['orientation'])
                 diagram = {
                     "fen": fen,
@@ -1330,6 +1330,7 @@ def read_diagram():
                     "diagram_number": meta['diagram_number'],
                     "crop_data_url": meta['crop_data_url'],
                     "grid_box": grid_box_out,
+                    "raw_grid_box": raw_grid_box,
                     "cell_rects": cell_rects_out,
                     "pixel_histogram": _compute_pixel_histogram(meta['_crop_bytes'], grid_box_out),
                     "cell_histograms": _compute_cell_histograms(meta['_crop_bytes'], cell_rects_out),
