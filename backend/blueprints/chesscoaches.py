@@ -642,6 +642,69 @@ def _compute_pixel_histogram(image_bytes, grid_box):
         return None
 
 
+def _compute_pixel_histogram_skip(image_bytes, grid_box, skip_mask):
+    """Grayscale histogram of the grid_box region, ignoring every pixel where
+    skip_mask is True. Shape of skip_mask must match the full image (H, W).
+    Returns {'bins': list[int] of length 256, 'total': int} or None.
+    """
+    if not grid_box or skip_mask is None:
+        return None
+    try:
+        import io
+        import numpy as np
+        from PIL import Image
+
+        img = Image.open(io.BytesIO(image_bytes))
+        w, h = img.size
+        left = int(grid_box['x'] / 100.0 * w)
+        top = int(grid_box['y'] / 100.0 * h)
+        right = int((grid_box['x'] + grid_box['width']) / 100.0 * w)
+        bottom = int((grid_box['y'] + grid_box['height']) / 100.0 * h)
+        if right <= left or bottom <= top:
+            return None
+        gray = np.array(img.crop((left, top, right, bottom)).convert('L'), dtype=np.uint8)
+        sub_skip = skip_mask[top:bottom, left:right]
+        vals = gray[~sub_skip]
+        bins = np.bincount(vals, minlength=256)[:256].astype(int).tolist()
+        return {'bins': bins, 'total': int(vals.size)}
+    except Exception as e:
+        logger.warning(f"[Diagram] masked pixel histogram failed: {e}")
+        return None
+
+
+def _compute_cell_histograms_skip(image_bytes, cell_rects, skip_mask):
+    """Per-cell grayscale histogram, ignoring skipped pixels. Empty cells whose
+    pixels were all masked come back as [0]*256."""
+    if not cell_rects or skip_mask is None:
+        return None
+    try:
+        import io
+        import numpy as np
+        from PIL import Image
+
+        img = Image.open(io.BytesIO(image_bytes)).convert('L')
+        w, h = img.size
+        arr = np.array(img, dtype=np.uint8)
+        out = {}
+        for name, rect in cell_rects.items():
+            left = int(rect['x'] / 100.0 * w)
+            top = int(rect['y'] / 100.0 * h)
+            right = int((rect['x'] + rect['width']) / 100.0 * w)
+            bottom = int((rect['y'] + rect['height']) / 100.0 * h)
+            if right <= left or bottom <= top:
+                out[name] = [0] * 256
+                continue
+            cell = arr[top:bottom, left:right]
+            sub_skip = skip_mask[top:bottom, left:right]
+            vals = cell[~sub_skip]
+            bins = np.bincount(vals, minlength=256)[:256].astype(int).tolist() if vals.size > 0 else [0] * 256
+            out[name] = bins
+        return out
+    except Exception as e:
+        logger.warning(f"[Diagram] masked cell histograms failed: {e}")
+        return None
+
+
 def _refine_grid_box(crop_bytes, grid_box):
     """Snap an approximate grid_box onto the real 9 horizontal + 9 vertical grid
     lines of a chess board crop. Exploits two facts: (1) every grid line spans
@@ -752,8 +815,10 @@ def _refine_grid_box(crop_bytes, grid_box):
 def _mask_board_background(crop_bytes, cell_rects, squares):
     """For each cell, mask pixels whose LAB color is close to the expected background
     (light or dark square, calibrated from LLM-called-empty cells of the same parity),
-    replacing them with white. Returns PNG bytes, or None on failure / when there is
-    not enough empty-cell evidence to calibrate.
+    replacing them with white. Returns (png_bytes, skip_mask) where skip_mask is a
+    bool ndarray of shape (H, W) marking every pixel that was masked (True = skip
+    this pixel for any downstream analysis). Returns None on failure / when there
+    is not enough empty-cell evidence to calibrate.
 
     Parity convention: a1 is dark. For any square `<file><rank>`, is_dark iff
     (file_idx + rank_idx) is even.
@@ -769,6 +834,7 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
         W, H = img.size
         rgb = np.array(img, dtype=np.uint8)
         lab = np.array(img.convert('LAB'), dtype=np.int16)
+        skip_mask = np.zeros((H, W), dtype=bool)
 
         def _is_dark(sq):
             return (ord(sq[0]) - ord('a') + int(sq[1]) - 1) % 2 == 0
@@ -831,6 +897,7 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
             dist2 = np.sum(diff * diff, axis=-1)
             mask = dist2 <= (tol * tol)
             out[top:bottom, left:right][mask] = 255
+            skip_mask[top:bottom, left:right] |= mask
 
         # Also whiteout a ±3 px band around every grid line. Pieces never span a
         # cell boundary, so this is safe and catches seam residuals (AA edges,
@@ -843,13 +910,17 @@ def _mask_board_background(crop_bytes, cell_rects, squares):
             ys.add(top); ys.add(bottom)
         BAND = 3
         for y in ys:
-            out[max(0, y - BAND):min(H, y + BAND + 1), :] = 255
+            y0, y1 = max(0, y - BAND), min(H, y + BAND + 1)
+            out[y0:y1, :] = 255
+            skip_mask[y0:y1, :] = True
         for x in xs:
-            out[:, max(0, x - BAND):min(W, x + BAND + 1)] = 255
+            x0, x1 = max(0, x - BAND), min(W, x + BAND + 1)
+            out[:, x0:x1] = 255
+            skip_mask[:, x0:x1] = True
 
         buf = io.BytesIO()
         Image.fromarray(out, 'RGB').save(buf, format='PNG')
-        return buf.getvalue()
+        return buf.getvalue(), skip_mask
     except Exception as e:
         logger.warning(f"[Diagram] background masking failed: {e}")
         return None
@@ -1208,16 +1279,18 @@ def read_diagram():
                     "cell_histograms": _compute_cell_histograms(meta['_crop_bytes'], cell_rects_out),
                 }
                 if is_admin:
-                    masked_bytes = _mask_board_background(meta['_crop_bytes'], cell_rects_out, squares)
-                    if masked_bytes:
+                    mask_result = _mask_board_background(meta['_crop_bytes'], cell_rects_out, squares)
+                    if mask_result:
+                        masked_bytes, skip_mask = mask_result
                         diagram["masked_crop_data_url"] = (
                             f"data:image/png;base64,{base64.b64encode(masked_bytes).decode('ascii')}"
                         )
-                        # Recompute histograms on the masked image so the admin
-                        # panel can show "what's left after masking" without
-                        # mixing in empty-square pixels.
-                        diagram["masked_pixel_histogram"] = _compute_pixel_histogram(masked_bytes, grid_box_out)
-                        diagram["masked_cell_histograms"] = _compute_cell_histograms(masked_bytes, cell_rects_out)
+                        # Histograms over the masked image exclude skipped pixels
+                        # entirely — the replacement color never enters the bins,
+                        # so the chart and any downstream audit reflect only
+                        # surviving signal (piece pixels).
+                        diagram["masked_pixel_histogram"] = _compute_pixel_histogram_skip(meta['_crop_bytes'], grid_box_out, skip_mask)
+                        diagram["masked_cell_histograms"] = _compute_cell_histograms_skip(meta['_crop_bytes'], cell_rects_out, skip_mask)
                 diagrams_by_idx[idx] = diagram
                 result_queue.put({"type": "diagram", "index": idx, "diagram": diagram})
                 logger.info(f"[Diagram] Region {idx + 1}: {fen[:60]} ({in_tok}+{out_tok}+{think_tok}t tokens) [{tier}]")
