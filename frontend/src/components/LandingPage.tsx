@@ -220,9 +220,9 @@ function TestimonialsSection({ t }: { t: typeof COPY['en'] }) {
             </div>
           </figcaption>
           <blockquote className="text-sm sm:text-base text-slate-200 leading-relaxed">
-            <span aria-hidden className="text-emerald-500 font-serif text-3xl leading-none mr-1 align-[-0.3em]">“</span>
+            <span aria-hidden className="text-emerald-500 font-serif mr-0.5">“</span>
             {t.testimonialQuote}
-            <span aria-hidden className="text-emerald-500 font-serif text-3xl leading-none ml-1 align-[-0.3em]">”</span>
+            <span aria-hidden className="text-emerald-500 font-serif ml-0.5">”</span>
           </blockquote>
         </figure>
       </div>
