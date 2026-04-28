@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Grid3X3, Users, Calendar } from 'lucide-react';
+import { Grid3X3, Users, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
@@ -10,7 +10,6 @@ import { SiteNav } from './SiteNav';
 const COPY = {
   fr: {
     navContact: 'Contact',
-    badge: 'IA pour entraîneurs d\'échecs',
     headlineBefore: 'L\'intelligence artificielle au service de',
     headlineAccent: 'vos cours d\'échecs.',
     subhead: 'Gagnez du temps sur la préparation, la correction et le suivi de vos élèves grâce à des outils dédiés.',
@@ -29,7 +28,6 @@ const COPY = {
   },
   es: {
     navContact: 'Contacto',
-    badge: 'IA para entrenadores de ajedrez',
     headlineBefore: 'Inteligencia artificial al servicio de',
     headlineAccent: 'tus clases de ajedrez.',
     subhead: 'Ahorra tiempo en preparación, corrección y seguimiento de tus alumnos con herramientas dedicadas.',
@@ -48,7 +46,6 @@ const COPY = {
   },
   en: {
     navContact: 'Contact',
-    badge: 'AI for chess coaches',
     headlineBefore: 'Artificial intelligence to power',
     headlineAccent: 'your chess lessons.',
     subhead: 'Save time on lesson prep, correction, and student tracking with tools built for coaches.',
@@ -92,8 +89,7 @@ export function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-6 lg:px-12 pt-10 pb-4 lg:pt-12 lg:pb-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
-              <Badge text={t.badge} />
-              <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
                 {t.headlineBefore}{' '}
                 <span className="text-emerald-400">{t.headlineAccent}</span>
               </h1>
@@ -117,15 +113,6 @@ export function LandingPage() {
 
       <Footer t={t} />
     </div>
-  );
-}
-
-function Badge({ text }: { text: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-sm font-medium">
-      <Sparkles className="w-3.5 h-3.5" />
-      {text}
-    </span>
   );
 }
 
