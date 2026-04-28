@@ -207,23 +207,23 @@ function FeaturesSection({ t }: { t: typeof COPY['en'] }) {
 function TestimonialsSection({ t }: { t: typeof COPY['en'] }) {
   return (
     <section className="border-t border-slate-800">
-      <div className="max-w-4xl mx-auto px-6 lg:px-12 py-14 lg:py-20">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">{t.testimonialsTitle}</h2>
-        <figure className="mt-12 rounded-2xl border border-slate-700 bg-slate-800/40 p-6 sm:p-8 lg:p-10">
-          <figcaption className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-semibold">
+      <div className="max-w-6xl mx-auto px-6 lg:px-12 py-8 lg:py-10">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-center">{t.testimonialsTitle}</h2>
+        <figure className="mt-6 rounded-2xl border border-slate-700 bg-slate-800/40 p-5 sm:p-6">
+          <figcaption className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-semibold text-sm">
               EG
             </div>
             <div>
-              <div className="font-semibold text-white">E. G. S.</div>
-              <div className="text-sm text-slate-400">{t.testimonialRole}</div>
+              <div className="font-semibold text-white text-sm">E. G. S.</div>
+              <div className="text-xs text-slate-400">{t.testimonialRole}</div>
             </div>
           </figcaption>
-          <span aria-hidden className="block text-emerald-500 font-serif text-5xl leading-none mb-2">“</span>
-          <blockquote className="text-base sm:text-lg text-slate-200 leading-relaxed">
+          <blockquote className="text-sm sm:text-base text-slate-200 leading-relaxed">
+            <span aria-hidden className="text-emerald-500 font-serif text-3xl leading-none mr-1 align-[-0.3em]">“</span>
             {t.testimonialQuote}
+            <span aria-hidden className="text-emerald-500 font-serif text-3xl leading-none ml-1 align-[-0.3em]">”</span>
           </blockquote>
-          <span aria-hidden className="block text-emerald-500 font-serif text-5xl leading-none mt-2 text-right">”</span>
         </figure>
       </div>
     </section>
