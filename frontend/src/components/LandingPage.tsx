@@ -183,9 +183,9 @@ function FeaturesSection({ t }: { t: typeof COPY['en'] }) {
   ];
   return (
     <section id="features" className="border-t border-slate-800 bg-slate-900/60">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10 lg:py-14">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 pt-6 pb-10 lg:pt-8 lg:pb-14">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-center">{t.featuresTitle}</h2>
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
+        <div className="mt-8 grid md:grid-cols-3 gap-6">
           {features.map(({ icon: Icon, title, body }) => (
             <div
               key={title}
