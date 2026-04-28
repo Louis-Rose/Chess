@@ -24,6 +24,9 @@ const COPY = {
     f2Body: 'Centralisez les profils, leçons et paiements de vos élèves au même endroit.',
     f3Title: 'Calendrier intégré',
     f3Body: 'Planifiez vos cours et suivez votre activité en un coup d\'œil.',
+    testimonialsTitle: 'Ils nous font confiance',
+    testimonialQuote: "Nous l'utilisons dans notre académie pour gérer nos cours en ligne. Je le recommande pour mettre de l'ordre dans le chaos auquel les entraîneurs sont souvent confrontés. Planifier les cours, suivre les élèves et les paiements, préparer les leçons, assigner des tâches, numériser des livres d'échecs. Tout au même endroit.",
+    testimonialRole: 'FIDE Instructor · Chess Teacher · Writer',
     footerTagline: 'Outils d\'IA pour les entraîneurs d\'échecs.',
   },
   es: {
@@ -42,6 +45,9 @@ const COPY = {
     f2Body: 'Perfiles, lecciones y pagos de tus alumnos en un único lugar.',
     f3Title: 'Calendario integrado',
     f3Body: 'Planifica las clases y consulta tu actividad de un vistazo.',
+    testimonialsTitle: 'Confían en nosotros',
+    testimonialQuote: 'Lo usamos en nuestra academia para gestionar nuestras clases virtuales. Lo recomiendo para organizar el caos que los entrenadores enfrentamos a menudo. Planificar clases, gestionar alumnos y pagos, preparar lecciones, asignar tareas, digitalizar libros de ajedrez. Todo en un solo lugar.',
+    testimonialRole: 'FIDE Instructor · Chess Teacher · Writer',
     footerTagline: 'Herramientas de IA para entrenadores de ajedrez.',
   },
   en: {
@@ -60,6 +66,9 @@ const COPY = {
     f2Body: 'Profiles, lessons, and payments for every student in one place.',
     f3Title: 'Built-in calendar',
     f3Body: 'Schedule lessons and review activity at a glance.',
+    testimonialsTitle: 'Trusted by coaches',
+    testimonialQuote: "We're using it at our academy to manage our virtual classes. I recommend it for organizing the chaos that coaches often face when managing their weekly tasks. Schedule classes, manage students and payments, prepare lessons, assign tasks, digitize chess books. All in one place.",
+    testimonialRole: 'FIDE Instructor · Chess Teacher · Writer',
     footerTagline: 'AI tools for chess coaches.',
   },
 };
@@ -109,6 +118,7 @@ export function LandingPage() {
         </div>
 
         <FeaturesSection t={t} />
+        <TestimonialsSection t={t} />
       </main>
 
       <Footer t={t} />
@@ -189,6 +199,31 @@ function FeaturesSection({ t }: { t: typeof COPY['en'] }) {
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function TestimonialsSection({ t }: { t: typeof COPY['en'] }) {
+  return (
+    <section className="border-t border-slate-800">
+      <div className="max-w-4xl mx-auto px-6 lg:px-12 py-14 lg:py-20">
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">{t.testimonialsTitle}</h2>
+        <figure className="mt-12 rounded-2xl border border-slate-700 bg-slate-800/40 p-6 sm:p-8 lg:p-10">
+          <span aria-hidden className="block text-emerald-500 font-serif text-5xl leading-none mb-2">“</span>
+          <blockquote className="text-base sm:text-lg text-slate-200 leading-relaxed">
+            {t.testimonialQuote}
+          </blockquote>
+          <figcaption className="mt-6 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-semibold">
+              EG
+            </div>
+            <div>
+              <div className="font-semibold text-white">Esteban Guillermo Souto</div>
+              <div className="text-sm text-slate-400">{t.testimonialRole}</div>
+            </div>
+          </figcaption>
+        </figure>
       </div>
     </section>
   );
