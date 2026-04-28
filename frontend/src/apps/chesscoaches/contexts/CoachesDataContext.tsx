@@ -71,6 +71,54 @@ const DIAGRAM_INITIAL: DiagramState = {
   rereading: false, rereadDone: 0, rereadTotal: 0, rereadStartTime: null,
 };
 
+const DEMO_FILE_FEN = 'r3k2r/pp3pp1/2b1p3/3pP2n/3P3P/3B1N2/PP1K1P2/2R3R1 w - - 0 1';
+
+async function runDemoRead(
+  file: File,
+  signal: AbortSignal,
+  setDiagram: React.Dispatch<React.SetStateAction<DiagramState>>,
+): Promise<void> {
+  const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+  if (signal.aborted) return;
+
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  if (signal.aborted) return;
+
+  setDiagram(prev => ({
+    ...prev,
+    models: [{ id: 'lumna', name: 'LUMNA', avg_elapsed: 5 }],
+  }));
+
+  await sleep(700);
+  if (signal.aborted) return;
+  setDiagram(prev => ({ ...prev, locateCount: 1 }));
+
+  await sleep(900);
+  if (signal.aborted) return;
+  const region: DiagramRegion = {
+    x: 0, y: 0, width: 1, height: 1,
+    crop_data_url: dataUrl,
+    active_color: 'w',
+  };
+  setDiagram(prev => ({ ...prev, regions: [region], regionCount: 1, regionsRead: 0 }));
+
+  await sleep(2700);
+  if (signal.aborted) return;
+  const extract: DiagramExtract = { fen: DEMO_FILE_FEN, region, crop_data_url: dataUrl };
+  setDiagram(prev => ({
+    ...prev,
+    regionsRead: 1,
+    modelResults: { lumna: { name: 'LUMNA', diagrams: [extract], elapsed: 5 } },
+  }));
+
+  await sleep(700);
+}
+
 // ── Mistakes types ──
 
 export interface ParsedMove {
@@ -235,6 +283,17 @@ export function CoachesDataProvider({ children }: { children: ReactNode }) {
     const { signal } = controller;
 
     setDiagram(prev => ({ ...prev, error: '', modelResults: {}, models: [], analyzing: true, startTime: Date.now(), locateCount: 0 }));
+
+    // Demo short-circuit: a specific filename plays a pre-recorded read with
+    // deterministic ~5s timing, used to keep demo videos clean.
+    if (file.name === 'diagram_Gatineau_4_2026-04-10_14h51.jpg') {
+      try { await runDemoRead(file, signal, setDiagram); }
+      finally {
+        if (!signal.aborted) setDiagram(prev => ({ ...prev, analyzing: false }));
+        if (diagramAbortRef.current === controller) diagramAbortRef.current = null;
+      }
+      return;
+    }
 
     try {
       const formData = new FormData();
