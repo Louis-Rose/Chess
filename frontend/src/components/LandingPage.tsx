@@ -9,8 +9,6 @@ import { BoardPreview } from '../apps/chesscoaches/components/BoardPreview';
 
 const COPY = {
   fr: {
-    navProduct: 'Produit',
-    navAbout: 'À propos',
     navContact: 'Contact',
     signIn: 'Espace beta',
     bookDemo: 'Demander une démo',
@@ -32,8 +30,6 @@ const COPY = {
     footerTagline: 'Outils d\'IA pour les entraîneurs d\'échecs.',
   },
   es: {
-    navProduct: 'Producto',
-    navAbout: 'Acerca de',
     navContact: 'Contacto',
     signIn: 'Acceso beta',
     bookDemo: 'Reservar demo',
@@ -55,8 +51,6 @@ const COPY = {
     footerTagline: 'Herramientas de IA para entrenadores de ajedrez.',
   },
   en: {
-    navProduct: 'Product',
-    navAbout: 'About',
     navContact: 'Contact',
     signIn: 'Beta access',
     bookDemo: 'Book a demo',
@@ -142,8 +136,6 @@ function Nav({ t }: { t: typeof COPY['en'] }) {
           <span className="text-lg font-bold tracking-wide">LUMNA</span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-slate-300">
-          <a href="#features" className="hover:text-white transition-colors">{t.navProduct}</a>
-          <a href="#about" className="hover:text-white transition-colors">{t.navAbout}</a>
           <Link to="/contact" className="hover:text-white transition-colors">{t.navContact}</Link>
         </nav>
         <div className="flex items-center gap-3">
