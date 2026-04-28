@@ -248,17 +248,11 @@ function FeaturesSection({ t }: { t: typeof COPY['en'] }) {
 function Footer({ t }: { t: typeof COPY['en'] }) {
   return (
     <footer id="contact" className="border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10 flex items-center justify-center">
         <div className="flex items-center gap-2">
           <LumnaLogo className="w-6 h-6" />
           <span className="text-sm font-bold tracking-wide">LUMNA</span>
           <span className="text-sm text-slate-500 ml-2">— {t.footerTagline}</span>
-        </div>
-        <div className="flex items-center gap-6 text-sm text-slate-400">
-          <a href="mailto:rose.louis.mail@gmail.com" className="hover:text-white transition-colors">
-            rose.louis.mail@gmail.com
-          </a>
-          <Link to="/app" className="hover:text-white transition-colors">{t.signIn}</Link>
         </div>
       </div>
     </footer>
