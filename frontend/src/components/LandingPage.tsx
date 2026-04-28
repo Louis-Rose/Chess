@@ -95,7 +95,7 @@ export function LandingPage() {
 
       <main className="relative">
         <BackgroundGlow />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-12 pt-12 pb-24 lg:pt-20 lg:pb-32">
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-12 pt-12 pb-12 lg:pt-16 lg:pb-16">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
               <Badge text={t.badge} />
@@ -224,7 +224,7 @@ function FeaturesSection({ t }: { t: typeof COPY['en'] }) {
   ];
   return (
     <section id="features" className="border-t border-slate-800 bg-slate-900/60">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-14 lg:py-20">
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">{t.featuresTitle}</h2>
         <div className="mt-12 grid md:grid-cols-3 gap-6">
           {features.map(({ icon: Icon, title, body }) => (
