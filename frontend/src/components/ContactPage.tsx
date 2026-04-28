@@ -133,7 +133,7 @@ export function ContactPage() {
             <LumnaLogo className="w-7 h-7" />
             <span className="text-lg font-bold tracking-wide">LUMNA</span>
           </Link>
-          <LanguageToggle />
+          <LanguageToggle flagsOnly />
         </div>
       </header>
 

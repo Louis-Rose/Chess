@@ -147,7 +147,6 @@ function Nav({ t }: { t: typeof COPY['en'] }) {
           <Link to="/contact" className="hover:text-white transition-colors">{t.navContact}</Link>
         </nav>
         <div className="flex items-center gap-3">
-          <LanguageToggle />
           <Link
             to="/app"
             className="hidden sm:inline-flex text-sm text-slate-300 hover:text-white transition-colors px-3 py-2"
@@ -160,6 +159,7 @@ function Nav({ t }: { t: typeof COPY['en'] }) {
           >
             {t.bookDemo}
           </Link>
+          <LanguageToggle flagsOnly />
         </div>
       </div>
     </header>

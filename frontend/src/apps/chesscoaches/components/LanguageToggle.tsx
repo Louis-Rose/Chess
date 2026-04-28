@@ -7,7 +7,7 @@ const LANG_META = {
   es: { flag: '🇪🇸', short: 'ES', long: 'Español' },
 } as const;
 
-export function LanguageToggle({ className }: { className?: string }) {
+export function LanguageToggle({ className, flagsOnly }: { className?: string; flagsOnly?: boolean }) {
   const { language, setLanguage } = useLanguage();
   // If the active language isn't in the auto-detected set (e.g. user manually
   // picked Spanish while on an EN-locale device), keep it visible so they can
@@ -32,11 +32,12 @@ export function LanguageToggle({ className }: { className?: string }) {
           <button
             key={code}
             onClick={() => setLanguage(code)}
-            className={`relative z-10 flex-1 px-2 md:px-4 py-1 text-xs md:text-sm font-medium rounded transition-colors flex items-center justify-center gap-1.5 ${language === code ? 'text-white' : 'text-slate-400'}`}
+            aria-label={meta.long}
+            className={`relative z-10 flex-1 ${flagsOnly ? 'px-2.5 py-1 text-base' : 'px-2 md:px-4 py-1 text-xs md:text-sm'} font-medium rounded transition-colors flex items-center justify-center gap-1.5 ${language === code ? 'text-white' : 'text-slate-400'}`}
           >
             <span aria-hidden>{meta.flag}</span>
-            <span className="md:hidden">{meta.short}</span>
-            <span className="hidden md:inline">{meta.long}</span>
+            {!flagsOnly && <span className="md:hidden">{meta.short}</span>}
+            {!flagsOnly && <span className="hidden md:inline">{meta.long}</span>}
           </button>
         );
       })}
