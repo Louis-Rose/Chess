@@ -103,7 +103,7 @@ export function LandingPage() {
                 <span className="text-emerald-400">{t.headlineAccent}</span>
               </h1>
               <p className="mt-6 text-lg text-slate-400 max-w-xl leading-relaxed">{t.subhead}</p>
-              <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <div className="mt-10 max-w-xl flex flex-wrap items-center justify-center gap-4">
                 <Link
                   to="/contact"
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors shadow-lg shadow-emerald-600/20"
