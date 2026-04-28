@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
+import { CookieBanner } from './components/CookieBanner';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
 const GymApp = lazy(() => import('./apps/gym/GymApp').then(m => ({ default: m.GymApp })));
@@ -27,6 +28,7 @@ function App() {
         <Route path="/gym/*" element={<GymApp />} />
         <Route path="/*" element={<ChessCoachesApp />} />
       </Routes>
+      <CookieBanner />
     </Suspense>
   );
 }

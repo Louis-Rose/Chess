@@ -7,6 +7,7 @@ import { PostHogProvider } from 'posthog-js/react'
 import axios from 'axios'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
+import { CookieConsentProvider } from './contexts/CookieConsentContext'
 import posthog from 'posthog-js'
 import './index.css'
 import App from './App.tsx'
@@ -67,14 +68,16 @@ const appTree = (
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LanguageProvider>
-      {isPostHogExcluded ? appTree : (
-        <PostHogProvider
-          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-          options={posthogOptions}
-        >
-          {appTree}
-        </PostHogProvider>
-      )}
+      <CookieConsentProvider>
+        {isPostHogExcluded ? appTree : (
+          <PostHogProvider
+            apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+            options={posthogOptions}
+          >
+            {appTree}
+          </PostHogProvider>
+        )}
+      </CookieConsentProvider>
     </LanguageProvider>
   </StrictMode>
 )
