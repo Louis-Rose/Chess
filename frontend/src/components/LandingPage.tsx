@@ -117,8 +117,8 @@ export function LandingPage() {
           </div>
         </div>
 
-        <FeaturesSection t={t} />
         <TestimonialsSection t={t} />
+        <FeaturesSection t={t} />
       </main>
 
       <Footer t={t} />
