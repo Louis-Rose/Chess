@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ScanLine, Users, Calendar } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 import { SiteNav } from './SiteNav';
@@ -64,18 +63,12 @@ const COPY = {
 };
 
 export function LandingPage() {
-  const { user, isLoading } = useAuth();
   const { language } = useLanguage();
-  const navigate = useNavigate();
   const t = COPY[language];
 
   useEffect(() => {
     document.title = 'LUMNA · AI for Chess Coaches';
   }, []);
-
-  useEffect(() => {
-    if (!isLoading && user) navigate('/app', { replace: true });
-  }, [isLoading, user, navigate]);
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
