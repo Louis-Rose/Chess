@@ -4,7 +4,6 @@ import { ScanLine, Users, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
-import { BoardPreview } from '../apps/chesscoaches/components/BoardPreview';
 import { SiteNav } from './SiteNav';
 
 const COPY = {
@@ -14,9 +13,6 @@ const COPY = {
     headlineAccent: 'vos cours d\'échecs.',
     subhead: 'Le système d\'exploitation IA pour les entraîneurs d\'échecs en ligne. Automatisez la planification, les paiements et le suivi des élèves. Tout au même endroit.',
     cta: 'Réserver une démo',
-    livePill: 'Conversion en direct',
-    inputLabel: 'Diagramme',
-    outputLabel: 'Position numérique',
     featuresTitle: 'Conçu pour les entraîneurs d\'échecs',
     f1Title: 'Calendrier et suivi des paiements',
     f1Body: 'Planifiez vos cours et suivez les paiements de vos élèves en un coup d\'œil.',
@@ -35,9 +31,6 @@ const COPY = {
     headlineAccent: 'tus clases de ajedrez.',
     subhead: 'El sistema operativo con IA para entrenadores de ajedrez online. Automatiza la planificación, los pagos y el seguimiento de alumnos. Todo en un solo lugar.',
     cta: 'Reservar una demo',
-    livePill: 'Conversión en vivo',
-    inputLabel: 'Diagrama',
-    outputLabel: 'Posición digital',
     featuresTitle: 'Diseñado para entrenadores de ajedrez',
     f1Title: 'Calendario y seguimiento de pagos',
     f1Body: 'Planifica las clases y controla los pagos de tus alumnos de un vistazo.',
@@ -56,9 +49,6 @@ const COPY = {
     headlineAccent: 'your chess lessons.',
     subhead: 'The AI operating system for online chess coaches. Automate scheduling, payments, and student tracking. All in one place.',
     cta: 'Book a demo',
-    livePill: 'Live conversion',
-    inputLabel: 'Diagram',
-    outputLabel: 'Digital position',
     featuresTitle: 'Built for chess coaches',
     f1Title: 'Calendar & payments monitoring',
     f1Body: 'Schedule lessons and keep an eye on every student\'s payments at a glance.',
@@ -72,8 +62,6 @@ const COPY = {
     footerTagline: 'AI tools for chess coaches.',
   },
 };
-
-const DEMO_FEN = 'r3k2r/pp1n1ppp/2p1pn2/q2p4/1bPP4/2NBPN2/PP3PPP/R1BQ1RK1 w kq - 0 1';
 
 export function LandingPage() {
   const { user, isLoading } = useAuth();
@@ -113,7 +101,7 @@ export function LandingPage() {
               </div>
             </div>
 
-            <DemoCard t={t} />
+            <DemoCard />
           </div>
         </div>
 
@@ -134,42 +122,21 @@ function BackgroundGlow() {
   );
 }
 
-function DemoCard({ t }: { t: typeof COPY['en'] }) {
+function DemoCard() {
   return (
     <div className="relative">
       <div className="absolute -inset-4 bg-emerald-600/10 blur-2xl rounded-3xl" aria-hidden />
-      <div className="relative rounded-2xl border border-slate-700 bg-slate-800/60 backdrop-blur p-4 sm:p-6 shadow-2xl">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">LUMNA · Diagram → FEN</span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            {t.livePill}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-1.5">{t.inputLabel}</div>
-            <div className="rounded-lg overflow-hidden border border-slate-700 bg-slate-900 aspect-square">
-              <img
-                src="/cropping_example.jpeg"
-                alt=""
-                className="w-full h-full object-cover"
-                loading="eager"
-              />
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-1.5">{t.outputLabel}</div>
-            <div className="rounded-lg overflow-hidden border border-slate-700 aspect-square">
-              <BoardPreview fen={DEMO_FEN} />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 px-3 py-2.5 rounded-lg bg-slate-900 border border-slate-700 font-mono text-xs text-slate-400 overflow-x-auto whitespace-nowrap">
-          {DEMO_FEN}
-        </div>
+      <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/60 shadow-2xl">
+        <video
+          src="/demo.mp4"
+          poster="/demo-poster.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="w-full h-full block aspect-video object-cover"
+        />
       </div>
     </div>
   );
