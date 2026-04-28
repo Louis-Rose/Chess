@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, Grid3X3, Users, Calendar } from 'lucide-react';
+import { Sparkles, Grid3X3, Users, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
@@ -104,7 +104,6 @@ export function LandingPage() {
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors shadow-lg shadow-emerald-600/20"
                 >
                   {t.cta}
-                  <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
