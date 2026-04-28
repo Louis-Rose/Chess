@@ -19,7 +19,6 @@ const COPY = {
     headlineAccent: 'vos cours d\'échecs.',
     subhead: 'Gagnez du temps sur la préparation, la correction et le suivi de vos élèves grâce à des outils dédiés.',
     cta: 'Demander un accès',
-    secondaryCta: 'Voir la démo',
     livePill: 'Conversion en direct',
     inputLabel: 'Diagramme',
     outputLabel: 'Position numérique',
@@ -43,7 +42,6 @@ const COPY = {
     headlineAccent: 'tus clases de ajedrez.',
     subhead: 'Ahorra tiempo en preparación, corrección y seguimiento de tus alumnos con herramientas dedicadas.',
     cta: 'Solicitar acceso',
-    secondaryCta: 'Ver la demo',
     livePill: 'Conversión en vivo',
     inputLabel: 'Diagrama',
     outputLabel: 'Posición digital',
@@ -67,7 +65,6 @@ const COPY = {
     headlineAccent: 'your chess lessons.',
     subhead: 'Save time on lesson prep, correction, and student tracking with tools built for coaches.',
     cta: 'Request access',
-    secondaryCta: 'See the demo',
     livePill: 'Live conversion',
     inputLabel: 'Diagram',
     outputLabel: 'Digital position',
@@ -121,12 +118,6 @@ export function LandingPage() {
                   {t.cta}
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                <a
-                  href="#features"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-slate-700 hover:border-slate-500 hover:bg-slate-800/60 text-slate-200 font-semibold transition-colors"
-                >
-                  {t.secondaryCta}
-                </a>
               </div>
             </div>
 
