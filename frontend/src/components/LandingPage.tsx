@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Grid3X3, Users, Calendar } from 'lucide-react';
+import { ScanLine, Users, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
@@ -18,12 +18,12 @@ const COPY = {
     inputLabel: 'Diagramme',
     outputLabel: 'Position numérique',
     featuresTitle: 'Conçu pour les entraîneurs d\'échecs',
-    f1Title: 'Diagramme vers FEN',
-    f1Body: 'Photographiez n\'importe quel diagramme : LUMNA reconstruit la position en quelques secondes.',
-    f2Title: 'Suivi des élèves',
-    f2Body: 'Centralisez les profils, leçons et paiements de vos élèves au même endroit.',
-    f3Title: 'Calendrier intégré',
-    f3Body: 'Planifiez vos cours et suivez votre activité en un coup d\'œil.',
+    f1Title: 'Calendrier et suivi des paiements',
+    f1Body: 'Planifiez vos cours et suivez les paiements de vos élèves en un coup d\'œil.',
+    f2Title: 'Suivi des élèves et gestion des devoirs',
+    f2Body: 'Centralisez profils, leçons et devoirs de vos élèves au même endroit.',
+    f3Title: 'Scanner de positions et feuilles de partie',
+    f3Body: 'Photographiez n\'importe quel diagramme ou feuille de partie : LUMNA les numérise en quelques secondes.',
     testimonialsTitle: 'Ils nous font confiance',
     testimonialQuote: "Nous l'utilisons dans notre académie pour gérer nos cours en ligne. Je le recommande pour mettre de l'ordre dans le chaos auquel les entraîneurs sont souvent confrontés. Planifier les cours, suivre les élèves et les paiements, préparer les leçons, assigner des tâches, numériser des livres d'échecs. Tout au même endroit.",
     testimonialRole: 'FIDE Instructor · Chess Teacher · Writer',
@@ -39,12 +39,12 @@ const COPY = {
     inputLabel: 'Diagrama',
     outputLabel: 'Posición digital',
     featuresTitle: 'Diseñado para entrenadores de ajedrez',
-    f1Title: 'Diagrama a FEN',
-    f1Body: 'Fotografía cualquier diagrama: LUMNA reconstruye la posición en segundos.',
-    f2Title: 'Seguimiento de alumnos',
-    f2Body: 'Perfiles, lecciones y pagos de tus alumnos en un único lugar.',
-    f3Title: 'Calendario integrado',
-    f3Body: 'Planifica las clases y consulta tu actividad de un vistazo.',
+    f1Title: 'Calendario y seguimiento de pagos',
+    f1Body: 'Planifica las clases y controla los pagos de tus alumnos de un vistazo.',
+    f2Title: 'Seguimiento de alumnos y gestión de deberes',
+    f2Body: 'Perfiles, lecciones y deberes de tus alumnos en un único lugar.',
+    f3Title: 'Escáner de posiciones y planillas',
+    f3Body: 'Fotografía cualquier diagrama o planilla: LUMNA los digitaliza en segundos.',
     testimonialsTitle: 'Confían en nosotros',
     testimonialQuote: 'Lo usamos en nuestra academia para gestionar nuestras clases virtuales. Lo recomiendo para organizar el caos que los entrenadores enfrentamos a menudo. Planificar clases, gestionar alumnos y pagos, preparar lecciones, asignar tareas, digitalizar libros de ajedrez. Todo en un solo lugar.',
     testimonialRole: 'FIDE Instructor · Chess Teacher · Writer',
@@ -60,12 +60,12 @@ const COPY = {
     inputLabel: 'Diagram',
     outputLabel: 'Digital position',
     featuresTitle: 'Built for chess coaches',
-    f1Title: 'Diagram to FEN',
-    f1Body: 'Snap any diagram: LUMNA reconstructs the exact position in seconds.',
-    f2Title: 'Student tracking',
-    f2Body: 'Profiles, lessons, and payments for every student in one place.',
-    f3Title: 'Built-in calendar',
-    f3Body: 'Schedule lessons and review activity at a glance.',
+    f1Title: 'Built-in calendar & payments monitoring',
+    f1Body: 'Schedule lessons and keep an eye on every student\'s payments at a glance.',
+    f2Title: 'Student tracking & homework management',
+    f2Body: 'Profiles, lessons, and homework for every student in one place.',
+    f3Title: 'Positions & Scoresheets scanner',
+    f3Body: 'Snap any diagram or scoresheet: LUMNA digitizes them in seconds.',
     testimonialsTitle: 'Trusted by coaches',
     testimonialQuote: "We're using it at our academy to manage our virtual classes. I recommend it for organizing the chaos that coaches often face when managing their weekly tasks. Schedule classes, manage students and payments, prepare lessons, assign tasks, digitize chess books. All in one place.",
     testimonialRole: 'FIDE Instructor · Chess Teacher · Writer',
@@ -177,9 +177,9 @@ function DemoCard({ t }: { t: typeof COPY['en'] }) {
 
 function FeaturesSection({ t }: { t: typeof COPY['en'] }) {
   const features = [
-    { icon: Grid3X3, title: t.f1Title, body: t.f1Body },
+    { icon: Calendar, title: t.f1Title, body: t.f1Body },
     { icon: Users, title: t.f2Title, body: t.f2Body },
-    { icon: Calendar, title: t.f3Title, body: t.f3Body },
+    { icon: ScanLine, title: t.f3Title, body: t.f3Body },
   ];
   return (
     <section id="features" className="border-t border-slate-800 bg-slate-900/60">
