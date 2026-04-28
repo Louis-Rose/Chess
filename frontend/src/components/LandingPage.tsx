@@ -10,7 +10,7 @@ import { BoardPreview } from '../apps/chesscoaches/components/BoardPreview';
 const COPY = {
   fr: {
     navContact: 'Contact',
-    signIn: 'Espace beta',
+    signIn: 'Tester le produit',
     badge: 'IA pour entraîneurs d\'échecs',
     headlineBefore: 'L\'intelligence artificielle au service de',
     headlineAccent: 'vos cours d\'échecs.',
@@ -30,7 +30,7 @@ const COPY = {
   },
   es: {
     navContact: 'Contacto',
-    signIn: 'Acceso beta',
+    signIn: 'Probar el producto',
     badge: 'IA para entrenadores de ajedrez',
     headlineBefore: 'Inteligencia artificial al servicio de',
     headlineAccent: 'tus clases de ajedrez.',
@@ -50,7 +50,7 @@ const COPY = {
   },
   en: {
     navContact: 'Contact',
-    signIn: 'Beta access',
+    signIn: 'Try the product',
     badge: 'AI for chess coaches',
     headlineBefore: 'Artificial intelligence to power',
     headlineAccent: 'your chess lessons.',
@@ -137,7 +137,7 @@ function Nav({ t }: { t: typeof COPY['en'] }) {
         <div className="flex items-center gap-3">
           <Link
             to="/app"
-            className="hidden sm:inline-flex text-sm text-slate-300 hover:text-white transition-colors px-3 py-2"
+            className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 transition-colors"
           >
             {t.signIn}
           </Link>
