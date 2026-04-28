@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ScanLine, Users, Calendar, Play } from 'lucide-react';
+import { ScanLine, Users, Calendar } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 import { SiteNav } from './SiteNav';
@@ -76,25 +76,19 @@ export function LandingPage() {
 
       <main className="relative">
         <BackgroundGlow />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-12 pt-10 pb-4 lg:pt-12 lg:pb-6">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
-                {t.headlineBefore}{' '}
-                <span className="text-emerald-400">{t.headlineAccent}</span>
-              </h1>
-              <p className="mt-6 text-lg text-slate-400 max-w-xl leading-relaxed">{t.subhead}</p>
-              <div className="mt-10 max-w-xl flex flex-wrap items-center justify-center gap-4">
-                <Link
-                  to="/contact"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors shadow-lg shadow-emerald-600/20"
-                >
-                  {t.cta}
-                </Link>
-              </div>
-            </div>
-
-            <DemoCard />
+        <div className="relative max-w-3xl mx-auto px-6 lg:px-12 pt-16 pb-10 lg:pt-24 lg:pb-16 text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
+            {t.headlineBefore}{' '}
+            <span className="text-emerald-400">{t.headlineAccent}</span>
+          </h1>
+          <p className="mt-6 text-lg text-slate-400 leading-relaxed">{t.subhead}</p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors shadow-lg shadow-emerald-600/20"
+            >
+              {t.cta}
+            </Link>
           </div>
         </div>
 
@@ -111,47 +105,6 @@ function BackgroundGlow() {
   return (
     <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
       <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[80rem] h-[40rem] rounded-full bg-emerald-600/10 blur-3xl" />
-    </div>
-  );
-}
-
-function DemoCard() {
-  const [playing, setPlaying] = useState(false);
-  const thumbnail = 'https://cdn.loom.com/sessions/thumbnails/46aba7d1ebf14efcbf9469ca9813ad50-00001.jpg';
-  return (
-    <div className="relative">
-      <div className="absolute -inset-4 bg-emerald-600/10 blur-2xl rounded-3xl" aria-hidden />
-      <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/60 shadow-2xl aspect-video">
-        {playing ? (
-          <iframe
-            src="https://www.loom.com/embed/46aba7d1ebf14efcbf9469ca9813ad50?autoplay=1&hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true&hide_reactions=true&disable_reactions=true"
-            allow="autoplay; fullscreen"
-            allowFullScreen
-            title="LUMNA demo"
-            className="absolute inset-0 w-full h-full"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setPlaying(true)}
-            className="absolute inset-0 w-full h-full group cursor-pointer"
-            aria-label="Play LUMNA demo"
-          >
-            <img
-              src={thumbnail}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-slate-950/30 group-hover:bg-slate-950/15 transition-colors" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="w-16 h-16 rounded-full bg-emerald-600 group-hover:bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-600/40 transition-colors">
-                <Play className="w-7 h-7 text-white fill-white ml-0.5" />
-              </span>
-            </div>
-          </button>
-        )}
-      </div>
     </div>
   );
 }
