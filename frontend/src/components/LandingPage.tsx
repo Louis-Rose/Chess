@@ -233,12 +233,12 @@ function TestimonialsSection({ t }: { t: typeof COPY['en'] }) {
 function Footer({ t }: { t: typeof COPY['en'] }) {
   return (
     <footer id="contact" className="border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10 flex items-center justify-center">
-        <div className="flex items-center gap-2 text-white">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10 flex flex-col items-center gap-2 text-white">
+        <div className="flex items-center gap-2">
           <LumnaLogo className="w-6 h-6" />
           <span className="text-sm font-bold tracking-wide">LUMNA</span>
-          <span className="text-sm ml-2">· {t.footerTagline}</span>
         </div>
+        <span className="text-sm">{t.footerTagline}</span>
       </div>
     </footer>
   );
