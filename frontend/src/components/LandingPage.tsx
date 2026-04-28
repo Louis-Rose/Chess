@@ -130,14 +130,13 @@ export function LandingPage() {
 function Nav({ t }: { t: typeof COPY['en'] }) {
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-slate-900/80 border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <LumnaLogo className="w-7 h-7" />
-          <span className="text-lg font-bold tracking-wide">LUMNA</span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-8 text-sm text-slate-300">
-          <Link to="/contact" className="hover:text-white transition-colors">{t.navContact}</Link>
-        </nav>
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center">
+        <div className="flex-1 flex">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <LumnaLogo className="w-7 h-7" />
+            <span className="text-lg font-bold tracking-wide">LUMNA</span>
+          </Link>
+        </div>
         <div className="flex items-center gap-3">
           <Link
             to="/app"
@@ -151,6 +150,8 @@ function Nav({ t }: { t: typeof COPY['en'] }) {
           >
             {t.bookDemo}
           </Link>
+        </div>
+        <div className="flex-1 flex justify-end">
           <LanguageToggle flagsOnly />
         </div>
       </div>
