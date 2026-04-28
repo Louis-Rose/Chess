@@ -223,6 +223,7 @@ function TestimonialsSection({ t }: { t: typeof COPY['en'] }) {
           <blockquote className="text-base sm:text-lg text-slate-200 leading-relaxed">
             {t.testimonialQuote}
           </blockquote>
+          <span aria-hidden className="block text-emerald-500 font-serif text-5xl leading-none mt-2 text-right">”</span>
         </figure>
       </div>
     </section>
