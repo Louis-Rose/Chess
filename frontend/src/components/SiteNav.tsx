@@ -24,16 +24,16 @@ export function SiteNav() {
         </div>
         <div className="flex items-center gap-3">
           <Link
-            to="/app"
-            className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 transition-colors"
-          >
-            {t.signIn}
-          </Link>
-          <Link
             to="/contact"
             className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
           >
             {t.cta}
+          </Link>
+          <Link
+            to="/app"
+            className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 transition-colors"
+          >
+            {t.signIn}
           </Link>
         </div>
         <div className="flex-1 flex justify-end">
