@@ -243,6 +243,73 @@ def send_student_invite_email(
         return False
 
 
+def send_contact_email(
+    name: str,
+    email: str,
+    company: str,
+    message: str,
+) -> bool:
+    """Send a landing-page contact form submission to FEEDBACK_EMAIL.
+
+    Reply-To is set to the submitter so a single tap replies to the lead.
+    """
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        print("SMTP credentials not configured — skipping contact email")
+        return False
+
+    import html as _html
+
+    safe_name = _html.escape(name or '')
+    safe_email = _html.escape(email or '')
+    safe_company = _html.escape(company or '')
+    safe_message = _html.escape(message or '').replace('\n', '<br>')
+
+    subject = f"[LUMNA] Demo request — {name}"
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;padding:20px;color:#1e293b;">
+        <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:4px solid #16a34a;">
+            <h1 style="font-size:18px;margin:0 0 16px 0;">New demo request</h1>
+            <p style="margin:6px 0;color:#475569;"><strong>Name:</strong> {safe_name}</p>
+            <p style="margin:6px 0;color:#475569;"><strong>Email:</strong> <a href="mailto:{safe_email}">{safe_email}</a></p>
+            {f'<p style="margin:6px 0;color:#475569;"><strong>Company:</strong> {safe_company}</p>' if safe_company else ''}
+            <div style="margin-top:18px;padding:14px;background:#f1f5f9;border-radius:8px;color:#1e293b;font-size:14px;line-height:1.55;">
+                {safe_message}
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    plain = (
+        f"New demo request\n\n"
+        f"Name: {name}\n"
+        f"Email: {email}\n"
+        + (f"Company: {company}\n" if company else '')
+        + f"\nMessage:\n{message}\n"
+    )
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"LUMNA Contact <{SMTP_EMAIL}>"
+    msg['To'] = FEEDBACK_EMAIL
+    msg['Reply-To'] = email
+    msg.attach(MIMEText(plain, 'plain'))
+    msg.attach(MIMEText(html_body, 'html'))
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+        print(f"Contact email sent from {email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send contact email from {email}: {e}")
+        return False
+
+
 def send_homework_email(
     coach_name: str,
     student_email: str,

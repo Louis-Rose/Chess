@@ -115,7 +115,7 @@ export function LandingPage() {
               <p className="mt-6 text-lg text-slate-400 max-w-xl leading-relaxed">{t.subhead}</p>
               <div className="mt-10 flex flex-wrap items-center gap-4">
                 <Link
-                  to="/app"
+                  to="/contact"
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors shadow-lg shadow-emerald-600/20"
                 >
                   {t.cta}
@@ -153,7 +153,7 @@ function Nav({ t }: { t: typeof COPY['en'] }) {
         <nav className="hidden md:flex items-center gap-8 text-sm text-slate-300">
           <a href="#features" className="hover:text-white transition-colors">{t.navProduct}</a>
           <a href="#about" className="hover:text-white transition-colors">{t.navAbout}</a>
-          <a href="#contact" className="hover:text-white transition-colors">{t.navContact}</a>
+          <Link to="/contact" className="hover:text-white transition-colors">{t.navContact}</Link>
         </nav>
         <div className="flex items-center gap-3">
           <LanguageToggle />
@@ -164,7 +164,7 @@ function Nav({ t }: { t: typeof COPY['en'] }) {
             {t.signIn}
           </Link>
           <Link
-            to="/app"
+            to="/contact"
             className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
           >
             {t.bookDemo}

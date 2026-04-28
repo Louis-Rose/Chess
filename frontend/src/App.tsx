@@ -6,6 +6,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 import { CookieBanner } from './components/CookieBanner';
 import { LandingPage } from './components/LandingPage';
+import { ContactPage } from './components/ContactPage';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
 const GymApp = lazy(() => import('./apps/gym/GymApp').then(m => ({ default: m.GymApp })));
@@ -29,6 +30,7 @@ function App() {
     <Suspense fallback={<div className="h-dvh bg-slate-800" />}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/invite/*" element={<InvitePage />} />
         <Route path="/waitlist" element={<WaitlistPage />} />
         <Route path="/gym/*" element={<GymApp />} />
