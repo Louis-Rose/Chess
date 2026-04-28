@@ -69,7 +69,7 @@ const COPY = {
     submit: 'Send message',
     submitting: 'Sending…',
     successTitle: 'Message sent!',
-    successBody: 'Thanks — we\'ll get back to you very soon.',
+    successBody: 'Thanks. We\'ll get back to you very soon.',
     successBack: 'Back to home',
     errorGeneric: 'Something went wrong. Please try again.',
     errorRate: 'Too many attempts. Try again in a minute.',
@@ -93,7 +93,7 @@ export function ContactPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = 'LUMNA — ' + t.title;
+    document.title = 'LUMNA · ' + t.title;
   }, [t.title]);
 
   const handleSubmit = async (e: React.FormEvent) => {

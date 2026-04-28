@@ -82,7 +82,7 @@ export function LandingPage() {
   const t = COPY[language];
 
   useEffect(() => {
-    document.title = 'LUMNA — AI for Chess Coaches';
+    document.title = 'LUMNA · AI for Chess Coaches';
   }, []);
 
   useEffect(() => {
@@ -249,10 +249,10 @@ function Footer({ t }: { t: typeof COPY['en'] }) {
   return (
     <footer id="contact" className="border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10 flex items-center justify-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-white">
           <LumnaLogo className="w-6 h-6" />
           <span className="text-sm font-bold tracking-wide">LUMNA</span>
-          <span className="text-sm text-slate-500 ml-2">— {t.footerTagline}</span>
+          <span className="text-sm ml-2">· {t.footerTagline}</span>
         </div>
       </div>
     </footer>
