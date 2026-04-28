@@ -20,7 +20,7 @@ from auth import (
     verify_google_token,
 )
 from database import get_db
-from email_utils import send_admin_deletion_alert, send_homework_email
+from email_utils import send_admin_deletion_alert, send_homework_email, send_chat_message_email
 
 logger = logging.getLogger(__name__)
 
@@ -633,24 +633,32 @@ def get_conversations():
         user_role = role['role'] if role else 'coach'
 
         if user_role == 'coach':
+            # One row per student in the coach's roster — linked or not. Unlinked
+            # students have no linked_user_id, but we still surface them so the
+            # coach can start a conversation that gets delivered as email.
             contacts = conn.execute('''
-                SELECT u.id, u.name, u.picture, cs.id AS student_id, cs.student_name,
+                SELECT cs.id AS student_id, cs.linked_user_id, cs.student_name,
+                    u.name AS user_name, u.picture,
                     last_msg.content AS last_message, last_msg.created_at AS last_message_at,
                     COALESCE(unread.cnt, 0) AS unread_count
                 FROM coach_students cs
-                JOIN users u ON cs.linked_user_id = u.id
+                LEFT JOIN users u ON cs.linked_user_id = u.id
                 LEFT JOIN LATERAL (
                     SELECT content, created_at FROM messages
-                    WHERE (sender_id = ? AND receiver_id = u.id) OR (sender_id = u.id AND receiver_id = ?)
+                    WHERE (cs.linked_user_id IS NOT NULL
+                            AND ((sender_id = ? AND receiver_id = cs.linked_user_id)
+                                 OR (sender_id = cs.linked_user_id AND receiver_id = ?)))
+                       OR (sender_id = ? AND receiver_student_id = cs.id)
                     ORDER BY created_at DESC LIMIT 1
                 ) last_msg ON true
                 LEFT JOIN LATERAL (
                     SELECT COUNT(*) AS cnt FROM messages
-                    WHERE sender_id = u.id AND receiver_id = ? AND read_at IS NULL
+                    WHERE cs.linked_user_id IS NOT NULL
+                      AND sender_id = cs.linked_user_id AND receiver_id = ? AND read_at IS NULL
                 ) unread ON true
                 WHERE cs.coach_user_id = ?
-                ORDER BY last_message_at DESC NULLS LAST
-            ''', (user_id, user_id, user_id, user_id)).fetchall()
+                ORDER BY last_message_at DESC NULLS LAST, cs.student_name
+            ''', (user_id, user_id, user_id, user_id, user_id)).fetchall()
         else:
             contacts = conn.execute('''
                 SELECT u.id, u.name, u.picture, cp.display_name AS coach_display_name,
@@ -673,16 +681,33 @@ def get_conversations():
             ''', (user_id, user_id, user_id, user_id)).fetchall()
 
     result = []
-    for c in contacts:
-        result.append({
-            'user_id': c['id'],
-            'student_id': c.get('student_id'),
-            'name': c.get('coach_display_name') or c.get('student_name') or c['name'],
-            'picture': c['picture'],
-            'last_message': c['last_message'],
-            'last_message_at': c['last_message_at'].isoformat() if c['last_message_at'] else None,
-            'unread_count': c['unread_count'] or 0,
-        })
+    if user_role == 'coach':
+        for c in contacts:
+            linked_user_id = c['linked_user_id']
+            student_id = c['student_id']
+            key = f'u:{linked_user_id}' if linked_user_id else f's:{student_id}'
+            result.append({
+                'key': key,
+                'user_id': linked_user_id,
+                'student_id': student_id,
+                'name': c['student_name'] or c['user_name'],
+                'picture': c['picture'],
+                'last_message': c['last_message'],
+                'last_message_at': c['last_message_at'].isoformat() if c['last_message_at'] else None,
+                'unread_count': c['unread_count'] or 0,
+            })
+    else:
+        for c in contacts:
+            result.append({
+                'key': f"u:{c['id']}",
+                'user_id': c['id'],
+                'student_id': None,
+                'name': c.get('coach_display_name') or c['name'],
+                'picture': c['picture'],
+                'last_message': c['last_message'],
+                'last_message_at': c['last_message_at'].isoformat() if c['last_message_at'] else None,
+                'unread_count': c['unread_count'] or 0,
+            })
 
     return jsonify({'conversations': result})
 
@@ -804,6 +829,111 @@ def send_message(other_user_id):
         'sender_id': user_id,
         'content': content,
         'position_id': position_id,
+        'created_at': row['created_at'].isoformat(),
+    }), 201
+
+
+@auth_bp.route('/api/messages/student/<int:student_id>', methods=['GET'])
+@login_required
+def get_messages_to_student(student_id):
+    """Read messages a coach has sent to a student that has no platform
+    account yet. Coach-only — unlinked students cannot reply through the app."""
+    user_id = request.user_id
+    before = request.args.get('before')
+
+    with get_db() as conn:
+        owns = conn.execute(
+            'SELECT id FROM coach_students WHERE id = ? AND coach_user_id = ?',
+            (student_id, user_id),
+        ).fetchone()
+        if not owns:
+            return jsonify({'error': 'Not authorized'}), 403
+
+        params = [user_id, student_id]
+        query = '''
+            SELECT id, sender_id, receiver_id, content, invoice_id, position_id, read_at, created_at
+            FROM messages
+            WHERE sender_id = ? AND receiver_student_id = ?
+        '''
+        if before:
+            query += ' AND created_at < ?'
+            params.append(before)
+        query += ' ORDER BY created_at DESC LIMIT 50'
+
+        rows = conn.execute(query, tuple(params)).fetchall()
+
+    messages = [{
+        'id': r['id'],
+        'sender_id': r['sender_id'],
+        'content': r['content'],
+        'invoice_id': r['invoice_id'],
+        'position_id': r['position_id'],
+        'read_at': r['read_at'].isoformat() if r['read_at'] else None,
+        'created_at': r['created_at'].isoformat() if r['created_at'] else None,
+    } for r in reversed(rows)]
+
+    return jsonify({'messages': messages})
+
+
+@auth_bp.route('/api/messages/student/<int:student_id>', methods=['POST'])
+@login_required
+def send_message_to_student(student_id):
+    """Send a message to a student that has no platform account yet. The
+    message is stored against the student record and (if SMTP is configured)
+    delivered as an email. Coach-only."""
+    user_id = request.user_id
+    data = request.get_json() or {}
+    content = (data.get('content') or '').strip()
+    if not content:
+        return jsonify({'error': 'Message cannot be empty'}), 400
+    if len(content) > 5000:
+        return jsonify({'error': 'Message too long'}), 400
+
+    with get_db() as conn:
+        student = conn.execute(
+            '''SELECT cs.id, cs.linked_user_id, cs.student_name, cs.email,
+                      u.name AS coach_name
+               FROM coach_students cs
+               JOIN users u ON cs.coach_user_id = u.id
+               WHERE cs.id = ? AND cs.coach_user_id = ?''',
+            (student_id, user_id),
+        ).fetchone()
+        if not student:
+            return jsonify({'error': 'Not authorized'}), 403
+        if student['linked_user_id']:
+            # Student has an account — caller should use the user-keyed route.
+            return jsonify({'error': 'Use /api/messages/<user_id> for linked students'}), 400
+
+        cursor = conn.execute('''
+            INSERT INTO messages (sender_id, receiver_id, receiver_student_id, content)
+            VALUES (?, NULL, ?, ?) RETURNING id, created_at
+        ''', (user_id, student_id, content))
+        row = cursor.fetchone()
+
+        email_payload = None
+        if student['email']:
+            email_payload = {
+                'coach_name': student['coach_name'] or 'Your coach',
+                'student_email': student['email'],
+                'student_name': student['student_name'] or '',
+                'message_content': content,
+            }
+
+    if email_payload is not None:
+        import threading
+        threading.Thread(
+            target=send_chat_message_email,
+            kwargs=email_payload,
+            daemon=True,
+        ).start()
+
+    return jsonify({
+        'id': row['id'],
+        'sender_id': user_id,
+        'content': content,
+        'invoice_id': None,
+        'position_id': None,
+        'read_at': None,
         'created_at': row['created_at'].isoformat(),
     }), 201
 

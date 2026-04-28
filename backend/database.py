@@ -378,3 +378,21 @@ def init_db():
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_api_usage_phase ON api_usage(phase)")
             logger.info("Added phase column to api_usage and backfilled diagram rows")
+
+        # Migration: allow messaging a student who has no platform account yet.
+        # Adds receiver_student_id (nullable FK to coach_students.id) and relaxes
+        # receiver_id NOT NULL. Exactly one of (receiver_id, receiver_student_id)
+        # must be set. Unlinked-student rows have no receiver_id; once they
+        # accept the invite the row stays as-is (history is keyed on the
+        # student record, which survives linking).
+        if not _column_exists(conn, 'messages', 'receiver_student_id'):
+            conn.execute("ALTER TABLE messages ALTER COLUMN receiver_id DROP NOT NULL")
+            conn.execute("ALTER TABLE messages ADD COLUMN receiver_student_id INTEGER REFERENCES coach_students(id) ON DELETE CASCADE")
+            conn.execute("""
+                ALTER TABLE messages ADD CONSTRAINT messages_receiver_xor CHECK (
+                    (receiver_id IS NOT NULL AND receiver_student_id IS NULL) OR
+                    (receiver_id IS NULL AND receiver_student_id IS NOT NULL)
+                )
+            """)
+            conn.execute("CREATE INDEX idx_messages_receiver_student ON messages(receiver_student_id)")
+            logger.info("Added receiver_student_id column to messages")

@@ -10,13 +10,18 @@ import { Avatar } from '../components/Avatar';
 import { EmptyState } from '../components/EmptyState';
 
 interface Conversation {
-  user_id: number;
+  key: string; // 'u:<user_id>' or 's:<student_id>'
+  user_id: number | null;
   student_id: number | null;
   name: string;
   picture: string | null;
   last_message: string | null;
   last_message_at: string | null;
   unread_count: number;
+}
+
+function conversationPath(c: Conversation): string {
+  return c.user_id ? `/api/messages/${c.user_id}` : `/api/messages/student/${c.student_id}`;
 }
 
 interface Message {
@@ -113,7 +118,7 @@ export function MessagesPanel() {
           <div className="space-y-2">
             {conversations.map(c => (
               <button
-                key={c.user_id}
+                key={c.key}
                 onClick={() => setActiveChat(c)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-blue-500/50 transition-colors text-left"
               >
@@ -163,13 +168,14 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const path = conversationPath(conversation);
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await authFetch(`/api/messages/${conversation.user_id}`);
+      const res = await authFetch(path);
       const data = await res.json();
       setMessages(data.messages || []);
     } catch { /* ignore */ }
-  }, [conversation.user_id]);
+  }, [path]);
 
   useEffect(() => {
     fetchMessages().then(() => setLoading(false));
@@ -233,7 +239,7 @@ function ChatView({ conversation, onBack }: { conversation: Conversation; onBack
     setSending(true);
     setText('');
     try {
-      const res = await authFetch(`/api/messages/${conversation.user_id}`, {
+      const res = await authFetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),

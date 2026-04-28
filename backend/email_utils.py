@@ -411,3 +411,96 @@ def send_homework_email(
         return False
 
 
+def send_chat_message_email(
+    coach_name: str,
+    student_email: str,
+    student_name: str,
+    message_content: str,
+    app_url: str = 'https://lumna.co',
+) -> bool:
+    """Notify a student (who has no platform account yet) by email that their
+    coach sent them a chat message. The message body is included; the student
+    is invited to join LUMNA to reply."""
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        print("SMTP credentials not configured — skipping chat message email")
+        return False
+
+    subject = f"New message from {coach_name}"
+    safe_content = message_content.replace('<', '&lt;').replace('>', '&gt;')
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: #f8fafc;
+                padding: 20px;
+                color: #1e293b;
+            }}
+            .container {{
+                max-width: 520px;
+                margin: 0 auto;
+                background: #ffffff;
+                border-radius: 12px;
+                padding: 28px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                border-top: 4px solid #10b981;
+            }}
+            h1 {{ font-size: 20px; margin: 0 0 4px 0; }}
+            .from {{ color: #64748b; font-size: 14px; margin-bottom: 20px; }}
+            .body {{
+                background: #f1f5f9;
+                border-radius: 8px;
+                padding: 14px 16px;
+                color: #1e293b;
+                white-space: pre-wrap;
+                font-size: 15px;
+                line-height: 1.5;
+            }}
+            .cta {{
+                display: inline-block;
+                margin-top: 20px;
+                background: #10b981;
+                color: #ffffff !important;
+                padding: 10px 18px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 14px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>New message for you</h1>
+            <div class="from">From {coach_name}</div>
+            <div class="body">{safe_content}</div>
+            <a class="cta" href="{app_url}">Open LUMNA</a>
+        </div>
+    </body>
+    </html>
+    """
+    plain = (
+        f"New message from {coach_name}\n\n"
+        f"{message_content}\n\n"
+        f"Reply by joining LUMNA: {app_url}\n"
+    )
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"LUMNA <{SMTP_EMAIL}>"
+    msg['To'] = f"{student_name} <{student_email}>" if student_name else student_email
+    msg.attach(MIMEText(plain, 'plain'))
+    msg.attach(MIMEText(html_body, 'html'))
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+        print(f"Chat message email sent to {student_email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send chat message email to {student_email}: {e}")
+        return False
