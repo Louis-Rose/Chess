@@ -215,7 +215,7 @@ function TestimonialsSection({ t }: { t: typeof COPY['en'] }) {
               EG
             </div>
             <div>
-              <div className="font-semibold text-white">Esteban Guillermo Souto</div>
+              <div className="font-semibold text-white">E. G. S.</div>
               <div className="text-sm text-slate-400">{t.testimonialRole}</div>
             </div>
           </figcaption>
