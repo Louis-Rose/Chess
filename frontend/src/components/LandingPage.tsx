@@ -119,16 +119,13 @@ function DemoCard() {
   return (
     <div className="relative">
       <div className="absolute -inset-4 bg-emerald-600/10 blur-2xl rounded-3xl" aria-hidden />
-      <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/60 shadow-2xl">
-        <video
-          src="/demo.mp4"
-          poster="/demo-poster.jpg"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="w-full h-full block aspect-video object-cover"
+      <div className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/60 shadow-2xl aspect-video">
+        <iframe
+          src="https://www.loom.com/embed/46aba7d1ebf14efcbf9469ca9813ad50?autoplay=1&muted=true&loop=true&hide_owner=true&hide_share=true&hide_title=true"
+          allow="autoplay; fullscreen"
+          allowFullScreen
+          title="LUMNA demo"
+          className="absolute inset-0 w-full h-full"
         />
       </div>
     </div>
