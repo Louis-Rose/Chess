@@ -11,12 +11,11 @@ const COPY = {
   fr: {
     navContact: 'Contact',
     signIn: 'Espace beta',
-    bookDemo: 'Demander une démo',
     badge: 'IA pour entraîneurs d\'échecs',
     headlineBefore: 'L\'intelligence artificielle au service de',
     headlineAccent: 'vos cours d\'échecs.',
     subhead: 'Gagnez du temps sur la préparation, la correction et le suivi de vos élèves grâce à des outils dédiés.',
-    cta: 'Demander un accès',
+    cta: 'Réserver une démo',
     livePill: 'Conversion en direct',
     inputLabel: 'Diagramme',
     outputLabel: 'Position numérique',
@@ -32,12 +31,11 @@ const COPY = {
   es: {
     navContact: 'Contacto',
     signIn: 'Acceso beta',
-    bookDemo: 'Reservar demo',
     badge: 'IA para entrenadores de ajedrez',
     headlineBefore: 'Inteligencia artificial al servicio de',
     headlineAccent: 'tus clases de ajedrez.',
     subhead: 'Ahorra tiempo en preparación, corrección y seguimiento de tus alumnos con herramientas dedicadas.',
-    cta: 'Solicitar acceso',
+    cta: 'Reservar una demo',
     livePill: 'Conversión en vivo',
     inputLabel: 'Diagrama',
     outputLabel: 'Posición digital',
@@ -53,12 +51,11 @@ const COPY = {
   en: {
     navContact: 'Contact',
     signIn: 'Beta access',
-    bookDemo: 'Book a demo',
     badge: 'AI for chess coaches',
     headlineBefore: 'Artificial intelligence to power',
     headlineAccent: 'your chess lessons.',
     subhead: 'Save time on lesson prep, correction, and student tracking with tools built for coaches.',
-    cta: 'Request access',
+    cta: 'Book a demo',
     livePill: 'Live conversion',
     inputLabel: 'Diagram',
     outputLabel: 'Digital position',
@@ -148,7 +145,7 @@ function Nav({ t }: { t: typeof COPY['en'] }) {
             to="/contact"
             className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
           >
-            {t.bookDemo}
+            {t.cta}
           </Link>
         </div>
         <div className="flex-1 flex justify-end">

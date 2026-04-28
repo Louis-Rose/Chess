@@ -9,7 +9,7 @@ import { LanguageToggle } from '../apps/chesscoaches/components/LanguageToggle';
 const COPY = {
   fr: {
     back: 'Retour',
-    title: 'Demander une démo',
+    title: 'Réserver une démo',
     subtitle: 'Remplissez le formulaire et nous reviendrons vers vous sous 48h.',
     name: 'Nom complet',
     namePh: 'James Bond',
@@ -32,7 +32,7 @@ const COPY = {
   },
   es: {
     back: 'Volver',
-    title: 'Solicitar una demo',
+    title: 'Reservar una demo',
     subtitle: 'Rellena el formulario y te responderemos en 48h.',
     name: 'Nombre completo',
     namePh: 'James Bond',
