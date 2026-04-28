@@ -65,7 +65,7 @@ export function InvitePage() {
   useEffect(() => {
     if (accepted) {
       const timer = setTimeout(() => {
-        window.location.href = '/'; // Full reload to pick up new role
+        window.location.href = '/app'; // Full reload to pick up new role
       }, 2000);
       return () => clearTimeout(timer);
     }

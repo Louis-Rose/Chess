@@ -148,7 +148,7 @@ export function GymDashboard() {
       <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/app')}
             className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
             aria-label="Back"
           >

@@ -58,7 +58,7 @@ export function LessonsSection({ upcoming, past, onRefresh }: {
           <Clock className="w-8 h-8 text-slate-600 mx-auto" />
           <p className="text-slate-500 text-sm">{t('coaches.lessons.empty')}</p>
           <button
-            onClick={() => navigate('/schedule')}
+            onClick={() => navigate('/app/schedule')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors"
           >
             <CalendarDays className="w-3.5 h-3.5" />

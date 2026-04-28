@@ -1,5 +1,6 @@
 // Shared LUMNA brand block — logo + title + subtitle, used on login and homepage
 
+import { Link } from 'react-router-dom';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 export function LumnaLogo({ className }: { className?: string }) {
@@ -29,7 +30,7 @@ function ResponsiveTitle() {
 
 export function LumnaBrand({ hideSubtitle }: { hideSubtitle?: boolean } = {}) {
   return (
-    <a href="/" className="flex flex-col items-center hover:opacity-80 transition-opacity">
+    <Link to="/app" className="flex flex-col items-center hover:opacity-80 transition-opacity">
       <div className="relative flex items-center">
         <LumnaLogo className="w-9 h-9 absolute -left-11" />
         <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
@@ -39,7 +40,7 @@ export function LumnaBrand({ hideSubtitle }: { hideSubtitle?: boolean } = {}) {
           <ResponsiveTitle />
         </span>
       )}
-    </a>
+    </Link>
   );
 }
 

@@ -491,7 +491,7 @@ function LessonDetailPopup({ lesson, dayIdx, locale, use24h, onClose, onUpdated,
         {/* Actions */}
         <div className={`flex items-center pt-1 border-t border-slate-700/50 ${editing ? 'justify-between' : 'justify-center'}`}>
           <button
-            onClick={() => { onClose(); navigate(`/students/${lesson.student_id}`); }}
+            onClick={() => { onClose(); navigate(`/app/students/${lesson.student_id}`); }}
             className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
           >
             {t('coaches.calendar.viewStudent')}

@@ -34,7 +34,7 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
     try {
       if (response.credential) {
         await login(response.credential);
-        navigate('/');
+        navigate('/app');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

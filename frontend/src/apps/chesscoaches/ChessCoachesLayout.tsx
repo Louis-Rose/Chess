@@ -32,23 +32,23 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     titleKey: 'coaches.sectionAdmin',
     items: [
-      { path: '/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
-      { path: '/schedule', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', roles: ['coach'] },
-      { path: '/messages', labelKey: 'coaches.navMessages', icon: MessageCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', hideOnHome: true, roles: ['coach', 'student'] },
-      { path: '/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
+      { path: '/app/students', labelKey: 'coaches.navStudents', icon: Users, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
+      { path: '/app/schedule', labelKey: 'coaches.navCalendar', icon: CalendarDays, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', roles: ['coach'] },
+      { path: '/app/messages', labelKey: 'coaches.navMessages', icon: MessageCircle, hoverColor: 'hover:border-blue-500', bgColor: 'bg-blue-600', hideOnHome: true, roles: ['coach', 'student'] },
+      { path: '/app/payments', labelKey: 'coaches.navPacks', icon: CreditCard, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
     ],
   },
   {
     titleKey: 'coaches.sectionAITools',
     items: [
-      { path: '/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
-      { path: '/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', hidden: true, roles: ['coach'] },
+      { path: '/app/diagram', labelKey: 'coaches.navDiagram', icon: Grid3X3, hoverColor: 'hover:border-emerald-500', bgColor: 'bg-emerald-600', roles: ['coach'] },
+      { path: '/app/mistakes', labelKey: 'coaches.navMistakes', icon: Clock, hoverColor: 'hover:border-amber-500', bgColor: 'bg-amber-600', hidden: true, roles: ['coach'] },
     ],
   },
   {
     titleKey: 'coaches.sectionKnowledge',
     items: [
-      { path: '/positions', labelKey: 'coaches.navPositions', icon: BookOpen, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
+      { path: '/app/positions', labelKey: 'coaches.navPositions', icon: BookOpen, hoverColor: 'hover:border-purple-500', bgColor: 'bg-purple-600', roles: ['coach'] },
     ],
   },
 ];
@@ -66,7 +66,7 @@ function PlayerMenuItems({ onClose, align }: { onClose: () => void; align: 'cent
     <>
       {user.role === 'coach' && (
         <button
-          onClick={() => { onClose(); navigate('/profile'); }}
+          onClick={() => { onClose(); navigate('/app/profile'); }}
           className={`${rowBase} ${justify} text-slate-200 border-b border-slate-700`}
         >
           <UserCircle className="w-4 h-4" />
@@ -75,7 +75,7 @@ function PlayerMenuItems({ onClose, align }: { onClose: () => void; align: 'cent
       )}
       {user.is_admin && (
         <button
-          onClick={() => { onClose(); navigate('/admin'); }}
+          onClick={() => { onClose(); navigate('/app/admin'); }}
           className={`${rowBase} ${justify} text-amber-400 border-b border-slate-700`}
         >
           <Shield className="w-4 h-4" />
@@ -207,7 +207,7 @@ function CoachesNavSidebar() {
         {/* Navigation */}
         <nav className="flex flex-col gap-0.5">
           <NavLink
-            to="/"
+            to="/app"
             end
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -253,7 +253,7 @@ function CoachesNavSidebar() {
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" />
                       <span className="flex-1">{t(labelKey)}</span>
-                      {path === '/messages' && unreadCount > 0 && (
+                      {path === '/app/messages' && unreadCount > 0 && (
                         <span className="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
                           {unreadCount > 9 ? '9+' : unreadCount}
                         </span>

@@ -417,8 +417,8 @@ export function PaymentsPanel() {
                     key={l.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(`/students/${l.student_id}`)}
-                    onKeyDown={e => { if (e.key === 'Enter') navigate(`/students/${l.student_id}`); }}
+                    onClick={() => navigate(`/app/students/${l.student_id}`)}
+                    onKeyDown={e => { if (e.key === 'Enter') navigate(`/app/students/${l.student_id}`); }}
                     className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-700/40 transition-colors"
                   >
                     <span className="text-sm font-medium text-slate-100 truncate">
@@ -522,7 +522,7 @@ export function PaymentsPanel() {
         ) : students.length === 0 ? (
           <EmptyState icon={Package} color="emerald" title={t('coaches.packs.noStudents')} titleClassName="text-slate-200 text-lg">
             <button
-              onClick={() => navigate('/students')}
+              onClick={() => navigate('/app/students')}
               className={`mt-4 flex items-center gap-1.5 ${btnPrimary('emerald')}`}
             >
               {t('coaches.packs.goToStudents')}

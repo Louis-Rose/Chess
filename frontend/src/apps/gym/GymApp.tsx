@@ -29,7 +29,7 @@ export function GymApp() {
       </div>
     );
   }
-  if (!allowed) return <Navigate to="/" replace />;
+  if (!allowed) return <Navigate to="/app" replace />;
 
   return (
     <Suspense fallback={<div className="h-dvh bg-slate-900" />}>

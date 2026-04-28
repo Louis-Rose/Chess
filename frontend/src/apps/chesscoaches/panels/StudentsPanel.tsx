@@ -46,7 +46,7 @@ function StudentCard({ student }: {
   return (
     <div
       className="bg-slate-800 border border-slate-700 rounded-xl hover:border-purple-500/50 transition-colors cursor-pointer"
-      onClick={() => navigate(`/students/${student.id}`)}
+      onClick={() => navigate(`/app/students/${student.id}`)}
     >
       <div className="flex items-center gap-3 p-4">
         <Avatar name={student.student_name} size="lg" />

@@ -99,9 +99,9 @@ function OnboardingBanner({ status }: { status: OnboardingStatus }) {
   if (status.has_lessons) return null;
 
   const steps = [
-    { done: status.has_profile, before: t('coaches.onboarding.step.profile.before.coach'), link: t('coaches.onboarding.step.profile.link.coach'), after: '', path: '/profile' },
-    { done: status.has_students, before: t('coaches.onboarding.step.students.before'), link: t('coaches.onboarding.step.students.link'), after: '', path: '/students' },
-    { done: status.has_lessons, before: t('coaches.onboarding.step.calendar.before'), link: t('coaches.onboarding.step.calendar.link'), after: '', path: '/schedule' },
+    { done: status.has_profile, before: t('coaches.onboarding.step.profile.before.coach'), link: t('coaches.onboarding.step.profile.link.coach'), after: '', path: '/app/profile' },
+    { done: status.has_students, before: t('coaches.onboarding.step.students.before'), link: t('coaches.onboarding.step.students.link'), after: '', path: '/app/students' },
+    { done: status.has_lessons, before: t('coaches.onboarding.step.calendar.before'), link: t('coaches.onboarding.step.calendar.link'), after: '', path: '/app/schedule' },
   ];
 
   const remainingSteps = steps.filter(s => !s.done);
@@ -177,7 +177,7 @@ function CoachHome() {
           const visibleItems = items.filter(i => !i.hidden && !i.hideOnHome);
           if (visibleItems.length === 0) return null;
           const highlightPath = onboarding && !onboarding.has_lessons
-            ? (!onboarding.has_profile ? '/profile' : !onboarding.has_students ? '/students' : '/schedule')
+            ? (!onboarding.has_profile ? '/app/profile' : !onboarding.has_students ? '/app/students' : '/app/schedule')
             : null;
           return (
             <div key={titleKey} className="rounded-xl border border-slate-700 overflow-hidden">
@@ -217,7 +217,7 @@ function CoachHome() {
       <div className="flex-1" />
       <div className="text-center pt-8 pb-6">
         <button
-          onClick={() => navigate('/about')}
+          onClick={() => navigate('/app/about')}
           className="text-sm text-slate-500 hover:text-slate-400 transition-colors"
         >
           {t('coaches.navAbout')}

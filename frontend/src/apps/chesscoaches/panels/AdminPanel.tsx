@@ -209,8 +209,8 @@ const LAUNCH_DATE = '2026-03-23';
 // Enabled features — derived from NAV_SECTIONS with same filter as sidebar
 const COACH_FEATURES: { id: string; labelKey: string }[] = NAV_SECTIONS
   .flatMap(s => s.items)
-  .filter(({ path }) => ['/payments', '/students', '/diagram'].includes(path))
-  .map(({ path, labelKey }) => ({ id: path.slice(1), labelKey }));
+  .filter(({ path }) => ['/app/payments', '/app/students', '/app/diagram'].includes(path))
+  .map(({ path, labelKey }) => ({ id: path.replace(/^\/app\//, ''), labelKey }));
 
 export function AdminPanel() {
   const { user, isLoading: authLoading } = useAuth();
@@ -531,7 +531,7 @@ export function AdminPanel() {
   }, [filteredApiUsage, allUploadsData]);
 
   if (!authLoading && (!user || !user.is_admin)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const sortedInvocations = useMemo(() => {

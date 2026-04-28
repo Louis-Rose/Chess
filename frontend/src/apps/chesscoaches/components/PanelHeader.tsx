@@ -15,7 +15,7 @@ export function PanelHeader({ title, onBack }: PanelHeaderProps) {
   const { t } = useLanguage();
 
   const handleBack = onBack || (() => {
-    if (location.key === 'default') navigate('/');
+    if (location.key === 'default') navigate('/app');
     else navigate(-1);
   });
 
