@@ -241,7 +241,7 @@ function Field({ label, required, hint, children }: { label: string; required?: 
       <span className="block text-sm font-semibold text-slate-200 mb-2">
         {label}
         {required && <span className="text-emerald-400 ml-0.5">*</span>}
-        {hint && <span className="ml-2 text-xs font-normal text-slate-500">{hint}</span>}
+        {hint && <span className="ml-2 text-xs font-normal text-white">{hint}</span>}
       </span>
       {children}
     </label>
