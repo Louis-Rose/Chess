@@ -210,11 +210,7 @@ function TestimonialsSection({ t }: { t: typeof COPY['en'] }) {
       <div className="max-w-4xl mx-auto px-6 lg:px-12 py-14 lg:py-20">
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-center">{t.testimonialsTitle}</h2>
         <figure className="mt-12 rounded-2xl border border-slate-700 bg-slate-800/40 p-6 sm:p-8 lg:p-10">
-          <span aria-hidden className="block text-emerald-500 font-serif text-5xl leading-none mb-2">“</span>
-          <blockquote className="text-base sm:text-lg text-slate-200 leading-relaxed">
-            {t.testimonialQuote}
-          </blockquote>
-          <figcaption className="mt-6 flex items-center gap-4">
+          <figcaption className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 rounded-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-semibold">
               EG
             </div>
@@ -223,6 +219,10 @@ function TestimonialsSection({ t }: { t: typeof COPY['en'] }) {
               <div className="text-sm text-slate-400">{t.testimonialRole}</div>
             </div>
           </figcaption>
+          <span aria-hidden className="block text-emerald-500 font-serif text-5xl leading-none mb-2">“</span>
+          <blockquote className="text-base sm:text-lg text-slate-200 leading-relaxed">
+            {t.testimonialQuote}
+          </blockquote>
         </figure>
       </div>
     </section>
