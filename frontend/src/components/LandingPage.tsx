@@ -4,13 +4,12 @@ import { ArrowRight, Sparkles, Grid3X3, Users, Calendar } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
-import { LanguageToggle } from '../apps/chesscoaches/components/LanguageToggle';
 import { BoardPreview } from '../apps/chesscoaches/components/BoardPreview';
+import { SiteNav } from './SiteNav';
 
 const COPY = {
   fr: {
     navContact: 'Contact',
-    signIn: 'Tester le produit',
     badge: 'IA pour entraîneurs d\'échecs',
     headlineBefore: 'L\'intelligence artificielle au service de',
     headlineAccent: 'vos cours d\'échecs.',
@@ -30,7 +29,6 @@ const COPY = {
   },
   es: {
     navContact: 'Contacto',
-    signIn: 'Probar el producto',
     badge: 'IA para entrenadores de ajedrez',
     headlineBefore: 'Inteligencia artificial al servicio de',
     headlineAccent: 'tus clases de ajedrez.',
@@ -50,7 +48,6 @@ const COPY = {
   },
   en: {
     navContact: 'Contact',
-    signIn: 'Try the product',
     badge: 'AI for chess coaches',
     headlineBefore: 'Artificial intelligence to power',
     headlineAccent: 'your chess lessons.',
@@ -88,7 +85,7 @@ export function LandingPage() {
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
-      <Nav t={t} />
+      <SiteNav />
 
       <main className="relative">
         <BackgroundGlow />
@@ -121,38 +118,6 @@ export function LandingPage() {
 
       <Footer t={t} />
     </div>
-  );
-}
-
-function Nav({ t }: { t: typeof COPY['en'] }) {
-  return (
-    <header className="sticky top-0 z-40 backdrop-blur bg-slate-900/80 border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center">
-        <div className="flex-1 flex">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <LumnaLogo className="w-7 h-7" />
-            <span className="text-lg font-bold tracking-wide">LUMNA</span>
-          </Link>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/app"
-            className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 transition-colors"
-          >
-            {t.signIn}
-          </Link>
-          <Link
-            to="/contact"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
-          >
-            {t.cta}
-          </Link>
-        </div>
-        <div className="flex-1 flex justify-end">
-          <LanguageToggle flagsOnly />
-        </div>
-      </div>
-    </header>
   );
 }
 

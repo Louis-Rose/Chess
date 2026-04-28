@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Check, Send } from 'lucide-react';
+import { Check, Send } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../contexts/LanguageContext';
-import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
-import { LanguageToggle } from '../apps/chesscoaches/components/LanguageToggle';
+import { SiteNav } from './SiteNav';
 
 const COPY = {
   fr: {
-    back: 'Retour',
     title: 'Réserver une démo',
     subtitle: 'Remplissez le formulaire et nous reviendrons vers vous sous 48h.',
     name: 'Nom complet',
@@ -31,7 +29,6 @@ const COPY = {
     errorMessage: 'Le message doit contenir entre 5 et 3000 caractères.',
   },
   es: {
-    back: 'Volver',
     title: 'Reservar una demo',
     subtitle: 'Rellena el formulario y te responderemos en 48h.',
     name: 'Nombre completo',
@@ -54,7 +51,6 @@ const COPY = {
     errorMessage: 'El mensaje debe tener entre 5 y 3000 caracteres.',
   },
   en: {
-    back: 'Back',
     title: 'Book a demo',
     subtitle: 'Fill out the form and we\'ll get back to you within 48 hours.',
     name: 'Full name',
@@ -123,19 +119,7 @@ export function ContactPage() {
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
-      <header className="border-b border-slate-800">
-        <div className="max-w-3xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-2 text-slate-300 hover:text-white transition-colors text-sm">
-            <ArrowLeft className="w-4 h-4" />
-            {t.back}
-          </Link>
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <LumnaLogo className="w-7 h-7" />
-            <span className="text-lg font-bold tracking-wide">LUMNA</span>
-          </Link>
-          <LanguageToggle flagsOnly />
-        </div>
-      </header>
+      <SiteNav />
 
       <main className="max-w-2xl mx-auto px-6 lg:px-12 py-16">
         {status === 'success' ? (
