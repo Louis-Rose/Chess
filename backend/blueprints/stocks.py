@@ -72,32 +72,41 @@ def nvidia_press_url(quarter: int, fiscal_year: int) -> str:
     )
 
 
-# Matches "revenue for the <ordinal> quarter ended <date>, of $<N> billion".
-# Tolerates "record revenue" wording. Used for all Nvidia quarterly releases.
-_NVIDIA_Q_REVENUE_RE = re.compile(
-    r'revenue\s+for\s+the\s+\w+\s+quarter\s+ended[^$]+\$([\d.]+)\s*billion',
+# Matches "For fiscal <year>, revenue was $<N> billion" — only present in
+# Q4 press releases, which report the full year. For non-Q4 quarters we'd
+# need to sum four quarterly figures (see TODO in _fetch_nvidia_ttm_revenue).
+_NVIDIA_FY_REVENUE_RE = re.compile(
+    r'For\s+fiscal\s+\d{4},\s+revenue\s+was\s+\$([\d.]+)\s*billion',
     re.IGNORECASE,
 )
 
 
 @lru_cache(maxsize=64)
-def _fetch_nvidia_quarterly_revenue(quarter: int, fiscal_year: int) -> float:
-    """Quarterly revenue in billions USD. Cached per-process — press
-    releases never change after publication."""
+def _fetch_nvidia_ttm_revenue(quarter: int, fiscal_year: int) -> float:
+    """Trailing-twelve-month revenue in billions USD, as of Q{quarter} FY{fiscal_year}.
+
+    For Q4 this equals the full-year revenue, which the press release states
+    directly. Cached per-process — press releases never change after
+    publication.
+    """
+    if quarter != 4:
+        # TODO: sum the 4 most recent quarterly figures (requires parsing
+        # quarterly revenue across two fiscal years).
+        raise NotImplementedError('TTM only implemented for Q4 releases so far')
     url = nvidia_press_url(quarter, fiscal_year)
     r = http_requests.get(url, timeout=15)
     r.raise_for_status()
-    m = _NVIDIA_Q_REVENUE_RE.search(r.text)
+    m = _NVIDIA_FY_REVENUE_RE.search(r.text)
     if not m:
-        raise ValueError(f'No revenue figure found at {url}')
+        raise ValueError(f'No full-year revenue found at {url}')
     return float(m.group(1))
 
 
-def _safe_nvidia_revenue(quarter: int, fiscal_year: int) -> float | None:
+def _safe_nvidia_ttm(quarter: int, fiscal_year: int) -> float | None:
     try:
-        return _fetch_nvidia_quarterly_revenue(quarter, fiscal_year)
+        return _fetch_nvidia_ttm_revenue(quarter, fiscal_year)
     except Exception as e:
-        logger.warning('Nvidia revenue fetch failed (Q%d FY%d): %s', quarter, fiscal_year, e)
+        logger.warning('Nvidia TTM revenue fetch failed (Q%d FY%d): %s', quarter, fiscal_year, e)
         return None
 
 
@@ -119,9 +128,9 @@ def stocks_data():
     """
     data: dict[str, dict[str, dict]] = {}
 
-    current = _safe_nvidia_revenue(CURRENT_QUARTER, CURRENT_FY)
-    one_y = _safe_nvidia_revenue(CURRENT_QUARTER, CURRENT_FY - 1)
-    three_y = _safe_nvidia_revenue(CURRENT_QUARTER, CURRENT_FY - 3)
+    current = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY)
+    one_y = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY - 1)
+    three_y = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY - 3)
 
     cell: dict[str, float] = {}
     if current is not None and one_y:
@@ -132,6 +141,6 @@ def stocks_data():
         data['Nvidia'] = {'Revenue': cell}
 
     return jsonify({
-        'period': f'Q{CURRENT_QUARTER} FY{CURRENT_FY}',
+        'period': f'TTM as of Q{CURRENT_QUARTER} FY{CURRENT_FY}',
         'data': data,
     })
