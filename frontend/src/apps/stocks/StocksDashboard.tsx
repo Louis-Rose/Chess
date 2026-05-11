@@ -9,6 +9,32 @@ const METRICS = ['Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operat
 type Company = typeof COMPANIES[number];
 type Metric = typeof METRICS[number];
 
+// Latest released quarter per company, with link to the press release.
+// Update when a new quarter drops (and bump AS_OF_LABEL).
+const AS_OF_LABEL = 'May 11th, 2026';
+const MOST_RECENT_QUARTER: Record<Company, { label: string; url: string }> = {
+  Nvidia: {
+    label: 'Q4 2026',
+    url: 'https://nvidianews.nvidia.com/news/nvidia-announces-financial-results-for-fourth-quarter-and-fiscal-2026',
+  },
+  Alphabet: {
+    label: 'Q1 2026',
+    url: 'https://abc.xyz/investor/news/news-details/2026/Alphabet-Announces-First-Quarter-2026-Results-2026-X-ge4Dm6bf/default.aspx',
+  },
+  Amazon: {
+    label: 'Q1 2026',
+    url: 'https://ir.aboutamazon.com/news-release/news-release-details/2026/Amazon-com-Announces-First-Quarter-Results/',
+  },
+  Meta: {
+    label: 'Q1 2026',
+    url: 'https://investor.atmeta.com/investor-news/press-release-details/2026/Meta-Reports-First-Quarter-2026-Results/default.aspx',
+  },
+  Microsoft: {
+    label: 'Q3 2026',
+    url: 'https://www.microsoft.com/en-us/investor/earnings/fy-2026-q3/press-release-webcast',
+  },
+};
+
 interface CellData { oneY?: number; threeY?: number }
 interface StocksPayload {
   period: string;
@@ -74,6 +100,24 @@ export function StocksDashboard() {
               </tr>
             </thead>
             <tbody>
+              <tr className="border-b border-slate-800">
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
+                  <div>Most recent quarter</div>
+                  <div className="text-xs font-normal text-slate-400 mt-0.5">(as of {AS_OF_LABEL})</div>
+                </th>
+                {COMPANIES.map(c => (
+                  <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center">
+                    <a
+                      href={MOST_RECENT_QUARTER[c].url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-400 hover:text-emerald-300 hover:underline font-medium"
+                    >
+                      {MOST_RECENT_QUARTER[c].label}
+                    </a>
+                  </td>
+                ))}
+              </tr>
               {METRICS.map(metric => (
                 <tr key={metric} className="border-b border-slate-800 last:border-b-0">
                   <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
