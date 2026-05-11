@@ -193,11 +193,11 @@ export function StocksDashboard() {
             </colgroup>
             <thead>
               <tr className="bg-slate-800">
-                <th className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-slate-800" />
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-slate-700" />
                 {COMPANIES.map(c => (
                   <th
                     key={c}
-                    className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-l border-slate-800"
+                    className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-l border-slate-700"
                   >
                     <div className="flex flex-col items-center gap-1.5">
                       <img src={COMPANY_LOGO[c]} alt="" className="h-5 w-auto max-w-full" />
@@ -209,7 +209,7 @@ export function StocksDashboard() {
             </thead>
             <tbody>
               <tr className="border-b border-slate-800">
-                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800 border-b border-slate-700">
                   Latest quarterly results
                 </th>
                 {COMPANIES.map(c => (
@@ -226,7 +226,7 @@ export function StocksDashboard() {
                 ))}
               </tr>
               <tr className="border-b border-slate-800">
-                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800 border-b border-slate-700">
                   Next quarterly results
                 </th>
                 {COMPANIES.map(c => {
@@ -240,7 +240,7 @@ export function StocksDashboard() {
               </tr>
               {METRICS.map(metric => (
                 <tr key={metric} className="border-b border-slate-800 last:border-b-0">
-                  <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
+                  <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800 border-b border-slate-700">
                     {metric}
                   </th>
                   {COMPANIES.map(c => {
