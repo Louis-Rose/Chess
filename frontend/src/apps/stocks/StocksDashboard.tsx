@@ -333,9 +333,25 @@ function StockChart({ companies }: { companies: Company[] }) {
                 axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
               />
               <Tooltip
-                contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
-                labelStyle={{ color: '#cbd5e1' }}
-                formatter={fmtTooltip}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || payload.length === 0) return null;
+                  return (
+                    <div className="bg-slate-900 border border-slate-700 rounded-md text-xs">
+                      <div className="text-center font-bold text-slate-200 px-3 pt-2 pb-2 border-b border-slate-700">
+                        {label}
+                      </div>
+                      <div className="px-3 py-2 space-y-0.5">
+                        {[...payload]
+                          .sort((a, b) => ((b.value as number) ?? -Infinity) - ((a.value as number) ?? -Infinity))
+                          .map((entry, i) => (
+                            <div key={i} style={{ color: entry.stroke as string | undefined }}>
+                              {entry.name} : {fmtTooltip(entry.value as number | undefined)}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  );
+                }}
               />
               {companies.map(c => (
                 <Line key={c} type="monotone" dataKey={c} name={c} stroke={COMPANY_COLOR[c]} strokeWidth={1.5} dot={false} connectNulls />
