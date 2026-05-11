@@ -175,6 +175,23 @@ function renderQuote(quote: string) {
   );
 }
 
+// Round-number tick generator — e.g. for range 189-225 returns [180, 190, 200, 210, 220, 230].
+function niceTicks(min: number, max: number, target = 5): number[] {
+  if (!isFinite(min) || !isFinite(max) || min === max) return [min];
+  const rawStep = (max - min) / target;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const normalized = rawStep / magnitude;
+  const niceStep = normalized < 1.5 ? 1 : normalized < 3 ? 2 : normalized < 7 ? 5 : 10;
+  const step = niceStep * magnitude;
+  const start = Math.floor(min / step) * step;
+  const end = Math.ceil(max / step) * step;
+  const ticks: number[] = [];
+  for (let v = start; v <= end + step * 0.001; v += step) {
+    ticks.push(Math.round(v * 1e6) / 1e6);
+  }
+  return ticks;
+}
+
 function StockChart({ company }: { company: Company }) {
   const ticker = TICKERS[company];
   const [range, setRange] = useState<StockRange>('1Y');
@@ -216,22 +233,27 @@ function StockChart({ company }: { company: Company }) {
           <div className="h-full flex items-center justify-center">
             <div className="w-8 h-8 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
           </div>
-        ) : data && data.points.length > 0 ? (
+        ) : data && data.points.length > 0 ? (() => {
+          const closes = data.points.map(p => p.close);
+          const yTicks = niceTicks(Math.min(...closes), Math.max(...closes));
+          const yDomain: [number, number] = [yTicks[0], yTicks[yTicks.length - 1]];
+          return (
           <ResponsiveContainer width="100%" height="100%">
             <RLineChart data={data.points} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
               <XAxis
                 dataKey="date"
                 stroke="#64748b"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 12 }}
                 minTickGap={60}
               />
               <YAxis
                 stroke="#64748b"
-                tick={{ fontSize: 10 }}
-                domain={['auto', 'auto']}
+                tick={{ fontSize: 12 }}
+                domain={yDomain}
+                ticks={yTicks}
                 tickFormatter={v => `$${v}`}
-                width={50}
+                width={60}
               />
               <Tooltip
                 contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
@@ -242,7 +264,8 @@ function StockChart({ company }: { company: Company }) {
               <Line type="monotone" dataKey="close" stroke="#10b981" strokeWidth={1.5} dot={false} />
             </RLineChart>
           </ResponsiveContainer>
-        ) : (
+          );
+        })() : (
           <div className="h-full flex items-center justify-center text-slate-500 text-sm">No data</div>
         )}
       </div>
