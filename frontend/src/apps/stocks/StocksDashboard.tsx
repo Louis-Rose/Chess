@@ -245,7 +245,11 @@ function StockChart({ company }: { company: Company }) {
                 dataKey="date"
                 stroke="#cbd5e1"
                 tick={{ fontSize: 12, fill: '#cbd5e1' }}
-                minTickGap={60}
+                tickMargin={8}
+                angle={-45}
+                textAnchor="end"
+                height={55}
+                minTickGap={30}
                 axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
               />
               <YAxis
