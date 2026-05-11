@@ -516,13 +516,15 @@ export function StocksDashboard() {
               </tr>
               {METRICS.map(metric => {
                 const rowHasData = companiesWithData(metric).length > 0;
+                const rowSelected = selected?.metric === metric;
                 return (
                 <tr key={metric} className="border-b border-slate-700 last:border-b-0">
                   <th
                     onClick={rowHasData ? () => toggleRow(metric) : undefined}
                     className={
                       'text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800 '
-                      + (rowHasData ? 'cursor-pointer hover:bg-slate-700/80' : '')
+                      + (rowHasData ? 'cursor-pointer hover:bg-slate-700/80 ' : '')
+                      + (rowSelected ? 'bg-emerald-500/10 ring-2 ring-inset ring-emerald-500/40' : '')
                     }
                   >
                     {metric}
