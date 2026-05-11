@@ -136,6 +136,36 @@ def _safe_nvidia(quarter: int, fiscal_year: int, mode: str) -> dict | None:
         return None
 
 
+# ── Price history endpoint (drives the Stock price chart) ───────────────────
+
+_HISTORY_RANGES = {
+    '5Y': '5y', '3Y': '3y', '1Y': '1y',
+    'YTD': 'ytd', '6M': '6mo', '1M': '1mo',
+}
+
+
+@stocks_bp.route('/api/stocks/history/<ticker>', methods=['GET'])
+@owner_required
+def stocks_history(ticker: str):
+    """Daily closing prices for `ticker` over ?range= (5Y/3Y/1Y/YTD/6M/1M)."""
+    if ticker not in TICKERS.values():
+        return jsonify({'error': 'Unknown ticker'}), 400
+    r = request.args.get('range', '1Y').upper()
+    period = _HISTORY_RANGES.get(r)
+    if not period:
+        return jsonify({'error': 'Invalid range'}), 400
+    try:
+        hist = yfinance.Ticker(ticker).history(period=period, interval='1d', auto_adjust=True)
+        points = [
+            {'date': idx.date().isoformat(), 'close': round(float(row['Close']), 2)}
+            for idx, row in hist.iterrows()
+        ] if not hist.empty else []
+        return jsonify({'ticker': ticker, 'range': r, 'points': points})
+    except Exception as e:
+        logger.exception('History fetch failed for %s', ticker)
+        return jsonify({'error': str(e)}), 502
+
+
 # ── Data endpoint ────────────────────────────────────────────────────────────
 #
 # Bump these when a newer quarter is released. (Future: auto-detect.)

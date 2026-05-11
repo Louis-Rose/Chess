@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, LineChart, ExternalLink, RefreshCw } from 'lucide-react';
+import { LineChart as RLineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 const COMPANIES = ['Nvidia', 'Alphabet', 'Amazon', 'Meta', 'Microsoft'] as const;
 const METRICS = ['Stock price', 'Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operating Cash-Flow', 'Free Cash-Flow'] as const;
@@ -51,6 +52,19 @@ function fmtDateNoYear(iso: string): string {
   const [, m, d] = iso.split('-').map(Number);
   return `${MONTHS[m - 1]} ${ordinal(d)}`;
 }
+
+const TICKERS: Record<Company, string> = {
+  Nvidia: 'NVDA',
+  Alphabet: 'GOOGL',
+  Amazon: 'AMZN',
+  Meta: 'META',
+  Microsoft: 'MSFT',
+};
+
+const STOCK_RANGES = ['5Y', '3Y', '1Y', 'YTD', '6M', '1M'] as const;
+type StockRange = typeof STOCK_RANGES[number];
+interface PricePoint { date: string; close: number }
+interface PriceHistory { ticker: string; range: StockRange; points: PricePoint[] }
 
 // Brand logos — self-hosted SVGs in public/logos/ (real brand colors).
 const COMPANY_LOGO: Record<Company, string> = {
@@ -158,6 +172,81 @@ function renderQuote(quote: string) {
     /^\$[\d.]+\s*billion$/i.test(part)
       ? <strong key={i} className="text-emerald-300 font-semibold not-italic">{part}</strong>
       : <span key={i}>{part}</span>
+  );
+}
+
+function StockChart({ company }: { company: Company }) {
+  const ticker = TICKERS[company];
+  const [range, setRange] = useState<StockRange>('1Y');
+  const [data, setData] = useState<PriceHistory | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setData(null);
+    axios.get<PriceHistory>(`/api/stocks/history/${ticker}`, { params: { range } })
+      .then(r => { if (!cancelled) { setData(r.data); setLoading(false); } })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [ticker, range]);
+
+  return (
+    <div>
+      <div className="flex justify-end mb-3">
+        <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+          {STOCK_RANGES.map(r => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={
+                'w-12 px-2 py-1 font-medium transition-colors '
+                + (range === r
+                  ? 'bg-slate-700 text-slate-100'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+              }
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="h-72">
+        {loading ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
+          </div>
+        ) : data && data.points.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <RLineChart data={data.points} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+              <XAxis
+                dataKey="date"
+                stroke="#64748b"
+                tick={{ fontSize: 10 }}
+                minTickGap={60}
+              />
+              <YAxis
+                stroke="#64748b"
+                tick={{ fontSize: 10 }}
+                domain={['auto', 'auto']}
+                tickFormatter={v => `$${v}`}
+                width={50}
+              />
+              <Tooltip
+                contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
+                labelStyle={{ color: '#cbd5e1' }}
+                itemStyle={{ color: '#10b981' }}
+                formatter={(v: number) => [`$${v.toFixed(2)}`, 'Close']}
+              />
+              <Line type="monotone" dataKey="close" stroke="#10b981" strokeWidth={1.5} dot={false} />
+            </RLineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-full flex items-center justify-center text-slate-500 text-sm">No data</div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -325,11 +414,11 @@ export function StocksDashboard() {
           </div>
         )}
 
-        {selected && selectedCell?.evidence?.length && (
+        {selected && (selected.metric === 'Stock price' || selectedCell?.evidence?.length) && (
           <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-slate-200">
-                Evidence — {selected.company} · {selected.metric}
+                {selected.company} · {selected.metric}
               </h2>
               <button
                 onClick={() => setSelected(null)}
@@ -338,24 +427,28 @@ export function StocksDashboard() {
                 Close
               </button>
             </div>
-            <div className="space-y-4">
-              {selectedCell.evidence.map((e, i) => (
-                <blockquote
-                  key={i}
-                  className="border-l-2 border-emerald-500/50 pl-4 py-1"
-                >
-                  <p className="text-slate-200 italic">"{renderQuote(e.quote)}"</p>
-                  <a
-                    href={e.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-emerald-400 hover:underline mt-1.5 inline-flex items-center gap-1"
+            {selected.metric === 'Stock price' ? (
+              <StockChart company={selected.company} />
+            ) : (
+              <div className="space-y-4">
+                {selectedCell?.evidence?.map((e, i) => (
+                  <blockquote
+                    key={i}
+                    className="border-l-2 border-emerald-500/50 pl-4 py-1"
                   >
-                    {e.label} press release <ExternalLink className="w-3 h-3" />
-                  </a>
-                </blockquote>
-              ))}
-            </div>
+                    <p className="text-slate-200 italic">"{renderQuote(e.quote)}"</p>
+                    <a
+                      href={e.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-emerald-400 hover:underline mt-1.5 inline-flex items-center gap-1"
+                    >
+                      {e.label} press release <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </blockquote>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
