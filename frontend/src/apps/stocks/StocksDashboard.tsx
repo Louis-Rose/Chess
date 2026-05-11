@@ -234,14 +234,11 @@ export function StocksDashboard() {
                           </span>
                         )}
                         {hasData && view === 'absolute' && (
-                          <span className="font-mono text-xs text-white">
-                            {fmtValue(cell!.current, cell!.unit)}
-                            <span className="text-slate-400"> (now) / </span>
-                            {fmtValue(cell!.oneYValue, cell!.unit)}
-                            <span className="text-slate-400"> (1Y) / </span>
-                            {fmtValue(cell!.threeYValue, cell!.unit)}
-                            <span className="text-slate-400"> (3Y)</span>
-                          </span>
+                          <div className="font-mono text-xs text-white leading-5">
+                            <div>{fmtValue(cell!.current, cell!.unit)} <span className="text-white">(now)</span></div>
+                            <div>{fmtValue(cell!.oneYValue, cell!.unit)} <span className="text-white">(1Y)</span></div>
+                            <div>{fmtValue(cell!.threeYValue, cell!.unit)} <span className="text-white">(3Y)</span></div>
+                          </div>
                         )}
                       </td>
                     );
