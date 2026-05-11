@@ -239,17 +239,17 @@ function StockChart({ company }: { company: Company }) {
           const yDomain: [number, number] = [yTicks[0], yTicks[yTicks.length - 1]];
           return (
           <ResponsiveContainer width="100%" height="100%">
-            <RLineChart data={data.points} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+            <RLineChart data={data.points} margin={{ top: 12, right: 24, bottom: 4, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#64748b" vertical={false} />
               <XAxis
                 dataKey="date"
-                stroke="#64748b"
-                tick={{ fontSize: 12 }}
+                stroke="#cbd5e1"
+                tick={{ fontSize: 12, fill: '#cbd5e1' }}
                 minTickGap={60}
               />
               <YAxis
-                stroke="#64748b"
-                tick={{ fontSize: 12 }}
+                stroke="#cbd5e1"
+                tick={{ fontSize: 12, fill: '#cbd5e1' }}
                 domain={yDomain}
                 ticks={yTicks}
                 tickFormatter={v => `$${v}`}
