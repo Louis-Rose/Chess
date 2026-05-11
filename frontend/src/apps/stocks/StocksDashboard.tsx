@@ -192,7 +192,7 @@ export function StocksDashboard() {
               <col span={COMPANIES.length} />
             </colgroup>
             <thead>
-              <tr className="bg-slate-800/50">
+              <tr className="bg-slate-800">
                 <th className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-slate-800" />
                 {COMPANIES.map(c => (
                   <th
@@ -209,7 +209,7 @@ export function StocksDashboard() {
             </thead>
             <tbody>
               <tr className="border-b border-slate-800">
-                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
                   Latest quarterly results
                 </th>
                 {COMPANIES.map(c => (
@@ -226,7 +226,7 @@ export function StocksDashboard() {
                 ))}
               </tr>
               <tr className="border-b border-slate-800">
-                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
                   Next quarterly results
                 </th>
                 {COMPANIES.map(c => {
@@ -240,7 +240,7 @@ export function StocksDashboard() {
               </tr>
               {METRICS.map(metric => (
                 <tr key={metric} className="border-b border-slate-800 last:border-b-0">
-                  <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
+                  <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
                     {metric}
                   </th>
                   {COMPANIES.map(c => {
