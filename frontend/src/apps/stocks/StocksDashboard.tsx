@@ -96,7 +96,7 @@ export function StocksDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-center gap-4 mb-3">
+        <div className="flex flex-col items-center gap-1.5 mb-3">
           <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
             {(['quarterly', 'ttm'] as const).map(m => (
               <button
