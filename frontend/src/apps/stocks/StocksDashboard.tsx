@@ -185,7 +185,7 @@ export function StocksDashboard() {
           />
         </div>
 
-        <div className="overflow-x-auto border border-slate-800 rounded-lg">
+        <div className="overflow-x-auto border border-slate-700 rounded-lg">
           <table className="w-full text-sm border-collapse table-fixed">
             <colgroup>
               <col style={{ width: '200px' }} />
@@ -208,12 +208,12 @@ export function StocksDashboard() {
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-slate-800">
-                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800 border-b border-slate-700">
+              <tr className="border-b border-slate-700">
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
                   Latest quarterly results
                 </th>
                 {COMPANIES.map(c => (
-                  <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center">
+                  <td key={c} className="px-4 py-3 border-l border-slate-700 h-12 whitespace-nowrap text-center">
                     <a
                       href={MOST_RECENT_QUARTER[c].url}
                       target="_blank"
@@ -225,22 +225,22 @@ export function StocksDashboard() {
                   </td>
                 ))}
               </tr>
-              <tr className="border-b border-slate-800">
-                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800 border-b border-slate-700">
+              <tr className="border-b border-slate-700">
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
                   Next quarterly results
                 </th>
                 {COMPANIES.map(c => {
                   const e = payload?.earnings?.[c];
                   return (
-                    <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center text-white font-medium">
+                    <td key={c} className="px-4 py-3 border-l border-slate-700 h-12 whitespace-nowrap text-center text-white font-medium">
                       {e ? fmtDaysUntil(e.daysUntil) : null}
                     </td>
                   );
                 })}
               </tr>
               {METRICS.map(metric => (
-                <tr key={metric} className="border-b border-slate-800 last:border-b-0">
-                  <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800 border-b border-slate-700">
+                <tr key={metric} className="border-b border-slate-700 last:border-b-0">
+                  <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
                     {metric}
                   </th>
                   {COMPANIES.map(c => {
@@ -252,7 +252,7 @@ export function StocksDashboard() {
                         key={c}
                         onClick={hasData ? () => setSelected(isSelected ? null : { company: c, metric }) : undefined}
                         className={
-                          'px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center '
+                          'px-4 py-3 border-l border-slate-700 h-12 whitespace-nowrap text-center '
                           + (hasData ? 'cursor-pointer hover:bg-slate-800/60 ' : '')
                           + (isSelected ? 'bg-emerald-500/10 ring-2 ring-inset ring-emerald-500/40' : '')
                         }
