@@ -82,7 +82,7 @@ export function StocksDashboard() {
                   {COMPANIES.map(c => {
                     const cell = payload?.data?.[c]?.[metric];
                     return (
-                      <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap">
+                      <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center">
                         {cell && (cell.oneY !== undefined || cell.threeY !== undefined) && (
                           <span className="font-mono text-xs">
                             <span className={pctColor(cell.oneY)}>{fmtPct(cell.oneY)}</span>
