@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, LineChart, ExternalLink, RefreshCw } from 'lucide-react';
-import { LineChart as RLineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart as RLineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 const COMPANIES = ['Nvidia', 'Alphabet', 'Amazon', 'Meta', 'Microsoft'] as const;
 const METRICS = ['Stock price', 'Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operating Cash-Flow', 'Free Cash-Flow'] as const;
@@ -302,9 +302,6 @@ function StockChart({ companies }: { companies: Company[] }) {
                 labelStyle={{ color: '#cbd5e1' }}
                 formatter={(v: number | undefined) => v === undefined ? '—' : `$${v.toFixed(2)}`}
               />
-              {companies.length > 1 && (
-                <Legend wrapperStyle={{ color: '#cbd5e1', fontSize: 12 }} />
-              )}
               {companies.map(c => (
                 <Line key={c} type="monotone" dataKey={c} name={c} stroke={COMPANY_COLOR[c]} strokeWidth={1.5} dot={false} connectNulls />
               ))}
@@ -504,7 +501,12 @@ export function StocksDashboard() {
                 {selected.companies.map(c => (
                   <div key={c} className="flex items-center gap-1.5">
                     <img src={COMPANY_LOGO[c]} alt="" className="h-6 w-auto max-w-full" />
-                    <span className="text-sm font-semibold text-slate-200">{c}</span>
+                    <span
+                      className="text-sm font-semibold"
+                      style={{ color: selected.metric === 'Stock price' ? COMPANY_COLOR[c] : '#e2e8f0' }}
+                    >
+                      {c}
+                    </span>
                   </div>
                 ))}
               </div>
