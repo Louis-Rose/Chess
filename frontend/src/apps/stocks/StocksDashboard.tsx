@@ -263,9 +263,9 @@ function StockChart({ companies }: { companies: Company[] }) {
     return { combined, yTicks, yDomain, hasData: true };
   })();
 
-  const fmtY = (v: number) => scale === 'absolute' ? `$${v}` : `${v}`;
+  const fmtY = (v: number) => scale === 'absolute' ? `$${v}` : `${v}%`;
   const fmtTooltip = (v: number | undefined) =>
-    v === undefined ? '—' : scale === 'absolute' ? `$${v.toFixed(2)}` : v.toFixed(1);
+    v === undefined ? '—' : scale === 'absolute' ? `$${v.toFixed(2)}` : `${v.toFixed(1)}%`;
 
   return (
     <div>
