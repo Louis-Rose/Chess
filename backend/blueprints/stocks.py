@@ -194,14 +194,91 @@ def _fetch_next_earnings_iso(ticker: str) -> str | None:
     return iso
 
 
-def _build_growth_cell(cur: dict | None, one: dict | None, three: dict | None) -> dict | None:
+# ── Stock prices (Yahoo Finance via yfinance) ────────────────────────────────
+#
+# Adjusted closes — yfinance auto_adjust=True normalizes for splits/dividends,
+# so Nvidia's 2024 10-for-1 split doesn't break the 3-year comparison.
+
+_PRICES_CACHE: dict[str, tuple[datetime, dict | None]] = {}
+_PRICES_TTL = timedelta(hours=6)
+
+
+def _fetch_stock_prices(ticker: str) -> dict | None:
+    """Return {'current', 'currentDate', 'oneY', 'oneYDate', 'threeY', 'threeYDate'}."""
+    cached = _PRICES_CACHE.get(ticker)
+    if cached and (datetime.now() - cached[0]) < _PRICES_TTL:
+        return cached[1]
+    result: dict | None = None
+    try:
+        import pandas as pd
+        hist = yfinance.Ticker(ticker).history(
+            period='4y', interval='1d', auto_adjust=True,
+        )
+        if not hist.empty:
+            latest_ts = hist.index[-1]
+            target_1y = latest_ts - pd.DateOffset(years=1)
+            target_3y = latest_ts - pd.DateOffset(years=3)
+            idx_1y = hist.index.get_indexer([target_1y], method='nearest')[0]
+            idx_3y = hist.index.get_indexer([target_3y], method='nearest')[0]
+            result = {
+                'current': round(float(hist['Close'].iloc[-1]), 2),
+                'currentDate': latest_ts.date().isoformat(),
+                'oneY': round(float(hist['Close'].iloc[idx_1y]), 2),
+                'oneYDate': hist.index[idx_1y].date().isoformat(),
+                'threeY': round(float(hist['Close'].iloc[idx_3y]), 2),
+                'threeYDate': hist.index[idx_3y].date().isoformat(),
+            }
+    except Exception as e:
+        logger.warning('Stock history fetch failed for %s: %s', ticker, e)
+    _PRICES_CACHE[ticker] = (datetime.now(), result)
+    return result
+
+
+def _stock_price_cell(ticker: str) -> dict | None:
+    p = _fetch_stock_prices(ticker)
+    if not p:
+        return None
+    chart_url = f'https://finance.yahoo.com/quote/{ticker}/history'
+    cell = {
+        'oneY': (p['current'] - p['oneY']) / p['oneY'],
+        'threeY': (p['current'] - p['threeY']) / p['threeY'],
+        'current': p['current'],
+        'oneYValue': p['oneY'],
+        'threeYValue': p['threeY'],
+        'unit': '$',
+        'evidence': [
+            {'label': f'Close on {p["currentDate"]}',
+             'value': p['current'],
+             'quote': f'Closing price on {p["currentDate"]} (split-adjusted): ${p["current"]:.2f}',
+             'url': chart_url},
+            {'label': f'Close on {p["oneYDate"]}',
+             'value': p['oneY'],
+             'quote': f'Closing price on {p["oneYDate"]} (split-adjusted): ${p["oneY"]:.2f}',
+             'url': chart_url},
+            {'label': f'Close on {p["threeYDate"]}',
+             'value': p['threeY'],
+             'quote': f'Closing price on {p["threeYDate"]} (split-adjusted): ${p["threeY"]:.2f}',
+             'url': chart_url},
+        ],
+    }
+    return cell
+
+
+def _build_growth_cell(cur: dict | None, one: dict | None, three: dict | None, unit: str = '$B') -> dict | None:
     cell: dict = {}
     if cur and one:
         cell['oneY'] = (cur['value'] - one['value']) / one['value']
     if cur and three:
         cell['threeY'] = (cur['value'] - three['value']) / three['value']
+    if cur:
+        cell['current'] = cur['value']
+    if one:
+        cell['oneYValue'] = one['value']
+    if three:
+        cell['threeYValue'] = three['value']
+    cell['unit'] = unit
     evidence = [e for e in (cur, one, three) if e]
-    if cell and evidence:
+    if ('oneY' in cell or 'threeY' in cell) and evidence:
         cell['evidence'] = evidence
         return cell
     return None
@@ -222,9 +299,18 @@ def stocks_data():
         cur = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY, mode)
         one = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY - 1, mode)
         three = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY - 3, mode)
-        cell = _build_growth_cell(cur, one, three)
+        cell = _build_growth_cell(cur, one, three, unit='$B')
         if cell:
             data.setdefault('Nvidia', {}).setdefault('Revenue', {})[mode] = cell
+
+    # Stock prices — same payload in both modes (not an accounting concept).
+    for company, ticker in TICKERS.items():
+        price_cell = _stock_price_cell(ticker)
+        if price_cell:
+            data.setdefault(company, {})['Stock price'] = {
+                'ttm': price_cell,
+                'quarterly': price_cell,
+            }
 
     today = datetime.now(_PARIS).date()
     earnings: dict[str, dict] = {}

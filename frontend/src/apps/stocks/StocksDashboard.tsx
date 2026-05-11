@@ -4,14 +4,23 @@ import axios from 'axios';
 import { ArrowLeft, LineChart, ExternalLink } from 'lucide-react';
 
 const COMPANIES = ['Nvidia', 'Alphabet', 'Amazon', 'Meta', 'Microsoft'] as const;
-const METRICS = ['Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operating Cash-Flow', 'Free Cash-Flow'] as const;
+const METRICS = ['Stock price', 'Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operating Cash-Flow', 'Free Cash-Flow'] as const;
 
 type Company = typeof COMPANIES[number];
 type Metric = typeof METRICS[number];
+type View = 'growth' | 'absolute';
 
 type Mode = 'ttm' | 'quarterly';
 interface Evidence { label: string; value: number; quote: string; url: string }
-interface CellData { oneY?: number; threeY?: number; evidence?: Evidence[] }
+interface CellData {
+  oneY?: number;
+  threeY?: number;
+  current?: number;
+  oneYValue?: number;
+  threeYValue?: number;
+  unit?: string;
+  evidence?: Evidence[];
+}
 interface EarningsInfo { date: string; daysUntil: number }
 interface StocksPayload {
   asOf: string;
@@ -63,6 +72,13 @@ function pctColor(p: number | undefined): string {
   return 'text-slate-300';
 }
 
+function fmtValue(v: number | undefined, unit: string | undefined): string {
+  if (v === undefined) return '—';
+  if (unit === '$B') return `$${v >= 100 ? v.toFixed(0) : v.toFixed(1)}B`;
+  if (unit === '$') return `$${v.toFixed(0)}`;
+  return String(v);
+}
+
 // Bold the "$N billion" portion inside the press-release quote.
 function renderQuote(quote: string) {
   const parts = quote.split(/(\$[\d.]+\s*billion)/i);
@@ -78,6 +94,7 @@ export function StocksDashboard() {
   const [payload, setPayload] = useState<StocksPayload | null>(null);
   const [selected, setSelected] = useState<{ company: Company; metric: Metric } | null>(null);
   const [mode, setMode] = useState<Mode>('ttm');
+  const [view, setView] = useState<View>('growth');
 
   useEffect(() => {
     axios.get<StocksPayload>('/api/stocks/data')
@@ -104,7 +121,7 @@ export function StocksDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex justify-center mb-3">
+        <div className="flex justify-center gap-3 mb-3">
           <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
             {(['quarterly', 'ttm'] as const).map(m => (
               <button
@@ -118,6 +135,22 @@ export function StocksDashboard() {
                 }
               >
                 {m === 'ttm' ? 'TTM' : 'Quarterly'}
+              </button>
+            ))}
+          </div>
+          <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+            {(['growth', 'absolute'] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={
+                  'px-3 py-1.5 font-medium transition-colors '
+                  + (view === v
+                    ? 'bg-slate-700 text-slate-100'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+                }
+              >
+                {v === 'growth' ? 'Growth' : 'Absolute'}
               </button>
             ))}
           </div>
@@ -192,12 +225,22 @@ export function StocksDashboard() {
                           + (isSelected ? 'bg-emerald-500/10 ring-2 ring-inset ring-emerald-500/40' : '')
                         }
                       >
-                        {hasData && (
+                        {hasData && view === 'growth' && (
                           <span className="font-mono text-xs">
                             <span className={pctColor(cell!.oneY)}>{fmtPct(cell!.oneY)}</span>
                             <span className="text-white"> (1Y) / </span>
                             <span className={pctColor(cell!.threeY)}>{fmtPct(cell!.threeY)}</span>
                             <span className="text-white"> (3Y)</span>
+                          </span>
+                        )}
+                        {hasData && view === 'absolute' && (
+                          <span className="font-mono text-xs text-white">
+                            {fmtValue(cell!.current, cell!.unit)}
+                            <span className="text-slate-400"> (now) / </span>
+                            {fmtValue(cell!.oneYValue, cell!.unit)}
+                            <span className="text-slate-400"> (1Y) / </span>
+                            {fmtValue(cell!.threeYValue, cell!.unit)}
+                            <span className="text-slate-400"> (3Y)</span>
                           </span>
                         )}
                       </td>
