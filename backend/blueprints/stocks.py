@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 import requests as http_requests
 import yfinance
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from auth import get_current_user
 from database import get_db
@@ -166,7 +166,8 @@ def _ttl_cache(seconds: int):
 
     Decorates functions whose first positional argument is the cache key
     (typically a ticker symbol). Stores (timestamp, result) pairs in a
-    module-level dict that is created once per decorated function.
+    module-level dict that is created once per decorated function. The
+    wrapper exposes `cache_clear()` to drop all entries on demand.
     """
     def decorator(fn):
         store: dict[str, tuple[datetime, object]] = {}
@@ -181,6 +182,7 @@ def _ttl_cache(seconds: int):
             store[key] = (datetime.now(), result)
             return result
 
+        wrapper.cache_clear = store.clear  # type: ignore[attr-defined]
         return wrapper
     return decorator
 
@@ -305,7 +307,15 @@ def stocks_data():
     Returns: { asOf, data: { Company: { Metric: { ttm?, quarterly? } } } }
     Each mode's payload is { oneY?, threeY?, current?, oneYValue?, threeYValue?, unit, evidence }.
     Wired up: Nvidia/Revenue (TTM + quarterly) and Stock price for all 5 companies.
+
+    Pass ?nocache=1 to force-clear in-process caches before fetching, so
+    upstream press releases / Yahoo Finance get hit fresh on this call.
     """
+    if request.args.get('nocache'):
+        _fetch_nvidia_page.cache_clear()
+        _fetch_next_earnings_iso.cache_clear()
+        _fetch_stock_prices.cache_clear()
+
     data: dict[str, dict[str, dict]] = {}
 
     for mode in ('ttm', 'quarterly'):

@@ -167,9 +167,11 @@ export function StocksDashboard() {
   const [selected, setSelected] = useState<{ company: Company; metric: Metric } | null>(null);
   const [mode, setMode] = useState<Mode>('ttm');
 
-  const fetchData = () => {
+  const fetchData = (bypassCache = false) => {
     setPayload(null);
-    axios.get<StocksPayload>('/api/stocks/data')
+    axios.get<StocksPayload>('/api/stocks/data', {
+      params: bypassCache ? { nocache: 1 } : {},
+    })
       .then(r => setPayload(r.data))
       .catch(() => {});
   };
@@ -192,11 +194,11 @@ export function StocksDashboard() {
           <LineChart className="w-6 h-6 text-emerald-400" />
           <h1 className="text-xl font-semibold flex-1">Stocks</h1>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData(true)}
             disabled={!payload}
             className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
             aria-label="Refresh"
-            title="Refresh data"
+            title="Refresh data (bypass cache)"
           >
             <RefreshCw className={`w-5 h-5 ${!payload ? 'animate-spin' : ''}`} />
           </button>
