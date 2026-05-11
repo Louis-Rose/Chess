@@ -1,11 +1,42 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { ArrowLeft, LineChart } from 'lucide-react';
 
 const COMPANIES = ['Nvidia', 'Alphabet', 'Amazon', 'Meta', 'Microsoft'] as const;
 const METRICS = ['Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operating Cash-Flow', 'Free Cash-Flow'] as const;
 
+type Company = typeof COMPANIES[number];
+type Metric = typeof METRICS[number];
+
+interface CellData { oneY?: number; threeY?: number }
+interface StocksPayload {
+  period: string;
+  data: Partial<Record<Company, Partial<Record<Metric, CellData>>>>;
+}
+
+function fmtPct(p: number | undefined): string {
+  if (p === undefined) return '—';
+  const pct = Math.round(p * 100);
+  return `${pct >= 0 ? '+' : ''}${pct}%`;
+}
+
+function pctColor(p: number | undefined): string {
+  if (p === undefined) return 'text-slate-500';
+  if (p > 0) return 'text-emerald-400';
+  if (p < 0) return 'text-red-400';
+  return 'text-slate-300';
+}
+
 export function StocksDashboard() {
   const navigate = useNavigate();
+  const [payload, setPayload] = useState<StocksPayload | null>(null);
+
+  useEffect(() => {
+    axios.get<StocksPayload>('/api/stocks/data')
+      .then(r => setPayload(r.data))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -20,6 +51,9 @@ export function StocksDashboard() {
           </button>
           <LineChart className="w-6 h-6 text-emerald-400" />
           <h1 className="text-xl font-semibold flex-1">Stocks</h1>
+          {payload && (
+            <span className="text-xs text-slate-500">{payload.period}</span>
+          )}
         </div>
       </header>
 
@@ -45,9 +79,21 @@ export function StocksDashboard() {
                   <th className="text-left font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
                     {metric}
                   </th>
-                  {COMPANIES.map(c => (
-                    <td key={c} className="px-4 py-3 border-l border-slate-800 h-12" />
-                  ))}
+                  {COMPANIES.map(c => {
+                    const cell = payload?.data?.[c]?.[metric];
+                    return (
+                      <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap">
+                        {cell && (cell.oneY !== undefined || cell.threeY !== undefined) && (
+                          <span className="font-mono text-xs">
+                            <span className={pctColor(cell.oneY)}>{fmtPct(cell.oneY)}</span>
+                            <span className="text-slate-500"> (1Y) / </span>
+                            <span className={pctColor(cell.threeY)}>{fmtPct(cell.threeY)}</span>
+                            <span className="text-slate-500"> (3Y)</span>
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
