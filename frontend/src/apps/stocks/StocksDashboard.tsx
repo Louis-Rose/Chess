@@ -228,16 +228,16 @@ export function StocksDashboard() {
                         {hasData && view === 'growth' && (
                           <span className="font-mono text-xs">
                             <span className={pctColor(cell!.oneY)}>{fmtPct(cell!.oneY)}</span>
-                            <span className="text-white"> (1Y) / </span>
+                            <span className="text-white"> (1Y ago) / </span>
                             <span className={pctColor(cell!.threeY)}>{fmtPct(cell!.threeY)}</span>
-                            <span className="text-white"> (3Y)</span>
+                            <span className="text-white"> (3Y ago)</span>
                           </span>
                         )}
                         {hasData && view === 'absolute' && (
                           <div className="font-mono text-xs text-white leading-5">
                             <div>{fmtValue(cell!.current, cell!.unit)} <span className="text-white">(now)</span></div>
-                            <div>{fmtValue(cell!.oneYValue, cell!.unit)} <span className="text-white">(1Y)</span></div>
-                            <div>{fmtValue(cell!.threeYValue, cell!.unit)} <span className="text-white">(3Y)</span></div>
+                            <div>{fmtValue(cell!.oneYValue, cell!.unit)} <span className="text-white">(1Y ago)</span></div>
+                            <div>{fmtValue(cell!.threeYValue, cell!.unit)} <span className="text-white">(3Y ago)</span></div>
                           </div>
                         )}
                       </td>
