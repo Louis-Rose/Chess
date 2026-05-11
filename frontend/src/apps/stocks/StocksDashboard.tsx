@@ -61,7 +61,7 @@ const TICKERS: Record<Company, string> = {
   Microsoft: 'MSFT',
 };
 
-const STOCK_RANGES = ['5Y', '3Y', '1Y', 'YTD', '6M', '1M'] as const;
+const STOCK_RANGES = ['1M', '6M', 'YTD', '1Y', '3Y', '5Y', '10Y'] as const;
 type StockRange = typeof STOCK_RANGES[number];
 interface PricePoint { date: string; close: number }
 interface PriceHistory { ticker: string; range: StockRange; points: PricePoint[] }

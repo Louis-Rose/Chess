@@ -139,8 +139,8 @@ def _safe_nvidia(quarter: int, fiscal_year: int, mode: str) -> dict | None:
 # ── Price history endpoint (drives the Stock price chart) ───────────────────
 
 _HISTORY_RANGES = {
-    '5Y': '5y', '3Y': '3y', '1Y': '1y',
-    'YTD': 'ytd', '6M': '6mo', '1M': '1mo',
+    '1M': '1mo', '6M': '6mo', 'YTD': 'ytd',
+    '1Y': '1y', '3Y': '3y', '5Y': '5y', '10Y': '10y',
 }
 
 
