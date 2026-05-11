@@ -128,7 +128,7 @@ export function StocksDashboard() {
                 key={m}
                 onClick={() => setMode(m)}
                 className={
-                  'px-3 py-1.5 font-medium transition-colors '
+                  'w-24 px-3 py-1.5 font-medium transition-colors '
                   + (mode === m
                     ? 'bg-slate-700 text-slate-100'
                     : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
@@ -144,7 +144,7 @@ export function StocksDashboard() {
                 key={v}
                 onClick={() => setView(v)}
                 className={
-                  'px-3 py-1.5 font-medium transition-colors '
+                  'w-24 px-3 py-1.5 font-medium transition-colors '
                   + (view === v
                     ? 'bg-slate-700 text-slate-100'
                     : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
