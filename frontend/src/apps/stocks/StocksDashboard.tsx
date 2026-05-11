@@ -52,7 +52,7 @@ export function StocksDashboard() {
           <LineChart className="w-6 h-6 text-emerald-400" />
           <h1 className="text-xl font-semibold flex-1">Stocks</h1>
           {payload && (
-            <span className="text-xs text-slate-500">{payload.period}</span>
+            <span className="text-xs text-white">{payload.period}</span>
           )}
         </div>
       </header>
@@ -62,11 +62,11 @@ export function StocksDashboard() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="bg-slate-800/50">
-                <th className="text-left font-semibold text-slate-200 px-4 py-3 border-b border-slate-800" />
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-slate-800" />
                 {COMPANIES.map(c => (
                   <th
                     key={c}
-                    className="text-left font-semibold text-slate-200 px-4 py-3 border-b border-l border-slate-800"
+                    className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-l border-slate-800"
                   >
                     {c}
                   </th>
@@ -76,7 +76,7 @@ export function StocksDashboard() {
             <tbody>
               {METRICS.map(metric => (
                 <tr key={metric} className="border-b border-slate-800 last:border-b-0">
-                  <th className="text-left font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
+                  <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
                     {metric}
                   </th>
                   {COMPANIES.map(c => {
@@ -86,9 +86,9 @@ export function StocksDashboard() {
                         {cell && (cell.oneY !== undefined || cell.threeY !== undefined) && (
                           <span className="font-mono text-xs">
                             <span className={pctColor(cell.oneY)}>{fmtPct(cell.oneY)}</span>
-                            <span className="text-slate-500"> (1Y) / </span>
+                            <span className="text-white"> (1Y) / </span>
                             <span className={pctColor(cell.threeY)}>{fmtPct(cell.threeY)}</span>
-                            <span className="text-slate-500"> (3Y)</span>
+                            <span className="text-white"> (3Y)</span>
                           </span>
                         )}
                       </td>
