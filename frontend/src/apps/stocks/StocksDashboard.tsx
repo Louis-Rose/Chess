@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ArrowLeft, LineChart, ExternalLink, RefreshCw } from 'lucide-react';
-import { LineChart as RLineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { LineChart as RLineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from 'recharts';
 
 const COMPANIES = ['Nvidia', 'Alphabet', 'Amazon', 'Meta', 'Microsoft'] as const;
 const METRICS = ['Stock price', 'Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operating Cash-Flow', 'Free Cash-Flow'] as const;
@@ -59,6 +59,15 @@ const TICKERS: Record<Company, string> = {
   Amazon: 'AMZN',
   Meta: 'META',
   Microsoft: 'MSFT',
+};
+
+// Distinct line colors for each company on the overlaid stock chart.
+const COMPANY_COLOR: Record<Company, string> = {
+  Nvidia: '#34d399',    // emerald
+  Alphabet: '#38bdf8',  // sky
+  Amazon: '#fb923c',    // orange
+  Meta: '#a78bfa',      // violet
+  Microsoft: '#f87171', // rose
 };
 
 const STOCK_RANGES = ['1M', '6M', 'YTD', '1Y', '3Y', '5Y', '10Y'] as const;
@@ -192,21 +201,52 @@ function niceTicks(min: number, max: number, target = 5): number[] {
   return ticks;
 }
 
-function StockChart({ company }: { company: Company }) {
-  const ticker = TICKERS[company];
+function StockChart({ companies }: { companies: Company[] }) {
   const [range, setRange] = useState<StockRange>('1Y');
-  const [data, setData] = useState<PriceHistory | null>(null);
+  const [histories, setHistories] = useState<Partial<Record<Company, PriceHistory>>>({});
   const [loading, setLoading] = useState(false);
+  const key = companies.join(',');
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setData(null);
-    axios.get<PriceHistory>(`/api/stocks/history/${ticker}`, { params: { range } })
-      .then(r => { if (!cancelled) { setData(r.data); setLoading(false); } })
-      .catch(() => { if (!cancelled) setLoading(false); });
+    setHistories({});
+    Promise.all(
+      companies.map(c =>
+        axios.get<PriceHistory>(`/api/stocks/history/${TICKERS[c]}`, { params: { range } })
+          .then(r => ({ c, hist: r.data }))
+      )
+    ).then(results => {
+      if (cancelled) return;
+      const next: Partial<Record<Company, PriceHistory>> = {};
+      for (const { c, hist } of results) next[c] = hist;
+      setHistories(next);
+      setLoading(false);
+    }).catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [ticker, range]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, range]);
+
+  const { combined, yTicks, yDomain, hasData } = (() => {
+    const byDate: Record<string, Record<string, number | string>> = {};
+    const allValues: number[] = [];
+    for (const c of companies) {
+      const h = histories[c];
+      if (!h) continue;
+      for (const p of h.points) {
+        byDate[p.date] = byDate[p.date] || { date: p.date };
+        byDate[p.date][c] = p.close;
+        allValues.push(p.close);
+      }
+    }
+    const combined = Object.keys(byDate).sort().map(d => byDate[d]);
+    if (allValues.length === 0) {
+      return { combined: [], yTicks: [0], yDomain: [0, 0] as [number, number], hasData: false };
+    }
+    const yTicks = niceTicks(Math.min(...allValues), Math.max(...allValues));
+    const yDomain: [number, number] = [yTicks[0], yTicks[yTicks.length - 1]];
+    return { combined, yTicks, yDomain, hasData: true };
+  })();
 
   return (
     <div>
@@ -233,13 +273,9 @@ function StockChart({ company }: { company: Company }) {
           <div className="h-full flex items-center justify-center">
             <div className="w-8 h-8 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
           </div>
-        ) : data && data.points.length > 0 ? (() => {
-          const closes = data.points.map(p => p.close);
-          const yTicks = niceTicks(Math.min(...closes), Math.max(...closes));
-          const yDomain: [number, number] = [yTicks[0], yTicks[yTicks.length - 1]];
-          return (
+        ) : hasData ? (
           <ResponsiveContainer width="100%" height="100%">
-            <RLineChart data={data.points} margin={{ top: 12, right: 24, bottom: 4, left: 16 }}>
+            <RLineChart data={combined} margin={{ top: 12, right: 24, bottom: 4, left: 16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#64748b" vertical={false} />
               <XAxis
                 dataKey="date"
@@ -264,14 +300,17 @@ function StockChart({ company }: { company: Company }) {
               <Tooltip
                 contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
                 labelStyle={{ color: '#cbd5e1' }}
-                itemStyle={{ color: '#10b981' }}
-                formatter={(v: number | undefined) => [v === undefined ? '—' : `$${v.toFixed(2)}`, 'Close']}
+                formatter={(v: number | undefined) => v === undefined ? '—' : `$${v.toFixed(2)}`}
               />
-              <Line type="monotone" dataKey="close" stroke="#10b981" strokeWidth={1.5} dot={false} />
+              {companies.length > 1 && (
+                <Legend wrapperStyle={{ color: '#cbd5e1', fontSize: 12 }} />
+              )}
+              {companies.map(c => (
+                <Line key={c} type="monotone" dataKey={c} name={c} stroke={COMPANY_COLOR[c]} strokeWidth={1.5} dot={false} connectNulls />
+              ))}
             </RLineChart>
           </ResponsiveContainer>
-          );
-        })() : (
+        ) : (
           <div className="h-full flex items-center justify-center text-slate-500 text-sm">No data</div>
         )}
       </div>
@@ -282,7 +321,18 @@ function StockChart({ company }: { company: Company }) {
 export function StocksDashboard() {
   const navigate = useNavigate();
   const [payload, setPayload] = useState<StocksPayload | null>(null);
-  const [selected, setSelected] = useState<{ company: Company; metric: Metric } | null>(null);
+  const [selected, setSelected] = useState<{ metric: Metric; companies: Company[] } | null>(null);
+
+  function toggleCell(company: Company, metric: Metric) {
+    setSelected(prev => {
+      if (!prev || prev.metric !== metric) return { metric, companies: [company] };
+      if (prev.companies.includes(company)) {
+        const next = prev.companies.filter(c => c !== company);
+        return next.length ? { metric, companies: next } : null;
+      }
+      return { metric, companies: [...prev.companies, company] };
+    });
+  }
   const [mode, setMode] = useState<Mode>('ttm');
 
   const fetchData = (bypassCache = false) => {
@@ -296,7 +346,11 @@ export function StocksDashboard() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const selectedCell = selected && payload?.data?.[selected.company]?.[selected.metric]?.[mode];
+  const selectedEvidences = selected
+    ? selected.companies
+        .map(c => ({ company: c, cell: payload?.data?.[c]?.[selected.metric]?.[mode] }))
+        .filter(x => x.cell?.evidence?.length)
+    : [];
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -402,11 +456,11 @@ export function StocksDashboard() {
                   {COMPANIES.map(c => {
                     const cell = payload?.data?.[c]?.[metric]?.[mode];
                     const hasData = !!(cell && (cell.oneY !== undefined || cell.threeY !== undefined));
-                    const isSelected = selected?.company === c && selected?.metric === metric;
+                    const isSelected = selected?.metric === metric && selected.companies.includes(c);
                     return (
                       <td
                         key={c}
-                        onClick={hasData ? () => setSelected(isSelected ? null : { company: c, metric }) : undefined}
+                        onClick={hasData ? () => toggleCell(c, metric) : undefined}
                         className={
                           'px-4 py-3 border-l border-slate-700 h-[88px] whitespace-nowrap text-center '
                           + (hasData ? 'cursor-pointer hover:bg-slate-800/60 ' : '')
@@ -443,12 +497,16 @@ export function StocksDashboard() {
           </div>
         )}
 
-        {selected && (selected.metric === 'Stock price' || selectedCell?.evidence?.length) && (
+        {selected && (selected.metric === 'Stock price' || selectedEvidences.length > 0) && (
           <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60">
             <div className="grid grid-cols-3 items-center mb-4">
-              <div className="flex items-center gap-2 justify-self-start">
-                <img src={COMPANY_LOGO[selected.company]} alt="" className="h-6 w-auto max-w-full" />
-                <span className="text-sm font-semibold text-slate-200">{selected.company}</span>
+              <div className="flex items-center gap-3 justify-self-start flex-wrap">
+                {selected.companies.map(c => (
+                  <div key={c} className="flex items-center gap-1.5">
+                    <img src={COMPANY_LOGO[c]} alt="" className="h-6 w-auto max-w-full" />
+                    <span className="text-sm font-semibold text-slate-200">{c}</span>
+                  </div>
+                ))}
               </div>
               <div className="text-center text-sm font-semibold text-slate-200">
                 {selected.metric}
@@ -461,24 +519,33 @@ export function StocksDashboard() {
               </button>
             </div>
             {selected.metric === 'Stock price' ? (
-              <StockChart company={selected.company} />
+              <StockChart companies={selected.companies} />
             ) : (
-              <div className="space-y-4">
-                {selectedCell?.evidence?.map((e, i) => (
-                  <blockquote
-                    key={i}
-                    className="border-l-2 border-emerald-500/50 pl-4 py-1"
-                  >
-                    <p className="text-slate-200 italic">"{renderQuote(e.quote)}"</p>
-                    <a
-                      href={e.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-emerald-400 hover:underline mt-1.5 inline-flex items-center gap-1"
-                    >
-                      {e.label} press release <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </blockquote>
+              <div className="space-y-6">
+                {selectedEvidences.map(({ company, cell }) => (
+                  <div key={company}>
+                    {selected.companies.length > 1 && (
+                      <div className="text-xs font-semibold text-slate-400 mb-2">{company}</div>
+                    )}
+                    <div className="space-y-4">
+                      {cell!.evidence!.map((e, i) => (
+                        <blockquote
+                          key={i}
+                          className="border-l-2 border-emerald-500/50 pl-4 py-1"
+                        >
+                          <p className="text-slate-200 italic">"{renderQuote(e.quote)}"</p>
+                          <a
+                            href={e.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-emerald-400 hover:underline mt-1.5 inline-flex items-center gap-1"
+                          >
+                            {e.label} press release <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </blockquote>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
