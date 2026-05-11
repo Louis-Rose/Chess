@@ -276,7 +276,7 @@ export function StocksDashboard() {
                         key={c}
                         onClick={hasData ? () => setSelected(isSelected ? null : { company: c, metric }) : undefined}
                         className={
-                          'px-4 py-3 border-l border-slate-700 h-12 whitespace-nowrap text-center '
+                          'px-4 py-3 border-l border-slate-700 h-[84px] whitespace-nowrap text-center '
                           + (hasData ? 'cursor-pointer hover:bg-slate-800/60 ' : '')
                           + (isSelected ? 'bg-emerald-500/10 ring-2 ring-inset ring-emerald-500/40' : '')
                         }
