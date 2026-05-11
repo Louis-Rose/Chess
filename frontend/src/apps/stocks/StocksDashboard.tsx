@@ -203,7 +203,7 @@ export function StocksDashboard() {
           />
         </div>
 
-        <div className="overflow-x-auto border border-slate-700 rounded-lg">
+        <div className="overflow-x-auto border border-slate-700 rounded-lg relative">
           <table className="w-full text-sm border-collapse table-fixed">
             <colgroup>
               <col span={COMPANIES.length + 1} />
@@ -295,6 +295,14 @@ export function StocksDashboard() {
               ))}
             </tbody>
           </table>
+          {!payload && (
+            <div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              style={{ paddingLeft: `${100 / (COMPANIES.length + 1)}%`, paddingTop: '72px' }}
+            >
+              <div className="w-10 h-10 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
+            </div>
+          )}
         </div>
 
         {payload && (
