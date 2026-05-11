@@ -100,7 +100,7 @@ function SegmentedToggle<T extends string>({
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={
-            'w-24 px-3 py-1.5 font-medium transition-colors '
+            'w-28 px-3 py-1.5 font-medium transition-colors '
             + (value === opt.value
               ? 'bg-slate-700 text-slate-100'
               : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
@@ -195,8 +195,8 @@ export function StocksDashboard() {
         <div className="flex justify-center mb-3">
           <SegmentedToggle
             options={[
-              { value: 'quarterly' as const, label: 'Quarterly' },
-              { value: 'ttm' as const, label: 'TTM' },
+              { value: 'quarterly' as const, label: 'Quarterly data' },
+              { value: 'ttm' as const, label: 'TTM data' },
             ]}
             value={mode}
             onChange={setMode}
