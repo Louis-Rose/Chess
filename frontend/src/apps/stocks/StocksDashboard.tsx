@@ -210,7 +210,7 @@ export function StocksDashboard() {
         </div>
 
         {payload && (
-          <div className="text-center text-xs text-slate-300 font-medium mt-3">
+          <div className="text-center text-xs text-slate-300 font-medium mt-8">
             as of {payload.asOf}
           </div>
         )}
