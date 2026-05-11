@@ -226,12 +226,16 @@ export function StocksDashboard() {
                         }
                       >
                         {hasData && view === 'growth' && (
-                          <span className="font-mono text-xs">
-                            <span className={pctColor(cell!.oneY)}>{fmtPct(cell!.oneY)}</span>
-                            <span className="text-white"> (1Y ago) / </span>
-                            <span className={pctColor(cell!.threeY)}>{fmtPct(cell!.threeY)}</span>
-                            <span className="text-white"> (3Y ago)</span>
-                          </span>
+                          <div className="font-mono text-xs leading-5">
+                            <div>
+                              <span className={pctColor(cell!.oneY)}>{fmtPct(cell!.oneY)}</span>
+                              <span className="text-white"> (1Y ago)</span>
+                            </div>
+                            <div>
+                              <span className={pctColor(cell!.threeY)}>{fmtPct(cell!.threeY)}</span>
+                              <span className="text-white"> (3Y ago)</span>
+                            </div>
+                          </div>
                         )}
                         {hasData && view === 'absolute' && (
                           <div className="font-mono text-xs text-white leading-5">
