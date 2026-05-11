@@ -246,6 +246,7 @@ function StockChart({ company }: { company: Company }) {
                 stroke="#cbd5e1"
                 tick={{ fontSize: 12, fill: '#cbd5e1' }}
                 minTickGap={60}
+                axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
               />
               <YAxis
                 stroke="#cbd5e1"
@@ -254,6 +255,7 @@ function StockChart({ company }: { company: Company }) {
                 ticks={yTicks}
                 tickFormatter={v => `$${v}`}
                 width={60}
+                axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
               />
               <Tooltip
                 contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
