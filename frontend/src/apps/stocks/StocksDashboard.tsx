@@ -34,6 +34,15 @@ function fmtDaysUntil(d: number): string {
   return `${d} day${d === 1 ? '' : 's'} remaining`;
 }
 
+// Brand logos served by SimpleIcons CDN, forced to white for the dark theme.
+const COMPANY_LOGO: Record<Company, string> = {
+  Nvidia: 'https://cdn.simpleicons.org/nvidia/ffffff',
+  Alphabet: 'https://cdn.simpleicons.org/google/ffffff',
+  Amazon: 'https://cdn.simpleicons.org/amazon/ffffff',
+  Meta: 'https://cdn.simpleicons.org/meta/ffffff',
+  Microsoft: 'https://cdn.simpleicons.org/microsoft/ffffff',
+};
+
 // Latest released quarter per company, with link to the press release.
 // Update when a new quarter drops (and bump AS_OF_LABEL on the backend).
 const MOST_RECENT_QUARTER: Record<Company, { label: string; url: string }> = {
@@ -190,7 +199,10 @@ export function StocksDashboard() {
                     key={c}
                     className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-l border-slate-800"
                   >
-                    {c}
+                    <div className="flex flex-col items-center gap-1.5">
+                      <img src={COMPANY_LOGO[c]} alt="" className="h-5 w-5" />
+                      <span>{c}</span>
+                    </div>
                   </th>
                 ))}
               </tr>
