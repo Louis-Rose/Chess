@@ -99,7 +99,11 @@ export function StocksDashboard() {
 
       <main className="max-w-6xl mx-auto px-4 py-6">
         <div className="overflow-x-auto border border-slate-800 rounded-lg">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-sm border-collapse table-fixed">
+            <colgroup>
+              <col style={{ width: '200px' }} />
+              <col span={COMPANIES.length} />
+            </colgroup>
             <thead>
               <tr className="bg-slate-800/50">
                 <th className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-slate-800" />
