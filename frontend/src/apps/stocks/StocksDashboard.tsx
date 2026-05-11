@@ -201,8 +201,11 @@ function niceTicks(min: number, max: number, target = 5): number[] {
   return ticks;
 }
 
+type ChartScale = 'absolute' | 'relative';
+
 function StockChart({ companies }: { companies: Company[] }) {
   const [range, setRange] = useState<StockRange>('1Y');
+  const [scale, setScale] = useState<ChartScale>('absolute');
   const [histories, setHistories] = useState<Partial<Record<Company, PriceHistory>>>({});
   const [loading, setLoading] = useState(false);
   const key = companies.join(',');
@@ -228,15 +231,27 @@ function StockChart({ companies }: { companies: Company[] }) {
   }, [key, range]);
 
   const { combined, yTicks, yDomain, hasData } = (() => {
+    // In relative mode, each company's first available close becomes 100.
+    const baselines: Partial<Record<Company, number>> = {};
+    if (scale === 'relative') {
+      for (const c of companies) {
+        const h = histories[c];
+        if (h && h.points.length > 0) baselines[c] = h.points[0].close;
+      }
+    }
+    const transform = (c: Company, raw: number): number =>
+      scale === 'absolute' || !baselines[c] ? raw : (raw / baselines[c]!) * 100;
+
     const byDate: Record<string, Record<string, number | string>> = {};
     const allValues: number[] = [];
     for (const c of companies) {
       const h = histories[c];
       if (!h) continue;
       for (const p of h.points) {
+        const v = transform(c, p.close);
         byDate[p.date] = byDate[p.date] || { date: p.date };
-        byDate[p.date][c] = p.close;
-        allValues.push(p.close);
+        byDate[p.date][c] = v;
+        allValues.push(v);
       }
     }
     const combined = Object.keys(byDate).sort().map(d => byDate[d]);
@@ -248,9 +263,29 @@ function StockChart({ companies }: { companies: Company[] }) {
     return { combined, yTicks, yDomain, hasData: true };
   })();
 
+  const fmtY = (v: number) => scale === 'absolute' ? `$${v}` : `${v}`;
+  const fmtTooltip = (v: number | undefined) =>
+    v === undefined ? '—' : scale === 'absolute' ? `$${v.toFixed(2)}` : v.toFixed(1);
+
   return (
     <div>
-      <div className="flex justify-end mb-3">
+      <div className="flex items-center justify-between mb-3">
+        <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+          {(['absolute', 'relative'] as const).map(s => (
+            <button
+              key={s}
+              onClick={() => setScale(s)}
+              className={
+                'px-3 py-1 font-medium transition-colors '
+                + (scale === s
+                  ? 'bg-slate-700 text-slate-100'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+              }
+            >
+              {s === 'absolute' ? 'Absolute' : 'Relative'}
+            </button>
+          ))}
+        </div>
         <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
           {STOCK_RANGES.map(r => (
             <button
@@ -293,14 +328,14 @@ function StockChart({ companies }: { companies: Company[] }) {
                 tick={{ fontSize: 12, fill: '#cbd5e1' }}
                 domain={yDomain}
                 ticks={yTicks}
-                tickFormatter={v => `$${v}`}
+                tickFormatter={fmtY}
                 width={60}
                 axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
               />
               <Tooltip
                 contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
                 labelStyle={{ color: '#cbd5e1' }}
-                formatter={(v: number | undefined) => v === undefined ? '—' : `$${v.toFixed(2)}`}
+                formatter={fmtTooltip}
               />
               {companies.map(c => (
                 <Line key={c} type="monotone" dataKey={c} name={c} stroke={COMPANY_COLOR[c]} strokeWidth={1.5} dot={false} connectNulls />
