@@ -34,13 +34,13 @@ function fmtDaysUntil(d: number): string {
   return `${d} day${d === 1 ? '' : 's'} remaining`;
 }
 
-// Brand logos served by SimpleIcons CDN, forced to white for the dark theme.
+// Brand logos — self-hosted SVGs in public/logos/ (real brand colors).
 const COMPANY_LOGO: Record<Company, string> = {
-  Nvidia: 'https://cdn.simpleicons.org/nvidia/ffffff',
-  Alphabet: 'https://cdn.simpleicons.org/google/ffffff',
-  Amazon: 'https://cdn.simpleicons.org/amazon/ffffff',
-  Meta: 'https://cdn.simpleicons.org/meta/ffffff',
-  Microsoft: 'https://cdn.simpleicons.org/microsoft/ffffff',
+  Nvidia: '/logos/nvidia.svg',
+  Alphabet: '/logos/alphabet.svg',
+  Amazon: '/logos/amazon.svg',
+  Meta: '/logos/meta.svg',
+  Microsoft: '/logos/microsoft.svg',
 };
 
 // Latest released quarter per company, with link to the press release.
@@ -200,7 +200,7 @@ export function StocksDashboard() {
                     className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-l border-slate-800"
                   >
                     <div className="flex flex-col items-center gap-1.5">
-                      <img src={COMPANY_LOGO[c]} alt="" className="h-5 w-5" />
+                      <img src={COMPANY_LOGO[c]} alt="" className="h-5 w-auto max-w-full" />
                       <span>{c}</span>
                     </div>
                   </th>
