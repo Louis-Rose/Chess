@@ -200,7 +200,7 @@ function StockChart({ company }: { company: Company }) {
               key={r}
               onClick={() => setRange(r)}
               className={
-                'px-2 py-0.5 font-medium transition-colors '
+                'px-1.5 py-1 font-medium transition-colors '
                 + (range === r
                   ? 'bg-slate-700 text-slate-100'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
