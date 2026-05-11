@@ -206,8 +206,7 @@ export function StocksDashboard() {
         <div className="overflow-x-auto border border-slate-700 rounded-lg">
           <table className="w-full text-sm border-collapse table-fixed">
             <colgroup>
-              <col style={{ width: '200px' }} />
-              <col span={COMPANIES.length} />
+              <col span={COMPANIES.length + 1} />
             </colgroup>
             <thead>
               <tr className="bg-slate-800">
