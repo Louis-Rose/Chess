@@ -203,9 +203,7 @@ function niceTicks(min: number, max: number, target = 5): number[] {
 
 type ChartScale = 'absolute' | 'relative';
 
-function StockChart({ companies }: { companies: Company[] }) {
-  const [range, setRange] = useState<StockRange>('1Y');
-  const [scale, setScale] = useState<ChartScale>('absolute');
+function StockChart({ companies, range, scale }: { companies: Company[]; range: StockRange; scale: ChartScale }) {
   const [histories, setHistories] = useState<Partial<Record<Company, PriceHistory>>>({});
   const [loading, setLoading] = useState(false);
   const key = companies.join(',');
@@ -269,40 +267,6 @@ function StockChart({ companies }: { companies: Company[] }) {
 
   return (
     <div>
-      <div className="flex items-center justify-end gap-3 mb-3">
-        <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-          {(['absolute', 'relative'] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => setScale(s)}
-              className={
-                'px-3 py-1 font-medium transition-colors '
-                + (scale === s
-                  ? 'bg-slate-700 text-slate-100'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
-              }
-            >
-              {s === 'absolute' ? 'Absolute' : 'Relative'}
-            </button>
-          ))}
-        </div>
-        <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-          {STOCK_RANGES.map(r => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={
-                'px-[7px] py-1 font-medium transition-colors '
-                + (range === r
-                  ? 'bg-slate-700 text-slate-100'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
-              }
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-      </div>
       <div className="h-72">
         {loading ? (
           <div className="h-full flex items-center justify-center">
@@ -400,6 +364,8 @@ export function StocksDashboard() {
     });
   }
   const [mode, setMode] = useState<Mode>('ttm');
+  const [chartRange, setChartRange] = useState<StockRange>('1Y');
+  const [chartScale, setChartScale] = useState<ChartScale>('absolute');
 
   const fetchData = (bypassCache = false) => {
     setPayload(null);
@@ -575,14 +541,44 @@ export function StocksDashboard() {
         )}
 
         {selected && (selected.metric === 'Stock price' || selectedEvidences.length > 0) && (
-          <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60 relative">
-            <button
-              onClick={() => setSelected(null)}
-              className="absolute top-3 right-4 text-xs text-slate-500 hover:text-slate-300"
-            >
-              Close
-            </button>
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4 pr-12">
+          <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60">
+            {selected.metric === 'Stock price' && (
+              <div className="flex items-center justify-end gap-3 mb-4">
+                <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+                  {(['absolute', 'relative'] as const).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setChartScale(s)}
+                      className={
+                        'px-3 py-1 font-medium transition-colors '
+                        + (chartScale === s
+                          ? 'bg-slate-700 text-slate-100'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+                      }
+                    >
+                      {s === 'absolute' ? 'Absolute' : 'Relative'}
+                    </button>
+                  ))}
+                </div>
+                <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+                  {STOCK_RANGES.map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setChartRange(r)}
+                      className={
+                        'px-[7px] py-1 font-medium transition-colors '
+                        + (chartRange === r
+                          ? 'bg-slate-700 text-slate-100'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+                      }
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
               <div className="flex items-center gap-3 justify-self-start flex-wrap">
                 {selected.companies.map(c => (
                   <div key={c} className="flex items-center gap-1.5">
@@ -602,7 +598,7 @@ export function StocksDashboard() {
               <div />
             </div>
             {selected.metric === 'Stock price' ? (
-              <StockChart companies={selected.companies} />
+              <StockChart companies={selected.companies} range={chartRange} scale={chartScale} />
             ) : (
               <div className="space-y-6">
                 {selectedEvidences.map(({ company, cell }) => (
