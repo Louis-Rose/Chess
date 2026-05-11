@@ -303,8 +303,8 @@ def stocks_data():
     """Growth metrics for each (company, metric) cell, in both TTM and quarterly modes.
 
     Returns: { asOf, data: { Company: { Metric: { ttm?, quarterly? } } } }
-    Each mode's payload is { oneY?, threeY?, evidence: [...] }.
-    Only Nvidia/Revenue is wired up so far.
+    Each mode's payload is { oneY?, threeY?, current?, oneYValue?, threeYValue?, unit, evidence }.
+    Wired up: Nvidia/Revenue (TTM + quarterly) and Stock price for all 5 companies.
     """
     data: dict[str, dict[str, dict]] = {}
 
