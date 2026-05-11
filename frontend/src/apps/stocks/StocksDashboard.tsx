@@ -263,7 +263,7 @@ export function StocksDashboard() {
                 {COMPANIES.map(c => {
                   const e = payload?.earnings?.[c];
                   return (
-                    <td key={c} className="px-4 py-3 border-l border-slate-700 h-16 whitespace-nowrap text-center text-white font-medium">
+                    <td key={c} className="px-4 py-3 border-l border-slate-700 h-[68px] whitespace-nowrap text-center text-white font-medium">
                       {e && (e.daysUntil >= 0 ? (
                         <>
                           <div>{fmtDateNoYear(e.date)}</div>
