@@ -8,9 +8,9 @@ const METRICS = ['Stock price', 'Revenue', 'Operating Income', 'Net Income (non-
 
 type Company = typeof COMPANIES[number];
 type Metric = typeof METRICS[number];
-type View = 'growth' | 'absolute';
 
 type Mode = 'ttm' | 'quarterly';
+
 interface Evidence { label: string; value: number; quote: string; url: string }
 interface CellData {
   oneY?: number;
@@ -86,15 +86,18 @@ function SegmentedToggle<T extends string>({
   );
 }
 
-interface CellRow { value: string; label: string; valueClass?: string }
+interface CellRow { value: string; label: string; growth?: number }
 
 function CellRows({ rows }: { rows: CellRow[] }) {
   return (
     <div className="font-mono text-xs leading-5">
-      {rows.map(({ value, label, valueClass }) => (
+      {rows.map(({ value, label, growth }) => (
         <div key={label}>
-          <span className={valueClass ?? 'text-white'}>{value}</span>
+          <span className="text-white">{value}</span>
           <span className="text-white"> ({label})</span>
+          {growth !== undefined && (
+            <span className={pctColor(growth)}> {fmtPct(growth)}</span>
+          )}
         </div>
       ))}
     </div>
@@ -136,7 +139,6 @@ export function StocksDashboard() {
   const [payload, setPayload] = useState<StocksPayload | null>(null);
   const [selected, setSelected] = useState<{ company: Company; metric: Metric } | null>(null);
   const [mode, setMode] = useState<Mode>('ttm');
-  const [view, setView] = useState<View>('growth');
 
   useEffect(() => {
     axios.get<StocksPayload>('/api/stocks/data')
@@ -163,7 +165,7 @@ export function StocksDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex flex-col items-center gap-2 mb-3">
+        <div className="flex justify-center mb-3">
           <SegmentedToggle
             options={[
               { value: 'quarterly' as const, label: 'Quarterly' },
@@ -171,14 +173,6 @@ export function StocksDashboard() {
             ]}
             value={mode}
             onChange={setMode}
-          />
-          <SegmentedToggle
-            options={[
-              { value: 'growth' as const, label: 'Growth' },
-              { value: 'absolute' as const, label: 'Absolute' },
-            ]}
-            value={view}
-            onChange={setView}
           />
         </div>
 
@@ -251,17 +245,11 @@ export function StocksDashboard() {
                           + (isSelected ? 'bg-emerald-500/10 ring-2 ring-inset ring-emerald-500/40' : '')
                         }
                       >
-                        {hasData && view === 'growth' && (
-                          <CellRows rows={[
-                            { value: fmtPct(cell!.oneY), label: '1Y ago', valueClass: pctColor(cell!.oneY) },
-                            { value: fmtPct(cell!.threeY), label: '3Y ago', valueClass: pctColor(cell!.threeY) },
-                          ]} />
-                        )}
-                        {hasData && view === 'absolute' && (
+                        {hasData && (
                           <CellRows rows={[
                             { value: fmtValue(cell!.current, cell!.unit), label: 'now' },
-                            { value: fmtValue(cell!.oneYValue, cell!.unit), label: '1Y ago' },
-                            { value: fmtValue(cell!.threeYValue, cell!.unit), label: '3Y ago' },
+                            { value: fmtValue(cell!.oneYValue, cell!.unit), label: '1Y ago', growth: cell!.oneY },
+                            { value: fmtValue(cell!.threeYValue, cell!.unit), label: '3Y ago', growth: cell!.threeY },
                           ]} />
                         )}
                       </td>
