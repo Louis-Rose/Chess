@@ -261,9 +261,13 @@ function StockChart({ companies, range, scale }: { companies: Company[]; range: 
     return { combined, yTicks, yDomain, hasData: true };
   })();
 
-  const fmtY = (v: number) => scale === 'absolute' ? `$${v}` : `${v}%`;
+  const fmtRelative = (v: number) => {
+    const g = Math.round(v - 100);
+    return `${g >= 0 ? '+' : ''}${g}%`;
+  };
+  const fmtY = (v: number) => scale === 'absolute' ? `$${v}` : fmtRelative(v);
   const fmtTooltip = (v: number | undefined) =>
-    v === undefined ? '—' : scale === 'absolute' ? `$${v.toFixed(2)}` : `${v.toFixed(1)}%`;
+    v === undefined ? '—' : scale === 'absolute' ? `$${v.toFixed(2)}` : fmtRelative(v);
 
   return (
     <div>
