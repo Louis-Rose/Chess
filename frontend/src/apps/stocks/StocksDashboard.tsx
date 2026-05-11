@@ -557,8 +557,14 @@ export function StocksDashboard() {
         )}
 
         {selected && (selected.metric === 'Stock price' || selectedEvidences.length > 0) && (
-          <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60">
-            <div className="grid grid-cols-3 items-center mb-4">
+          <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60 relative">
+            <button
+              onClick={() => setSelected(null)}
+              className="absolute top-3 right-4 text-xs text-slate-500 hover:text-slate-300"
+            >
+              Close
+            </button>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4 pr-12">
               <div className="flex items-center gap-3 justify-self-start flex-wrap">
                 {selected.companies.map(c => (
                   <div key={c} className="flex items-center gap-1.5">
@@ -575,12 +581,7 @@ export function StocksDashboard() {
               <div className="text-center text-sm font-semibold text-slate-200">
                 {selected.metric}
               </div>
-              <button
-                onClick={() => setSelected(null)}
-                className="justify-self-end text-xs text-slate-500 hover:text-slate-300"
-              >
-                Close
-              </button>
+              <div />
             </div>
             {selected.metric === 'Stock price' ? (
               <StockChart companies={selected.companies} />
