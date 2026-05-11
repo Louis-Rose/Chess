@@ -159,6 +159,32 @@ def _as_of_label() -> str:
     return f'{now.strftime("%B")} {_ordinal(now.day)}, {now.year}'
 
 
+# ── TTL cache decorator ──────────────────────────────────────────────────────
+
+def _ttl_cache(seconds: int):
+    """Per-key in-memory cache with a fixed TTL.
+
+    Decorates functions whose first positional argument is the cache key
+    (typically a ticker symbol). Stores (timestamp, result) pairs in a
+    module-level dict that is created once per decorated function.
+    """
+    def decorator(fn):
+        store: dict[str, tuple[datetime, object]] = {}
+        ttl = timedelta(seconds=seconds)
+
+        @wraps(fn)
+        def wrapper(key, *args, **kwargs):
+            cached = store.get(key)
+            if cached and (datetime.now() - cached[0]) < ttl:
+                return cached[1]
+            result = fn(key, *args, **kwargs)
+            store[key] = (datetime.now(), result)
+            return result
+
+        return wrapper
+    return decorator
+
+
 # ── Next-earnings dates (Yahoo Finance via yfinance) ─────────────────────────
 #
 # Cached for 6h so the page stays snappy. Day-count is recomputed per-request
@@ -173,15 +199,10 @@ TICKERS: dict[str, str] = {
     'Microsoft': 'MSFT',
 }
 
-_EARNINGS_CACHE: dict[str, tuple[datetime, str | None]] = {}
-_EARNINGS_TTL = timedelta(hours=6)
 
-
+@_ttl_cache(seconds=6 * 3600)
 def _fetch_next_earnings_iso(ticker: str) -> str | None:
     """ISO date (YYYY-MM-DD) of next scheduled earnings call, or None."""
-    cached = _EARNINGS_CACHE.get(ticker)
-    if cached and (datetime.now() - cached[0]) < _EARNINGS_TTL:
-        return cached[1]
     iso: str | None = None
     try:
         cal = yfinance.Ticker(ticker).calendar or {}
@@ -190,7 +211,6 @@ def _fetch_next_earnings_iso(ticker: str) -> str | None:
             iso = dates[0].isoformat()
     except Exception as e:
         logger.warning('Earnings fetch failed for %s: %s', ticker, e)
-    _EARNINGS_CACHE[ticker] = (datetime.now(), iso)
     return iso
 
 
@@ -199,15 +219,9 @@ def _fetch_next_earnings_iso(ticker: str) -> str | None:
 # Adjusted closes — yfinance auto_adjust=True normalizes for splits/dividends,
 # so Nvidia's 2024 10-for-1 split doesn't break the 3-year comparison.
 
-_PRICES_CACHE: dict[str, tuple[datetime, dict | None]] = {}
-_PRICES_TTL = timedelta(hours=6)
-
-
+@_ttl_cache(seconds=6 * 3600)
 def _fetch_stock_prices(ticker: str) -> dict | None:
     """Return {'current', 'currentDate', 'oneY', 'oneYDate', 'threeY', 'threeYDate'}."""
-    cached = _PRICES_CACHE.get(ticker)
-    if cached and (datetime.now() - cached[0]) < _PRICES_TTL:
-        return cached[1]
     result: dict | None = None
     try:
         import pandas as pd
@@ -230,7 +244,6 @@ def _fetch_stock_prices(ticker: str) -> dict | None:
             }
     except Exception as e:
         logger.warning('Stock history fetch failed for %s: %s', ticker, e)
-    _PRICES_CACHE[ticker] = (datetime.now(), result)
     return result
 
 

@@ -59,6 +59,48 @@ const MOST_RECENT_QUARTER: Record<Company, { label: string; url: string }> = {
   },
 };
 
+// ── Small reusable primitives ────────────────────────────────────────────────
+
+interface ToggleOption<T extends string> { value: T; label: string }
+
+function SegmentedToggle<T extends string>({
+  options, value, onChange,
+}: { options: ToggleOption<T>[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+      {options.map(opt => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={
+            'w-24 px-3 py-1.5 font-medium transition-colors '
+            + (value === opt.value
+              ? 'bg-slate-700 text-slate-100'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+          }
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface CellRow { value: string; label: string; valueClass?: string }
+
+function CellRows({ rows }: { rows: CellRow[] }) {
+  return (
+    <div className="font-mono text-xs leading-5">
+      {rows.map(({ value, label, valueClass }) => (
+        <div key={label}>
+          <span className={valueClass ?? 'text-white'}>{value}</span>
+          <span className="text-white"> ({label})</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function fmtPct(p: number | undefined): string {
   if (p === undefined) return '—';
   const pct = Math.round(p * 100);
@@ -122,38 +164,22 @@ export function StocksDashboard() {
 
       <main className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex flex-col items-center gap-2 mb-3">
-          <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-            {(['quarterly', 'ttm'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={
-                  'w-24 px-3 py-1.5 font-medium transition-colors '
-                  + (mode === m
-                    ? 'bg-slate-700 text-slate-100'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
-                }
-              >
-                {m === 'ttm' ? 'TTM' : 'Quarterly'}
-              </button>
-            ))}
-          </div>
-          <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-            {(['growth', 'absolute'] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className={
-                  'w-24 px-3 py-1.5 font-medium transition-colors '
-                  + (view === v
-                    ? 'bg-slate-700 text-slate-100'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
-                }
-              >
-                {v === 'growth' ? 'Growth' : 'Absolute'}
-              </button>
-            ))}
-          </div>
+          <SegmentedToggle
+            options={[
+              { value: 'quarterly' as const, label: 'Quarterly' },
+              { value: 'ttm' as const, label: 'TTM' },
+            ]}
+            value={mode}
+            onChange={setMode}
+          />
+          <SegmentedToggle
+            options={[
+              { value: 'growth' as const, label: 'Growth' },
+              { value: 'absolute' as const, label: 'Absolute' },
+            ]}
+            value={view}
+            onChange={setView}
+          />
         </div>
 
         <div className="overflow-x-auto border border-slate-800 rounded-lg">
@@ -226,23 +252,17 @@ export function StocksDashboard() {
                         }
                       >
                         {hasData && view === 'growth' && (
-                          <div className="font-mono text-xs leading-5">
-                            <div>
-                              <span className={pctColor(cell!.oneY)}>{fmtPct(cell!.oneY)}</span>
-                              <span className="text-white"> (1Y ago)</span>
-                            </div>
-                            <div>
-                              <span className={pctColor(cell!.threeY)}>{fmtPct(cell!.threeY)}</span>
-                              <span className="text-white"> (3Y ago)</span>
-                            </div>
-                          </div>
+                          <CellRows rows={[
+                            { value: fmtPct(cell!.oneY), label: '1Y ago', valueClass: pctColor(cell!.oneY) },
+                            { value: fmtPct(cell!.threeY), label: '3Y ago', valueClass: pctColor(cell!.threeY) },
+                          ]} />
                         )}
                         {hasData && view === 'absolute' && (
-                          <div className="font-mono text-xs text-white leading-5">
-                            <div>{fmtValue(cell!.current, cell!.unit)} <span className="text-white">(now)</span></div>
-                            <div>{fmtValue(cell!.oneYValue, cell!.unit)} <span className="text-white">(1Y ago)</span></div>
-                            <div>{fmtValue(cell!.threeYValue, cell!.unit)} <span className="text-white">(3Y ago)</span></div>
-                          </div>
+                          <CellRows rows={[
+                            { value: fmtValue(cell!.current, cell!.unit), label: 'now' },
+                            { value: fmtValue(cell!.oneYValue, cell!.unit), label: '1Y ago' },
+                            { value: fmtValue(cell!.threeYValue, cell!.unit), label: '3Y ago' },
+                          ]} />
                         )}
                       </td>
                     );
