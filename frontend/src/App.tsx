@@ -10,6 +10,7 @@ import { ContactPage } from './components/ContactPage';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
 const GymApp = lazy(() => import('./apps/gym/GymApp').then(m => ({ default: m.GymApp })));
+const StocksApp = lazy(() => import('./apps/stocks/StocksApp').then(m => ({ default: m.StocksApp })));
 const InvitePage = lazy(() => import('./apps/chesscoaches/panels/InvitePage').then(m => ({ default: m.InvitePage })));
 const WaitlistPage = lazy(() => import('./apps/chesscoaches/panels/WaitlistPage').then(m => ({ default: m.WaitlistPage })));
 
@@ -34,6 +35,7 @@ function App() {
         <Route path="/invite/*" element={<InvitePage />} />
         <Route path="/waitlist" element={<WaitlistPage />} />
         <Route path="/gym/*" element={<GymApp />} />
+        <Route path="/stocks/*" element={<StocksApp />} />
         <Route path="/app/*" element={<ChessCoachesApp />} />
       </Routes>
       <CookieBanner />
