@@ -542,60 +542,59 @@ export function StocksDashboard() {
 
         {selected && (selected.metric === 'Stock price' || selectedEvidences.length > 0) && (
           <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60">
-            {selected.metric === 'Stock price' && (
-              <div className="flex items-center justify-end gap-3 mb-4">
-                <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-                  {(['absolute', 'relative'] as const).map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setChartScale(s)}
-                      className={
-                        'px-3 py-1 font-medium transition-colors '
-                        + (chartScale === s
-                          ? 'bg-slate-700 text-slate-100'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
-                      }
-                    >
-                      {s === 'absolute' ? 'Absolute' : 'Relative'}
-                    </button>
-                  ))}
-                </div>
-                <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-                  {STOCK_RANGES.map(r => (
-                    <button
-                      key={r}
-                      onClick={() => setChartRange(r)}
-                      className={
-                        'px-[7px] py-1 font-medium transition-colors '
-                        + (chartRange === r
-                          ? 'bg-slate-700 text-slate-100'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
-                      }
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
-              <div className="flex items-center gap-3 justify-self-start flex-wrap">
-                {selected.companies.map(c => (
-                  <div key={c} className="flex items-center gap-1.5">
-                    <img src={COMPANY_LOGO[c]} alt="" className="h-6 w-auto max-w-full" />
-                    <span
-                      className="text-sm font-semibold"
-                      style={{ color: selected.metric === 'Stock price' ? COMPANY_COLOR[c] : '#e2e8f0' }}
-                    >
-                      {c}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-center text-sm font-semibold text-slate-200">
+            <div className="flex items-center justify-between mb-4 gap-4">
+              <div className="text-sm font-semibold text-slate-200">
                 {selected.metric}
               </div>
-              <div />
+              {selected.metric === 'Stock price' && (
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+                    {(['absolute', 'relative'] as const).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setChartScale(s)}
+                        className={
+                          'px-3 py-1 font-medium transition-colors '
+                          + (chartScale === s
+                            ? 'bg-slate-700 text-slate-100'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+                        }
+                      >
+                        {s === 'absolute' ? 'Absolute' : 'Relative'}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+                    {STOCK_RANGES.map(r => (
+                      <button
+                        key={r}
+                        onClick={() => setChartRange(r)}
+                        className={
+                          'px-[7px] py-1 font-medium transition-colors '
+                          + (chartRange === r
+                            ? 'bg-slate-700 text-slate-100'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+                        }
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-6 mb-4 flex-wrap">
+              {selected.companies.map(c => (
+                <div key={c} className="flex items-center gap-1.5">
+                  <img src={COMPANY_LOGO[c]} alt="" className="h-6 w-auto max-w-full" />
+                  <span
+                    className="text-sm font-semibold"
+                    style={{ color: selected.metric === 'Stock price' ? COMPANY_COLOR[c] : '#e2e8f0' }}
+                  >
+                    {c}
+                  </span>
+                </div>
+              ))}
             </div>
             {selected.metric === 'Stock price' ? (
               <StockChart companies={selected.companies} range={chartRange} scale={chartScale} />
