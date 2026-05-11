@@ -319,7 +319,7 @@ function StockChart({ companies }: { companies: Company[] }) {
                 tickMargin={8}
                 angle={-45}
                 textAnchor="end"
-                height={55}
+                height={75}
                 minTickGap={80}
                 axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
               />
