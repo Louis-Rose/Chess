@@ -304,10 +304,14 @@ function StockChart({ companies, range, scale }: { companies: Company[]; range: 
                 allowEscapeViewBox={{ x: true, y: false }}
                 content={({ active, payload, label }) => {
                   if (!active || !payload || payload.length === 0) return null;
+                  const firstDate = combined.length > 0 ? (combined[0].date as string) : '';
+                  const heading = scale === 'relative' && firstDate && firstDate !== label
+                    ? `From ${firstDate} to ${label}`
+                    : String(label);
                   return (
                     <div className="bg-slate-900 border border-slate-700 rounded-md text-xs">
-                      <div className="text-center font-bold text-slate-200 px-3 pt-2 pb-2 border-b border-slate-700">
-                        {label}
+                      <div className="text-center font-bold text-slate-200 px-3 pt-2 pb-2 border-b border-slate-700 whitespace-nowrap">
+                        {heading}
                       </div>
                       <div className="px-3 py-2 space-y-0.5">
                         {[...payload]
