@@ -237,7 +237,7 @@ function StockChart({ company }: { company: Company }) {
                 contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 6, fontSize: 12 }}
                 labelStyle={{ color: '#cbd5e1' }}
                 itemStyle={{ color: '#10b981' }}
-                formatter={(v: number) => [`$${v.toFixed(2)}`, 'Close']}
+                formatter={(v: number | undefined) => [v === undefined ? '—' : `$${v.toFixed(2)}`, 'Close']}
               />
               <Line type="monotone" dataKey="close" stroke="#10b981" strokeWidth={1.5} dot={false} />
             </RLineChart>
