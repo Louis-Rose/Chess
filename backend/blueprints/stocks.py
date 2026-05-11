@@ -11,7 +11,9 @@ adding future quarters is just bumping CURRENT_QUARTER / CURRENT_FY.
 import logging
 import os
 import re
+from datetime import datetime
 from functools import lru_cache, wraps
+from zoneinfo import ZoneInfo
 
 import requests as http_requests
 from flask import Blueprint, jsonify
@@ -138,7 +140,22 @@ def _safe_nvidia(quarter: int, fiscal_year: int, mode: str) -> dict | None:
 # Bump these when a newer quarter is released. (Future: auto-detect.)
 CURRENT_QUARTER = 4
 CURRENT_FY = 2026
-AS_OF_LABEL = 'May 11th, 2026'
+
+# "as of" date — today in Paris time, formatted like "May 11th, 2026".
+_PARIS = ZoneInfo('Europe/Paris')
+
+
+def _ordinal(n: int) -> str:
+    if 10 <= n % 100 <= 20:
+        suffix = 'th'
+    else:
+        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+    return f'{n}{suffix}'
+
+
+def _as_of_label() -> str:
+    now = datetime.now(_PARIS)
+    return f'{now.strftime("%B")} {_ordinal(now.day)}, {now.year}'
 
 
 def _build_growth_cell(cur: dict | None, one: dict | None, three: dict | None) -> dict | None:
@@ -174,6 +191,6 @@ def stocks_data():
             data.setdefault('Nvidia', {}).setdefault('Revenue', {})[mode] = cell
 
     return jsonify({
-        'asOf': AS_OF_LABEL,
+        'asOf': _as_of_label(),
         'data': data,
     })
