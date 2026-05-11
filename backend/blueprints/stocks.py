@@ -72,22 +72,21 @@ def nvidia_press_url(quarter: int, fiscal_year: int) -> str:
     )
 
 
-# Matches "For fiscal <year>, revenue was $<N> billion" — only present in
-# Q4 press releases, which report the full year. For non-Q4 quarters we'd
-# need to sum four quarterly figures (see TODO in _fetch_nvidia_ttm_revenue).
-_NVIDIA_FY_REVENUE_RE = re.compile(
-    r'For\s+fiscal\s+\d{4},\s+revenue\s+was\s+\$([\d.]+)\s*billion',
+# Matches the FULL sentence: "For fiscal <year>, revenue was $<N> billion[, up X% from a year ago]."
+# Only present in Q4 press releases (which report the full year).
+_NVIDIA_FY_REVENUE_SENTENCE_RE = re.compile(
+    r'For\s+fiscal\s+\d{4},\s+revenue\s+was\s+\$[\d.]+\s*billion[^.]*\.',
     re.IGNORECASE,
 )
+_NVIDIA_AMOUNT_RE = re.compile(r'\$([\d.]+)\s*billion', re.IGNORECASE)
 
 
 @lru_cache(maxsize=64)
-def _fetch_nvidia_ttm_revenue(quarter: int, fiscal_year: int) -> float:
-    """Trailing-twelve-month revenue in billions USD, as of Q{quarter} FY{fiscal_year}.
+def _fetch_nvidia_ttm_evidence(quarter: int, fiscal_year: int) -> dict:
+    """Returns {value, quote, url, label} for the TTM revenue point.
 
-    For Q4 this equals the full-year revenue, which the press release states
-    directly. Cached per-process — press releases never change after
-    publication.
+    For Q4 releases, TTM = full-year revenue stated in the press release.
+    Raises on failure. Cached per-process — press releases never change.
     """
     if quarter != 4:
         # TODO: sum the 4 most recent quarterly figures (requires parsing
@@ -96,15 +95,24 @@ def _fetch_nvidia_ttm_revenue(quarter: int, fiscal_year: int) -> float:
     url = nvidia_press_url(quarter, fiscal_year)
     r = http_requests.get(url, timeout=15)
     r.raise_for_status()
-    m = _NVIDIA_FY_REVENUE_RE.search(r.text)
+    m = _NVIDIA_FY_REVENUE_SENTENCE_RE.search(r.text)
     if not m:
-        raise ValueError(f'No full-year revenue found at {url}')
-    return float(m.group(1))
+        raise ValueError(f'No full-year revenue sentence found at {url}')
+    quote = re.sub(r'\s+', ' ', m.group(0)).strip()
+    num = _NVIDIA_AMOUNT_RE.search(quote)
+    if not num:
+        raise ValueError(f'Could not extract amount from quote at {url}')
+    return {
+        'value': float(num.group(1)),
+        'quote': quote,
+        'url': url,
+        'label': f'TTM FY{fiscal_year}',
+    }
 
 
-def _safe_nvidia_ttm(quarter: int, fiscal_year: int) -> float | None:
+def _safe_nvidia_ttm(quarter: int, fiscal_year: int) -> dict | None:
     try:
-        return _fetch_nvidia_ttm_revenue(quarter, fiscal_year)
+        return _fetch_nvidia_ttm_evidence(quarter, fiscal_year)
     except Exception as e:
         logger.warning('Nvidia TTM revenue fetch failed (Q%d FY%d): %s', quarter, fiscal_year, e)
         return None
@@ -128,16 +136,18 @@ def stocks_data():
     """
     data: dict[str, dict[str, dict]] = {}
 
-    current = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY)
-    one_y = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY - 1)
-    three_y = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY - 3)
+    cur = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY)
+    one = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY - 1)
+    three = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY - 3)
 
-    cell: dict[str, float] = {}
-    if current is not None and one_y:
-        cell['oneY'] = (current - one_y) / one_y
-    if current is not None and three_y:
-        cell['threeY'] = (current - three_y) / three_y
-    if cell:
+    cell: dict = {}
+    if cur and one:
+        cell['oneY'] = (cur['value'] - one['value']) / one['value']
+    if cur and three:
+        cell['threeY'] = (cur['value'] - three['value']) / three['value']
+    evidence = [e for e in (cur, one, three) if e]
+    if cell and evidence:
+        cell['evidence'] = evidence
         data['Nvidia'] = {'Revenue': cell}
 
     return jsonify({

@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, LineChart } from 'lucide-react';
+import { ArrowLeft, LineChart, ExternalLink } from 'lucide-react';
 
 const COMPANIES = ['Nvidia', 'Alphabet', 'Amazon', 'Meta', 'Microsoft'] as const;
 const METRICS = ['Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operating Cash-Flow', 'Free Cash-Flow'] as const;
 
 type Company = typeof COMPANIES[number];
 type Metric = typeof METRICS[number];
+
+interface Evidence { label: string; value: number; quote: string; url: string }
+interface CellData { oneY?: number; threeY?: number; evidence?: Evidence[] }
+interface StocksPayload {
+  period: string;
+  data: Partial<Record<Company, Partial<Record<Metric, CellData>>>>;
+}
 
 // Latest released quarter per company, with link to the press release.
 // Update when a new quarter drops (and bump AS_OF_LABEL).
@@ -35,12 +42,6 @@ const MOST_RECENT_QUARTER: Record<Company, { label: string; url: string }> = {
   },
 };
 
-interface CellData { oneY?: number; threeY?: number }
-interface StocksPayload {
-  period: string;
-  data: Partial<Record<Company, Partial<Record<Metric, CellData>>>>;
-}
-
 function fmtPct(p: number | undefined): string {
   if (p === undefined) return '—';
   const pct = Math.round(p * 100);
@@ -54,15 +55,28 @@ function pctColor(p: number | undefined): string {
   return 'text-slate-300';
 }
 
+// Bold the "$N billion" portion inside the press-release quote.
+function renderQuote(quote: string) {
+  const parts = quote.split(/(\$[\d.]+\s*billion)/i);
+  return parts.map((part, i) =>
+    /^\$[\d.]+\s*billion$/i.test(part)
+      ? <strong key={i} className="text-emerald-300 font-semibold not-italic">{part}</strong>
+      : <span key={i}>{part}</span>
+  );
+}
+
 export function StocksDashboard() {
   const navigate = useNavigate();
   const [payload, setPayload] = useState<StocksPayload | null>(null);
+  const [selected, setSelected] = useState<{ company: Company; metric: Metric } | null>(null);
 
   useEffect(() => {
     axios.get<StocksPayload>('/api/stocks/data')
       .then(r => setPayload(r.data))
       .catch(() => {});
   }, []);
+
+  const selectedCell = selected && payload?.data?.[selected.company]?.[selected.metric];
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -125,13 +139,23 @@ export function StocksDashboard() {
                   </th>
                   {COMPANIES.map(c => {
                     const cell = payload?.data?.[c]?.[metric];
+                    const hasData = !!(cell && (cell.oneY !== undefined || cell.threeY !== undefined));
+                    const isSelected = selected?.company === c && selected?.metric === metric;
                     return (
-                      <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center">
-                        {cell && (cell.oneY !== undefined || cell.threeY !== undefined) && (
+                      <td
+                        key={c}
+                        onClick={hasData ? () => setSelected(isSelected ? null : { company: c, metric }) : undefined}
+                        className={
+                          'px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center '
+                          + (hasData ? 'cursor-pointer hover:bg-slate-800/60 ' : '')
+                          + (isSelected ? 'bg-emerald-500/10 ring-2 ring-inset ring-emerald-500/40' : '')
+                        }
+                      >
+                        {hasData && (
                           <span className="font-mono text-xs">
-                            <span className={pctColor(cell.oneY)}>{fmtPct(cell.oneY)}</span>
+                            <span className={pctColor(cell!.oneY)}>{fmtPct(cell!.oneY)}</span>
                             <span className="text-white"> (1Y) / </span>
-                            <span className={pctColor(cell.threeY)}>{fmtPct(cell.threeY)}</span>
+                            <span className={pctColor(cell!.threeY)}>{fmtPct(cell!.threeY)}</span>
                             <span className="text-white"> (3Y)</span>
                           </span>
                         )}
@@ -143,6 +167,40 @@ export function StocksDashboard() {
             </tbody>
           </table>
         </div>
+
+        {selected && selectedCell?.evidence?.length && (
+          <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-slate-200">
+                Evidence — {selected.company} · {selected.metric}
+              </h2>
+              <button
+                onClick={() => setSelected(null)}
+                className="text-xs text-slate-500 hover:text-slate-300"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-4">
+              {selectedCell.evidence.map((e, i) => (
+                <blockquote
+                  key={i}
+                  className="border-l-2 border-emerald-500/50 pl-4 py-1"
+                >
+                  <p className="text-slate-200 italic">"{renderQuote(e.quote)}"</p>
+                  <a
+                    href={e.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-emerald-400 hover:underline mt-1.5 inline-flex items-center gap-1"
+                  >
+                    {e.label} press release <ExternalLink className="w-3 h-3" />
+                  </a>
+                </blockquote>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
