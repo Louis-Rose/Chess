@@ -318,7 +318,7 @@ function StockChart({ companies, range, scale }: { companies: Company[]; range: 
                           String(label)
                         )}
                       </div>
-                      <div className="px-3 py-2 space-y-0.5">
+                      <div className="px-3 py-2 space-y-0.5 text-center">
                         {[...payload]
                           .sort((a, b) => ((b.value as number) ?? -Infinity) - ((a.value as number) ?? -Infinity))
                           .map((entry, i) => (
