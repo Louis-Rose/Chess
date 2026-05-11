@@ -441,20 +441,20 @@ export function StocksDashboard() {
 
         {selected && (selected.metric === 'Stock price' || selectedCell?.evidence?.length) && (
           <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60">
-            <div className="relative mb-4">
+            <div className="grid grid-cols-3 items-center mb-4">
+              <div className="flex items-center gap-2 justify-self-start">
+                <img src={COMPANY_LOGO[selected.company]} alt="" className="h-6 w-auto max-w-full" />
+                <span className="text-sm font-semibold text-slate-200">{selected.company}</span>
+              </div>
+              <div className="text-center text-sm font-semibold text-slate-200">
+                {selected.metric}
+              </div>
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-0 right-0 text-xs text-slate-500 hover:text-slate-300"
+                className="justify-self-end text-xs text-slate-500 hover:text-slate-300"
               >
                 Close
               </button>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <img src={COMPANY_LOGO[selected.company]} alt="" className="h-6 w-auto max-w-full" />
-                  <span className="text-sm font-semibold text-slate-200">{selected.company}</span>
-                </div>
-                <div className="text-sm font-semibold text-slate-200 mt-1">{selected.metric}</div>
-              </div>
             </div>
             {selected.metric === 'Stock price' ? (
               <StockChart company={selected.company} />
