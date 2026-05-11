@@ -12,9 +12,18 @@ type Metric = typeof METRICS[number];
 type Mode = 'ttm' | 'quarterly';
 interface Evidence { label: string; value: number; quote: string; url: string }
 interface CellData { oneY?: number; threeY?: number; evidence?: Evidence[] }
+interface EarningsInfo { date: string; daysUntil: number }
 interface StocksPayload {
   asOf: string;
   data: Partial<Record<Company, Partial<Record<Metric, Partial<Record<Mode, CellData>>>>>>;
+  earnings: Partial<Record<Company, EarningsInfo>>;
+}
+
+function fmtDaysUntil(d: number): string {
+  if (d < 0) return 'TBA';
+  if (d === 0) return 'today';
+  if (d === 1) return 'tomorrow';
+  return `in ${d} days`;
 }
 
 // Latest released quarter per company, with link to the press release.
@@ -140,7 +149,7 @@ export function StocksDashboard() {
             <tbody>
               <tr className="border-b border-slate-800">
                 <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
-                  Most recent quarter
+                  Latest quarterly results
                 </th>
                 {COMPANIES.map(c => (
                   <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center">
@@ -154,6 +163,19 @@ export function StocksDashboard() {
                     </a>
                   </td>
                 ))}
+              </tr>
+              <tr className="border-b border-slate-800">
+                <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
+                  Next quarterly results
+                </th>
+                {COMPANIES.map(c => {
+                  const e = payload?.earnings?.[c];
+                  return (
+                    <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center text-white font-medium">
+                      {e ? fmtDaysUntil(e.daysUntil) : null}
+                    </td>
+                  );
+                })}
               </tr>
               {METRICS.map(metric => (
                 <tr key={metric} className="border-b border-slate-800 last:border-b-0">

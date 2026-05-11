@@ -11,11 +11,12 @@ adding future quarters is just bumping CURRENT_QUARTER / CURRENT_FY.
 import logging
 import os
 import re
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from functools import lru_cache, wraps
 from zoneinfo import ZoneInfo
 
 import requests as http_requests
+import yfinance
 from flask import Blueprint, jsonify
 
 from auth import get_current_user
@@ -158,6 +159,41 @@ def _as_of_label() -> str:
     return f'{now.strftime("%B")} {_ordinal(now.day)}, {now.year}'
 
 
+# ── Next-earnings dates (Yahoo Finance via yfinance) ─────────────────────────
+#
+# Cached for 6h so the page stays snappy. Day-count is recomputed per-request
+# from Paris-local "today", so the countdown ticks down at midnight Paris time
+# without needing a cache flush.
+
+TICKERS: dict[str, str] = {
+    'Nvidia': 'NVDA',
+    'Alphabet': 'GOOGL',
+    'Amazon': 'AMZN',
+    'Meta': 'META',
+    'Microsoft': 'MSFT',
+}
+
+_EARNINGS_CACHE: dict[str, tuple[datetime, str | None]] = {}
+_EARNINGS_TTL = timedelta(hours=6)
+
+
+def _fetch_next_earnings_iso(ticker: str) -> str | None:
+    """ISO date (YYYY-MM-DD) of next scheduled earnings call, or None."""
+    cached = _EARNINGS_CACHE.get(ticker)
+    if cached and (datetime.now() - cached[0]) < _EARNINGS_TTL:
+        return cached[1]
+    iso: str | None = None
+    try:
+        cal = yfinance.Ticker(ticker).calendar or {}
+        dates = cal.get('Earnings Date') or []
+        if dates:
+            iso = dates[0].isoformat()
+    except Exception as e:
+        logger.warning('Earnings fetch failed for %s: %s', ticker, e)
+    _EARNINGS_CACHE[ticker] = (datetime.now(), iso)
+    return iso
+
+
 def _build_growth_cell(cur: dict | None, one: dict | None, three: dict | None) -> dict | None:
     cell: dict = {}
     if cur and one:
@@ -190,7 +226,20 @@ def stocks_data():
         if cell:
             data.setdefault('Nvidia', {}).setdefault('Revenue', {})[mode] = cell
 
+    today = datetime.now(_PARIS).date()
+    earnings: dict[str, dict] = {}
+    for company, ticker in TICKERS.items():
+        iso = _fetch_next_earnings_iso(ticker)
+        if not iso:
+            continue
+        try:
+            d = date.fromisoformat(iso)
+        except ValueError:
+            continue
+        earnings[company] = {'date': iso, 'daysUntil': (d - today).days}
+
     return jsonify({
         'asOf': _as_of_label(),
         'data': data,
+        'earnings': earnings,
     })
