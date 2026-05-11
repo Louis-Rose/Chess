@@ -131,7 +131,7 @@ interface CellRow { value: string; label: string; growth?: number }
 
 function CellRows({ rows }: { rows: CellRow[] }) {
   return (
-    <div className="font-mono text-xs leading-5">
+    <div className="font-mono text-xs leading-5 font-bold">
       {rows.map(({ value, label, growth }) => (
         <div key={label}>
           <span className="text-white">{value}</span>
@@ -352,7 +352,7 @@ export function StocksDashboard() {
                 {COMPANIES.map(c => {
                   const e = payload?.earnings?.[c];
                   return (
-                    <td key={c} className="px-4 py-3 border-l border-slate-700 h-[68px] whitespace-nowrap text-center text-white font-medium">
+                    <td key={c} className="px-4 py-3 border-l border-slate-700 h-[68px] whitespace-nowrap text-center text-white font-bold">
                       {e && (e.daysUntil >= 0 ? (
                         <>
                           <div>{fmtDateNoYear(e.date)}</div>
