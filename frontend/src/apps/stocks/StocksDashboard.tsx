@@ -218,7 +218,7 @@ export function StocksDashboard() {
                       href={MOST_RECENT_QUARTER[c].url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-white underline underline-offset-4 font-semibold"
+                      className="text-blue-400 hover:text-blue-300 underline underline-offset-4 font-semibold"
                     >
                       {MOST_RECENT_QUARTER[c].label}
                     </a>
