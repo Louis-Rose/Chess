@@ -269,7 +269,7 @@ function StockChart({ companies }: { companies: Company[] }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-end gap-3 mb-3">
         <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
           {(['absolute', 'relative'] as const).map(s => (
             <button
