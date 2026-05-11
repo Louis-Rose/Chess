@@ -114,7 +114,7 @@ export function StocksDashboard() {
             ))}
           </div>
           {payload && (
-            <span className="text-xs text-slate-300">as of {payload.asOf}</span>
+            <span className="text-xs text-slate-300 font-medium">as of {payload.asOf}</span>
           )}
         </div>
 
@@ -148,7 +148,7 @@ export function StocksDashboard() {
                       href={MOST_RECENT_QUARTER[c].url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-white hover:underline font-medium"
+                      className="text-white hover:underline font-semibold"
                     >
                       {MOST_RECENT_QUARTER[c].label}
                     </a>
