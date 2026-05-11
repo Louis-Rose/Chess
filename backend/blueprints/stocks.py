@@ -72,33 +72,48 @@ def nvidia_press_url(quarter: int, fiscal_year: int) -> str:
     )
 
 
-# Matches the FULL sentence: "For fiscal <year>, revenue was $<N> billion[, up X% from a year ago]."
-# Only present in Q4 press releases (which report the full year).
-_NVIDIA_FY_REVENUE_SENTENCE_RE = re.compile(
+# Sentence-level matchers for Nvidia revenue lines in Q4 press releases.
+#   TTM:       "For fiscal 2026, revenue was $215.9 billion, up 65% from a year ago."
+#   Quarterly: "revenue for the fourth quarter ended January 25, 2026, of $68.1 billion, up ..."
+_NVIDIA_FY_SENTENCE_RE = re.compile(
     r'For\s+fiscal\s+\d{4},\s+revenue\s+was\s+\$[\d.]+\s*billion[^.]*\.',
+    re.IGNORECASE,
+)
+_NVIDIA_Q_SENTENCE_RE = re.compile(
+    r'revenue\s+for\s+the\s+\w+\s+quarter\s+ended[^.]*\$[\d.]+\s*billion[^.]*\.',
     re.IGNORECASE,
 )
 _NVIDIA_AMOUNT_RE = re.compile(r'\$([\d.]+)\s*billion', re.IGNORECASE)
 
 
 @lru_cache(maxsize=64)
-def _fetch_nvidia_ttm_evidence(quarter: int, fiscal_year: int) -> dict:
-    """Returns {value, quote, url, label} for the TTM revenue point.
-
-    For Q4 releases, TTM = full-year revenue stated in the press release.
-    Raises on failure. Cached per-process — press releases never change.
-    """
-    if quarter != 4:
-        # TODO: sum the 4 most recent quarterly figures (requires parsing
-        # quarterly revenue across two fiscal years).
-        raise NotImplementedError('TTM only implemented for Q4 releases so far')
+def _fetch_nvidia_page(quarter: int, fiscal_year: int) -> tuple[str, str]:
+    """Fetch and cache the press-release HTML. Returns (text, url)."""
     url = nvidia_press_url(quarter, fiscal_year)
     r = http_requests.get(url, timeout=15)
     r.raise_for_status()
-    m = _NVIDIA_FY_REVENUE_SENTENCE_RE.search(r.text)
+    return r.text, url
+
+
+def _fetch_nvidia_evidence(quarter: int, fiscal_year: int, mode: str) -> dict:
+    """Returns {value, quote, url, label}. mode = 'ttm' | 'quarterly'."""
+    if mode == 'ttm' and quarter != 4:
+        raise NotImplementedError('TTM only implemented for Q4 releases so far')
+    text, url = _fetch_nvidia_page(quarter, fiscal_year)
+    if mode == 'ttm':
+        regex = _NVIDIA_FY_SENTENCE_RE
+        label = f'TTM FY{fiscal_year}'
+    elif mode == 'quarterly':
+        regex = _NVIDIA_Q_SENTENCE_RE
+        label = f'Q{quarter} FY{fiscal_year}'
+    else:
+        raise ValueError(f'Unknown mode: {mode}')
+    m = regex.search(text)
     if not m:
-        raise ValueError(f'No full-year revenue sentence found at {url}')
+        raise ValueError(f'No {mode} revenue sentence found at {url}')
     quote = re.sub(r'\s+', ' ', m.group(0)).strip()
+    if quote and quote[0].islower():
+        quote = quote[0].upper() + quote[1:]
     num = _NVIDIA_AMOUNT_RE.search(quote)
     if not num:
         raise ValueError(f'Could not extract amount from quote at {url}')
@@ -106,15 +121,15 @@ def _fetch_nvidia_ttm_evidence(quarter: int, fiscal_year: int) -> dict:
         'value': float(num.group(1)),
         'quote': quote,
         'url': url,
-        'label': f'TTM FY{fiscal_year}',
+        'label': label,
     }
 
 
-def _safe_nvidia_ttm(quarter: int, fiscal_year: int) -> dict | None:
+def _safe_nvidia(quarter: int, fiscal_year: int, mode: str) -> dict | None:
     try:
-        return _fetch_nvidia_ttm_evidence(quarter, fiscal_year)
+        return _fetch_nvidia_evidence(quarter, fiscal_year, mode)
     except Exception as e:
-        logger.warning('Nvidia TTM revenue fetch failed (Q%d FY%d): %s', quarter, fiscal_year, e)
+        logger.warning('Nvidia %s revenue fetch failed (Q%d FY%d): %s', mode, quarter, fiscal_year, e)
         return None
 
 
@@ -123,23 +138,10 @@ def _safe_nvidia_ttm(quarter: int, fiscal_year: int) -> dict | None:
 # Bump these when a newer quarter is released. (Future: auto-detect.)
 CURRENT_QUARTER = 4
 CURRENT_FY = 2026
+AS_OF_LABEL = 'May 11th, 2026'
 
 
-@stocks_bp.route('/api/stocks/data', methods=['GET'])
-@owner_required
-def stocks_data():
-    """Growth metrics for each (company, metric) cell.
-
-    Returns: { period, data: { Company: { Metric: { oneY?, threeY? } } } }
-    Only Nvidia/Revenue is wired up so far — other cells will be filled in
-    as their press-release scrapers are added.
-    """
-    data: dict[str, dict[str, dict]] = {}
-
-    cur = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY)
-    one = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY - 1)
-    three = _safe_nvidia_ttm(CURRENT_QUARTER, CURRENT_FY - 3)
-
+def _build_growth_cell(cur: dict | None, one: dict | None, three: dict | None) -> dict | None:
     cell: dict = {}
     if cur and one:
         cell['oneY'] = (cur['value'] - one['value']) / one['value']
@@ -148,9 +150,30 @@ def stocks_data():
     evidence = [e for e in (cur, one, three) if e]
     if cell and evidence:
         cell['evidence'] = evidence
-        data['Nvidia'] = {'Revenue': cell}
+        return cell
+    return None
+
+
+@stocks_bp.route('/api/stocks/data', methods=['GET'])
+@owner_required
+def stocks_data():
+    """Growth metrics for each (company, metric) cell, in both TTM and quarterly modes.
+
+    Returns: { asOf, data: { Company: { Metric: { ttm?, quarterly? } } } }
+    Each mode's payload is { oneY?, threeY?, evidence: [...] }.
+    Only Nvidia/Revenue is wired up so far.
+    """
+    data: dict[str, dict[str, dict]] = {}
+
+    for mode in ('ttm', 'quarterly'):
+        cur = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY, mode)
+        one = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY - 1, mode)
+        three = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY - 3, mode)
+        cell = _build_growth_cell(cur, one, three)
+        if cell:
+            data.setdefault('Nvidia', {}).setdefault('Revenue', {})[mode] = cell
 
     return jsonify({
-        'period': f'TTM as of Q{CURRENT_QUARTER} FY{CURRENT_FY}',
+        'asOf': AS_OF_LABEL,
         'data': data,
     })

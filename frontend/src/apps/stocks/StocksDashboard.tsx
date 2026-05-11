@@ -9,16 +9,16 @@ const METRICS = ['Revenue', 'Operating Income', 'Net Income (non-GAAP)', 'Operat
 type Company = typeof COMPANIES[number];
 type Metric = typeof METRICS[number];
 
+type Mode = 'ttm' | 'quarterly';
 interface Evidence { label: string; value: number; quote: string; url: string }
 interface CellData { oneY?: number; threeY?: number; evidence?: Evidence[] }
 interface StocksPayload {
-  period: string;
-  data: Partial<Record<Company, Partial<Record<Metric, CellData>>>>;
+  asOf: string;
+  data: Partial<Record<Company, Partial<Record<Metric, Partial<Record<Mode, CellData>>>>>>;
 }
 
 // Latest released quarter per company, with link to the press release.
-// Update when a new quarter drops (and bump AS_OF_LABEL).
-const AS_OF_LABEL = 'May 11th, 2026';
+// Update when a new quarter drops (and bump AS_OF_LABEL on the backend).
 const MOST_RECENT_QUARTER: Record<Company, { label: string; url: string }> = {
   Nvidia: {
     label: 'Q4 2026',
@@ -69,6 +69,7 @@ export function StocksDashboard() {
   const navigate = useNavigate();
   const [payload, setPayload] = useState<StocksPayload | null>(null);
   const [selected, setSelected] = useState<{ company: Company; metric: Metric } | null>(null);
+  const [mode, setMode] = useState<Mode>('ttm');
 
   useEffect(() => {
     axios.get<StocksPayload>('/api/stocks/data')
@@ -76,7 +77,7 @@ export function StocksDashboard() {
       .catch(() => {});
   }, []);
 
-  const selectedCell = selected && payload?.data?.[selected.company]?.[selected.metric];
+  const selectedCell = selected && payload?.data?.[selected.company]?.[selected.metric]?.[mode];
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -91,13 +92,32 @@ export function StocksDashboard() {
           </button>
           <LineChart className="w-6 h-6 text-emerald-400" />
           <h1 className="text-xl font-semibold flex-1">Stocks</h1>
-          {payload && (
-            <span className="text-xs text-white">{payload.period}</span>
-          )}
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+            {(['quarterly', 'ttm'] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={
+                  'px-3 py-1.5 font-medium transition-colors '
+                  + (mode === m
+                    ? 'bg-slate-700 text-slate-100'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')
+                }
+              >
+                {m === 'ttm' ? 'TTM' : 'Quarterly'}
+              </button>
+            ))}
+          </div>
+          {payload && (
+            <span className="text-xs text-slate-300">as of {payload.asOf}</span>
+          )}
+        </div>
+
         <div className="overflow-x-auto border border-slate-800 rounded-lg">
           <table className="w-full text-sm border-collapse table-fixed">
             <colgroup>
@@ -120,8 +140,7 @@ export function StocksDashboard() {
             <tbody>
               <tr className="border-b border-slate-800">
                 <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
-                  <div>Most recent quarter</div>
-                  <div className="text-xs font-normal text-white mt-0.5">(as of {AS_OF_LABEL})</div>
+                  Most recent quarter
                 </th>
                 {COMPANIES.map(c => (
                   <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center">
@@ -142,7 +161,7 @@ export function StocksDashboard() {
                     {metric}
                   </th>
                   {COMPANIES.map(c => {
-                    const cell = payload?.data?.[c]?.[metric];
+                    const cell = payload?.data?.[c]?.[metric]?.[mode];
                     const hasData = !!(cell && (cell.oneY !== undefined || cell.threeY !== undefined));
                     const isSelected = selected?.company === c && selected?.metric === metric;
                     return (
