@@ -22,8 +22,7 @@ interface StocksPayload {
 function fmtDaysUntil(d: number): string {
   if (d < 0) return 'TBA';
   if (d === 0) return 'today';
-  if (d === 1) return 'tomorrow';
-  return `in ${d} days`;
+  return `${d} day${d === 1 ? '' : 's'} remaining`;
 }
 
 // Latest released quarter per company, with link to the press release.
