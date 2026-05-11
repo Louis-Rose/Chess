@@ -301,6 +301,7 @@ function StockChart({ companies, range, scale }: { companies: Company[]; range: 
                 axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
               />
               <Tooltip
+                allowEscapeViewBox={{ x: true, y: false }}
                 content={({ active, payload, label }) => {
                   if (!active || !payload || payload.length === 0) return null;
                   return (
