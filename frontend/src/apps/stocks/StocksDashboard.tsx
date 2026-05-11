@@ -34,6 +34,24 @@ function fmtDaysUntil(d: number): string {
   return `${d} day${d === 1 ? '' : 's'} remaining`;
 }
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+
+function ordinal(n: number): string {
+  if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1: return `${n}st`;
+    case 2: return `${n}nd`;
+    case 3: return `${n}rd`;
+    default: return `${n}th`;
+  }
+}
+
+function fmtDateNoYear(iso: string): string {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${MONTHS[m - 1]} ${ordinal(d)}`;
+}
+
 // Brand logos — self-hosted SVGs in public/logos/ (real brand colors).
 const COMPANY_LOGO: Record<Company, string> = {
   Nvidia: '/logos/nvidia.svg',
@@ -233,7 +251,14 @@ export function StocksDashboard() {
                   const e = payload?.earnings?.[c];
                   return (
                     <td key={c} className="px-4 py-3 border-l border-slate-700 h-12 whitespace-nowrap text-center text-white font-medium">
-                      {e ? fmtDaysUntil(e.daysUntil) : null}
+                      {e && (e.daysUntil >= 0 ? (
+                        <>
+                          <div>{fmtDateNoYear(e.date)}</div>
+                          <div>({fmtDaysUntil(e.daysUntil)})</div>
+                        </>
+                      ) : (
+                        <div>{fmtDaysUntil(e.daysUntil)}</div>
+                      ))}
                     </td>
                   );
                 })}
