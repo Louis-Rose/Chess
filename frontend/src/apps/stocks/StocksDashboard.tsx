@@ -365,6 +365,24 @@ export function StocksDashboard() {
       return { metric, companies: [...prev.companies, company] };
     });
   }
+
+  function companiesWithData(metric: Metric): Company[] {
+    return COMPANIES.filter(c => {
+      const cell = payload?.data?.[c]?.[metric]?.[mode];
+      return !!(cell && (cell.oneY !== undefined || cell.threeY !== undefined));
+    });
+  }
+
+  function toggleRow(metric: Metric) {
+    const cs = companiesWithData(metric);
+    if (cs.length === 0) return;
+    setSelected(prev => {
+      const allSelected = prev?.metric === metric
+        && prev.companies.length === cs.length
+        && cs.every(c => prev.companies.includes(c));
+      return allSelected ? null : { metric, companies: cs };
+    });
+  }
   const [mode, setMode] = useState<Mode>('ttm');
 
   const fetchData = (bypassCache = false) => {
@@ -480,9 +498,17 @@ export function StocksDashboard() {
                   );
                 })}
               </tr>
-              {METRICS.map(metric => (
+              {METRICS.map(metric => {
+                const rowHasData = companiesWithData(metric).length > 0;
+                return (
                 <tr key={metric} className="border-b border-slate-700 last:border-b-0">
-                  <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800">
+                  <th
+                    onClick={rowHasData ? () => toggleRow(metric) : undefined}
+                    className={
+                      'text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap bg-slate-800 '
+                      + (rowHasData ? 'cursor-pointer hover:bg-slate-700/80' : '')
+                    }
+                  >
                     {metric}
                   </th>
                   {COMPANIES.map(c => {
@@ -510,7 +536,8 @@ export function StocksDashboard() {
                     );
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {!payload && (
