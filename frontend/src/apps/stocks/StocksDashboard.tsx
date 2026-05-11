@@ -217,7 +217,7 @@ export function StocksDashboard() {
                     className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-l border-slate-700"
                   >
                     <div className="flex flex-col items-center gap-1.5">
-                      <img src={COMPANY_LOGO[c]} alt="" className="h-5 w-auto max-w-full" />
+                      <img src={COMPANY_LOGO[c]} alt="" className="h-6 w-auto max-w-full" />
                       <span>{c}</span>
                     </div>
                   </th>
