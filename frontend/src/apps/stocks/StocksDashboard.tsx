@@ -104,7 +104,7 @@ export function StocksDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex flex-col items-center gap-1.5 mb-3">
+        <div className="flex justify-center mb-3">
           <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
             {(['quarterly', 'ttm'] as const).map(m => (
               <button
@@ -121,9 +121,6 @@ export function StocksDashboard() {
               </button>
             ))}
           </div>
-          {payload && (
-            <span className="text-xs text-slate-300 font-medium">as of {payload.asOf}</span>
-          )}
         </div>
 
         <div className="overflow-x-auto border border-slate-800 rounded-lg">
@@ -211,6 +208,12 @@ export function StocksDashboard() {
             </tbody>
           </table>
         </div>
+
+        {payload && (
+          <div className="text-center text-xs text-slate-300 font-medium mt-3">
+            as of {payload.asOf}
+          </div>
+        )}
 
         {selected && selectedCell?.evidence?.length && (
           <div className="mt-6 p-5 border border-slate-800 rounded-lg bg-slate-900/60">
