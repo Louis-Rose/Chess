@@ -103,7 +103,7 @@ export function StocksDashboard() {
               <tr className="border-b border-slate-800">
                 <th className="text-center font-semibold text-slate-200 px-4 py-3 whitespace-nowrap">
                   <div>Most recent quarter</div>
-                  <div className="text-xs font-normal text-slate-400 mt-0.5">(as of {AS_OF_LABEL})</div>
+                  <div className="text-xs font-normal text-white mt-0.5">(as of {AS_OF_LABEL})</div>
                 </th>
                 {COMPANIES.map(c => (
                   <td key={c} className="px-4 py-3 border-l border-slate-800 h-12 whitespace-nowrap text-center">
@@ -111,7 +111,7 @@ export function StocksDashboard() {
                       href={MOST_RECENT_QUARTER[c].url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-emerald-400 hover:text-emerald-300 hover:underline font-medium"
+                      className="text-white hover:underline font-medium"
                     >
                       {MOST_RECENT_QUARTER[c].label}
                     </a>
