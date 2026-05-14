@@ -34,7 +34,7 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center'
   { key: 'nextEarnings', label: 'Next earnings', align: 'right' },
 ];
 
-export function EarningsCalendar() {
+export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: string) => void }) {
   const [payload, setPayload] = useState<CalendarPayload | null>(null);
 
   const fetchData = (bypassCache = false) => {
@@ -186,7 +186,8 @@ export function EarningsCalendar() {
                   {sorted.map((c, i) => (
                     <tr
                       key={c.ticker}
-                      className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40"
+                      onClick={() => onOpenCompany(c.ticker)}
+                      className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40 cursor-pointer"
                     >
                       <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
                       <td className="px-4 py-3 font-semibold text-white">{c.name}</td>

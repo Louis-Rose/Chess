@@ -306,9 +306,8 @@ function CompanyPicker({
 
 // ── Single-company dashboard ─────────────────────────────────────────────────
 
-export function StocksTable() {
+export function StocksTable({ ticker, onTicker }: { ticker: string; onTicker: (t: string) => void }) {
   const [companies, setCompanies] = useState<CalendarCompany[]>([]);
-  const [ticker, setTicker] = useState('');
   const [payload, setPayload] = useState<DataPayload | null>(null);
   const [mode, setMode] = useState<Mode>('ttm');
   const [chartRange, setChartRange] = useState<StockRange>('1Y');
@@ -321,9 +320,11 @@ export function StocksTable() {
       .then(r => {
         const cs = r.data?.companies ?? [];
         setCompanies(cs);
-        if (cs.length > 0) setTicker(prev => prev || cs[0].ticker);
+        // Default to the largest company only if nothing was opened already.
+        if (cs.length > 0 && !ticker) onTicker(cs[0].ticker);
       })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = (tk: string, bypassCache = false) => {
@@ -361,7 +362,7 @@ export function StocksTable() {
 
       <main className="max-w-3xl mx-auto px-4 py-6">
         <div className="flex justify-center mb-3">
-          <CompanyPicker companies={companies} ticker={ticker} onSelect={setTicker} />
+          <CompanyPicker companies={companies} ticker={ticker} onSelect={onTicker} />
         </div>
         <div className="flex justify-center mb-5">
           <SegmentedToggle
