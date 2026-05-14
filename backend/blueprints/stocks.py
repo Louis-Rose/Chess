@@ -406,8 +406,8 @@ _SEMI_ANNUAL_TICKERS: set[str] = {
 
 _CALENDAR_TTL = timedelta(hours=24)
 # Fetching a row is ~2 blocking HTTP calls to Yahoo, so the build parallelizes
-# almost linearly. Kept low to stay under Yahoo's rate limiting.
-_CALENDAR_WORKERS = 5
+# almost linearly. Kept modest to stay under Yahoo's rate limiting.
+_CALENDAR_WORKERS = 8
 _calendar_lock = threading.Lock()
 _calendar_state: dict = {
     'snapshot': None, 'built_at': None, 'refreshing': False, 'error': None,
@@ -474,7 +474,10 @@ _CMC_HEADERS = {
                   'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
 }
 # How many US-listed companies the calendar tracks.
-_UNIVERSE_SIZE = 40
+_UNIVERSE_SIZE = 100
+# Safety cap on pages to scrape. ~75% of listings are US-listed, so the top
+# ~150-200 (2-3 pages of 100) comfortably yields 100 US-listed names.
+_CMC_MAX_PAGES = 3
 
 
 def _parse_cmc_universe(html: str) -> list[tuple[str, str]]:
@@ -504,15 +507,20 @@ def _parse_cmc_universe(html: str) -> list[tuple[str, str]]:
 
 def _fetch_universe() -> dict[str, str]:
     """Top US-listed companies by market cap, scraped live from
-    companiesmarketcap.com.
+    companiesmarketcap.com — paginated until enough US-listed names are found.
 
     Raises on any failure (network, HTTP error, or too few rows parsed — which
     means their markup changed). There is no fallback by design: a broken
     scrape must surface on the calendar page, not be papered over.
     """
-    r = http_requests.get(_CMC_URL, headers=_CMC_HEADERS, timeout=15)
-    r.raise_for_status()
-    ranked = _parse_cmc_universe(r.text)
+    ranked: list[tuple[str, str]] = []
+    for page in range(1, _CMC_MAX_PAGES + 1):
+        url = _CMC_URL if page == 1 else f'{_CMC_URL}page/{page}/'
+        r = http_requests.get(url, headers=_CMC_HEADERS, timeout=15)
+        r.raise_for_status()
+        ranked.extend(_parse_cmc_universe(r.text))
+        if len(ranked) >= _UNIVERSE_SIZE:
+            break
     if len(ranked) < _UNIVERSE_SIZE:
         raise ValueError(
             f'companiesmarketcap parse yielded only {len(ranked)} US-listed rows '
