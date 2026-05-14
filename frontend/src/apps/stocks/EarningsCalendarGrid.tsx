@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import {
-  type CalendarCompany, MONTHS_SHORT, fmtEarningsDate, FreqBadge,
-} from './calendarShared';
+import { type CalendarCompany, fmtEarningsDate, FreqBadge } from './calendarShared';
 
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June',
                      'July', 'August', 'September', 'October', 'November', 'December'];
@@ -39,25 +37,31 @@ function weekMonth(weekStart: Date): { year: number; month: number } {
   return { year, month };
 }
 
-// "May 19 – 25" / "Jun 29 – Jul 5"
+// "May 19 – 25" / "June 29 – July 5"
 function fmtWeekRange(start: Date): string {
   const end = addDays(start, 6);
-  const left = `${MONTHS_SHORT[start.getMonth()]} ${start.getDate()}`;
+  const left = `${MONTHS_LONG[start.getMonth()]} ${start.getDate()}`;
   const right = start.getMonth() === end.getMonth()
     ? `${end.getDate()}`
-    : `${MONTHS_SHORT[end.getMonth()]} ${end.getDate()}`;
+    : `${MONTHS_LONG[end.getMonth()]} ${end.getDate()}`;
   return `${left} – ${right}`;
 }
 
 export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany[] }) {
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
 
-  // Upcoming ~3 months of weeks, starting from this week's Monday.
+  // Weeks for the upcoming ~3 months, starting from this week's Monday — then
+  // extended so the final month row is shown in full, not cut off mid-month.
   const today = new Date();
   const horizon = new Date(today.getFullYear(), today.getMonth() + 3, today.getDate());
   const weeks: Date[] = [];
-  for (let w = startOfWeek(today); w <= horizon; w = addDays(w, 7)) {
+  let w = startOfWeek(today);
+  while (w <= horizon) { weeks.push(new Date(w)); w = addDays(w, 7); }
+  const lastMonth = weekMonth(weeks[weeks.length - 1]);
+  const lastKey = lastMonth.year * 12 + lastMonth.month;
+  for (let m = weekMonth(w); m.year * 12 + m.month <= lastKey; m = weekMonth(w)) {
     weeks.push(new Date(w));
+    w = addDays(w, 7);
   }
 
   // Bucket each company into the week its next-earnings date falls in.
@@ -103,7 +107,7 @@ export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany
                     onClick={() => setSelectedWeek(isSel ? null : key)}
                     disabled={count === 0}
                     className={
-                      'w-28 h-20 rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors '
+                      'w-40 h-20 rounded-lg border flex flex-col items-center justify-center gap-1 transition-colors '
                       + (count === 0
                         ? 'border-slate-800 text-slate-600 cursor-default'
                         : 'cursor-pointer ' + (isSel
@@ -111,8 +115,8 @@ export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany
                           : 'border-slate-700 text-white hover:bg-slate-800'))
                     }
                   >
-                    <span className="text-[11px] text-slate-400 whitespace-nowrap">{fmtWeekRange(w)}</span>
-                    <span className="text-2xl font-bold">{count}</span>
+                    <span className="text-base font-semibold whitespace-nowrap">{fmtWeekRange(w)}</span>
+                    <span className="text-sm">{count}</span>
                   </button>
                 );
               })}
