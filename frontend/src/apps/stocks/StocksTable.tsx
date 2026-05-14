@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { LineChart, RefreshCw } from 'lucide-react';
 import {
@@ -241,6 +241,69 @@ function StockChart({ ticker, range, scale }: { ticker: string; range: StockRang
   );
 }
 
+// ── Company search / picker ──────────────────────────────────────────────────
+
+function CompanyPicker({
+  companies, ticker, onSelect,
+}: { companies: CalendarCompany[]; ticker: string; onSelect: (t: string) => void }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const selected = companies.find(c => c.ticker === ticker);
+  const q = query.trim().toLowerCase();
+  // Match on company name or ticker; cap the list so we never render 300 nodes.
+  const matches = (q
+    ? companies.filter(c =>
+        c.name.toLowerCase().includes(q) || c.ticker.toLowerCase().includes(q))
+    : companies
+  ).slice(0, 50);
+
+  return (
+    <div ref={ref} className="relative w-80 max-w-full">
+      <input
+        type="text"
+        value={open ? query : (selected ? `${selected.name} (${selected.ticker})` : '')}
+        placeholder={companies.length ? 'Search company or ticker…' : 'Loading companies…'}
+        disabled={companies.length === 0}
+        onFocus={() => { setOpen(true); setQuery(''); }}
+        onChange={e => { setQuery(e.target.value); setOpen(true); }}
+        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-50"
+      />
+      {open && companies.length > 0 && (
+        <div className="absolute z-30 mt-1 w-full max-h-72 overflow-y-auto bg-slate-800 border border-slate-700 rounded-lg shadow-lg">
+          {matches.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-slate-500">No match</div>
+          ) : (
+            matches.map(c => (
+              <button
+                key={c.ticker}
+                onClick={() => { onSelect(c.ticker); setOpen(false); setQuery(''); }}
+                className={
+                  'w-full text-left px-3 py-1.5 text-sm transition-colors '
+                  + (c.ticker === ticker
+                    ? 'bg-slate-700 text-white'
+                    : 'text-slate-300 hover:bg-slate-700/60')
+                }
+              >
+                {c.name} <span className="text-slate-500 font-mono text-xs">{c.ticker}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Single-company dashboard ─────────────────────────────────────────────────
 
 export function StocksTable() {
@@ -297,18 +360,10 @@ export function StocksTable() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-center gap-4 mb-5 flex-wrap">
-          <select
-            value={ticker}
-            onChange={e => setTicker(e.target.value)}
-            disabled={companies.length === 0}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-50"
-          >
-            {companies.length === 0 && <option>Loading companies…</option>}
-            {companies.map(c => (
-              <option key={c.ticker} value={c.ticker}>{c.name} ({c.ticker})</option>
-            ))}
-          </select>
+        <div className="flex justify-center mb-3">
+          <CompanyPicker companies={companies} ticker={ticker} onSelect={setTicker} />
+        </div>
+        <div className="flex justify-center mb-5">
           <SegmentedToggle
             options={[
               { value: 'quarterly' as const, label: 'Quarterly data' },
