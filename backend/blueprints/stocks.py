@@ -1,11 +1,12 @@
-"""Stocks sub-app — private big-tech earnings table.
+"""Stocks sub-app — private, owner-only.
 
 Gated to the site owner via GYM_OWNER_EMAIL (reused as the single owner email).
 
-Each cell shows quarterly growth vs. the same quarter 1y and 3y ago, pulled
-live from each company's investor-relations press releases. Press-release URLs
-follow predictable per-company patterns keyed by (quarter, fiscal_year), so
-adding future quarters is just bumping CURRENT_QUARTER / CURRENT_FY.
+Two views:
+  - Earnings calendar: top US-listed companies (scraped from
+    companiesmarketcap.com) with their next earnings date.
+  - Per-company data: stock price + income-statement / cash-flow metrics for
+    one company, pulled from Yahoo Finance via yfinance.
 """
 
 import json
@@ -15,7 +16,7 @@ import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
-from functools import lru_cache, wraps
+from functools import wraps
 from zoneinfo import ZoneInfo
 
 import requests as http_requests
@@ -60,85 +61,6 @@ def stocks_access():
     return jsonify({'allowed': bool(row and (row['email'] or '').strip().lower() == owner_email)})
 
 
-# ── Press-release sources ────────────────────────────────────────────────────
-
-NVIDIA_QUARTER_SLUGS = {
-    1: 'first-quarter-fiscal',
-    2: 'second-quarter-fiscal',
-    3: 'third-quarter-fiscal',
-    4: 'fourth-quarter-and-fiscal',  # Q4 release also covers the full year
-}
-
-
-def nvidia_press_url(quarter: int, fiscal_year: int) -> str:
-    slug = NVIDIA_QUARTER_SLUGS[quarter]
-    return (
-        'https://nvidianews.nvidia.com/news/'
-        f'nvidia-announces-financial-results-for-{slug}-{fiscal_year}'
-    )
-
-
-# Sentence-level matchers for Nvidia revenue lines in Q4 press releases.
-#   TTM:       "For fiscal 2026, revenue was $215.9 billion, up 65% from a year ago."
-#   Quarterly: "revenue for the fourth quarter ended January 25, 2026, of $68.1 billion, up ..."
-_NVIDIA_FY_SENTENCE_RE = re.compile(
-    r'For\s+fiscal\s+\d{4},\s+revenue\s+was\s+\$[\d.]+\s*billion[^.]*\.',
-    re.IGNORECASE,
-)
-_NVIDIA_Q_SENTENCE_RE = re.compile(
-    r'revenue\s+for\s+the\s+\w+\s+quarter\s+ended[^.]*\$[\d.]+\s*billion[^.]*\.',
-    re.IGNORECASE,
-)
-_NVIDIA_AMOUNT_RE = re.compile(r'\$([\d.]+)\s*billion', re.IGNORECASE)
-
-
-@lru_cache(maxsize=64)
-def _fetch_nvidia_page(quarter: int, fiscal_year: int) -> tuple[str, str]:
-    """Fetch and cache the press-release HTML. Returns (text, url)."""
-    url = nvidia_press_url(quarter, fiscal_year)
-    r = http_requests.get(url, timeout=15)
-    r.raise_for_status()
-    return r.text, url
-
-
-def _fetch_nvidia_evidence(quarter: int, fiscal_year: int, mode: str) -> dict:
-    """Returns {value, quote, url, label}. mode = 'ttm' | 'quarterly'."""
-    if mode == 'ttm' and quarter != 4:
-        raise NotImplementedError('TTM only implemented for Q4 releases so far')
-    text, url = _fetch_nvidia_page(quarter, fiscal_year)
-    if mode == 'ttm':
-        regex = _NVIDIA_FY_SENTENCE_RE
-        label = f'TTM FY{fiscal_year}'
-    elif mode == 'quarterly':
-        regex = _NVIDIA_Q_SENTENCE_RE
-        label = f'Q{quarter} FY{fiscal_year}'
-    else:
-        raise ValueError(f'Unknown mode: {mode}')
-    m = regex.search(text)
-    if not m:
-        raise ValueError(f'No {mode} revenue sentence found at {url}')
-    quote = re.sub(r'\s+', ' ', m.group(0)).strip()
-    if quote and quote[0].islower():
-        quote = quote[0].upper() + quote[1:]
-    num = _NVIDIA_AMOUNT_RE.search(quote)
-    if not num:
-        raise ValueError(f'Could not extract amount from quote at {url}')
-    return {
-        'value': float(num.group(1)),
-        'quote': quote,
-        'url': url,
-        'label': label,
-    }
-
-
-def _safe_nvidia(quarter: int, fiscal_year: int, mode: str) -> dict | None:
-    try:
-        return _fetch_nvidia_evidence(quarter, fiscal_year, mode)
-    except Exception as e:
-        logger.warning('Nvidia %s revenue fetch failed (Q%d FY%d): %s', mode, quarter, fiscal_year, e)
-        return None
-
-
 # ── Price history endpoint (drives the Stock price chart) ───────────────────
 
 _HISTORY_RANGES = {
@@ -151,8 +73,8 @@ _HISTORY_RANGES = {
 @owner_required
 def stocks_history(ticker: str):
     """Daily closing prices for `ticker` over ?range= (5Y/3Y/1Y/YTD/6M/1M)."""
-    if ticker not in TICKERS.values():
-        return jsonify({'error': 'Unknown ticker'}), 400
+    if not re.fullmatch(r'[A-Za-z.\-]{1,10}', ticker):
+        return jsonify({'error': 'Invalid ticker'}), 400
     r = request.args.get('range', '1Y').upper()
     period = _HISTORY_RANGES.get(r)
     if not period:
@@ -169,13 +91,9 @@ def stocks_history(ticker: str):
         return jsonify({'error': str(e)}), 502
 
 
-# ── Data endpoint ────────────────────────────────────────────────────────────
+# ── "as of" date ─────────────────────────────────────────────────────────────
 #
-# Bump these when a newer quarter is released. (Future: auto-detect.)
-CURRENT_QUARTER = 4
-CURRENT_FY = 2026
-
-# "as of" date — today in Paris time, formatted like "May 11th, 2026".
+# Today in Paris time, formatted like "May 11th, 2026".
 _PARIS = ZoneInfo('Europe/Paris')
 
 
@@ -220,39 +138,10 @@ def _ttl_cache(seconds: int):
     return decorator
 
 
-# ── Next-earnings dates (Yahoo Finance via yfinance) ─────────────────────────
-#
-# Cached for 6h so the page stays snappy. Day-count is recomputed per-request
-# from Paris-local "today", so the countdown ticks down at midnight Paris time
-# without needing a cache flush.
-
-TICKERS: dict[str, str] = {
-    'Nvidia': 'NVDA',
-    'Alphabet': 'GOOGL',
-    'Amazon': 'AMZN',
-    'Meta': 'META',
-    'Microsoft': 'MSFT',
-}
-
-
-@_ttl_cache(seconds=6 * 3600)
-def _fetch_next_earnings_iso(ticker: str) -> str | None:
-    """ISO date (YYYY-MM-DD) of next scheduled earnings call, or None."""
-    iso: str | None = None
-    try:
-        cal = yfinance.Ticker(ticker).calendar or {}
-        dates = cal.get('Earnings Date') or []
-        if dates:
-            iso = dates[0].isoformat()
-    except Exception as e:
-        logger.warning('Earnings fetch failed for %s: %s', ticker, e)
-    return iso
-
-
-# ── Stock prices (Yahoo Finance via yfinance) ────────────────────────────────
+# ── Per-company data (Yahoo Finance via yfinance) ────────────────────────────
 #
 # Adjusted closes — yfinance auto_adjust=True normalizes for splits/dividends,
-# so Nvidia's 2024 10-for-1 split doesn't break the 3-year comparison.
+# so a stock split doesn't break the 3-year comparison.
 
 @_ttl_cache(seconds=6 * 3600)
 def _fetch_stock_prices(ticker: str) -> dict | None:
@@ -312,78 +201,134 @@ def _stock_price_cell(ticker: str) -> dict | None:
     return cell
 
 
-def _build_growth_cell(cur: dict | None, one: dict | None, three: dict | None, unit: str = '$B') -> dict | None:
-    cell: dict = {}
-    if cur and one:
-        cell['oneY'] = (cur['value'] - one['value']) / one['value']
-    if cur and three:
-        cell['threeY'] = (cur['value'] - three['value']) / three['value']
-    if cur:
-        cell['current'] = cur['value']
-    if one:
-        cell['oneYValue'] = one['value']
-    if three:
-        cell['threeYValue'] = three['value']
-    cell['unit'] = unit
-    evidence = [e for e in (cur, one, three) if e]
-    if ('oneY' in cell or 'threeY' in cell) and evidence:
-        cell['evidence'] = evidence
-        return cell
-    return None
+def _build_growth_cell(cur: float | None, one: float | None,
+                       three: float | None, unit: str = '$B') -> dict | None:
+    """Assemble a metric cell from three period values (now, 1y ago, 3y ago).
+
+    Any of the three may be None. Growth is computed against abs(base) so the
+    sign stays meaningful even when the base period was a loss. Returns None if
+    there's no current value to anchor on.
+    """
+    if cur is None:
+        return None
+    cell: dict = {'current': cur, 'unit': unit}
+    if one is not None:
+        cell['oneYValue'] = one
+        if one != 0:
+            cell['oneY'] = (cur - one) / abs(one)
+    if three is not None:
+        cell['threeYValue'] = three
+        if three != 0:
+            cell['threeY'] = (cur - three) / abs(three)
+    return cell
+
+
+# ── Financial statements (yfinance) ──────────────────────────────────────────
+
+def _safe_stmt(tk, attr: str):
+    """Fetch one yfinance statement DataFrame, or None on failure."""
+    try:
+        return getattr(tk, attr)
+    except Exception as e:
+        logger.warning('%s fetch failed: %s', attr, e)
+        return None
+
+
+def _stmt_cell(df, line: str, kind: str) -> dict | None:
+    """Build a now / 1y-ago / 3y-ago growth cell from one line of a yfinance
+    statement. `kind` is 'annual' (columns are fiscal years) or 'quarterly'
+    (columns are quarters); yfinance returns both newest-first.
+
+    Values are converted to $B. Quarterly 3y-ago is usually unavailable (only
+    ~5 quarters of history) and just comes back absent.
+    """
+    if df is None or getattr(df, 'empty', True) or line not in df.index:
+        return None
+    series = df.loc[line]
+    n = len(series)
+
+    def billions(i: int) -> float | None:
+        if i >= n:
+            return None
+        v = series.iloc[i]
+        return None if v != v else round(float(v) / 1e9, 2)   # v != v catches NaN
+
+    if kind == 'annual':
+        cur, one, three = billions(0), billions(1), billions(3)
+    else:  # quarterly — compare to the same quarter 1y / 3y back
+        cur, one, three = billions(0), billions(4), billions(12)
+    return _build_growth_cell(cur, one, three, unit='$B')
+
+
+@_ttl_cache(seconds=6 * 3600)
+def _fetch_financials(ticker: str) -> dict:
+    """Per-company financial-metric cells from yfinance statements.
+
+    Returns { metric: { 'ttm': cell|None, 'quarterly': cell|None } } — 'ttm'
+    from the annual statements, 'quarterly' from the quarterly ones. Metrics
+    with no data in either mode (e.g. Operating Income for banks) are omitted.
+    """
+    tk = yfinance.Ticker(ticker)
+    annual_inc = _safe_stmt(tk, 'income_stmt')
+    quarterly_inc = _safe_stmt(tk, 'quarterly_income_stmt')
+    annual_cf = _safe_stmt(tk, 'cashflow')
+    quarterly_cf = _safe_stmt(tk, 'quarterly_cashflow')
+
+    # metric label -> (annual df, quarterly df, yfinance line item)
+    metrics = [
+        ('Revenue', annual_inc, quarterly_inc, 'Total Revenue'),
+        ('Operating Income', annual_inc, quarterly_inc, 'Operating Income'),
+        ('Net Income', annual_inc, quarterly_inc, 'Net Income'),
+        ('Operating Cash-Flow', annual_cf, quarterly_cf, 'Operating Cash Flow'),
+        ('Free Cash-Flow', annual_cf, quarterly_cf, 'Free Cash Flow'),
+    ]
+    out: dict[str, dict] = {}
+    for metric, annual, quarterly, line in metrics:
+        cell = {
+            'ttm': _stmt_cell(annual, line, 'annual'),
+            'quarterly': _stmt_cell(quarterly, line, 'quarterly'),
+        }
+        if cell['ttm'] or cell['quarterly']:
+            out[metric] = cell
+    return out
 
 
 @stocks_bp.route('/api/stocks/data', methods=['GET'])
 @owner_required
 def stocks_data():
-    """Growth metrics for each (company, metric) cell, in both TTM and quarterly modes.
+    """Stock price + financial-metric growth for a single company.
 
-    Returns: { asOf, data: { Company: { Metric: { ttm?, quarterly? } } } }
-    Each mode's payload is { oneY?, threeY?, current?, oneYValue?, threeYValue?, unit, evidence }.
-    Wired up: Nvidia/Revenue (TTM + quarterly) and Stock price for all 5 companies.
+    Query: ?ticker=AAPL (required). ?nocache=1 force-clears the 6h caches.
 
-    Pass ?nocache=1 to force-clear in-process caches before fetching, so
-    upstream press releases / Yahoo Finance get hit fresh on this call.
+    Returns { ticker, asOf, nextEarnings, data } where `data` maps each metric
+    ('Stock price', 'Revenue', 'Operating Income', 'Net Income',
+    'Operating Cash-Flow', 'Free Cash-Flow') to { ttm, quarterly } cells. A
+    cell is { current, oneYValue?, threeYValue?, oneY?, threeY?, unit }.
     """
+    ticker = request.args.get('ticker', '').strip().upper()
+    if not re.fullmatch(r'[A-Z.\-]{1,10}', ticker):
+        return jsonify({'error': 'Invalid ticker'}), 400
+
     if request.args.get('nocache'):
-        _fetch_nvidia_page.cache_clear()
-        _fetch_next_earnings_iso.cache_clear()
         _fetch_stock_prices.cache_clear()
+        _fetch_financials.cache_clear()
 
-    data: dict[str, dict[str, dict]] = {}
+    data: dict[str, dict] = {}
+    price_cell = _stock_price_cell(ticker)
+    if price_cell:
+        # Stock price isn't an accounting concept — same payload in both modes.
+        data['Stock price'] = {'ttm': price_cell, 'quarterly': price_cell}
+    data.update(_fetch_financials(ticker))
 
-    for mode in ('ttm', 'quarterly'):
-        cur = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY, mode)
-        one = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY - 1, mode)
-        three = _safe_nvidia(CURRENT_QUARTER, CURRENT_FY - 3, mode)
-        cell = _build_growth_cell(cur, one, three, unit='$B')
-        if cell:
-            data.setdefault('Nvidia', {}).setdefault('Revenue', {})[mode] = cell
-
-    # Stock prices — same payload in both modes (not an accounting concept).
-    for company, ticker in TICKERS.items():
-        price_cell = _stock_price_cell(ticker)
-        if price_cell:
-            data.setdefault(company, {})['Stock price'] = {
-                'ttm': price_cell,
-                'quarterly': price_cell,
-            }
-
-    today = datetime.now(_PARIS).date()
-    earnings: dict[str, dict] = {}
-    for company, ticker in TICKERS.items():
-        iso = _fetch_next_earnings_iso(ticker)
-        if not iso:
-            continue
-        try:
-            d = date.fromisoformat(iso)
-        except ValueError:
-            continue
-        earnings[company] = {'date': iso, 'daysUntil': (d - today).days}
+    # Next earnings — read straight from the calendar's per-ticker cache, so
+    # this endpoint makes no extra Yahoo call for it.
+    next_earnings = (_load_earnings_cache().get(ticker) or {}).get('nextEarnings')
 
     return jsonify({
+        'ticker': ticker,
         'asOf': _as_of_label(),
+        'nextEarnings': next_earnings,
         'data': data,
-        'earnings': earnings,
     })
 
 
