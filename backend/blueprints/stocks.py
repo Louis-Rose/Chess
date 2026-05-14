@@ -533,15 +533,28 @@ def _fetch_universe() -> dict[str, str]:
 def _build_calendar_snapshot() -> list[dict]:
     """Scrape the live universe, then fetch each ticker's data in parallel and
     rank desc. The per-ticker work is I/O-bound (Yahoo round-trips), so a small
-    thread pool gives a near-linear speedup."""
+    thread pool gives a near-linear speedup.
+
+    Per-ticker fetch failures are logged individually in _fetch_calendar_row;
+    this logs a roll-up too, so partial/silent failures are visible at a glance.
+    """
     universe = _fetch_universe()
     with ThreadPoolExecutor(max_workers=_CALENDAR_WORKERS) as pool:
         rows = list(pool.map(
             lambda item: _fetch_calendar_row(*item), universe.items(),
         ))
-    rows = [r for r in rows if r['marketCap'] is not None]
-    rows.sort(key=lambda r: r['marketCap'], reverse=True)
-    return rows
+    kept = [r for r in rows if r['marketCap'] is not None]
+    dropped = [r['ticker'] for r in rows if r['marketCap'] is None]
+    no_date = [r['ticker'] for r in kept if not r['nextEarnings']]
+    if dropped:
+        logger.warning('Calendar build: %d/%d tickers dropped — no market cap: %s',
+                       len(dropped), len(rows), ', '.join(dropped))
+    if no_date:
+        logger.warning('Calendar build: %d ticker(s) missing a next-earnings date: %s',
+                       len(no_date), ', '.join(no_date))
+    logger.info('Calendar build: %d/%d rows OK', len(kept), len(rows))
+    kept.sort(key=lambda r: r['marketCap'], reverse=True)
+    return kept
 
 
 # Snapshot is persisted to a JSON file so a process restart / deploy reuses the
@@ -596,6 +609,8 @@ def _refresh_calendar() -> None:
             _calendar_state['build_seconds'] = build_seconds
             _calendar_state['error'] = None
         _persist_calendar(snapshot, built_at, build_seconds)
+        logger.info('Earnings calendar refresh complete: %d companies in %.0fs',
+                    len(snapshot), build_seconds)
     except Exception as e:
         logger.exception('Earnings calendar refresh failed')
         with _calendar_lock:
