@@ -410,7 +410,8 @@ _CALENDAR_TTL = timedelta(hours=24)
 _CALENDAR_WORKERS = 8
 _calendar_lock = threading.Lock()
 _calendar_state: dict = {
-    'snapshot': None, 'built_at': None, 'refreshing': False, 'error': None,
+    'snapshot': None, 'built_at': None, 'build_seconds': None,
+    'refreshing': False, 'error': None,
 }
 
 
@@ -543,11 +544,13 @@ def _build_calendar_snapshot() -> list[dict]:
 
 
 def _refresh_calendar() -> None:
+    started = datetime.now()
     try:
         snapshot = _build_calendar_snapshot()
         with _calendar_lock:
             _calendar_state['snapshot'] = snapshot
             _calendar_state['built_at'] = datetime.now()
+            _calendar_state['build_seconds'] = (datetime.now() - started).total_seconds()
             _calendar_state['error'] = None
     except Exception as e:
         logger.exception('Earnings calendar refresh failed')
@@ -593,6 +596,7 @@ def stocks_earnings_calendar():
     with _calendar_lock:
         snapshot = _calendar_state['snapshot']
         built_at = _calendar_state['built_at']
+        build_seconds = _calendar_state['build_seconds']
         error = _calendar_state['error']
     if snapshot is None:
         if error:
@@ -602,6 +606,7 @@ def stocks_earnings_calendar():
         'status': 'ready',
         'asOf': _as_of_label(),
         'builtAt': built_at.isoformat() if built_at else None,
+        'buildSeconds': build_seconds,
         'error': error,
         'companies': snapshot,
     })

@@ -13,6 +13,7 @@ interface CalendarPayload {
   status: 'ready' | 'building' | 'error';
   asOf?: string;
   builtAt?: string | null;
+  buildSeconds?: number | null;
   error?: string | null;
   companies: CalendarCompany[];
 }
@@ -63,6 +64,11 @@ export function EarningsCalendar() {
       <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <h1 className="text-xl font-semibold flex-1">Earnings calendar</h1>
+          {!building && !errored && payload?.buildSeconds != null && (
+            <span className="text-xs text-slate-500 whitespace-nowrap">
+              built in {payload.buildSeconds.toFixed(1)}s
+            </span>
+          )}
           <button
             onClick={() => fetchData(true)}
             disabled={building}
