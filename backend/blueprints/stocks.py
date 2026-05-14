@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from functools import lru_cache, wraps
 from zoneinfo import ZoneInfo
@@ -394,13 +395,49 @@ def stocks_data():
 # "building" status before the first one exists).
 
 # Curated universe: Yahoo ticker -> display name. Extend this list to grow the
-# calendar; the ranking adapts on its own as market caps move.
+# calendar; the ranking adapts on its own as market caps move. US ADRs are
+# preferred where they exist (market cap comes back in USD, no FX hop).
 _CALENDAR_UNIVERSE: dict[str, str] = {
     'NVDA': 'Nvidia',
     'GOOGL': 'Alphabet',
     'AAPL': 'Apple',
     'MSFT': 'Microsoft',
     'AMZN': 'Amazon',
+    'TSM': 'TSMC',
+    'AVGO': 'Broadcom',
+    '2222.SR': 'Saudi Aramco',
+    'TSLA': 'Tesla',
+    'META': 'Meta Platforms',
+    '005930.KS': 'Samsung',
+    'WMT': 'Walmart',
+    'BRK-B': 'Berkshire Hathaway',
+    '000660.KS': 'SK Hynix',
+    'MU': 'Micron',
+    'LLY': 'Eli Lilly',
+    'JPM': 'JPMorgan Chase',
+    'AMD': 'AMD',
+    'XOM': 'Exxon Mobil',
+    'ASML': 'ASML',
+    'V': 'Visa',
+    'INTC': 'Intel',
+    'JNJ': 'Johnson & Johnson',
+    'TCEHY': 'Tencent',
+    'ORCL': 'Oracle',
+    'COST': 'Costco',
+    'MA': 'Mastercard',
+    'CAT': 'Caterpillar',
+    'CSCO': 'Cisco',
+    '601939.SS': 'China Construction Bank',
+    'CVX': 'Chevron',
+    'LRCX': 'Lam Research',
+    'NFLX': 'Netflix',
+    'ABBV': 'AbbVie',
+    'UNH': 'UnitedHealth',
+    'BAC': 'Bank of America',
+    'BABA': 'Alibaba',
+    '601288.SS': 'Agricultural Bank of China',
+    'AMAT': 'Applied Materials',
+    'KO': 'Coca-Cola',
 }
 
 # Companies whose Yahoo earnings-date history is empty or too noisy to infer
@@ -410,6 +447,9 @@ _SEMI_ANNUAL_TICKERS: set[str] = {
 }
 
 _CALENDAR_TTL = timedelta(hours=24)
+# Fetching a row is ~2 blocking HTTP calls to Yahoo, so the build parallelizes
+# almost linearly. Kept low to stay under Yahoo's rate limiting.
+_CALENDAR_WORKERS = 5
 _calendar_lock = threading.Lock()
 _calendar_state: dict = {'snapshot': None, 'built_at': None, 'refreshing': False}
 
@@ -467,8 +507,13 @@ def _fetch_calendar_row(ticker: str, name: str) -> dict:
 
 
 def _build_calendar_snapshot() -> list[dict]:
-    """Fetch every universe ticker, drop those without a market cap, rank desc."""
-    rows = [_fetch_calendar_row(t, n) for t, n in _CALENDAR_UNIVERSE.items()]
+    """Fetch every universe ticker in parallel, drop those without a market cap,
+    rank desc. The work is I/O-bound (Yahoo round-trips), so a small thread pool
+    gives a near-linear speedup."""
+    with ThreadPoolExecutor(max_workers=_CALENDAR_WORKERS) as pool:
+        rows = list(pool.map(
+            lambda item: _fetch_calendar_row(*item), _CALENDAR_UNIVERSE.items(),
+        ))
     rows = [r for r in rows if r['marketCap'] is not None]
     rows.sort(key=lambda r: r['marketCap'], reverse=True)
     return rows
