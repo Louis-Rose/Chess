@@ -406,10 +406,11 @@ _SEMI_ANNUAL_TICKERS: set[str] = {
 }
 
 _CALENDAR_TTL = timedelta(hours=24)
-# Fetching a row is ~2 blocking HTTP calls to Yahoo. Beyond ~6 workers the
-# build time flatlines — Yahoo rate-limits total throughput per IP, so extra
-# concurrency just queues on their side (and risks tripping abuse detection).
-_CALENDAR_WORKERS = 6
+# Fetching a row is ~2 blocking HTTP calls to Yahoo. Build time flatlines past
+# a handful of workers — Yahoo rate-limits total throughput per IP (6 and 12
+# both ran ~107s), so extra concurrency just queues on their side and risks
+# tripping abuse detection. Kept at 4: same speed, minimal footprint.
+_CALENDAR_WORKERS = 4
 _calendar_lock = threading.Lock()
 _calendar_state: dict = {
     'snapshot': None, 'built_at': None, 'build_seconds': None,
