@@ -666,6 +666,7 @@ def stocks_earnings_calendar():
         snapshot = _calendar_state['snapshot']
         built_at = _calendar_state['built_at']
         build_seconds = _calendar_state['build_seconds']
+        refreshing = _calendar_state['refreshing']
         error = _calendar_state['error']
     if snapshot is None:
         if error:
@@ -676,6 +677,7 @@ def stocks_earnings_calendar():
         'asOf': _as_of_label(),
         'builtAt': built_at.isoformat() if built_at else None,
         'buildSeconds': build_seconds,
+        'refreshing': refreshing,
         'error': error,
         'companies': snapshot,
     })

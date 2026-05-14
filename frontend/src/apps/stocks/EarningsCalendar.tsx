@@ -14,6 +14,7 @@ interface CalendarPayload {
   asOf?: string;
   builtAt?: string | null;
   buildSeconds?: number | null;
+  refreshing?: boolean;   // a background rebuild is in flight; companies/builtAt are still the previous snapshot
   error?: string | null;
   companies: CalendarCompany[];
 }
@@ -50,7 +51,8 @@ export function EarningsCalendar() {
   const [payload, setPayload] = useState<CalendarPayload | null>(null);
 
   const fetchData = (bypassCache = false) => {
-    if (bypassCache) setPayload(null);
+    // On a manual refresh, keep the current list on screen (the server keeps
+    // serving it while it rebuilds in the background) instead of blanking it.
     axios.get<CalendarPayload>('/api/stocks/earnings-calendar', {
       params: bypassCache ? { nocache: 1 } : {},
     })
@@ -60,16 +62,18 @@ export function EarningsCalendar() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // The first snapshot is built in a background thread on the server — poll
-  // until it is ready.
+  // A build runs in a background thread on the server — poll until it lands,
+  // whether it's the first build ('building') or a manual refresh ('refreshing').
   useEffect(() => {
-    if (payload?.status !== 'building') return;
+    const inFlight = payload?.status === 'building' || payload?.refreshing === true;
+    if (!inFlight) return;
     const id = setInterval(() => fetchData(), 4000);
     return () => clearInterval(id);
-  }, [payload?.status]);
+  }, [payload?.status, payload?.refreshing]);
 
   const building = !payload || payload.status === 'building';
   const errored = payload?.status === 'error';
+  const refreshing = building || payload?.refreshing === true;
 
   // Default to the server's order: market cap, largest first.
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'marketCap', dir: 'desc' });
@@ -98,19 +102,23 @@ export function EarningsCalendar() {
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center relative">
           <h1 className="text-xl font-semibold absolute left-1/2 -translate-x-1/2">Earnings calendar</h1>
           <div className="ml-auto flex items-center gap-3">
-            {!building && !errored && payload?.buildSeconds != null && (
-              <span className="text-xs text-white whitespace-nowrap">
-                built in {Math.round(payload.buildSeconds)}s
-              </span>
+            {!building && !errored && (
+              payload?.refreshing ? (
+                <span className="text-xs text-white whitespace-nowrap">refreshing…</span>
+              ) : payload?.buildSeconds != null ? (
+                <span className="text-xs text-white whitespace-nowrap">
+                  built in {Math.round(payload.buildSeconds)}s
+                </span>
+              ) : null
             )}
             <button
               onClick={() => fetchData(true)}
-              disabled={building}
+              disabled={refreshing}
               className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
               aria-label="Refresh"
               title="Refresh data (bypass cache)"
             >
-              <RefreshCw className={`w-5 h-5 ${building ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
