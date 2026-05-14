@@ -116,7 +116,7 @@ export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany
                     }
                   >
                     <span className="text-base font-semibold whitespace-nowrap">{fmtWeekRange(w)}</span>
-                    <span className="text-sm">{count}</span>
+                    <span className="text-sm">{count} {count === 1 ? 'company' : 'companies'}</span>
                   </button>
                 );
               })}
