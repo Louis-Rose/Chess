@@ -11,3 +11,4 @@ google-genai>=1.0.0
 json-repair>=0.30.0
 python-chess>=1.10.0
 yfinance>=1.0
+lxml>=5.0

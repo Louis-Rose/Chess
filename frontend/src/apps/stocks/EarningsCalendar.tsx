@@ -87,6 +87,7 @@ export function EarningsCalendar() {
                   <tr className="bg-slate-800">
                     <th className="text-left font-semibold text-slate-200 px-4 py-3 border-b border-slate-700 w-12">#</th>
                     <th className="text-left font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Company</th>
+                    <th className="text-left font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Ticker</th>
                     <th className="text-right font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Market cap</th>
                     <th className="text-right font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Next earnings</th>
                     <th className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Reports</th>
@@ -96,10 +97,8 @@ export function EarningsCalendar() {
                   {payload!.companies.map((c, i) => (
                     <tr key={c.ticker} className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40">
                       <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
-                      <td className="px-4 py-3">
-                        <span className="font-semibold text-white">{c.name}</span>
-                        <span className="text-slate-500 ml-2 font-mono text-xs">{c.ticker}</span>
-                      </td>
+                      <td className="px-4 py-3 font-semibold text-white">{c.name}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-400">{c.ticker}</td>
                       <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(c.marketCap)}</td>
                       <td className="px-4 py-3 text-right font-mono text-white">{fmtEarningsDate(c.nextEarnings)}</td>
                       <td className="px-4 py-3 text-center">
