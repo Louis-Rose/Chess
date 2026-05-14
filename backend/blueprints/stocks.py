@@ -11,6 +11,7 @@ adding future quarters is just bumping CURRENT_QUARTER / CURRENT_FY.
 import logging
 import os
 import re
+import threading
 from datetime import date, datetime, timedelta
 from functools import lru_cache, wraps
 from zoneinfo import ZoneInfo
@@ -381,4 +382,145 @@ def stocks_data():
         'asOf': _as_of_label(),
         'data': data,
         'earnings': earnings,
+    })
+
+
+# ── Earnings calendar (top companies by market cap) ──────────────────────────
+#
+# A curated universe of large-cap tickers is re-ranked daily by live market cap.
+# Each row carries market cap (USD), the next earnings date, and reporting
+# cadence. Building a snapshot hits Yahoo Finance once per ticker, so it runs in
+# a background thread — requests return the last snapshot immediately (or a
+# "building" status before the first one exists).
+
+# Curated universe: Yahoo ticker -> display name. Extend this list to grow the
+# calendar; the ranking adapts on its own as market caps move.
+_CALENDAR_UNIVERSE: dict[str, str] = {
+    'NVDA': 'Nvidia',
+    'GOOGL': 'Alphabet',
+    'AAPL': 'Apple',
+    'MSFT': 'Microsoft',
+    'AMZN': 'Amazon',
+}
+
+# Companies whose Yahoo earnings-date history is empty or too noisy to infer
+# cadence from — treated as semi-annual reporters explicitly.
+_SEMI_ANNUAL_TICKERS: set[str] = {
+    'NESN.SW', 'MC.PA', 'RMS.PA', 'OR.PA', 'ROG.SW', 'PRX.AS', 'BHP', 'CBA.AX',
+}
+
+_CALENDAR_TTL = timedelta(hours=24)
+_calendar_lock = threading.Lock()
+_calendar_state: dict = {'snapshot': None, 'built_at': None, 'refreshing': False}
+
+
+@_ttl_cache(seconds=24 * 3600)
+def _fx_to_usd(currency: str) -> float:
+    """Conversion rate from `currency` to USD (1.0 for USD or on failure)."""
+    if not currency or currency == 'USD':
+        return 1.0
+    try:
+        rate = yfinance.Ticker(f'{currency}USD=X').fast_info['last_price']
+        return float(rate) if rate else 1.0
+    except Exception as e:
+        logger.warning('FX rate fetch failed for %s: %s', currency, e)
+        return 1.0
+
+
+def _detect_frequency(ticker: str, past_dates: list) -> str:
+    """'quarterly' or 'semi-annual', inferred from gaps between past earnings."""
+    if ticker in _SEMI_ANNUAL_TICKERS:
+        return 'semi-annual'
+    import statistics
+    gaps = [(past_dates[i + 1] - past_dates[i]).days for i in range(len(past_dates) - 1)]
+    if not gaps:
+        return 'quarterly'
+    return 'quarterly' if statistics.median(gaps) < 135 else 'semi-annual'
+
+
+def _fetch_calendar_row(ticker: str, name: str) -> dict:
+    """Market cap (USD), next earnings date and cadence for one ticker."""
+    row: dict = {
+        'ticker': ticker, 'name': name,
+        'marketCap': None, 'nextEarnings': None, 'frequency': 'quarterly',
+    }
+    try:
+        fi = yfinance.Ticker(ticker).fast_info
+        mc = fi['market_cap']
+        if mc:
+            row['marketCap'] = float(mc) * _fx_to_usd(fi['currency'])
+    except Exception as e:
+        logger.warning('Market cap fetch failed for %s: %s', ticker, e)
+    try:
+        ed = yfinance.Ticker(ticker).get_earnings_dates(limit=16)
+        if ed is not None and not ed.empty:
+            now = datetime.now().astimezone()
+            future = ed[ed.index > now]
+            if not future.empty:
+                row['nextEarnings'] = future.index.min().date().isoformat()
+            past = sorted(ed[ed.index <= now].index)
+            row['frequency'] = _detect_frequency(ticker, past)
+    except Exception as e:
+        logger.warning('Earnings dates fetch failed for %s: %s', ticker, e)
+        row['frequency'] = _detect_frequency(ticker, [])
+    return row
+
+
+def _build_calendar_snapshot() -> list[dict]:
+    """Fetch every universe ticker, drop those without a market cap, rank desc."""
+    rows = [_fetch_calendar_row(t, n) for t, n in _CALENDAR_UNIVERSE.items()]
+    rows = [r for r in rows if r['marketCap'] is not None]
+    rows.sort(key=lambda r: r['marketCap'], reverse=True)
+    return rows
+
+
+def _refresh_calendar() -> None:
+    try:
+        snapshot = _build_calendar_snapshot()
+        with _calendar_lock:
+            _calendar_state['snapshot'] = snapshot
+            _calendar_state['built_at'] = datetime.now()
+    except Exception:
+        logger.exception('Earnings calendar refresh failed')
+    finally:
+        with _calendar_lock:
+            _calendar_state['refreshing'] = False
+
+
+def _ensure_calendar_fresh(force: bool = False) -> None:
+    """Kick off a background refresh if the snapshot is missing or stale."""
+    with _calendar_lock:
+        built_at = _calendar_state['built_at']
+        stale = force or built_at is None or (datetime.now() - built_at) > _CALENDAR_TTL
+        if not stale or _calendar_state['refreshing']:
+            return
+        _calendar_state['refreshing'] = True
+    threading.Thread(target=_refresh_calendar, daemon=True).start()
+
+
+@stocks_bp.route('/api/stocks/earnings-calendar', methods=['GET'])
+@owner_required
+def stocks_earnings_calendar():
+    """Top companies by market cap with their next earnings date and cadence.
+
+    Returns the last cached snapshot immediately and refreshes in the background
+    once it is older than 24h. Before the first snapshot exists, returns
+    { status: 'building', companies: [] } so the client can poll.
+
+    Pass ?nocache=1 to force a background rebuild.
+    """
+    force = bool(request.args.get('nocache'))
+    if force:
+        _fx_to_usd.cache_clear()
+    _ensure_calendar_fresh(force=force)
+    with _calendar_lock:
+        snapshot = _calendar_state['snapshot']
+        built_at = _calendar_state['built_at']
+    if snapshot is None:
+        return jsonify({'status': 'building', 'companies': []})
+    return jsonify({
+        'status': 'ready',
+        'asOf': _as_of_label(),
+        'builtAt': built_at.isoformat() if built_at else None,
+        'companies': snapshot,
     })
