@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface CalendarCompany {
   ticker: string;
@@ -10,9 +10,10 @@ interface CalendarCompany {
   frequency: 'quarterly' | 'semi-annual';
 }
 interface CalendarPayload {
-  status: 'ready' | 'building';
+  status: 'ready' | 'building' | 'error';
   asOf?: string;
   builtAt?: string | null;
+  error?: string | null;
   companies: CalendarCompany[];
 }
 
@@ -55,6 +56,7 @@ export function EarningsCalendar() {
   }, [payload?.status]);
 
   const building = !payload || payload.status === 'building';
+  const errored = payload?.status === 'error';
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -79,8 +81,25 @@ export function EarningsCalendar() {
             <div className="w-10 h-10 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
             <p className="text-sm">Building the list. This can take a moment.</p>
           </div>
+        ) : errored ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-red-400" />
+            </div>
+            <p className="text-red-300 font-semibold">Could not build the earnings calendar.</p>
+            <p className="text-slate-400 text-sm max-w-lg break-words">{payload!.error}</p>
+            <p className="text-slate-500 text-xs">
+              The companiesmarketcap.com scrape failed. Hit refresh to retry.
+            </p>
+          </div>
         ) : (
           <>
+            {payload!.error && (
+              <div className="mb-4 flex items-start gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>Showing the last good snapshot — the most recent refresh failed: {payload!.error}</span>
+              </div>
+            )}
             <div className="overflow-x-auto border border-slate-700 rounded-lg">
               <table className="w-full text-sm border-collapse">
                 <thead>

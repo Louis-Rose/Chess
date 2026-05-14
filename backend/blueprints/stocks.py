@@ -388,61 +388,15 @@ def stocks_data():
 
 # ── Earnings calendar (top companies by market cap) ──────────────────────────
 #
-# A curated universe of large-cap tickers is re-ranked daily by live market cap.
-# Each row carries market cap (USD), the next earnings date, and reporting
+# The universe is scraped live from companiesmarketcap.com (see _fetch_universe)
+# and re-derived on every 24h rebuild — the top US-listed companies by market
+# cap. Each row carries market cap (USD), the next earnings date and reporting
 # cadence. Building a snapshot hits Yahoo Finance once per ticker, so it runs in
 # a background thread — requests return the last snapshot immediately (or a
-# "building" status before the first one exists).
-
-# The universe is scraped live from companiesmarketcap.com (see _fetch_universe)
-# and re-derived on every 24h rebuild. This static list is only the fallback
-# used when that scrape fails — the top-40 US-listed companies as of May 2026.
+# "building" / "error" status before the first one exists).
 #
-# Every entry is listed in the US — directly (NYSE/Nasdaq) or indirectly (a
-# US-traded ADR). Foreign-exchange-only names are excluded, so every ticker is
-# a US symbol and market cap comes back in USD.
-_FALLBACK_UNIVERSE: dict[str, str] = {
-    'NVDA': 'Nvidia',
-    'GOOGL': 'Alphabet',
-    'AAPL': 'Apple',
-    'MSFT': 'Microsoft',
-    'AMZN': 'Amazon',
-    'TSM': 'TSMC',                       # US ADR (NYSE)
-    'AVGO': 'Broadcom',
-    'TSLA': 'Tesla',
-    'META': 'Meta Platforms',
-    'WMT': 'Walmart',
-    'BRK-B': 'Berkshire Hathaway',
-    'MU': 'Micron',
-    'LLY': 'Eli Lilly',
-    'JPM': 'JPMorgan Chase',
-    'AMD': 'AMD',
-    'XOM': 'Exxon Mobil',
-    'ASML': 'ASML',                      # US-listed (Nasdaq)
-    'V': 'Visa',
-    'INTC': 'Intel',
-    'JNJ': 'Johnson & Johnson',
-    'TCEHY': 'Tencent',                  # US ADR (OTC)
-    'ORCL': 'Oracle',
-    'COST': 'Costco',
-    'MA': 'Mastercard',
-    'CAT': 'Caterpillar',
-    'CSCO': 'Cisco',
-    'CVX': 'Chevron',
-    'LRCX': 'Lam Research',
-    'NFLX': 'Netflix',
-    'ABBV': 'AbbVie',
-    'UNH': 'UnitedHealth',
-    'BAC': 'Bank of America',
-    'BABA': 'Alibaba',                   # US-listed (NYSE)
-    'AMAT': 'Applied Materials',
-    'KO': 'Coca-Cola',
-    'PG': 'Procter & Gamble',
-    'PLTR': 'Palantir',
-    'HSBC': 'HSBC',                      # US ADR (NYSE)
-    'GE': 'General Electric',
-    'MS': 'Morgan Stanley',
-}
+# There is deliberately no static fallback: if the scrape breaks, the calendar
+# page shows an error rather than silently serving stale or stand-in data.
 
 # Companies whose Yahoo earnings-date history is empty or too noisy to infer
 # cadence from — treated as semi-annual reporters explicitly.
@@ -455,7 +409,9 @@ _CALENDAR_TTL = timedelta(hours=24)
 # almost linearly. Kept low to stay under Yahoo's rate limiting.
 _CALENDAR_WORKERS = 5
 _calendar_lock = threading.Lock()
-_calendar_state: dict = {'snapshot': None, 'built_at': None, 'refreshing': False}
+_calendar_state: dict = {
+    'snapshot': None, 'built_at': None, 'refreshing': False, 'error': None,
+}
 
 
 @_ttl_cache(seconds=24 * 3600)
@@ -548,19 +504,20 @@ def _parse_cmc_universe(html: str) -> list[tuple[str, str]]:
 
 def _fetch_universe() -> dict[str, str]:
     """Top US-listed companies by market cap, scraped live from
-    companiesmarketcap.com. Falls back to the static list if the scrape fails."""
-    try:
-        r = http_requests.get(_CMC_URL, headers=_CMC_HEADERS, timeout=15)
-        r.raise_for_status()
-        ranked = _parse_cmc_universe(r.text)
-        if len(ranked) >= _UNIVERSE_SIZE:
-            return dict(ranked[:_UNIVERSE_SIZE])
-        logger.warning(
-            'companiesmarketcap parse yielded only %d US-listed rows; using fallback',
-            len(ranked))
-    except Exception as e:
-        logger.warning('companiesmarketcap fetch failed: %s; using fallback', e)
-    return dict(_FALLBACK_UNIVERSE)
+    companiesmarketcap.com.
+
+    Raises on any failure (network, HTTP error, or too few rows parsed — which
+    means their markup changed). There is no fallback by design: a broken
+    scrape must surface on the calendar page, not be papered over.
+    """
+    r = http_requests.get(_CMC_URL, headers=_CMC_HEADERS, timeout=15)
+    r.raise_for_status()
+    ranked = _parse_cmc_universe(r.text)
+    if len(ranked) < _UNIVERSE_SIZE:
+        raise ValueError(
+            f'companiesmarketcap parse yielded only {len(ranked)} US-listed rows '
+            f'(expected at least {_UNIVERSE_SIZE}) — the page markup may have changed')
+    return dict(ranked[:_UNIVERSE_SIZE])
 
 
 def _build_calendar_snapshot() -> list[dict]:
@@ -583,8 +540,11 @@ def _refresh_calendar() -> None:
         with _calendar_lock:
             _calendar_state['snapshot'] = snapshot
             _calendar_state['built_at'] = datetime.now()
-    except Exception:
+            _calendar_state['error'] = None
+    except Exception as e:
         logger.exception('Earnings calendar refresh failed')
+        with _calendar_lock:
+            _calendar_state['error'] = str(e)
     finally:
         with _calendar_lock:
             _calendar_state['refreshing'] = False
@@ -609,8 +569,12 @@ def stocks_earnings_calendar():
     Returns the last cached snapshot immediately and refreshes in the background
     once it is older than 24h. A refresh re-scrapes the universe from
     companiesmarketcap.com, then fetches each company's data from Yahoo Finance.
-    Before the first snapshot exists, returns { status: 'building',
-    companies: [] } so the client can poll.
+
+    Status values:
+      'building' — no snapshot yet, a build is in flight
+      'error'    — no snapshot and the last build failed ('error' holds why)
+      'ready'    — 'companies' populated ('error' is non-null if the most
+                   recent refresh failed but an older snapshot is still served)
 
     Pass ?nocache=1 to force a background rebuild (re-scrape + re-fetch).
     """
@@ -621,11 +585,15 @@ def stocks_earnings_calendar():
     with _calendar_lock:
         snapshot = _calendar_state['snapshot']
         built_at = _calendar_state['built_at']
+        error = _calendar_state['error']
     if snapshot is None:
+        if error:
+            return jsonify({'status': 'error', 'error': error, 'companies': []})
         return jsonify({'status': 'building', 'companies': []})
     return jsonify({
         'status': 'ready',
         'asOf': _as_of_label(),
         'builtAt': built_at.isoformat() if built_at else None,
+        'error': error,
         'companies': snapshot,
     })
