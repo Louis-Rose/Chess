@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface CalendarCompany {
   ticker: string;
@@ -34,6 +34,17 @@ function fmtEarningsDate(iso: string | null): string {
   return `${MONTHS_SHORT[m - 1]} ${d}, ${y}`;
 }
 
+type SortKey = 'rank' | 'name' | 'ticker' | 'marketCap' | 'nextEarnings' | 'frequency';
+
+const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center'; width?: string }[] = [
+  { key: 'rank', label: '#', align: 'left', width: 'w-12' },
+  { key: 'name', label: 'Company', align: 'left' },
+  { key: 'ticker', label: 'Ticker', align: 'left' },
+  { key: 'marketCap', label: 'Market cap', align: 'right' },
+  { key: 'nextEarnings', label: 'Next earnings', align: 'right' },
+  { key: 'frequency', label: 'Reports', align: 'center' },
+];
+
 export function EarningsCalendar() {
   const [payload, setPayload] = useState<CalendarPayload | null>(null);
 
@@ -59,6 +70,30 @@ export function EarningsCalendar() {
   const building = !payload || payload.status === 'building';
   const errored = payload?.status === 'error';
 
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'rank', dir: 'asc' });
+  const toggleSort = (key: SortKey) =>
+    setSort(prev => prev.key === key
+      ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { key, dir: 'asc' });
+
+  // Rank is the market-cap order from the server; it stays pinned to each row
+  // even when the table is sorted by another column.
+  const ranked = (payload?.companies ?? []).map((c, i) => ({ ...c, rank: i + 1 }));
+  const sorted = [...ranked].sort((a, b) => {
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    switch (sort.key) {
+      case 'rank': return (a.rank - b.rank) * dir;
+      case 'marketCap': return (a.marketCap - b.marketCap) * dir;
+      case 'name': return a.name.localeCompare(b.name) * dir;
+      case 'ticker': return a.ticker.localeCompare(b.ticker) * dir;
+      case 'frequency': return a.frequency.localeCompare(b.frequency) * dir;
+      case 'nextEarnings':
+        if (!a.nextEarnings) return b.nextEarnings ? 1 : 0;   // missing dates sort last
+        if (!b.nextEarnings) return -1;
+        return a.nextEarnings.localeCompare(b.nextEarnings) * dir;
+    }
+  });
+
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
       <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
@@ -66,7 +101,7 @@ export function EarningsCalendar() {
           <h1 className="text-xl font-semibold flex-1">Earnings calendar</h1>
           {!building && !errored && payload?.buildSeconds != null && (
             <span className="text-xs text-slate-500 whitespace-nowrap">
-              built in {payload.buildSeconds.toFixed(1)}s
+              built in {Math.round(payload.buildSeconds)}s
             </span>
           )}
           <button
@@ -110,18 +145,32 @@ export function EarningsCalendar() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-800">
-                    <th className="text-left font-semibold text-slate-200 px-4 py-3 border-b border-slate-700 w-12">#</th>
-                    <th className="text-left font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Company</th>
-                    <th className="text-left font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Ticker</th>
-                    <th className="text-right font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Market cap</th>
-                    <th className="text-right font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Next earnings</th>
-                    <th className="text-center font-semibold text-slate-200 px-4 py-3 border-b border-slate-700">Reports</th>
+                    {COLUMNS.map(col => {
+                      const active = sort.key === col.key;
+                      const justify = col.align === 'right' ? 'justify-end'
+                        : col.align === 'center' ? 'justify-center' : 'justify-start';
+                      return (
+                        <th key={col.key} className={`px-4 py-3 border-b border-slate-700 ${col.width ?? ''}`}>
+                          <button
+                            onClick={() => toggleSort(col.key)}
+                            className={`flex items-center gap-1 w-full ${justify} font-semibold transition-colors ${
+                              active ? 'text-white' : 'text-slate-200 hover:text-white'
+                            }`}
+                          >
+                            <span>{col.label}</span>
+                            {active && (sort.dir === 'asc'
+                              ? <ChevronUp className="w-3.5 h-3.5" />
+                              : <ChevronDown className="w-3.5 h-3.5" />)}
+                          </button>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
-                  {payload!.companies.map((c, i) => (
+                  {sorted.map(c => (
                     <tr key={c.ticker} className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40">
-                      <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
+                      <td className="px-4 py-3 text-slate-500 font-mono">{c.rank}</td>
                       <td className="px-4 py-3 font-semibold text-white">{c.name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-400">{c.ticker}</td>
                       <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(c.marketCap)}</td>
