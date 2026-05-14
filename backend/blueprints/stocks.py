@@ -407,8 +407,8 @@ _SEMI_ANNUAL_TICKERS: set[str] = {
 
 _CALENDAR_TTL = timedelta(hours=24)
 # Fetching a row is ~2 blocking HTTP calls to Yahoo, so the build parallelizes
-# almost linearly. Kept modest to stay under Yahoo's rate limiting.
-_CALENDAR_WORKERS = 8
+# almost linearly. 12 has run clean without Yahoo rate-limit warnings.
+_CALENDAR_WORKERS = 12
 _calendar_lock = threading.Lock()
 _calendar_state: dict = {
     'snapshot': None, 'built_at': None, 'build_seconds': None,
