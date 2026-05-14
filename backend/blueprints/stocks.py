@@ -395,49 +395,52 @@ def stocks_data():
 # "building" status before the first one exists).
 
 # Curated universe: Yahoo ticker -> display name. Extend this list to grow the
-# calendar; the ranking adapts on its own as market caps move. US ADRs are
-# preferred where they exist (market cap comes back in USD, no FX hop).
+# calendar; the ranking adapts on its own as market caps move.
+#
+# Every entry must be listed in the US — directly (NYSE/Nasdaq) or indirectly
+# (a US-traded ADR). Foreign-exchange-only names are deliberately excluded, so
+# every ticker here is a US symbol and market cap comes back in USD.
 _CALENDAR_UNIVERSE: dict[str, str] = {
     'NVDA': 'Nvidia',
     'GOOGL': 'Alphabet',
     'AAPL': 'Apple',
     'MSFT': 'Microsoft',
     'AMZN': 'Amazon',
-    'TSM': 'TSMC',
+    'TSM': 'TSMC',                       # US ADR (NYSE)
     'AVGO': 'Broadcom',
-    '2222.SR': 'Saudi Aramco',
     'TSLA': 'Tesla',
     'META': 'Meta Platforms',
-    '005930.KS': 'Samsung',
     'WMT': 'Walmart',
     'BRK-B': 'Berkshire Hathaway',
-    '000660.KS': 'SK Hynix',
     'MU': 'Micron',
     'LLY': 'Eli Lilly',
     'JPM': 'JPMorgan Chase',
     'AMD': 'AMD',
     'XOM': 'Exxon Mobil',
-    'ASML': 'ASML',
+    'ASML': 'ASML',                      # US-listed (Nasdaq)
     'V': 'Visa',
     'INTC': 'Intel',
     'JNJ': 'Johnson & Johnson',
-    'TCEHY': 'Tencent',
+    'TCEHY': 'Tencent',                  # US ADR (OTC)
     'ORCL': 'Oracle',
     'COST': 'Costco',
     'MA': 'Mastercard',
     'CAT': 'Caterpillar',
     'CSCO': 'Cisco',
-    '601939.SS': 'China Construction Bank',
     'CVX': 'Chevron',
     'LRCX': 'Lam Research',
     'NFLX': 'Netflix',
     'ABBV': 'AbbVie',
     'UNH': 'UnitedHealth',
     'BAC': 'Bank of America',
-    'BABA': 'Alibaba',
-    '601288.SS': 'Agricultural Bank of China',
+    'BABA': 'Alibaba',                   # US-listed (NYSE)
     'AMAT': 'Applied Materials',
     'KO': 'Coca-Cola',
+    'PG': 'Procter & Gamble',
+    'PLTR': 'Palantir',
+    'HSBC': 'HSBC',                      # US ADR (NYSE)
+    'GE': 'General Electric',
+    'MS': 'Morgan Stanley',
 }
 
 # Companies whose Yahoo earnings-date history is empty or too noisy to infer
