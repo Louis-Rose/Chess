@@ -6,7 +6,9 @@ export interface CalendarCompany {
   ticker: string;
   name: string;
   marketCap: number;
-  nextEarnings: string | null;
+  nextEarnings: string | null;      // source A: yfinance get_earnings_dates()
+  nextEarningsAlt: string | null;   // source B: yfinance .calendar
+  datesMatch: boolean | null;       // do the two sources agree? null = can't compare
   frequency: 'quarterly' | 'semi-annual';
 }
 

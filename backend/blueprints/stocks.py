@@ -443,10 +443,18 @@ def _detect_frequency(ticker: str, past_dates: list) -> str:
 
 
 def _fetch_calendar_row(ticker: str, name: str) -> dict:
-    """Market cap (USD), next earnings date and cadence for one ticker."""
+    """Market cap (USD), next earnings date and cadence for one ticker.
+
+    The next earnings date is pulled from two independent Yahoo endpoints —
+    get_earnings_dates() and .calendar — so the UI can flag where they
+    disagree.
+    """
     row: dict = {
-        'ticker': ticker, 'name': name,
-        'marketCap': None, 'nextEarnings': None, 'frequency': 'quarterly',
+        'ticker': ticker, 'name': name, 'marketCap': None,
+        'nextEarnings': None,       # source A: get_earnings_dates()
+        'nextEarningsAlt': None,    # source B: .calendar
+        'datesMatch': None,         # True / False / None (a source is missing)
+        'frequency': 'quarterly',
     }
     try:
         fi = yfinance.Ticker(ticker).fast_info
@@ -455,6 +463,7 @@ def _fetch_calendar_row(ticker: str, name: str) -> dict:
             row['marketCap'] = float(mc) * _fx_to_usd(fi['currency'])
     except Exception as e:
         logger.warning('Market cap fetch failed for %s: %s', ticker, e)
+    # Source A — get_earnings_dates() also yields the reporting cadence.
     try:
         ed = yfinance.Ticker(ticker).get_earnings_dates(limit=16)
         if ed is not None and not ed.empty:
@@ -467,6 +476,17 @@ def _fetch_calendar_row(ticker: str, name: str) -> dict:
     except Exception as e:
         logger.warning('Earnings dates fetch failed for %s: %s', ticker, e)
         row['frequency'] = _detect_frequency(ticker, [])
+    # Source B — the .calendar quote field.
+    try:
+        cal = yfinance.Ticker(ticker).calendar or {}
+        dates = cal.get('Earnings Date') or []
+        if dates:
+            row['nextEarningsAlt'] = dates[0].isoformat()
+    except Exception as e:
+        logger.warning('Earnings calendar (alt source) fetch failed for %s: %s', ticker, e)
+    # Cross-check — only meaningful when both sources returned a date.
+    if row['nextEarnings'] and row['nextEarningsAlt']:
+        row['datesMatch'] = row['nextEarnings'] == row['nextEarningsAlt']
     return row
 
 
@@ -478,10 +498,11 @@ _CMC_HEADERS = {
                   'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
 }
 # How many US-listed companies the calendar tracks.
-_UNIVERSE_SIZE = 100
-# Safety cap on pages to scrape. ~75% of listings are US-listed, so the top
-# ~150-200 (2-3 pages of 100) comfortably yields 100 US-listed names.
-_CMC_MAX_PAGES = 3
+_UNIVERSE_SIZE = 300
+# Safety cap on pages to scrape. Past the top ~100, only ~half of listings
+# are US-listed, so 300 US-listed names need ~6-7 pages of 100; 8 is headroom.
+# The scrape loop stops early once it has enough, so this is just a ceiling.
+_CMC_MAX_PAGES = 8
 
 
 def _parse_cmc_universe(html: str) -> list[tuple[str, str]]:
@@ -554,6 +575,10 @@ def _build_calendar_snapshot() -> list[dict]:
     if no_date:
         logger.warning('Calendar build: %d ticker(s) missing a next-earnings date: %s',
                        len(no_date), ', '.join(no_date))
+    mismatched = [r['ticker'] for r in kept if r['datesMatch'] is False]
+    if mismatched:
+        logger.warning('Calendar build: %d ticker(s) whose two earnings-date sources '
+                       'disagree: %s', len(mismatched), ', '.join(mismatched))
     logger.info('Calendar build: %d/%d rows OK', len(kept), len(rows))
     kept.sort(key=lambda r: r['marketCap'], reverse=True)
     return kept
