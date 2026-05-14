@@ -14,6 +14,15 @@ interface CalendarPayload {
   companies: CalendarCompany[];
 }
 
+// Signed day count from today to an ISO date — "+24", "0", "-3".
+function fmtDaysUntil(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((new Date(y, m - 1, d).getTime() - today.getTime()) / 86_400_000);
+  return `${days >= 0 ? '+' : ''}${days}`;
+}
+
 type SortKey = 'name' | 'ticker' | 'marketCap' | 'nextEarnings';
 
 // The '#' column is a plain 1..N row counter (always in display order), so it
@@ -183,8 +192,11 @@ export function EarningsCalendar() {
                       <td className="px-4 py-3 font-semibold text-white">{c.name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-400">{c.ticker}</td>
                       <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(c.marketCap)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-white">
+                      <td className="px-4 py-3 text-right font-mono text-white whitespace-nowrap">
                         {fmtEarningsDate(c.nextEarnings)}
+                        {c.nextEarnings && (
+                          <span className="text-slate-400"> ({fmtDaysUntil(c.nextEarnings)})</span>
+                        )}
                       </td>
                     </tr>
                   ))}
