@@ -174,39 +174,20 @@ export function EarningsCalendar() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((c, i) => {
-                    // The two earnings-date sources disagree — flag the row.
-                    const mismatch = c.datesMatch === false;
-                    return (
+                  {sorted.map((c, i) => (
                     <tr
                       key={c.ticker}
-                      className={
-                        'border-b border-slate-700 last:border-b-0 '
-                        + (mismatch ? 'bg-red-500/10 hover:bg-red-500/20' : 'hover:bg-slate-800/40')
-                      }
+                      className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40"
                     >
                       <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
                       <td className="px-4 py-3 font-semibold text-white">{c.name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-400">{c.ticker}</td>
                       <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(c.marketCap)}</td>
-                      <td
-                        className="px-4 py-3 text-right font-mono"
-                        title={mismatch
-                          ? 'Earnings-date sources disagree: get_earnings_dates() vs .calendar'
-                          : undefined}
-                      >
-                        {mismatch ? (
-                          <div className="leading-tight">
-                            <div className="text-white">{fmtEarningsDate(c.nextEarnings)}</div>
-                            <div className="text-red-400 text-xs">≠ {fmtEarningsDate(c.nextEarningsAlt)}</div>
-                          </div>
-                        ) : (
-                          <span className="text-white">{fmtEarningsDate(c.nextEarnings)}</span>
-                        )}
+                      <td className="px-4 py-3 text-right font-mono text-white">
+                        {fmtEarningsDate(c.nextEarnings)}
                       </td>
                     </tr>
-                    );
-                  })}
+                  ))}
                 </tbody>
               </table>
             </div>

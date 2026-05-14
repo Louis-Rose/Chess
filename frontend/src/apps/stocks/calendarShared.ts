@@ -1,14 +1,11 @@
-// Shared types, formatters and small UI bits for the Earnings calendar tab —
-// used by both the list view (EarningsCalendar) and the week grid
-// (EarningsCalendarGrid).
+// Shared types and formatters for the Earnings calendar tab — used by both the
+// list view (EarningsCalendar) and the week grid (EarningsCalendarGrid).
 
 export interface CalendarCompany {
   ticker: string;
   name: string;
   marketCap: number;
-  nextEarnings: string | null;      // source A: yfinance get_earnings_dates()
-  nextEarningsAlt: string | null;   // source B: yfinance .calendar
-  datesMatch: boolean | null;       // do the two sources agree? null = can't compare
+  nextEarnings: string | null;   // from yfinance get_earnings_dates()
 }
 
 export const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',

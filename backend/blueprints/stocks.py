@@ -412,61 +412,23 @@ _calendar_state: dict = {
 }
 
 
-@_ttl_cache(seconds=24 * 3600)
-def _fx_to_usd(currency: str) -> float:
-    """Conversion rate from `currency` to USD (1.0 for USD or on failure)."""
-    if not currency or currency == 'USD':
-        return 1.0
-    try:
-        rate = yfinance.Ticker(f'{currency}USD=X').fast_info['last_price']
-        return float(rate) if rate else 1.0
-    except Exception as e:
-        logger.warning('FX rate fetch failed for %s: %s', currency, e)
-        return 1.0
+def _fetch_next_earnings(ticker: str) -> str | None:
+    """Next scheduled earnings date (ISO) from yfinance get_earnings_dates(),
+    or None if Yahoo has no future date for the ticker.
 
-
-def _fetch_calendar_row(ticker: str, name: str) -> dict:
-    """Market cap (USD) and next earnings date for one ticker.
-
-    The next earnings date is pulled from two independent Yahoo endpoints —
-    get_earnings_dates() and .calendar — so the UI can flag where they
-    disagree.
+    This is the only per-ticker Yahoo call left — market cap now comes from the
+    companiesmarketcap.com scrape (see _fetch_universe), and the result is
+    cached on disk so most builds re-fetch only a handful of tickers.
     """
-    row: dict = {
-        'ticker': ticker, 'name': name, 'marketCap': None,
-        'nextEarnings': None,       # source A: get_earnings_dates()
-        'nextEarningsAlt': None,    # source B: .calendar
-        'datesMatch': None,         # True / False / None (a source is missing)
-    }
-    try:
-        fi = yfinance.Ticker(ticker).fast_info
-        mc = fi['market_cap']
-        if mc:
-            row['marketCap'] = float(mc) * _fx_to_usd(fi['currency'])
-    except Exception as e:
-        logger.warning('Market cap fetch failed for %s: %s', ticker, e)
-    # Source A — get_earnings_dates().
     try:
         ed = yfinance.Ticker(ticker).get_earnings_dates(limit=16)
         if ed is not None and not ed.empty:
-            now = datetime.now().astimezone()
-            future = ed[ed.index > now]
+            future = ed[ed.index > datetime.now().astimezone()]
             if not future.empty:
-                row['nextEarnings'] = future.index.min().date().isoformat()
+                return future.index.min().date().isoformat()
     except Exception as e:
         logger.warning('Earnings dates fetch failed for %s: %s', ticker, e)
-    # Source B — the .calendar quote field.
-    try:
-        cal = yfinance.Ticker(ticker).calendar or {}
-        dates = cal.get('Earnings Date') or []
-        if dates:
-            row['nextEarningsAlt'] = dates[0].isoformat()
-    except Exception as e:
-        logger.warning('Earnings calendar (alt source) fetch failed for %s: %s', ticker, e)
-    # Cross-check — only meaningful when both sources returned a date.
-    if row['nextEarnings'] and row['nextEarningsAlt']:
-        row['datesMatch'] = row['nextEarnings'] == row['nextEarningsAlt']
-    return row
+    return None
 
 
 # ── Live universe (scraped from companiesmarketcap.com) ──────────────────────
@@ -484,40 +446,47 @@ _UNIVERSE_SIZE = 300
 _CMC_MAX_PAGES = 8
 
 
-def _parse_cmc_universe(html: str) -> list[tuple[str, str]]:
-    """Parse companiesmarketcap.com HTML into [(ticker, name), ...], ranked.
+def _parse_cmc_universe(html: str) -> list[tuple[str, str, float]]:
+    """Parse companiesmarketcap.com HTML into [(ticker, name, market_cap_usd)],
+    ranked.
 
     Keeps only US-listed names: companiesmarketcap shows a plain US ticker for
     companies listed in the US directly or via a prominent ADR (NVDA, TSM,
     TCEHY, ...), and a suffixed foreign-exchange ticker otherwise (2222.SR,
     005930.KS, ...). A ticker with no '.' suffix is therefore US-listed.
+
+    Market cap comes straight from the page's `data-sort` value (USD), so it
+    doubles as the displayed figure — no per-ticker Yahoo call for it.
     """
-    rows: list[tuple[int, str, str]] = []
+    rows: list[tuple[int, str, str, float]] = []
     for seg in html.split('<tr>'):
         rank_m = re.search(r'class="rank-td td-right" data-sort="(\d+)"', seg)
         name_m = re.search(r'<div class="company-name">(.*?)</div>', seg)
         code_m = re.search(
             r'<div class="company-code">(?:<span[^>]*></span>)?\s*([^<]*?)\s*</div>', seg)
-        if not (rank_m and name_m and code_m):
+        mcap_m = re.search(
+            r'<td class="td-right" data-sort="(\d+)"><span class="currency-symbol-left">', seg)
+        if not (rank_m and name_m and code_m and mcap_m):
             continue
         ticker = code_m.group(1).strip()
         if not ticker or '.' in ticker:        # foreign-exchange-only listing
             continue
         name = re.sub(r'\s*\(.*?\)\s*', '', name_m.group(1)).strip()
-        rows.append((int(rank_m.group(1)), ticker, name))
+        rows.append((int(rank_m.group(1)), ticker, name, float(mcap_m.group(1))))
     rows.sort(key=lambda r: r[0])
-    return [(t, n) for _, t, n in rows]
+    return [(t, n, mc) for _, t, n, mc in rows]
 
 
-def _fetch_universe() -> dict[str, str]:
-    """Top US-listed companies by market cap, scraped live from
-    companiesmarketcap.com — paginated until enough US-listed names are found.
+def _fetch_universe() -> dict[str, dict]:
+    """Top US-listed companies, scraped live from companiesmarketcap.com —
+    paginated until enough US-listed names are found. Returns
+    {ticker: {'name': str, 'marketCap': float}}, ranked by market cap.
 
     Raises on any failure (network, HTTP error, or too few rows parsed — which
     means their markup changed). There is no fallback by design: a broken
     scrape must surface on the calendar page, not be papered over.
     """
-    ranked: list[tuple[str, str]] = []
+    ranked: list[tuple[str, str, float]] = []
     for page in range(1, _CMC_MAX_PAGES + 1):
         url = _CMC_URL if page == 1 else f'{_CMC_URL}page/{page}/'
         r = http_requests.get(url, headers=_CMC_HEADERS, timeout=15)
@@ -529,38 +498,111 @@ def _fetch_universe() -> dict[str, str]:
         raise ValueError(
             f'companiesmarketcap parse yielded only {len(ranked)} US-listed rows '
             f'(expected at least {_UNIVERSE_SIZE}) — the page markup may have changed')
-    return dict(ranked[:_UNIVERSE_SIZE])
+    return {t: {'name': n, 'marketCap': mc} for t, n, mc in ranked[:_UNIVERSE_SIZE]}
+
+
+# Per-ticker earnings dates are cached on disk: a company's next date is stable
+# until it passes, so each daily build only re-fetches tickers whose cached
+# date has passed, that are new to the universe, or whose entry is older than
+# this many days (a safety net for reschedules / confirmations).
+_EARNINGS_CACHE_FILE = os.path.join(
+    os.path.dirname(__file__), os.pardir, 'stocks_earnings_cache.json')
+_EARNINGS_RECHECK_DAYS = 7
+
+
+def _load_earnings_cache() -> dict:
+    """{ticker: {'nextEarnings': iso|None, 'fetchedAt': iso}} from disk, or {}."""
+    try:
+        with open(_EARNINGS_CACHE_FILE) as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        logger.warning('Earnings cache read failed: %s', e)
+        return {}
+
+
+def _save_earnings_cache(cache: dict) -> None:
+    try:
+        tmp = _EARNINGS_CACHE_FILE + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump(cache, f)
+        os.replace(tmp, _EARNINGS_CACHE_FILE)
+    except Exception as e:
+        logger.warning('Earnings cache write failed: %s', e)
+
+
+def _earnings_entry_stale(entry: dict, today: date, recheck_before: datetime) -> bool:
+    """Whether a cached earnings entry should be re-fetched from Yahoo."""
+    try:
+        nxt, fetched_at = entry.get('nextEarnings'), entry.get('fetchedAt')
+        return (
+            nxt is None
+            or fetched_at is None
+            or datetime.fromisoformat(fetched_at) < recheck_before
+            or date.fromisoformat(nxt) < today
+        )
+    except (ValueError, TypeError):
+        return True   # unparseable entry — re-fetch it
 
 
 def _build_calendar_snapshot() -> list[dict]:
-    """Scrape the live universe, then fetch each ticker's data in parallel and
-    rank desc. The per-ticker work is I/O-bound (Yahoo round-trips), so a small
-    thread pool gives a near-linear speedup.
+    """Build the ranked calendar.
 
-    Per-ticker fetch failures are logged individually in _fetch_calendar_row;
-    this logs a roll-up too, so partial/silent failures are visible at a glance.
+    Name + market cap come from the companiesmarketcap.com scrape (no
+    per-ticker call). The next earnings date comes from Yahoo, but only for
+    tickers whose cached date is missing, stale or already passed — so most
+    builds hit Yahoo for just a handful of tickers.
     """
     universe = _fetch_universe()
-    with ThreadPoolExecutor(max_workers=_CALENDAR_WORKERS) as pool:
-        rows = list(pool.map(
-            lambda item: _fetch_calendar_row(*item), universe.items(),
-        ))
-    kept = [r for r in rows if r['marketCap'] is not None]
-    dropped = [r['ticker'] for r in rows if r['marketCap'] is None]
-    no_date = [r['ticker'] for r in kept if not r['nextEarnings']]
-    if dropped:
-        logger.warning('Calendar build: %d/%d tickers dropped — no market cap: %s',
-                       len(dropped), len(rows), ', '.join(dropped))
+    cache = _load_earnings_cache()
+    today = date.today()
+    recheck_before = datetime.now() - timedelta(days=_EARNINGS_RECHECK_DAYS)
+
+    # Split the universe into "cache still good" vs "needs a fresh fetch".
+    cached: dict[str, str | None] = {}
+    to_fetch: list[str] = []
+    for ticker in universe:
+        entry = cache.get(ticker)
+        if entry and not _earnings_entry_stale(entry, today, recheck_before):
+            cached[ticker] = entry['nextEarnings']
+        else:
+            to_fetch.append(ticker)
+
+    # Fetch only the stale/new ones, in parallel.
+    fetched: dict[str, str | None] = {}
+    if to_fetch:
+        with ThreadPoolExecutor(max_workers=_CALENDAR_WORKERS) as pool:
+            fetched = dict(zip(to_fetch, pool.map(_fetch_next_earnings, to_fetch)))
+
+    # Persist the merged cache (only tickers still in the universe).
+    now_iso = datetime.now().isoformat()
+    _save_earnings_cache({
+        t: ({'nextEarnings': fetched[t], 'fetchedAt': now_iso}
+            if t in fetched else cache[t])
+        for t in universe
+    })
+
+    # Assemble + rank rows.
+    rows = [
+        {
+            'ticker': t,
+            'name': info['name'],
+            'marketCap': info['marketCap'],
+            'nextEarnings': fetched[t] if t in fetched else cached[t],
+        }
+        for t, info in universe.items()
+    ]
+    rows.sort(key=lambda r: r['marketCap'], reverse=True)
+
+    no_date = [r['ticker'] for r in rows if not r['nextEarnings']]
     if no_date:
         logger.warning('Calendar build: %d ticker(s) missing a next-earnings date: %s',
                        len(no_date), ', '.join(no_date))
-    mismatched = [r['ticker'] for r in kept if r['datesMatch'] is False]
-    if mismatched:
-        logger.warning('Calendar build: %d ticker(s) whose two earnings-date sources '
-                       'disagree: %s', len(mismatched), ', '.join(mismatched))
-    logger.info('Calendar build: %d/%d rows OK', len(kept), len(rows))
-    kept.sort(key=lambda r: r['marketCap'], reverse=True)
-    return kept
+    logger.info('Calendar build: %d rows (%d fetched from Yahoo, %d from cache)',
+                len(rows), len(to_fetch), len(cached))
+    return rows
 
 
 # Snapshot is persisted to a JSON file so a process restart / deploy reuses the
@@ -653,8 +695,9 @@ def stocks_earnings_calendar():
     """Top US-listed companies by market cap with their next earnings date.
 
     Returns the last cached snapshot immediately and refreshes in the background
-    once it is older than 24h. A refresh re-scrapes the universe from
-    companiesmarketcap.com, then fetches each company's data from Yahoo Finance.
+    once it is older than 24h. A refresh re-scrapes the universe (name + market
+    cap) from companiesmarketcap.com, then fetches next earnings dates from
+    Yahoo Finance for any tickers whose cached date is missing/stale/passed.
 
     Status values:
       'building' — no snapshot yet, a build is in flight
@@ -662,11 +705,9 @@ def stocks_earnings_calendar():
       'ready'    — 'companies' populated ('error' is non-null if the most
                    recent refresh failed but an older snapshot is still served)
 
-    Pass ?nocache=1 to force a background rebuild (re-scrape + re-fetch).
+    Pass ?nocache=1 to force a background rebuild.
     """
     force = bool(request.args.get('nocache'))
-    if force:
-        _fx_to_usd.cache_clear()
     _ensure_calendar_fresh(force=force)
     with _calendar_lock:
         snapshot = _calendar_state['snapshot']
