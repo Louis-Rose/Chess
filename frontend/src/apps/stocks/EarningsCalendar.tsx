@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
-import {
-  type CalendarCompany, fmtMarketCap, fmtEarningsDate, FreqBadge,
-} from './calendarShared';
+import { type CalendarCompany, fmtMarketCap, fmtEarningsDate } from './calendarShared';
 import { EarningsCalendarGrid } from './EarningsCalendarGrid';
 
 interface CalendarPayload {
@@ -16,7 +14,7 @@ interface CalendarPayload {
   companies: CalendarCompany[];
 }
 
-type SortKey = 'name' | 'ticker' | 'marketCap' | 'nextEarnings' | 'frequency';
+type SortKey = 'name' | 'ticker' | 'marketCap' | 'nextEarnings';
 
 // The '#' column is a plain 1..N row counter (always in display order), so it
 // is rendered separately and is not sortable.
@@ -25,7 +23,6 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center'
   { key: 'ticker', label: 'Ticker', align: 'left' },
   { key: 'marketCap', label: 'Market cap', align: 'right' },
   { key: 'nextEarnings', label: 'Next earnings', align: 'right' },
-  { key: 'frequency', label: 'Reports', align: 'center' },
 ];
 
 export function EarningsCalendar() {
@@ -71,7 +68,6 @@ export function EarningsCalendar() {
       case 'marketCap': return (a.marketCap - b.marketCap) * dir;
       case 'name': return a.name.localeCompare(b.name) * dir;
       case 'ticker': return a.ticker.localeCompare(b.ticker) * dir;
-      case 'frequency': return a.frequency.localeCompare(b.frequency) * dir;
       case 'nextEarnings':
         if (!a.nextEarnings) return b.nextEarnings ? 1 : 0;   // missing dates sort last
         if (!b.nextEarnings) return -1;
@@ -207,9 +203,6 @@ export function EarningsCalendar() {
                         ) : (
                           <span className="text-white">{fmtEarningsDate(c.nextEarnings)}</span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <FreqBadge frequency={c.frequency} />
                       </td>
                     </tr>
                     );

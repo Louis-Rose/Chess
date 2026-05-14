@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { type CalendarCompany, fmtEarningsDate, FreqBadge } from './calendarShared';
+import { type CalendarCompany, fmtEarningsDate } from './calendarShared';
 
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June',
                      'July', 'August', 'September', 'October', 'November', 'December'];
@@ -136,7 +136,6 @@ export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany
                 <span className="font-semibold text-white flex-1 min-w-0 truncate">{c.name}</span>
                 <span className="font-mono text-xs text-slate-400 w-16">{c.ticker}</span>
                 <span className="font-mono text-white w-28 text-right">{fmtEarningsDate(c.nextEarnings)}</span>
-                <span className="w-28 text-right"><FreqBadge frequency={c.frequency} /></span>
               </div>
             ))}
           </div>

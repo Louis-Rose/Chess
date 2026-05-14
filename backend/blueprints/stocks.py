@@ -399,12 +399,6 @@ def stocks_data():
 # There is deliberately no static fallback: if the scrape breaks, the calendar
 # page shows an error rather than silently serving stale or stand-in data.
 
-# Companies whose Yahoo earnings-date history is empty or too noisy to infer
-# cadence from — treated as semi-annual reporters explicitly.
-_SEMI_ANNUAL_TICKERS: set[str] = {
-    'NESN.SW', 'MC.PA', 'RMS.PA', 'OR.PA', 'ROG.SW', 'PRX.AS', 'BHP', 'CBA.AX',
-}
-
 _CALENDAR_TTL = timedelta(hours=24)
 # Fetching a row is ~2 blocking HTTP calls to Yahoo. Build time flatlines past
 # a handful of workers — Yahoo rate-limits total throughput per IP (6 and 12
@@ -431,19 +425,8 @@ def _fx_to_usd(currency: str) -> float:
         return 1.0
 
 
-def _detect_frequency(ticker: str, past_dates: list) -> str:
-    """'quarterly' or 'semi-annual', inferred from gaps between past earnings."""
-    if ticker in _SEMI_ANNUAL_TICKERS:
-        return 'semi-annual'
-    import statistics
-    gaps = [(past_dates[i + 1] - past_dates[i]).days for i in range(len(past_dates) - 1)]
-    if not gaps:
-        return 'quarterly'
-    return 'quarterly' if statistics.median(gaps) < 135 else 'semi-annual'
-
-
 def _fetch_calendar_row(ticker: str, name: str) -> dict:
-    """Market cap (USD), next earnings date and cadence for one ticker.
+    """Market cap (USD) and next earnings date for one ticker.
 
     The next earnings date is pulled from two independent Yahoo endpoints —
     get_earnings_dates() and .calendar — so the UI can flag where they
@@ -454,7 +437,6 @@ def _fetch_calendar_row(ticker: str, name: str) -> dict:
         'nextEarnings': None,       # source A: get_earnings_dates()
         'nextEarningsAlt': None,    # source B: .calendar
         'datesMatch': None,         # True / False / None (a source is missing)
-        'frequency': 'quarterly',
     }
     try:
         fi = yfinance.Ticker(ticker).fast_info
@@ -463,7 +445,7 @@ def _fetch_calendar_row(ticker: str, name: str) -> dict:
             row['marketCap'] = float(mc) * _fx_to_usd(fi['currency'])
     except Exception as e:
         logger.warning('Market cap fetch failed for %s: %s', ticker, e)
-    # Source A — get_earnings_dates() also yields the reporting cadence.
+    # Source A — get_earnings_dates().
     try:
         ed = yfinance.Ticker(ticker).get_earnings_dates(limit=16)
         if ed is not None and not ed.empty:
@@ -471,11 +453,8 @@ def _fetch_calendar_row(ticker: str, name: str) -> dict:
             future = ed[ed.index > now]
             if not future.empty:
                 row['nextEarnings'] = future.index.min().date().isoformat()
-            past = sorted(ed[ed.index <= now].index)
-            row['frequency'] = _detect_frequency(ticker, past)
     except Exception as e:
         logger.warning('Earnings dates fetch failed for %s: %s', ticker, e)
-        row['frequency'] = _detect_frequency(ticker, [])
     # Source B — the .calendar quote field.
     try:
         cal = yfinance.Ticker(ticker).calendar or {}

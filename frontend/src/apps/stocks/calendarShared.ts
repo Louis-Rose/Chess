@@ -9,7 +9,6 @@ export interface CalendarCompany {
   nextEarnings: string | null;      // source A: yfinance get_earnings_dates()
   nextEarningsAlt: string | null;   // source B: yfinance .calendar
   datesMatch: boolean | null;       // do the two sources agree? null = can't compare
-  frequency: 'quarterly' | 'semi-annual';
 }
 
 export const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -26,17 +25,4 @@ export function fmtEarningsDate(iso: string | null): string {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-').map(Number);
   return `${MONTHS_SHORT[m - 1]} ${d}, ${y}`;
-}
-
-export function FreqBadge({ frequency }: { frequency: CalendarCompany['frequency'] }) {
-  return (
-    <span className={
-      'inline-block px-2 py-0.5 rounded-full text-xs font-medium '
-      + (frequency === 'quarterly'
-        ? 'bg-emerald-500/15 text-emerald-300'
-        : 'bg-amber-500/15 text-amber-300')
-    }>
-      {frequency === 'quarterly' ? 'Quarterly' : 'Semi-annual'}
-    </span>
-  );
 }
