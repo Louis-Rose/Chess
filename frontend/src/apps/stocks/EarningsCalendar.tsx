@@ -97,22 +97,24 @@ export function EarningsCalendar() {
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
       <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-          <h1 className="text-xl font-semibold flex-1">Earnings calendar</h1>
-          {!building && !errored && payload?.buildSeconds != null && (
-            <span className="text-xs text-slate-500 whitespace-nowrap">
-              built in {Math.round(payload.buildSeconds)}s
-            </span>
-          )}
-          <button
-            onClick={() => fetchData(true)}
-            disabled={building}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
-            aria-label="Refresh"
-            title="Refresh data (bypass cache)"
-          >
-            <RefreshCw className={`w-5 h-5 ${building ? 'animate-spin' : ''}`} />
-          </button>
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center relative">
+          <h1 className="text-xl font-semibold absolute left-1/2 -translate-x-1/2">Earnings calendar</h1>
+          <div className="ml-auto flex items-center gap-3">
+            {!building && !errored && payload?.buildSeconds != null && (
+              <span className="text-xs text-slate-500 whitespace-nowrap">
+                built in {Math.round(payload.buildSeconds)}s
+              </span>
+            )}
+            <button
+              onClick={() => fetchData(true)}
+              disabled={building}
+              className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+              aria-label="Refresh"
+              title="Refresh data (bypass cache)"
+            >
+              <RefreshCw className={`w-5 h-5 ${building ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
       </header>
 
