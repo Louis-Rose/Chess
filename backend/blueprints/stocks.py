@@ -394,13 +394,14 @@ def stocks_data():
 # a background thread — requests return the last snapshot immediately (or a
 # "building" status before the first one exists).
 
-# Curated universe: Yahoo ticker -> display name. Extend this list to grow the
-# calendar; the ranking adapts on its own as market caps move.
+# The universe is scraped live from companiesmarketcap.com (see _fetch_universe)
+# and re-derived on every 24h rebuild. This static list is only the fallback
+# used when that scrape fails — the top-40 US-listed companies as of May 2026.
 #
-# Every entry must be listed in the US — directly (NYSE/Nasdaq) or indirectly
-# (a US-traded ADR). Foreign-exchange-only names are deliberately excluded, so
-# every ticker here is a US symbol and market cap comes back in USD.
-_CALENDAR_UNIVERSE: dict[str, str] = {
+# Every entry is listed in the US — directly (NYSE/Nasdaq) or indirectly (a
+# US-traded ADR). Foreign-exchange-only names are excluded, so every ticker is
+# a US symbol and market cap comes back in USD.
+_FALLBACK_UNIVERSE: dict[str, str] = {
     'NVDA': 'Nvidia',
     'GOOGL': 'Alphabet',
     'AAPL': 'Apple',
@@ -509,13 +510,67 @@ def _fetch_calendar_row(ticker: str, name: str) -> dict:
     return row
 
 
+# ── Live universe (scraped from companiesmarketcap.com) ──────────────────────
+
+_CMC_URL = 'https://companiesmarketcap.com/'
+_CMC_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                  'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
+}
+# How many US-listed companies the calendar tracks.
+_UNIVERSE_SIZE = 40
+
+
+def _parse_cmc_universe(html: str) -> list[tuple[str, str]]:
+    """Parse companiesmarketcap.com HTML into [(ticker, name), ...], ranked.
+
+    Keeps only US-listed names: companiesmarketcap shows a plain US ticker for
+    companies listed in the US directly or via a prominent ADR (NVDA, TSM,
+    TCEHY, ...), and a suffixed foreign-exchange ticker otherwise (2222.SR,
+    005930.KS, ...). A ticker with no '.' suffix is therefore US-listed.
+    """
+    rows: list[tuple[int, str, str]] = []
+    for seg in html.split('<tr>'):
+        rank_m = re.search(r'class="rank-td td-right" data-sort="(\d+)"', seg)
+        name_m = re.search(r'<div class="company-name">(.*?)</div>', seg)
+        code_m = re.search(
+            r'<div class="company-code">(?:<span[^>]*></span>)?\s*([^<]*?)\s*</div>', seg)
+        if not (rank_m and name_m and code_m):
+            continue
+        ticker = code_m.group(1).strip()
+        if not ticker or '.' in ticker:        # foreign-exchange-only listing
+            continue
+        name = re.sub(r'\s*\(.*?\)\s*', '', name_m.group(1)).strip()
+        rows.append((int(rank_m.group(1)), ticker, name))
+    rows.sort(key=lambda r: r[0])
+    return [(t, n) for _, t, n in rows]
+
+
+def _fetch_universe() -> dict[str, str]:
+    """Top US-listed companies by market cap, scraped live from
+    companiesmarketcap.com. Falls back to the static list if the scrape fails."""
+    try:
+        r = http_requests.get(_CMC_URL, headers=_CMC_HEADERS, timeout=15)
+        r.raise_for_status()
+        ranked = _parse_cmc_universe(r.text)
+        if len(ranked) >= _UNIVERSE_SIZE:
+            return dict(ranked[:_UNIVERSE_SIZE])
+        logger.warning(
+            'companiesmarketcap parse yielded only %d US-listed rows; using fallback',
+            len(ranked))
+    except Exception as e:
+        logger.warning('companiesmarketcap fetch failed: %s; using fallback', e)
+    return dict(_FALLBACK_UNIVERSE)
+
+
 def _build_calendar_snapshot() -> list[dict]:
-    """Fetch every universe ticker in parallel, drop those without a market cap,
-    rank desc. The work is I/O-bound (Yahoo round-trips), so a small thread pool
-    gives a near-linear speedup."""
+    """Scrape the live universe, then fetch each ticker's data in parallel and
+    rank desc. The per-ticker work is I/O-bound (Yahoo round-trips), so a small
+    thread pool gives a near-linear speedup."""
+    universe = _fetch_universe()
     with ThreadPoolExecutor(max_workers=_CALENDAR_WORKERS) as pool:
         rows = list(pool.map(
-            lambda item: _fetch_calendar_row(*item), _CALENDAR_UNIVERSE.items(),
+            lambda item: _fetch_calendar_row(*item), universe.items(),
         ))
     rows = [r for r in rows if r['marketCap'] is not None]
     rows.sort(key=lambda r: r['marketCap'], reverse=True)
@@ -549,13 +604,15 @@ def _ensure_calendar_fresh(force: bool = False) -> None:
 @stocks_bp.route('/api/stocks/earnings-calendar', methods=['GET'])
 @owner_required
 def stocks_earnings_calendar():
-    """Top companies by market cap with their next earnings date and cadence.
+    """Top US-listed companies by market cap with their next earnings date.
 
     Returns the last cached snapshot immediately and refreshes in the background
-    once it is older than 24h. Before the first snapshot exists, returns
-    { status: 'building', companies: [] } so the client can poll.
+    once it is older than 24h. A refresh re-scrapes the universe from
+    companiesmarketcap.com, then fetches each company's data from Yahoo Finance.
+    Before the first snapshot exists, returns { status: 'building',
+    companies: [] } so the client can poll.
 
-    Pass ?nocache=1 to force a background rebuild.
+    Pass ?nocache=1 to force a background rebuild (re-scrape + re-fetch).
     """
     force = bool(request.args.get('nocache'))
     if force:
