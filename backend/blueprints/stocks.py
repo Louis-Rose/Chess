@@ -8,6 +8,7 @@ follow predictable per-company patterns keyed by (quarter, fiscal_year), so
 adding future quarters is just bumping CURRENT_QUARTER / CURRENT_FY.
 """
 
+import json
 import logging
 import os
 import re
@@ -543,15 +544,58 @@ def _build_calendar_snapshot() -> list[dict]:
     return rows
 
 
+# Snapshot is persisted to a JSON file so a process restart / deploy reuses the
+# last build instead of cold-rebuilding (~2 min) on the next request.
+_CALENDAR_CACHE_FILE = os.path.join(
+    os.path.dirname(__file__), os.pardir, 'stocks_calendar_cache.json')
+
+
+def _persist_calendar(snapshot: list, built_at: datetime, build_seconds: float) -> None:
+    """Write the snapshot to disk (atomically) so it survives restarts."""
+    try:
+        tmp = _CALENDAR_CACHE_FILE + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump({
+                'snapshot': snapshot,
+                'built_at': built_at.isoformat(),
+                'build_seconds': build_seconds,
+            }, f)
+        os.replace(tmp, _CALENDAR_CACHE_FILE)
+    except Exception as e:
+        logger.warning('Calendar cache write failed: %s', e)
+
+
+def _hydrate_calendar_from_disk() -> None:
+    """Load the last persisted snapshot into memory — called once on cold start."""
+    try:
+        with open(_CALENDAR_CACHE_FILE) as f:
+            payload = json.load(f)
+        built_at = datetime.fromisoformat(payload['built_at'])
+    except FileNotFoundError:
+        return
+    except Exception as e:
+        logger.warning('Calendar cache read failed: %s', e)
+        return
+    with _calendar_lock:
+        if _calendar_state['built_at'] is not None:
+            return  # another thread already hydrated or built
+        _calendar_state['snapshot'] = payload.get('snapshot')
+        _calendar_state['built_at'] = built_at
+        _calendar_state['build_seconds'] = payload.get('build_seconds')
+
+
 def _refresh_calendar() -> None:
     started = datetime.now()
     try:
         snapshot = _build_calendar_snapshot()
+        built_at = datetime.now()
+        build_seconds = (built_at - started).total_seconds()
         with _calendar_lock:
             _calendar_state['snapshot'] = snapshot
-            _calendar_state['built_at'] = datetime.now()
-            _calendar_state['build_seconds'] = (datetime.now() - started).total_seconds()
+            _calendar_state['built_at'] = built_at
+            _calendar_state['build_seconds'] = build_seconds
             _calendar_state['error'] = None
+        _persist_calendar(snapshot, built_at, build_seconds)
     except Exception as e:
         logger.exception('Earnings calendar refresh failed')
         with _calendar_lock:
@@ -562,7 +606,17 @@ def _refresh_calendar() -> None:
 
 
 def _ensure_calendar_fresh(force: bool = False) -> None:
-    """Kick off a background refresh if the snapshot is missing or stale."""
+    """Kick off a background refresh if the snapshot is missing or stale.
+
+    On a cold start (in-memory snapshot empty) the last snapshot is first
+    rehydrated from disk, so a process restart / deploy reuses it instantly
+    instead of triggering a ~2-minute rebuild.
+    """
+    with _calendar_lock:
+        cold = _calendar_state['built_at'] is None
+    if cold:
+        _hydrate_calendar_from_disk()
+
     with _calendar_lock:
         built_at = _calendar_state['built_at']
         stale = force or built_at is None or (datetime.now() - built_at) > _CALENDAR_TTL

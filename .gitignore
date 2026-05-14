@@ -56,3 +56,6 @@ build/
 # --- User uploads ---
 backend/data/scoresheet_uploads/
 
+# --- Runtime caches ---
+backend/stocks_calendar_cache.json
+

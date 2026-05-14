@@ -34,10 +34,11 @@ function fmtEarningsDate(iso: string | null): string {
   return `${MONTHS_SHORT[m - 1]} ${d}, ${y}`;
 }
 
-type SortKey = 'rank' | 'name' | 'ticker' | 'marketCap' | 'nextEarnings' | 'frequency';
+type SortKey = 'name' | 'ticker' | 'marketCap' | 'nextEarnings' | 'frequency';
 
-const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center'; width?: string }[] = [
-  { key: 'rank', label: '#', align: 'left', width: 'w-12' },
+// The '#' column is a plain 1..N row counter (always in display order), so it
+// is rendered separately and is not sortable.
+const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center' }[] = [
   { key: 'name', label: 'Company', align: 'left' },
   { key: 'ticker', label: 'Ticker', align: 'left' },
   { key: 'marketCap', label: 'Market cap', align: 'right' },
@@ -70,19 +71,16 @@ export function EarningsCalendar() {
   const building = !payload || payload.status === 'building';
   const errored = payload?.status === 'error';
 
-  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'rank', dir: 'asc' });
+  // Default to the server's order: market cap, largest first.
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'marketCap', dir: 'desc' });
   const toggleSort = (key: SortKey) =>
     setSort(prev => prev.key === key
       ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
       : { key, dir: 'asc' });
 
-  // Rank is the market-cap order from the server; it stays pinned to each row
-  // even when the table is sorted by another column.
-  const ranked = (payload?.companies ?? []).map((c, i) => ({ ...c, rank: i + 1 }));
-  const sorted = [...ranked].sort((a, b) => {
+  const sorted = [...(payload?.companies ?? [])].sort((a, b) => {
     const dir = sort.dir === 'asc' ? 1 : -1;
     switch (sort.key) {
-      case 'rank': return (a.rank - b.rank) * dir;
       case 'marketCap': return (a.marketCap - b.marketCap) * dir;
       case 'name': return a.name.localeCompare(b.name) * dir;
       case 'ticker': return a.ticker.localeCompare(b.ticker) * dir;
@@ -147,12 +145,13 @@ export function EarningsCalendar() {
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-800">
+                    <th className="px-4 py-3 border-b border-slate-700 w-12 text-left font-semibold text-slate-200">#</th>
                     {COLUMNS.map(col => {
                       const active = sort.key === col.key;
                       const justify = col.align === 'right' ? 'justify-end'
                         : col.align === 'center' ? 'justify-center' : 'justify-start';
                       return (
-                        <th key={col.key} className={`px-4 py-3 border-b border-slate-700 ${col.width ?? ''}`}>
+                        <th key={col.key} className="px-4 py-3 border-b border-slate-700">
                           <button
                             onClick={() => toggleSort(col.key)}
                             className={`flex items-center gap-1 w-full ${justify} font-semibold transition-colors ${
@@ -170,9 +169,9 @@ export function EarningsCalendar() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map(c => (
+                  {sorted.map((c, i) => (
                     <tr key={c.ticker} className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40">
-                      <td className="px-4 py-3 text-slate-500 font-mono">{c.rank}</td>
+                      <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
                       <td className="px-4 py-3 font-semibold text-white">{c.name}</td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-400">{c.ticker}</td>
                       <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(c.marketCap)}</td>
