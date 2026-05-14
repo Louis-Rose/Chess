@@ -101,7 +101,7 @@ export function EarningsCalendar() {
           <h1 className="text-xl font-semibold absolute left-1/2 -translate-x-1/2">Earnings calendar</h1>
           <div className="ml-auto flex items-center gap-3">
             {!building && !errored && payload?.buildSeconds != null && (
-              <span className="text-xs text-slate-500 whitespace-nowrap">
+              <span className="text-xs text-white whitespace-nowrap">
                 built in {Math.round(payload.buildSeconds)}s
               </span>
             )}
