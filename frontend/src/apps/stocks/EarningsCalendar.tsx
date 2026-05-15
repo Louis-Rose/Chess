@@ -64,8 +64,8 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
 
   const [view, setView] = useState<'list' | 'calendar'>('list');
 
-  // Default to the server's order: market cap, largest first.
-  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'marketCap', dir: 'desc' });
+  // Default to next earnings, soonest first — that's what the user comes here for.
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'nextEarnings', dir: 'asc' });
   const toggleSort = (key: SortKey) =>
     setSort(prev => prev.key === key
       ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
