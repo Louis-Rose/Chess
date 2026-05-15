@@ -337,7 +337,7 @@ def stocks_data():
 # ── Company profile (website + IR site) ─────────────────────────────────────
 #
 # Just one Yahoo `.info` call per ticker, persisted forever — website and IR
-# URLs rarely change, and the cache file is small even for 300 companies.
+# URLs rarely change, and the cache file stays small at this universe size.
 # Fetched lazily on the first time a company is opened.
 
 _PROFILE_CACHE_FILE = os.path.join(
@@ -498,11 +498,11 @@ _CMC_HEADERS = {
                   'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',
 }
 # How many US-listed companies the calendar tracks.
-_UNIVERSE_SIZE = 300
+_UNIVERSE_SIZE = 500
 # Safety cap on pages to scrape. Past the top ~100, only ~half of listings
-# are US-listed, so 300 US-listed names need ~6-7 pages of 100; 8 is headroom.
+# are US-listed, so 500 US-listed names need ~11 pages of 100; 14 is headroom.
 # The scrape loop stops early once it has enough, so this is just a ceiling.
-_CMC_MAX_PAGES = 8
+_CMC_MAX_PAGES = 14
 
 
 def _parse_cmc_universe(html: str) -> list[tuple[str, str, float]]:
@@ -669,7 +669,7 @@ def _build_calendar_snapshot() -> list[dict]:
         return fetched[t] if t in fetched else cached[t]
 
     # Sector — one Yahoo `.info` call per ticker, cached forever. The first
-    # build after deploy fills in all 300; subsequent builds are no-ops here.
+    # build after deploy fills in the whole universe; subsequent builds are no-ops.
     _ensure_profiles_cached(list(universe.keys()))
     profile_cache = _load_profile_cache()
 

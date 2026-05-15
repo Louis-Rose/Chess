@@ -266,7 +266,7 @@ function CompanyPicker({
 
   const selected = companies.find(c => c.ticker === ticker);
   const q = query.trim().toLowerCase();
-  // Match on company name or ticker; cap the list so we never render 300 nodes.
+  // Match on company name or ticker; cap the list so we never render every row at once.
   const matches = (q
     ? companies.filter(c =>
         c.name.toLowerCase().includes(q) || c.ticker.toLowerCase().includes(q))
