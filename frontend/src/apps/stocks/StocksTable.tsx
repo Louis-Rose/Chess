@@ -21,10 +21,16 @@ interface CellData {
   threeYValue?: number;
   unit?: string;
 }
+interface CompanyProfile {
+  website: string | null;
+  domain: string | null;
+  irWebsite: string | null;
+}
 interface DataPayload {
   ticker: string;
   asOf: string;
   nextEarnings: string | null;
+  profile?: CompanyProfile;
   data: Partial<Record<Metric, Partial<Record<Mode, CellData>>>>;
 }
 
@@ -304,6 +310,42 @@ function CompanyPicker({
   );
 }
 
+// ── Logo + Investor Relations link ───────────────────────────────────────────
+
+function CompanyHeader({
+  profile, ticker, companyName,
+}: { profile?: CompanyProfile; ticker: string; companyName?: string }) {
+  const domain = profile?.domain ?? null;
+  const irUrl = profile?.irWebsite
+    || `https://www.google.com/search?q=${encodeURIComponent(
+         `${companyName || ticker} investor relations`)}`;
+  return (
+    <div className="flex items-center justify-center gap-3 mb-5 min-h-[40px]">
+      {domain && (
+        <img
+          src={`https://logo.clearbit.com/${domain}`}
+          onError={(e) => {
+            const el = e.currentTarget;
+            if (el.dataset.fallback) { el.style.display = 'none'; return; }
+            el.dataset.fallback = '1';
+            el.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+          }}
+          alt=""
+          className="w-10 h-10 rounded bg-white p-1 object-contain"
+        />
+      )}
+      <a
+        href={irUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="text-sm font-medium text-emerald-400 hover:text-emerald-300"
+      >
+        Investor Relations ↗
+      </a>
+    </div>
+  );
+}
+
 // ── Single-company dashboard ─────────────────────────────────────────────────
 
 export function StocksTable({ ticker, onTicker }: { ticker: string; onTicker: (t: string) => void }) {
@@ -364,6 +406,13 @@ export function StocksTable({ ticker, onTicker }: { ticker: string; onTicker: (t
         <div className="flex justify-center mb-3">
           <CompanyPicker companies={companies} ticker={ticker} onSelect={onTicker} />
         </div>
+        {ticker && (
+          <CompanyHeader
+            profile={payload?.profile}
+            ticker={ticker}
+            companyName={companies.find(c => c.ticker === ticker)?.name}
+          />
+        )}
         <div className="flex justify-center mb-5">
           <SegmentedToggle
             options={[

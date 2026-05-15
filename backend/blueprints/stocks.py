@@ -17,6 +17,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from functools import wraps
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 import requests as http_requests
@@ -328,8 +329,81 @@ def stocks_data():
         'ticker': ticker,
         'asOf': _as_of_label(),
         'nextEarnings': next_earnings,
+        'profile': _fetch_company_profile(ticker),
         'data': data,
     })
+
+
+# ── Company profile (website + IR site) ─────────────────────────────────────
+#
+# Just one Yahoo `.info` call per ticker, persisted forever — website and IR
+# URLs rarely change, and the cache file is small even for 300 companies.
+# Fetched lazily on the first time a company is opened.
+
+_PROFILE_CACHE_FILE = os.path.join(
+    os.path.dirname(__file__), os.pardir, 'stocks_profile_cache.json')
+_profile_lock = threading.Lock()
+
+
+def _load_profile_cache() -> dict:
+    try:
+        with open(_PROFILE_CACHE_FILE) as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        logger.warning('Profile cache read failed: %s', e)
+        return {}
+
+
+def _save_profile_cache(cache: dict) -> None:
+    try:
+        tmp = _PROFILE_CACHE_FILE + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump(cache, f)
+        os.replace(tmp, _PROFILE_CACHE_FILE)
+    except Exception as e:
+        logger.warning('Profile cache write failed: %s', e)
+
+
+def _domain_from_url(url: str | None) -> str | None:
+    if not url:
+        return None
+    try:
+        u = url.strip()
+        if '://' not in u:
+            u = 'http://' + u
+        host = (urlparse(u).hostname or '').lower()
+        return host[4:] if host.startswith('www.') else (host or None)
+    except Exception:
+        return None
+
+
+def _fetch_company_profile(ticker: str) -> dict:
+    """Return {'website', 'domain', 'irWebsite'} for `ticker`. Cached on disk
+    after the first fetch; missing fields are None."""
+    with _profile_lock:
+        cache = _load_profile_cache()
+        entry = cache.get(ticker)
+        if isinstance(entry, dict):
+            return entry
+    profile = {'website': None, 'domain': None, 'irWebsite': None}
+    try:
+        info = yfinance.Ticker(ticker).info or {}
+        website = info.get('website')
+        profile = {
+            'website': website,
+            'domain': _domain_from_url(website),
+            'irWebsite': info.get('irWebsite'),
+        }
+    except Exception as e:
+        logger.warning('Profile fetch failed for %s: %s', ticker, e)
+    with _profile_lock:
+        cache = _load_profile_cache()
+        cache[ticker] = profile
+        _save_profile_cache(cache)
+    return profile
 
 
 # ── Earnings calendar (top companies by market cap) ──────────────────────────
