@@ -16,13 +16,26 @@ export interface EarningsEvent {
   ticker: string;
   name: string;
   marketCap: number;
-  date: string;   // ISO YYYY-MM-DD
+  marketCapRank: number;   // 1 = largest in the full universe
+  date: string;            // ISO YYYY-MM-DD
 }
 
 export function companyEvents(companies: CalendarCompany[]): EarningsEvent[] {
+  // Rank by market cap once, before exploding into events — that way the rank
+  // is a stable property of the company, independent of the events list's order.
+  const rankByTicker = new Map(
+    [...companies]
+      .sort((a, b) => b.marketCap - a.marketCap)
+      .map((c, i) => [c.ticker, i + 1]),
+  );
   const out: EarningsEvent[] = [];
   for (const c of companies) {
-    const base = { ticker: c.ticker, name: c.name, marketCap: c.marketCap };
+    const base = {
+      ticker: c.ticker,
+      name: c.name,
+      marketCap: c.marketCap,
+      marketCapRank: rankByTicker.get(c.ticker)!,
+    };
     if (c.lastEarnings) out.push({ ...base, date: c.lastEarnings });
     if (c.nextEarnings) out.push({ ...base, date: c.nextEarnings });
   }
