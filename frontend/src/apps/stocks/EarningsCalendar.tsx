@@ -5,7 +5,6 @@ import {
   type CalendarCompany, companyEvents, daysUntil, daysColor,
   fmtMarketCap, fmtEarningsDate,
 } from './calendarShared';
-import { EarningsCalendarGrid } from './EarningsCalendarGrid';
 
 interface CalendarPayload {
   status: 'ready' | 'building' | 'error';
@@ -58,8 +57,6 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
   const errored = payload?.status === 'error';
   const refreshing = building || payload?.refreshing === true;
 
-  const [view, setView] = useState<'list' | 'calendar'>('list');
-
   // Default to earnings date, soonest first — that's what the user comes here for.
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'date', dir: 'asc' });
   const toggleSort = (key: SortKey) =>
@@ -87,7 +84,7 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
       <header className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center relative">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center relative">
           <h1 className="text-xl font-semibold absolute left-1/2 -translate-x-1/2">Earnings calendar</h1>
           <div className="ml-auto flex items-center gap-3">
             {!building && !errored && (
@@ -112,7 +109,7 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      <main className="max-w-6xl mx-auto px-4 py-6">
         {building ? (
           <div className="flex flex-col items-center justify-center gap-3 py-24 text-slate-400">
             <div className="w-10 h-10 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
@@ -137,24 +134,6 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                 <span>Showing the last good snapshot — the most recent refresh failed: {payload!.error}</span>
               </div>
             )}
-            <div className="flex justify-center mb-4">
-              <div className="inline-flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-                {(['list', 'calendar'] as const).map(v => (
-                  <button
-                    key={v}
-                    onClick={() => setView(v)}
-                    className={'px-4 py-1.5 font-medium transition-colors ' + (view === v
-                      ? 'bg-slate-700 text-slate-100'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200')}
-                  >
-                    {v === 'list' ? 'List' : 'Calendar'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {view === 'calendar' ? (
-              <EarningsCalendarGrid companies={payload!.companies} />
-            ) : (
             <div className="overflow-x-auto border border-slate-700 rounded-lg">
               <table className="w-full table-fixed text-sm border-collapse">
                 <thead>
@@ -162,8 +141,11 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                     <th className="px-4 py-3 border-b border-slate-700 w-12 text-center font-semibold text-slate-200">#</th>
                     {COLUMNS.map(col => {
                       const active = sort.key === col.key;
+                      // Ticker holds a 3-5 char symbol — no need to give it as
+                      // much room as the wider data columns.
+                      const widthClass = col.key === 'ticker' ? 'w-24' : '';
                       return (
-                        <th key={col.key} className="px-4 py-3 border-b border-slate-700">
+                        <th key={col.key} className={`px-4 py-3 border-b border-slate-700 ${widthClass}`}>
                           <button
                             onClick={() => toggleSort(col.key)}
                             className={`flex items-center gap-1 w-full justify-center font-semibold transition-colors ${
@@ -205,7 +187,6 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                 </tbody>
               </table>
             </div>
-            )}
             {payload!.asOf && (
               <div className="text-center text-xs text-slate-300 font-medium mt-8">
                 as of {payload!.asOf}

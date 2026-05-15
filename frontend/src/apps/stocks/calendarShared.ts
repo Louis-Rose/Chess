@@ -1,5 +1,4 @@
-// Shared types and formatters for the Earnings calendar tab — used by both the
-// list view (EarningsCalendar) and the week grid (EarningsCalendarGrid).
+// Shared types and formatters for the Earnings calendar list view.
 
 export interface CalendarCompany {
   ticker: string;
