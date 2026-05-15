@@ -148,9 +148,9 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                 step={1}
                 value={startOffset}
                 onChange={e => setStartOffset(+e.target.value)}
-                className="w-64 accent-emerald-500"
+                className="w-96 accent-emerald-500"
               />
-              <span className={`font-mono w-16 ${daysColor(startOffset)}`}>
+              <span className={`font-mono whitespace-nowrap w-20 ${daysColor(startOffset)}`}>
                 {startOffset === 0 ? 'today' : `${startOffset} days`}
               </span>
             </div>
