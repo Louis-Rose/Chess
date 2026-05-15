@@ -21,13 +21,13 @@ type SortKey = 'name' | 'sector' | 'ticker' | 'marketCap' | 'marketCapRank' | 'd
 
 // The '#' column is a plain 1..N row counter (always in display order), so it
 // is rendered separately and is not sortable.
-const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center' }[] = [
-  { key: 'name', label: 'Company', align: 'left' },
-  { key: 'sector', label: 'Sector', align: 'left' },
-  { key: 'ticker', label: 'Ticker', align: 'left' },
-  { key: 'marketCap', label: 'Market cap', align: 'right' },
-  { key: 'marketCapRank', label: 'Ranking', align: 'right' },
-  { key: 'date', label: 'Earnings date', align: 'right' },
+const COLUMNS: { key: SortKey; label: string }[] = [
+  { key: 'name', label: 'Company' },
+  { key: 'sector', label: 'Sector' },
+  { key: 'ticker', label: 'Ticker' },
+  { key: 'marketCap', label: 'Market cap' },
+  { key: 'marketCapRank', label: 'Ranking' },
+  { key: 'date', label: 'Earnings date' },
 ];
 
 export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: string) => void }) {
@@ -156,19 +156,17 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
               <EarningsCalendarGrid companies={payload!.companies} />
             ) : (
             <div className="overflow-x-auto border border-slate-700 rounded-lg">
-              <table className="w-full text-sm border-collapse">
+              <table className="w-full table-fixed text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-800">
-                    <th className="px-4 py-3 border-b border-slate-700 w-12 text-left font-semibold text-slate-200">#</th>
+                    <th className="px-4 py-3 border-b border-slate-700 w-12 text-center font-semibold text-slate-200">#</th>
                     {COLUMNS.map(col => {
                       const active = sort.key === col.key;
-                      const justify = col.align === 'right' ? 'justify-end'
-                        : col.align === 'center' ? 'justify-center' : 'justify-start';
                       return (
                         <th key={col.key} className="px-4 py-3 border-b border-slate-700">
                           <button
                             onClick={() => toggleSort(col.key)}
-                            className={`flex items-center gap-1 w-full ${justify} font-semibold transition-colors ${
+                            className={`flex items-center gap-1 w-full justify-center font-semibold transition-colors ${
                               active ? 'text-white' : 'text-slate-200 hover:text-white'
                             }`}
                           >
@@ -191,13 +189,13 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                         onClick={() => onOpenCompany(e.ticker)}
                         className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40 cursor-pointer"
                       >
-                        <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
-                        <td className="px-4 py-3 font-semibold text-white">{e.name}</td>
-                        <td className="px-4 py-3 text-slate-300 text-xs whitespace-nowrap">{e.sector ?? '—'}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-slate-400">{e.ticker}</td>
-                        <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(e.marketCap)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-white">#{e.marketCapRank}</td>
-                        <td className="px-4 py-3 text-right font-mono text-white whitespace-nowrap">
+                        <td className="px-4 py-3 text-center text-slate-500 font-mono">{i + 1}</td>
+                        <td className="px-4 py-3 text-center font-semibold text-white">{e.name}</td>
+                        <td className="px-4 py-3 text-center text-slate-300 text-xs">{e.sector ?? '—'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-xs text-slate-400">{e.ticker}</td>
+                        <td className="px-4 py-3 text-center font-mono text-white">{fmtMarketCap(e.marketCap)}</td>
+                        <td className="px-4 py-3 text-center font-mono text-white">#{e.marketCapRank}</td>
+                        <td className="px-4 py-3 text-center font-mono text-white whitespace-nowrap">
                           {fmtEarningsDate(e.date)}
                           <span className={daysColor(days)}> ({days >= 0 ? '+' : ''}{days})</span>
                         </td>
