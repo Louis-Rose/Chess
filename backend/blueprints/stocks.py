@@ -431,23 +431,31 @@ _calendar_state: dict = {
 }
 
 
-def _fetch_next_earnings(ticker: str) -> str | None:
-    """Next scheduled earnings date (ISO) from yfinance get_earnings_dates(),
-    or None if Yahoo has no future date for the ticker.
+def _fetch_earnings_window(ticker: str) -> dict:
+    """{'nextEarnings', 'lastEarnings'} (ISO dates or None) for `ticker`.
+
+    Both come out of a single yfinance get_earnings_dates() call — `nextEarnings`
+    is the soonest future date, `lastEarnings` is the most recent past one (no
+    age filter applied here; the snapshot trims it to the recent window).
 
     This is the only per-ticker Yahoo call left — market cap now comes from the
     companiesmarketcap.com scrape (see _fetch_universe), and the result is
     cached on disk so most builds re-fetch only a handful of tickers.
     """
+    out = {'nextEarnings': None, 'lastEarnings': None}
     try:
         ed = yfinance.Ticker(ticker).get_earnings_dates(limit=16)
         if ed is not None and not ed.empty:
-            future = ed[ed.index > datetime.now().astimezone()]
+            now = datetime.now().astimezone()
+            future = ed[ed.index > now]
+            past = ed[ed.index <= now]
             if not future.empty:
-                return future.index.min().date().isoformat()
+                out['nextEarnings'] = future.index.min().date().isoformat()
+            if not past.empty:
+                out['lastEarnings'] = past.index.max().date().isoformat()
     except Exception as e:
         logger.warning('Earnings dates fetch failed for %s: %s', ticker, e)
-    return None
+    return out
 
 
 # ── Live universe (scraped from companiesmarketcap.com) ──────────────────────
@@ -527,10 +535,14 @@ def _fetch_universe() -> dict[str, dict]:
 _EARNINGS_CACHE_FILE = os.path.join(
     os.path.dirname(__file__), os.pardir, 'stocks_earnings_cache.json')
 _EARNINGS_RECHECK_DAYS = 7
+# How far back the calendar surfaces past earnings — events older than this
+# disappear from the snapshot (the cache still holds the original date).
+_EARNINGS_PAST_WINDOW_DAYS = 14
 
 
 def _load_earnings_cache() -> dict:
-    """{ticker: {'nextEarnings': iso|None, 'fetchedAt': iso}} from disk, or {}."""
+    """{ticker: {'nextEarnings': iso|None, 'lastEarnings': iso|None,
+    'fetchedAt': iso}} from disk, or {}."""
     try:
         with open(_EARNINGS_CACHE_FILE) as f:
             data = json.load(f)
@@ -558,6 +570,7 @@ def _earnings_entry_stale(entry: dict, today: date, recheck_before: datetime) ->
         nxt, fetched_at = entry.get('nextEarnings'), entry.get('fetchedAt')
         return (
             nxt is None
+            or 'lastEarnings' not in entry           # pre-window-feature entry
             or fetched_at is None
             or datetime.fromisoformat(fetched_at) < recheck_before
             or date.fromisoformat(nxt) < today
@@ -580,28 +593,48 @@ def _build_calendar_snapshot() -> list[dict]:
     recheck_before = datetime.now() - timedelta(days=_EARNINGS_RECHECK_DAYS)
 
     # Split the universe into "cache still good" vs "needs a fresh fetch".
-    cached: dict[str, str | None] = {}
+    cached: dict[str, dict] = {}                     # {ticker: {nextEarnings, lastEarnings}}
     to_fetch: list[str] = []
     for ticker in universe:
         entry = cache.get(ticker)
         if entry and not _earnings_entry_stale(entry, today, recheck_before):
-            cached[ticker] = entry['nextEarnings']
+            cached[ticker] = {
+                'nextEarnings': entry['nextEarnings'],
+                'lastEarnings': entry.get('lastEarnings'),
+            }
         else:
             to_fetch.append(ticker)
 
     # Fetch only the stale/new ones, in parallel.
-    fetched: dict[str, str | None] = {}
+    fetched: dict[str, dict] = {}
     if to_fetch:
         with ThreadPoolExecutor(max_workers=_CALENDAR_WORKERS) as pool:
-            fetched = dict(zip(to_fetch, pool.map(_fetch_next_earnings, to_fetch)))
+            fetched = dict(zip(to_fetch, pool.map(_fetch_earnings_window, to_fetch)))
 
     # Persist the merged cache (only tickers still in the universe).
     now_iso = datetime.now().isoformat()
     _save_earnings_cache({
-        t: ({'nextEarnings': fetched[t], 'fetchedAt': now_iso}
+        t: ({'nextEarnings': fetched[t]['nextEarnings'],
+             'lastEarnings': fetched[t]['lastEarnings'],
+             'fetchedAt': now_iso}
             if t in fetched else cache[t])
         for t in universe
     })
+
+    # Trim past dates to the recent window — cache keeps the raw date, the
+    # snapshot only surfaces it if it's still within the past N days.
+    cutoff = today - timedelta(days=_EARNINGS_PAST_WINDOW_DAYS)
+
+    def windowed(iso: str | None) -> str | None:
+        if not iso:
+            return None
+        try:
+            return iso if date.fromisoformat(iso) >= cutoff else None
+        except ValueError:
+            return None
+
+    def pick(t: str) -> dict:
+        return fetched[t] if t in fetched else cached[t]
 
     # Assemble + rank rows.
     rows = [
@@ -609,7 +642,8 @@ def _build_calendar_snapshot() -> list[dict]:
             'ticker': t,
             'name': info['name'],
             'marketCap': info['marketCap'],
-            'nextEarnings': fetched[t] if t in fetched else cached[t],
+            'nextEarnings': pick(t)['nextEarnings'],
+            'lastEarnings': windowed(pick(t)['lastEarnings']),
         }
         for t, info in universe.items()
     ]

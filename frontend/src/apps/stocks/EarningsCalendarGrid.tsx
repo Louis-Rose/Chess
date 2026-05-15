@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { type CalendarCompany, fmtEarningsDate } from './calendarShared';
+import {
+  type CalendarCompany, type EarningsEvent, companyEvents, fmtEarningsDate,
+} from './calendarShared';
 
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June',
                      'July', 'August', 'September', 'October', 'November', 'December'];
@@ -50,12 +52,11 @@ function fmtWeekRange(start: Date): string {
 export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany[] }) {
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
 
-  // Weeks for the upcoming ~3 months, starting from this week's Monday — then
-  // extended so the final month row is shown in full, not cut off mid-month.
+  // Window: 2 weeks back through ~3 months forward, snapped to whole month rows.
   const today = new Date();
   const horizon = new Date(today.getFullYear(), today.getMonth() + 3, today.getDate());
   const weeks: Date[] = [];
-  let w = startOfWeek(today);
+  let w = startOfWeek(addDays(today, -14));
   while (w <= horizon) { weeks.push(new Date(w)); w = addDays(w, 7); }
   const lastMonth = weekMonth(weeks[weeks.length - 1]);
   const lastKey = lastMonth.year * 12 + lastMonth.month;
@@ -64,13 +65,13 @@ export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany
     w = addDays(w, 7);
   }
 
-  // Bucket each company into the week its next-earnings date falls in.
-  const byWeek: Record<string, CalendarCompany[]> = {};
-  for (const c of companies) {
-    if (!c.nextEarnings) continue;
-    const [y, m, d] = c.nextEarnings.split('-').map(Number);
+  // Bucket each (company, earnings date) event into the week it falls in — so
+  // a company that reported recently and reports again later shows up twice.
+  const byWeek: Record<string, EarningsEvent[]> = {};
+  for (const e of companyEvents(companies)) {
+    const [y, m, d] = e.date.split('-').map(Number);
     const key = isoDay(startOfWeek(new Date(y, m - 1, d)));
-    (byWeek[key] ??= []).push(c);
+    (byWeek[key] ??= []).push(e);
   }
 
   // One row per month; a split week lands in the month with most of its days.
@@ -84,8 +85,7 @@ export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany
   }
 
   const selected = selectedWeek
-    ? [...(byWeek[selectedWeek] ?? [])].sort(
-        (a, b) => (a.nextEarnings ?? '').localeCompare(b.nextEarnings ?? ''))
+    ? [...(byWeek[selectedWeek] ?? [])].sort((a, b) => a.date.localeCompare(b.date))
     : [];
 
   return (
@@ -131,11 +131,11 @@ export function EarningsCalendarGrid({ companies }: { companies: CalendarCompany
             {selected.length} reporting the week of {fmtWeekRange(weeks.find(w => isoDay(w) === selectedWeek)!)}
           </div>
           <div className="divide-y divide-slate-800">
-            {selected.map(c => (
-              <div key={c.ticker} className="flex items-center gap-3 py-2 text-sm">
-                <span className="font-semibold text-white flex-1 min-w-0 truncate">{c.name}</span>
-                <span className="font-mono text-xs text-slate-400 w-16">{c.ticker}</span>
-                <span className="font-mono text-white w-28 text-right">{fmtEarningsDate(c.nextEarnings)}</span>
+            {selected.map(e => (
+              <div key={`${e.ticker}-${e.date}`} className="flex items-center gap-3 py-2 text-sm">
+                <span className="font-semibold text-white flex-1 min-w-0 truncate">{e.name}</span>
+                <span className="font-mono text-xs text-slate-400 w-16">{e.ticker}</span>
+                <span className="font-mono text-white w-28 text-right">{fmtEarningsDate(e.date)}</span>
               </div>
             ))}
           </div>

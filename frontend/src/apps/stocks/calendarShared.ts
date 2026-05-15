@@ -5,7 +5,41 @@ export interface CalendarCompany {
   ticker: string;
   name: string;
   marketCap: number;
-  nextEarnings: string | null;   // from yfinance get_earnings_dates()
+  nextEarnings: string | null;   // soonest future earnings date
+  lastEarnings: string | null;   // most recent past date, trimmed to the recent window by the backend
+}
+
+// One earnings event = one (company, date) pair. A company can produce up to
+// two events — one for its most recent past report, one for its next future
+// report — so the calendar shows them on separate rows.
+export interface EarningsEvent {
+  ticker: string;
+  name: string;
+  marketCap: number;
+  date: string;   // ISO YYYY-MM-DD
+}
+
+export function companyEvents(companies: CalendarCompany[]): EarningsEvent[] {
+  const out: EarningsEvent[] = [];
+  for (const c of companies) {
+    const base = { ticker: c.ticker, name: c.name, marketCap: c.marketCap };
+    if (c.lastEarnings) out.push({ ...base, date: c.lastEarnings });
+    if (c.nextEarnings) out.push({ ...base, date: c.nextEarnings });
+  }
+  return out;
+}
+
+// Signed day count from today to an ISO date — -3, 0, +24.
+export function daysUntil(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(y, m - 1, d).getTime() - today.getTime()) / 86_400_000);
+}
+
+// Color the day-count by sign: red for past, green for today / future.
+export function daysColor(n: number): string {
+  return n < 0 ? 'text-red-400' : 'text-emerald-400';
 }
 
 export const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',

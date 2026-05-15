@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
-import { type CalendarCompany, fmtMarketCap, fmtEarningsDate } from './calendarShared';
+import {
+  type CalendarCompany, companyEvents, daysUntil, daysColor,
+  fmtMarketCap, fmtEarningsDate,
+} from './calendarShared';
 import { EarningsCalendarGrid } from './EarningsCalendarGrid';
 
 interface CalendarPayload {
@@ -14,16 +17,7 @@ interface CalendarPayload {
   companies: CalendarCompany[];
 }
 
-// Signed day count from today to an ISO date — "+24", "0", "-3".
-function fmtDaysUntil(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const days = Math.round((new Date(y, m - 1, d).getTime() - today.getTime()) / 86_400_000);
-  return `${days >= 0 ? '+' : ''}${days}`;
-}
-
-type SortKey = 'name' | 'ticker' | 'marketCap' | 'nextEarnings';
+type SortKey = 'name' | 'ticker' | 'marketCap' | 'date';
 
 // The '#' column is a plain 1..N row counter (always in display order), so it
 // is rendered separately and is not sortable.
@@ -31,7 +25,7 @@ const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center'
   { key: 'name', label: 'Company', align: 'left' },
   { key: 'ticker', label: 'Ticker', align: 'left' },
   { key: 'marketCap', label: 'Market cap', align: 'right' },
-  { key: 'nextEarnings', label: 'Next earnings', align: 'right' },
+  { key: 'date', label: 'Earnings date', align: 'right' },
 ];
 
 export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: string) => void }) {
@@ -64,25 +58,27 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
 
   const [view, setView] = useState<'list' | 'calendar'>('list');
 
-  // Default to next earnings, soonest first — that's what the user comes here for.
-  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'nextEarnings', dir: 'asc' });
+  // Default to earnings date, soonest first — that's what the user comes here for.
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'date', dir: 'asc' });
   const toggleSort = (key: SortKey) =>
     setSort(prev => prev.key === key
       ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
       : { key, dir: 'asc' });
 
-  const sorted = [...(payload?.companies ?? [])].sort((a, b) => {
+  // One row per (company, earnings date) — a company with both a recent past
+  // report and a known future one shows up twice, on separate rows.
+  const events = useMemo(() => companyEvents(payload?.companies ?? []), [payload?.companies]);
+  const sorted = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
-    switch (sort.key) {
-      case 'marketCap': return (a.marketCap - b.marketCap) * dir;
-      case 'name': return a.name.localeCompare(b.name) * dir;
-      case 'ticker': return a.ticker.localeCompare(b.ticker) * dir;
-      case 'nextEarnings':
-        if (!a.nextEarnings) return b.nextEarnings ? 1 : 0;   // missing dates sort last
-        if (!b.nextEarnings) return -1;
-        return a.nextEarnings.localeCompare(b.nextEarnings) * dir;
-    }
-  });
+    return [...events].sort((a, b) => {
+      switch (sort.key) {
+        case 'marketCap': return (a.marketCap - b.marketCap) * dir;
+        case 'name': return a.name.localeCompare(b.name) * dir;
+        case 'ticker': return a.ticker.localeCompare(b.ticker) * dir;
+        case 'date': return a.date.localeCompare(b.date) * dir;
+      }
+    });
+  }, [events, sort]);
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -183,24 +179,25 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((c, i) => (
-                    <tr
-                      key={c.ticker}
-                      onClick={() => onOpenCompany(c.ticker)}
-                      className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40 cursor-pointer"
-                    >
-                      <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
-                      <td className="px-4 py-3 font-semibold text-white">{c.name}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-slate-400">{c.ticker}</td>
-                      <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(c.marketCap)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-white whitespace-nowrap">
-                        {fmtEarningsDate(c.nextEarnings)}
-                        {c.nextEarnings && (
-                          <span className="text-slate-400"> ({fmtDaysUntil(c.nextEarnings)})</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {sorted.map((e, i) => {
+                    const days = daysUntil(e.date);
+                    return (
+                      <tr
+                        key={`${e.ticker}-${e.date}`}
+                        onClick={() => onOpenCompany(e.ticker)}
+                        className="border-b border-slate-700 last:border-b-0 hover:bg-slate-800/40 cursor-pointer"
+                      >
+                        <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
+                        <td className="px-4 py-3 font-semibold text-white">{e.name}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-slate-400">{e.ticker}</td>
+                        <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(e.marketCap)}</td>
+                        <td className="px-4 py-3 text-right font-mono text-white whitespace-nowrap">
+                          {fmtEarningsDate(e.date)}
+                          <span className={daysColor(days)}> ({days >= 0 ? '+' : ''}{days})</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
