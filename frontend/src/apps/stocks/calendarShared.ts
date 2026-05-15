@@ -5,6 +5,7 @@ export interface CalendarCompany {
   ticker: string;
   name: string;
   marketCap: number;
+  sector: string | null;         // GICS-style sector from Yahoo (e.g. "Technology")
   nextEarnings: string | null;   // soonest future earnings date
   lastEarnings: string | null;   // most recent past date, trimmed to the recent window by the backend
 }
@@ -17,6 +18,7 @@ export interface EarningsEvent {
   name: string;
   marketCap: number;
   marketCapRank: number;   // 1 = largest in the full universe
+  sector: string | null;
   date: string;            // ISO YYYY-MM-DD
 }
 
@@ -35,6 +37,7 @@ export function companyEvents(companies: CalendarCompany[]): EarningsEvent[] {
       name: c.name,
       marketCap: c.marketCap,
       marketCapRank: rankByTicker.get(c.ticker)!,
+      sector: c.sector,
     };
     if (c.lastEarnings) out.push({ ...base, date: c.lastEarnings });
     if (c.nextEarnings) out.push({ ...base, date: c.nextEarnings });

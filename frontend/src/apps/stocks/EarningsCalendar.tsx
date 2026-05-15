@@ -17,12 +17,13 @@ interface CalendarPayload {
   companies: CalendarCompany[];
 }
 
-type SortKey = 'name' | 'ticker' | 'marketCap' | 'marketCapRank' | 'date';
+type SortKey = 'name' | 'sector' | 'ticker' | 'marketCap' | 'marketCapRank' | 'date';
 
 // The '#' column is a plain 1..N row counter (always in display order), so it
 // is rendered separately and is not sortable.
 const COLUMNS: { key: SortKey; label: string; align: 'left' | 'right' | 'center' }[] = [
   { key: 'name', label: 'Company', align: 'left' },
+  { key: 'sector', label: 'Sector', align: 'left' },
   { key: 'ticker', label: 'Ticker', align: 'left' },
   { key: 'marketCap', label: 'Market cap', align: 'right' },
   { key: 'marketCapRank', label: 'Ranking', align: 'right' },
@@ -76,6 +77,7 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
         case 'marketCap': return (a.marketCap - b.marketCap) * dir;
         case 'marketCapRank': return (a.marketCapRank - b.marketCapRank) * dir;
         case 'name': return a.name.localeCompare(b.name) * dir;
+        case 'sector': return (a.sector ?? '').localeCompare(b.sector ?? '') * dir;
         case 'ticker': return a.ticker.localeCompare(b.ticker) * dir;
         case 'date': return a.date.localeCompare(b.date) * dir;
       }
@@ -191,9 +193,10 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                       >
                         <td className="px-4 py-3 text-slate-500 font-mono">{i + 1}</td>
                         <td className="px-4 py-3 font-semibold text-white">{e.name}</td>
+                        <td className="px-4 py-3 text-slate-300 text-xs whitespace-nowrap">{e.sector ?? '—'}</td>
                         <td className="px-4 py-3 font-mono text-xs text-slate-400">{e.ticker}</td>
                         <td className="px-4 py-3 text-right font-mono text-white">{fmtMarketCap(e.marketCap)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-slate-400">#{e.marketCapRank}</td>
+                        <td className="px-4 py-3 text-right font-mono text-white">#{e.marketCapRank}</td>
                         <td className="px-4 py-3 text-right font-mono text-white whitespace-nowrap">
                           {fmtEarningsDate(e.date)}
                           <span className={daysColor(days)}> ({days >= 0 ? '+' : ''}{days})</span>

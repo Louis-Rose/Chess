@@ -380,15 +380,10 @@ def _domain_from_url(url: str | None) -> str | None:
         return None
 
 
-def _fetch_company_profile(ticker: str) -> dict:
-    """Return {'website', 'domain', 'irWebsite'} for `ticker`. Cached on disk
-    after the first fetch; missing fields are None."""
-    with _profile_lock:
-        cache = _load_profile_cache()
-        entry = cache.get(ticker)
-        if isinstance(entry, dict):
-            return entry
-    profile = {'website': None, 'domain': None, 'irWebsite': None}
+def _build_profile(ticker: str) -> dict:
+    """Yahoo `.info` fetch only — no cache I/O. Missing fields come back as None."""
+    profile = {'website': None, 'domain': None, 'irWebsite': None,
+               'sector': None, 'industry': None}
     try:
         info = yfinance.Ticker(ticker).info or {}
         website = info.get('website')
@@ -396,14 +391,51 @@ def _fetch_company_profile(ticker: str) -> dict:
             'website': website,
             'domain': _domain_from_url(website),
             'irWebsite': info.get('irWebsite'),
+            'sector': info.get('sector'),
+            'industry': info.get('industry'),
         }
     except Exception as e:
         logger.warning('Profile fetch failed for %s: %s', ticker, e)
+    return profile
+
+
+def _profile_entry_fresh(entry) -> bool:
+    """A cache entry is usable iff it's a dict carrying every field this version
+    of the code reads — older entries (no 'sector') are treated as stale."""
+    return isinstance(entry, dict) and 'sector' in entry
+
+
+def _fetch_company_profile(ticker: str) -> dict:
+    """Return {'website', 'domain', 'irWebsite', 'sector', 'industry'} for
+    `ticker`. Cached on disk after the first fetch; missing fields are None."""
+    with _profile_lock:
+        cache = _load_profile_cache()
+        entry = cache.get(ticker)
+        if _profile_entry_fresh(entry):
+            return entry
+    profile = _build_profile(ticker)
     with _profile_lock:
         cache = _load_profile_cache()
         cache[ticker] = profile
         _save_profile_cache(cache)
     return profile
+
+
+def _ensure_profiles_cached(tickers: list[str]) -> None:
+    """Batch-fetch profiles for any tickers not yet in the cache, in parallel.
+    Used by the calendar build so the snapshot can carry sector for every row."""
+    with _profile_lock:
+        cache = _load_profile_cache()
+    missing = [t for t in tickers if not _profile_entry_fresh(cache.get(t))]
+    if not missing:
+        return
+    logger.info('Prefetching profiles for %d ticker(s)…', len(missing))
+    with ThreadPoolExecutor(max_workers=_CALENDAR_WORKERS) as pool:
+        results = dict(zip(missing, pool.map(_build_profile, missing)))
+    with _profile_lock:
+        cache = _load_profile_cache()
+        cache.update(results)
+        _save_profile_cache(cache)
 
 
 # ── Earnings calendar (top companies by market cap) ──────────────────────────
@@ -636,12 +668,18 @@ def _build_calendar_snapshot() -> list[dict]:
     def pick(t: str) -> dict:
         return fetched[t] if t in fetched else cached[t]
 
+    # Sector — one Yahoo `.info` call per ticker, cached forever. The first
+    # build after deploy fills in all 300; subsequent builds are no-ops here.
+    _ensure_profiles_cached(list(universe.keys()))
+    profile_cache = _load_profile_cache()
+
     # Assemble + rank rows.
     rows = [
         {
             'ticker': t,
             'name': info['name'],
             'marketCap': info['marketCap'],
+            'sector': (profile_cache.get(t) or {}).get('sector'),
             'nextEarnings': pick(t)['nextEarnings'],
             'lastEarnings': windowed(pick(t)['lastEarnings']),
         }
