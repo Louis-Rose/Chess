@@ -67,13 +67,16 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
   // How far back the list reaches: -14 / -7 / 0 (today only). The backend
   // already caps past data at 14 days, so the slider just narrows from there.
   const [startOffset, setStartOffset] = useState(-14);
+  // Cap on market-cap rank shown — slider goes 20..500 in steps of 20.
+  const [maxRank, setMaxRank] = useState(500);
 
   // One row per (company, earnings date) — a company with both a recent past
   // report and a known future one shows up twice, on separate rows.
   const events = useMemo(() => companyEvents(payload?.companies ?? []), [payload?.companies]);
   const sorted = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
-    const filtered = events.filter(e => daysUntil(e.date) >= startOffset);
+    const filtered = events.filter(e =>
+      daysUntil(e.date) >= startOffset && e.marketCapRank <= maxRank);
     return filtered.sort((a, b) => {
       switch (sort.key) {
         case 'marketCap': return (a.marketCap - b.marketCap) * dir;
@@ -84,7 +87,7 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
         case 'date': return a.date.localeCompare(b.date) * dir;
       }
     });
-  }, [events, sort, startOffset]);
+  }, [events, sort, startOffset, maxRank]);
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -139,8 +142,8 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                 <span>Showing the last good snapshot — the most recent refresh failed: {payload!.error}</span>
               </div>
             )}
-            <div className="flex items-center justify-center gap-4 mb-4 text-sm">
-              <span className="text-slate-400 whitespace-nowrap">Start from</span>
+            <div className="flex items-center justify-center gap-4 mb-2 text-sm">
+              <span className="text-slate-400 whitespace-nowrap w-20 text-right">Start from</span>
               <input
                 type="range"
                 min={-14}
@@ -153,6 +156,19 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
               <span className={`font-mono whitespace-nowrap w-20 ${daysColor(startOffset)}`}>
                 {startOffset === 0 ? 'today' : `${startOffset} days`}
               </span>
+            </div>
+            <div className="flex items-center justify-center gap-4 mb-4 text-sm">
+              <span className="text-slate-400 whitespace-nowrap w-20 text-right">Top</span>
+              <input
+                type="range"
+                min={20}
+                max={500}
+                step={20}
+                value={maxRank}
+                onChange={e => setMaxRank(+e.target.value)}
+                className="w-96 accent-emerald-500"
+              />
+              <span className="font-mono whitespace-nowrap w-20 text-white">#{maxRank}</span>
             </div>
             <div className="overflow-x-auto border border-slate-700 rounded-lg">
               <table className="w-full table-fixed text-sm border-collapse">
