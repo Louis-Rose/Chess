@@ -64,12 +64,17 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
       ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
       : { key, dir: 'asc' });
 
+  // How far back the list reaches: -14 / -7 / 0 (today only). The backend
+  // already caps past data at 14 days, so the slider just narrows from there.
+  const [startOffset, setStartOffset] = useState(-14);
+
   // One row per (company, earnings date) — a company with both a recent past
   // report and a known future one shows up twice, on separate rows.
   const events = useMemo(() => companyEvents(payload?.companies ?? []), [payload?.companies]);
   const sorted = useMemo(() => {
     const dir = sort.dir === 'asc' ? 1 : -1;
-    return [...events].sort((a, b) => {
+    const filtered = events.filter(e => daysUntil(e.date) >= startOffset);
+    return filtered.sort((a, b) => {
       switch (sort.key) {
         case 'marketCap': return (a.marketCap - b.marketCap) * dir;
         case 'marketCapRank': return (a.marketCapRank - b.marketCapRank) * dir;
@@ -79,7 +84,7 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
         case 'date': return a.date.localeCompare(b.date) * dir;
       }
     });
-  }, [events, sort]);
+  }, [events, sort, startOffset]);
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans">
@@ -134,6 +139,21 @@ export function EarningsCalendar({ onOpenCompany }: { onOpenCompany: (ticker: st
                 <span>Showing the last good snapshot — the most recent refresh failed: {payload!.error}</span>
               </div>
             )}
+            <div className="flex items-center justify-center gap-4 mb-4 text-sm">
+              <span className="text-slate-400 whitespace-nowrap">Start from</span>
+              <input
+                type="range"
+                min={-14}
+                max={0}
+                step={1}
+                value={startOffset}
+                onChange={e => setStartOffset(+e.target.value)}
+                className="w-64 accent-emerald-500"
+              />
+              <span className={`font-mono w-16 ${daysColor(startOffset)}`}>
+                {startOffset === 0 ? 'today' : `${startOffset} days`}
+              </span>
+            </div>
             <div className="overflow-x-auto border border-slate-700 rounded-lg">
               <table className="w-full table-fixed text-sm border-collapse">
                 <thead>
