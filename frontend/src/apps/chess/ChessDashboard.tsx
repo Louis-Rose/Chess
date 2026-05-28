@@ -76,7 +76,7 @@ export function ChessDashboard() {
   const days = data?.days ?? [];
   const reg = data?.regression ?? null;
 
-  const regSegment = (() => {
+  const regSegment = ((): [{ x: number; y: number }, { x: number; y: number }] | null => {
     if (!reg || days.length === 0) return null;
     const xs = days.map(d => d.games);
     const minX = Math.min(...xs);
