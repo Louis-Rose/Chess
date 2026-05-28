@@ -57,9 +57,21 @@ def _fetch_json(url):
     return resp.json()
 
 
+_DRAW_RESULTS = {'stalemate', 'agreed', 'repetition', 'insufficient', '50move', 'timevsinsufficient'}
+_SCORE = {'win': 1.0, 'draw': 0.5, 'loss': 0.0}
+
+
+def _result(code):
+    if code == 'win':
+        return 'win'
+    if code in _DRAW_RESULTS:
+        return 'draw'
+    return 'loss'
+
+
 def _fetch_rapid(url):
-    """Return [(end_time, post_game_rating)] for the owner's rapid games in one
-    monthly archive."""
+    """Return [(end_time, post_game_rating, result)] for the owner's rapid games
+    in one monthly archive. result is 'win' | 'loss' | 'draw'."""
     try:
         games = _fetch_json(url).get('games', [])
     except Exception as e:
@@ -73,14 +85,14 @@ def _fetch_rapid(url):
         side = white if white.get('username', '').lower() == CHESS_USERNAME else g.get('black', {})
         rating, end = side.get('rating'), g.get('end_time')
         if rating is not None and end is not None:
-            out.append((end, rating))
+            out.append((end, rating, _result(side.get('result'))))
     return out
 
 
 def _months(games):
     """Continuous, chronological list of {month, count}, gaps filled with zero."""
     counts = defaultdict(int)
-    for end, _ in games:
+    for end, _rating, _result_ in games:
         counts[datetime.fromtimestamp(end, tz=timezone.utc).strftime('%Y-%m')] += 1
     if not counts:
         return []
@@ -104,7 +116,7 @@ def _days(games):
     predecessor) is excluded."""
     by_day = defaultdict(list)
     for i in range(1, len(games)):
-        end, rating = games[i]
+        end, rating, _result_ = games[i]
         delta = rating - games[i - 1][1]
         day = datetime.fromtimestamp(end, tz=timezone.utc).strftime('%Y-%m-%d')
         by_day[day].append(delta)
@@ -135,6 +147,36 @@ def _regression(days):
     }
 
 
+def _streaks(games):
+    """Bucket each game by the win/loss streak immediately before it and report
+    the win rate of the games that follow.
+
+    The streak is signed: negative = consecutive losses, positive = consecutive
+    wins, 0 = right after a draw or the very first game. A draw resets the
+    streak. win_rate counts draws as half a win."""
+    buckets = defaultdict(list)
+    streak = 0
+    for _end, _rating, result in games:
+        buckets[streak].append(_SCORE[result])
+        if result == 'win':
+            streak = streak + 1 if streak > 0 else 1
+        elif result == 'loss':
+            streak = streak - 1 if streak < 0 else -1
+        else:
+            streak = 0
+    out = []
+    for s in sorted(buckets):
+        scores = buckets[s]
+        avg = sum(scores) / len(scores)
+        out.append({
+            'streak': s,
+            'games': len(scores),
+            'win_rate': round(avg * 100, 1),
+            'winning': avg > 0.5,
+        })
+    return out
+
+
 @chess_bp.route('/api/chess/rapid-stats', methods=['GET'])
 @owner_required
 def rapid_stats():
@@ -158,4 +200,5 @@ def rapid_stats():
         'months': _months(games),
         'days': days,
         'regression': _regression(days),
+        'streaks': _streaks(games),
     })

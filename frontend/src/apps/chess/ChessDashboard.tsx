@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-  BarChart, Bar, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, Cell, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts';
 import { Crown } from 'lucide-react';
@@ -28,12 +28,20 @@ interface Regression {
   significant: boolean;
 }
 
+interface Streak {
+  streak: number; // negative = losses before, positive = wins before, 0 = after a draw
+  games: number;
+  win_rate: number;
+  winning: boolean;
+}
+
 interface RapidStats {
   username: string;
   total: number;
   months: MonthCount[];
   days: Day[];
   regression: Regression | null;
+  streaks: Streak[];
 }
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -60,6 +68,24 @@ function ScatterTooltip({ active, payload }: { active?: boolean; payload?: Array
   );
 }
 
+function streakDescription(s: number): string {
+  if (s === 0) return 'After a draw';
+  const n = Math.abs(s);
+  return s < 0 ? `After ${n} ${n === 1 ? 'loss' : 'losses'}` : `After ${n} ${n === 1 ? 'win' : 'wins'}`;
+}
+
+function StreakTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: Streak }> }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
+      <div className="text-slate-300 font-medium mb-1">{streakDescription(d.streak)}</div>
+      <div className={d.winning ? 'text-emerald-400' : 'text-red-400'}>{d.win_rate}% win rate</div>
+      <div className="text-slate-500">{d.games} games</div>
+    </div>
+  );
+}
+
 export function ChessDashboard() {
   const [data, setData] = useState<RapidStats | null>(null);
   const [error, setError] = useState(false);
@@ -75,6 +101,7 @@ export function ChessDashboard() {
   const monthData = (data?.months ?? []).map(m => ({ ...m, label: monthLabel(m.month) }));
   const days = data?.days ?? [];
   const reg = data?.regression ?? null;
+  const streakData = (data?.streaks ?? []).map(s => ({ ...s, label: `${s.streak > 0 ? '+' : ''}${s.streak}` }));
 
   const regSegment = ((): [{ x: number; y: number }, { x: number; y: number }] | null => {
     if (!reg || days.length === 0) return null;
@@ -194,6 +221,44 @@ export function ChessDashboard() {
               ) : (
                 <div className="mt-4 text-sm text-slate-500">Not enough data for a regression.</div>
               )}
+            </div>
+
+            {/* Win rate after a win/loss streak */}
+            <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+              <h2 className="text-sm font-medium text-slate-300 mb-1">Win rate after a streak</h2>
+              <p className="text-xs text-slate-500 mb-4">
+                Win rate of the next game after consecutive losses (left) or wins (right). Green is net winning, red is net losing. Bars fade when based on few games.
+              </p>
+              <div className="[&_*:focus]:outline-none">
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={streakData} margin={{ top: 4, right: 8, bottom: 24, left: -8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: '#e2e8f0', fontSize: 11 }}
+                      interval={0}
+                      label={{ value: 'Streak before the game', position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      ticks={[0, 25, 50, 75, 100]}
+                      tick={{ fill: '#e2e8f0', fontSize: 12 }}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <ReferenceLine y={50} stroke="#64748b" strokeDasharray="3 3" />
+                    <Tooltip cursor={{ fill: '#334155', opacity: 0.3 }} content={<StreakTooltip />} />
+                    <Bar dataKey="win_rate" radius={[3, 3, 0, 0]}>
+                      {streakData.map((d) => (
+                        <Cell
+                          key={d.streak}
+                          fill={d.winning ? '#10b981' : '#ef4444'}
+                          fillOpacity={Math.max(0.3, Math.min(1, d.games / 40))}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
