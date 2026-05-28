@@ -96,7 +96,7 @@ export function ChessDashboard() {
         </header>
         <p className="text-slate-400 text-sm mb-6">
           Rapid games on chess.com
-          {data && <> — <span className="text-slate-200 font-mono">{data.username}</span>, {data.total} games total</>}
+          {data && <> for <span className="text-slate-200 font-mono">{data.username}</span>. {data.total} games total.</>}
         </p>
 
         {loading && (
@@ -145,7 +145,7 @@ export function ChessDashboard() {
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
               <h2 className="text-sm font-medium text-slate-300 mb-1">Does playing more lead to more elo?</h2>
               <p className="text-xs text-slate-500 mb-4">
-                Each point is a day: games played that day vs. the average elo change per game that day.
+                Each point is a day with 3+ rapid games: games played that day vs. the average elo change per game that day.
               </p>
               <div className="[&_*:focus]:outline-none">
                 <ResponsiveContainer width="100%" height={340}>

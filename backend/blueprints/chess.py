@@ -29,6 +29,7 @@ chess_bp = Blueprint('chess', __name__)
 
 CHESS_USERNAME = 'akyrosu'
 _USER_AGENT = 'LUMNA/1.0 (https://lumna.co; rose.louis.mail@gmail.com)'
+_MIN_GAMES_PER_DAY = 3  # 1-2 game days are too noisy to average, so they're dropped
 
 
 # ── Owner gate ───────────────────────────────────────────────────────────────
@@ -150,7 +151,7 @@ def rapid_stats():
             games.extend(chunk)
     games.sort(key=lambda g: g[0])
 
-    days = _days(games)
+    days = [d for d in _days(games) if d['games'] >= _MIN_GAMES_PER_DAY]
     return jsonify({
         'username': CHESS_USERNAME,
         'total': len(games),
