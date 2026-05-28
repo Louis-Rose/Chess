@@ -1,16 +1,24 @@
 """Chess sub-app — private, owner-only.
 
-Fetches the owner's chess.com games and aggregates rapid-game counts by month.
+Fetches the owner's chess.com rapid games and serves three things in one pass:
+  - monthly game counts (bar chart),
+  - per-day points of {games that day, average per-game elo change that day},
+  - a linear regression of average per-game elo change on daily game volume.
+
 Gated to the site owner via GYM_OWNER_EMAIL (reused as the single owner email).
 """
 
 import logging
 import os
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from functools import wraps
 
+import numpy as np
 import requests as http_requests
 from flask import Blueprint, jsonify
+from scipy import stats
 
 from auth import get_current_user
 from database import get_db
@@ -48,41 +56,87 @@ def _fetch_json(url):
     return resp.json()
 
 
-def _build_months(stats):
-    """Return a continuous, chronologically-ordered list of
-    {month, count, elo_change} from the first to the last month seen.
-
-    Gaps and game-less months get zero. Monthly elo change is the player's
-    rating after the last rapid game of the month minus their rating at the end
-    of the previous month that had games (for the first such month, the rating
-    after its first rapid game)."""
-    if not stats:
+def _fetch_rapid(url):
+    """Return [(end_time, post_game_rating)] for the owner's rapid games in one
+    monthly archive."""
+    try:
+        games = _fetch_json(url).get('games', [])
+    except Exception as e:
+        logger.warning('chess.com archive fetch failed for %s: %s', url, e)
         return []
-    keys = sorted(stats)  # 'YYYY-MM' sorts chronologically
-    start_y, start_m = (int(p) for p in keys[0].split('-'))
-    end_y, end_m = (int(p) for p in keys[-1].split('-'))
     out = []
-    prev_last = None  # rating at the end of the previous month with games
-    y, m = start_y, start_m
-    while (y, m) <= (end_y, end_m):
+    for g in games:
+        if g.get('time_class') != 'rapid':
+            continue
+        white = g.get('white', {})
+        side = white if white.get('username', '').lower() == CHESS_USERNAME else g.get('black', {})
+        rating, end = side.get('rating'), g.get('end_time')
+        if rating is not None and end is not None:
+            out.append((end, rating))
+    return out
+
+
+def _months(games):
+    """Continuous, chronological list of {month, count}, gaps filled with zero."""
+    counts = defaultdict(int)
+    for end, _ in games:
+        counts[datetime.fromtimestamp(end, tz=timezone.utc).strftime('%Y-%m')] += 1
+    if not counts:
+        return []
+    keys = sorted(counts)
+    sy, sm = (int(p) for p in keys[0].split('-'))
+    ey, em = (int(p) for p in keys[-1].split('-'))
+    out = []
+    y, m = sy, sm
+    while (y, m) <= (ey, em):
         key = f'{y:04d}-{m:02d}'
-        s = stats.get(key)
-        if s and s['count'] > 0:
-            base = prev_last if prev_last is not None else s['first']
-            change = s['last'] - base
-            prev_last = s['last']
-            out.append({'month': key, 'count': s['count'], 'elo_change': change})
-        else:
-            out.append({'month': key, 'count': 0, 'elo_change': 0})
+        out.append({'month': key, 'count': counts.get(key, 0)})
         m += 1
         if m > 12:
             y, m = y + 1, 1
     return out
 
 
-@chess_bp.route('/api/chess/rapid-by-month', methods=['GET'])
+def _days(games):
+    """Per-day {date, games, avg_elo}. A game's elo change is its post-game
+    rating minus the previous rapid game's rating, so the first game ever (no
+    predecessor) is excluded."""
+    by_day = defaultdict(list)
+    for i in range(1, len(games)):
+        end, rating = games[i]
+        delta = rating - games[i - 1][1]
+        day = datetime.fromtimestamp(end, tz=timezone.utc).strftime('%Y-%m-%d')
+        by_day[day].append(delta)
+    return [
+        {'date': day, 'games': len(deltas), 'avg_elo': round(sum(deltas) / len(deltas), 2)}
+        for day, deltas in sorted(by_day.items())
+    ]
+
+
+def _regression(days):
+    """OLS of average per-game elo change (y) on daily game volume (x)."""
+    if len(days) < 3:
+        return None
+    xs = np.array([d['games'] for d in days], dtype=float)
+    ys = np.array([d['avg_elo'] for d in days], dtype=float)
+    if np.ptp(xs) == 0:
+        return None
+    r = stats.linregress(xs, ys)
+    return {
+        'n': len(days),
+        'slope': round(float(r.slope), 4),
+        'intercept': round(float(r.intercept), 4),
+        'r': round(float(r.rvalue), 4),
+        'r2': round(float(r.rvalue) ** 2, 4),
+        'stderr': round(float(r.stderr), 4),
+        'p_value': float(r.pvalue),
+        'significant': bool(r.pvalue < 0.05),
+    }
+
+
+@chess_bp.route('/api/chess/rapid-stats', methods=['GET'])
 @owner_required
-def rapid_by_month():
+def rapid_stats():
     archives_url = f'https://api.chess.com/pub/player/{CHESS_USERNAME}/games/archives'
     try:
         archives = _fetch_json(archives_url).get('archives', [])
@@ -90,33 +144,17 @@ def rapid_by_month():
         logger.warning('chess.com archives fetch failed: %s', e)
         return jsonify({'error': 'Could not reach chess.com'}), 502
 
-    def my_rating(game):
-        white = game.get('white', {})
-        side = white if white.get('username', '').lower() == CHESS_USERNAME else game.get('black', {})
-        return side.get('rating')
-
-    def scan_archive(url):
-        # Archive URLs end with /YYYY/MM
-        parts = url.rstrip('/').split('/')
-        month = f'{parts[-2]}-{parts[-1]}'
-        try:
-            games = _fetch_json(url).get('games', [])
-        except Exception as e:
-            logger.warning('chess.com archive fetch failed for %s: %s', url, e)
-            return month, 0, None, None
-        rapid = sorted(
-            (g for g in games if g.get('time_class') == 'rapid'),
-            key=lambda g: g.get('end_time', 0),
-        )
-        if not rapid:
-            return month, 0, None, None
-        return month, len(rapid), my_rating(rapid[0]), my_rating(rapid[-1])
-
-    stats = {}
+    games = []
     with ThreadPoolExecutor(max_workers=8) as ex:
-        for month, count, first, last in ex.map(scan_archive, archives):
-            stats[month] = {'count': count, 'first': first, 'last': last}
+        for chunk in ex.map(_fetch_rapid, archives):
+            games.extend(chunk)
+    games.sort(key=lambda g: g[0])
 
-    months = _build_months(stats)
-    total = sum(m['count'] for m in months)
-    return jsonify({'username': CHESS_USERNAME, 'total': total, 'months': months})
+    days = _days(games)
+    return jsonify({
+        'username': CHESS_USERNAME,
+        'total': len(games),
+        'months': _months(games),
+        'days': days,
+        'regression': _regression(days),
+    })
