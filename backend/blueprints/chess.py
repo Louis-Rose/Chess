@@ -48,20 +48,32 @@ def _fetch_json(url):
     return resp.json()
 
 
-def _fill_months(counts):
-    """Return a continuous, chronologically-ordered list of {month, count} from
-    the first to the last month seen, filling gaps with zero so the bar chart
-    reads as a timeline."""
-    if not counts:
+def _build_months(stats):
+    """Return a continuous, chronologically-ordered list of
+    {month, count, elo_change} from the first to the last month seen.
+
+    Gaps and game-less months get zero. Monthly elo change is the player's
+    rating after the last rapid game of the month minus their rating at the end
+    of the previous month that had games (for the first such month, the rating
+    after its first rapid game)."""
+    if not stats:
         return []
-    keys = sorted(counts)  # 'YYYY-MM' sorts chronologically
+    keys = sorted(stats)  # 'YYYY-MM' sorts chronologically
     start_y, start_m = (int(p) for p in keys[0].split('-'))
     end_y, end_m = (int(p) for p in keys[-1].split('-'))
     out = []
+    prev_last = None  # rating at the end of the previous month with games
     y, m = start_y, start_m
     while (y, m) <= (end_y, end_m):
         key = f'{y:04d}-{m:02d}'
-        out.append({'month': key, 'count': counts.get(key, 0)})
+        s = stats.get(key)
+        if s and s['count'] > 0:
+            base = prev_last if prev_last is not None else s['first']
+            change = s['last'] - base
+            prev_last = s['last']
+            out.append({'month': key, 'count': s['count'], 'elo_change': change})
+        else:
+            out.append({'month': key, 'count': 0, 'elo_change': 0})
         m += 1
         if m > 12:
             y, m = y + 1, 1
@@ -78,7 +90,12 @@ def rapid_by_month():
         logger.warning('chess.com archives fetch failed: %s', e)
         return jsonify({'error': 'Could not reach chess.com'}), 502
 
-    def count_archive(url):
+    def my_rating(game):
+        white = game.get('white', {})
+        side = white if white.get('username', '').lower() == CHESS_USERNAME else game.get('black', {})
+        return side.get('rating')
+
+    def scan_archive(url):
         # Archive URLs end with /YYYY/MM
         parts = url.rstrip('/').split('/')
         month = f'{parts[-2]}-{parts[-1]}'
@@ -86,14 +103,20 @@ def rapid_by_month():
             games = _fetch_json(url).get('games', [])
         except Exception as e:
             logger.warning('chess.com archive fetch failed for %s: %s', url, e)
-            return month, 0
-        return month, sum(1 for g in games if g.get('time_class') == 'rapid')
+            return month, 0, None, None
+        rapid = sorted(
+            (g for g in games if g.get('time_class') == 'rapid'),
+            key=lambda g: g.get('end_time', 0),
+        )
+        if not rapid:
+            return month, 0, None, None
+        return month, len(rapid), my_rating(rapid[0]), my_rating(rapid[-1])
 
-    counts = {}
+    stats = {}
     with ThreadPoolExecutor(max_workers=8) as ex:
-        for month, n in ex.map(count_archive, archives):
-            counts[month] = n
+        for month, count, first, last in ex.map(scan_archive, archives):
+            stats[month] = {'count': count, 'first': first, 'last': last}
 
-    months = _fill_months(counts)
+    months = _build_months(stats)
     total = sum(m['count'] for m in months)
     return jsonify({'username': CHESS_USERNAME, 'total': total, 'months': months})

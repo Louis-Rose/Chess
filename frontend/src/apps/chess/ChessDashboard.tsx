@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, ResponsiveContainer } from 'recharts';
 import { Crown } from 'lucide-react';
 
 interface MonthCount {
   month: string; // 'YYYY-MM'
   count: number;
+  elo_change: number;
 }
 
 interface RapidByMonth {
@@ -67,10 +68,10 @@ export function ChessDashboard() {
 
         {!loading && !error && chartData.length > 0 && (
           <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-            <h2 className="text-sm font-medium text-slate-300 mb-4">Games per month</h2>
+            <h2 className="text-sm font-medium text-slate-300 mb-4">Games and elo change per month</h2>
             <div className="[&_*:focus]:outline-none">
               <ResponsiveContainer width="100%" height={360}>
-                <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 24, left: -8 }}>
+                <ComposedChart data={chartData} margin={{ top: 4, right: 8, bottom: 24, left: -8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis
                     dataKey="label"
@@ -80,15 +81,23 @@ export function ChessDashboard() {
                     height={50}
                     interval={0}
                   />
-                  <YAxis tick={{ fill: '#e2e8f0', fontSize: 12 }} allowDecimals={false} />
+                  <YAxis yAxisId="games" tick={{ fill: '#e2e8f0', fontSize: 12 }} allowDecimals={false} />
+                  <YAxis yAxisId="elo" orientation="right" tick={{ fill: '#f59e0b', fontSize: 12 }} allowDecimals={false} />
+                  <ReferenceLine yAxisId="elo" y={0} stroke="#f59e0b" strokeDasharray="3 3" strokeOpacity={0.5} />
                   <Tooltip
                     cursor={{ fill: '#334155', opacity: 0.3 }}
                     contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                     labelStyle={{ color: '#e2e8f0' }}
-                    formatter={(value) => [`${value} games`, 'Rapid']}
+                    formatter={(value, name) =>
+                      name === 'Elo change'
+                        ? [`${(value as number) > 0 ? '+' : ''}${value}`, name]
+                        : [`${value} games`, name]
+                    }
                   />
-                  <Bar dataKey="count" fill="#10b981" radius={[3, 3, 0, 0]} />
-                </BarChart>
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar yAxisId="games" dataKey="count" name="Rapid games" fill="#10b981" radius={[3, 3, 0, 0]} />
+                  <Line yAxisId="elo" type="monotone" dataKey="elo_change" name="Elo change" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </div>
