@@ -32,7 +32,15 @@ interface Streak {
   streak: number; // negative = losses before, positive = wins before, 0 = after a draw
   games: number;
   win_rate: number;
-  winning: boolean;
+}
+
+const STREAK_COLORS = { win: '#10b981', loss: '#ef4444', even: '#94a3b8' };
+const STREAK_TEXT = { win: 'text-emerald-400', loss: 'text-red-400', even: 'text-slate-300' };
+
+function streakState(winRate: number): 'win' | 'loss' | 'even' {
+  if (winRate > 50) return 'win';
+  if (winRate < 50) return 'loss';
+  return 'even';
 }
 
 interface RapidStats {
@@ -80,7 +88,7 @@ function StreakTooltip({ active, payload }: { active?: boolean; payload?: Array<
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
       <div className="text-slate-300 font-medium mb-1">{streakDescription(d.streak)}</div>
-      <div className={d.winning ? 'text-emerald-400' : 'text-red-400'}>{d.win_rate}% win rate</div>
+      <div className={STREAK_TEXT[streakState(d.win_rate)]}>{d.win_rate}% win rate</div>
       <div className="text-slate-500">{d.games} games</div>
     </div>
   );
@@ -227,7 +235,7 @@ export function ChessDashboard() {
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
               <h2 className="text-sm font-medium text-slate-300 mb-1">Win rate after a streak</h2>
               <p className="text-xs text-slate-500 mb-4">
-                Win rate of the next game after consecutive losses (left) or wins (right). Green is net winning, red is net losing. Bars fade when based on few games.
+                Win rate of the next game after consecutive losses (left) or wins (right). Green is winning, red is losing, gray is even. Bars fade when based on few games.
               </p>
               <div className="[&_*:focus]:outline-none">
                 <ResponsiveContainer width="100%" height={320}>
@@ -251,7 +259,7 @@ export function ChessDashboard() {
                       {streakData.map((d) => (
                         <Cell
                           key={d.streak}
-                          fill={d.winning ? '#10b981' : '#ef4444'}
+                          fill={STREAK_COLORS[streakState(d.win_rate)]}
                           fillOpacity={Math.max(0.3, Math.min(1, d.games / 40))}
                         />
                       ))}

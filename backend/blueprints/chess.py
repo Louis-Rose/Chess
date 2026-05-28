@@ -172,7 +172,6 @@ def _streaks(games):
             'streak': s,
             'games': len(scores),
             'win_rate': round(avg * 100, 1),
-            'winning': avg > 0.5,
         })
     return out
 
