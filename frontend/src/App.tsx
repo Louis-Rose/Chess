@@ -7,6 +7,7 @@ import { useLanguage } from './contexts/LanguageContext';
 import { CookieBanner } from './components/CookieBanner';
 import { LandingPage } from './components/LandingPage';
 import { ContactPage } from './components/ContactPage';
+import { DemoGate } from './components/DemoGate';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
 const GymApp = lazy(() => import('./apps/gym/GymApp').then(m => ({ default: m.GymApp })));
@@ -38,7 +39,7 @@ function App() {
         <Route path="/gym/*" element={<GymApp />} />
         <Route path="/stocks/*" element={<StocksApp />} />
         <Route path="/chess/*" element={<ChessApp />} />
-        <Route path="/app/*" element={<ChessCoachesApp />} />
+        <Route path="/app/*" element={<DemoGate><ChessCoachesApp /></DemoGate>} />
       </Routes>
       <CookieBanner />
     </Suspense>
