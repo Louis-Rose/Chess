@@ -32,6 +32,8 @@ interface Streak {
   streak: number; // negative = losses before, positive = wins before, 0 = after a draw
   games: number;
   win_rate: number;
+  p_value: number | null;
+  significant: boolean;
 }
 
 const STREAK_COLORS = { win: '#10b981', loss: '#ef4444', even: '#94a3b8' };
@@ -89,7 +91,7 @@ function StreakTooltip({ active, payload }: { active?: boolean; payload?: Array<
     <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
       <div className="text-slate-300 font-medium mb-1">{streakDescription(d.streak)}</div>
       <div className={STREAK_TEXT[streakState(d.win_rate)]}>{d.win_rate}% win rate</div>
-      <div className="text-slate-500">{d.games} games</div>
+      <div className="text-slate-500">{d.games} games{d.p_value != null && ` (p = ${d.p_value})`}</div>
     </div>
   );
 }
@@ -109,7 +111,11 @@ export function ChessDashboard() {
   const monthData = (data?.months ?? []).map(m => ({ ...m, label: monthLabel(m.month) }));
   const days = data?.days ?? [];
   const reg = data?.regression ?? null;
-  const streakData = (data?.streaks ?? []).map(s => ({ ...s, label: `${s.streak > 0 ? '+' : ''}${s.streak}` }));
+  const streakData = (data?.streaks ?? []).map(s => ({
+    ...s,
+    label: `${s.streak > 0 ? '+' : ''}${s.streak}`,
+    value: s.significant ? s.win_rate : null,
+  }));
 
   const regSegment = ((): [{ x: number; y: number }, { x: number; y: number }] | null => {
     if (!reg || days.length === 0) return null;
@@ -235,7 +241,7 @@ export function ChessDashboard() {
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
               <h2 className="text-sm font-medium text-slate-300 mb-1">Win rate after a streak</h2>
               <p className="text-xs text-slate-500 mb-4">
-                Win rate of the next game after consecutive losses (left) or wins (right). Green is winning, red is losing, gray is even. Bars fade when based on few games.
+                Win rate of the next game after consecutive losses (left) or wins (right). Only streaks whose win rate differs significantly from 50% (p &lt; 0.05, one-sample t-test) are shown. Green is winning, red is losing.
               </p>
               <div className="[&_*:focus]:outline-none">
                 <ResponsiveContainer width="100%" height={320}>
@@ -255,13 +261,9 @@ export function ChessDashboard() {
                     />
                     <ReferenceLine y={50} stroke="#64748b" strokeDasharray="3 3" />
                     <Tooltip cursor={{ fill: '#334155', opacity: 0.3 }} content={<StreakTooltip />} />
-                    <Bar dataKey="win_rate" radius={[3, 3, 0, 0]}>
+                    <Bar dataKey="value" radius={[3, 3, 0, 0]}>
                       {streakData.map((d) => (
-                        <Cell
-                          key={d.streak}
-                          fill={STREAK_COLORS[streakState(d.win_rate)]}
-                          fillOpacity={Math.max(0.3, Math.min(1, d.games / 40))}
-                        />
+                        <Cell key={d.streak} fill={STREAK_COLORS[streakState(d.win_rate)]} />
                       ))}
                     </Bar>
                   </BarChart>

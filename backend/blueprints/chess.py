@@ -167,11 +167,19 @@ def _streaks(games):
     out = []
     for s in sorted(buckets):
         scores = buckets[s]
-        avg = sum(scores) / len(scores)
+        n = len(scores)
+        avg = sum(scores) / n
+        # Two-sided one-sample t-test of the game scores against 0.5 (no edge).
+        if n >= 2 and np.var(scores) > 0:
+            p = float(stats.ttest_1samp(scores, 0.5).pvalue)
+        else:
+            p = float('nan')
         out.append({
             'streak': s,
-            'games': len(scores),
+            'games': n,
             'win_rate': round(avg * 100, 1),
+            'p_value': round(p, 4) if np.isfinite(p) else None,
+            'significant': bool(np.isfinite(p) and p < 0.05),
         })
     return out
 
