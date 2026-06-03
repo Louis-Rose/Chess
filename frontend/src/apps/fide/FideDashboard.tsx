@@ -147,7 +147,8 @@ const ranked = [...players].sort((a, b) => (b.current ?? -1) - (a.current ?? -1)
 
 export function FideDashboard() {
   const isMobile = useIsMobile();
-  const rightMargin = isMobile ? 90 : 116; // room for the "First (elo)" labels
+  // On mobile, label with just the first name (no elo) to save horizontal room.
+  const rightMargin = isMobile ? 62 : 116;
   const labelFont = isMobile ? 10 : 12;
   const labelDx = isMobile ? 5 : 8;
   const axisFont = isMobile ? 11 : 12;
@@ -194,7 +195,10 @@ export function FideDashboard() {
                     dot={{ r: 2.5, fill: p.color, stroke: p.color }}
                     activeDot={{ r: 4 }}
                     isAnimationActive={false}
-                    label={endLabel(`${firstName(p.name)} (${p.current ?? 'Unrated'})`, p.color, labelOffset[p.fideId], labelFont, labelDx)}
+                    label={endLabel(
+                      isMobile ? firstName(p.name) : `${firstName(p.name)} (${p.current ?? 'Unrated'})`,
+                      p.color, labelOffset[p.fideId], labelFont, labelDx,
+                    )}
                   />
                 ))}
               </LineChart>
