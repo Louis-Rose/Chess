@@ -19,7 +19,7 @@ from functools import wraps
 
 import numpy as np
 import requests as http_requests
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from scipy import stats
 
 from auth import get_current_user
@@ -32,11 +32,6 @@ chess_bp = Blueprint('chess', __name__)
 CHESS_USERNAME = 'akyrosu'
 _USER_AGENT = 'LUMNA/1.0 (https://lumna.co; rose.louis.mail@gmail.com)'
 _MIN_GAMES_PER_DAY = 3  # 1-2 game days are too noisy to average, so they're dropped
-
-# People to rank on the FIDE rankings page. To add someone, append their FIDE ID.
-FIDE_IDS = [
-    '576029000',   # Tallec, Gauthier
-]
 
 
 # ── Owner gate ───────────────────────────────────────────────────────────────
@@ -220,67 +215,52 @@ def rapid_stats():
 
 # ── FIDE rankings ────────────────────────────────────────────────────────────
 
-# Scraped straight from the public profile page — the old fide-api.vercel.app
-# mirror is dead, and FIDE has no official API.
+# Scraped from the public profile page — the old fide-api.vercel.app mirror is
+# dead and FIDE has no official API. Only the rapid rating is used; the roster of
+# names lives on the client, which keeps the last-known ratings while this updates.
 _FIDE_PROFILE = 'https://ratings.fide.com/profile/{}'
 _FIDE_CACHE_TTL = 86400  # 24h — FIDE ratings only change monthly
-_fide_cache = {}  # {fide_id: (data, fetched_at)}
+_fide_cache = {}  # {fide_id: (rapid_rating, fetched_at)}
+_FIDE_HEADERS = {
+    'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+                   '(KHTML, like Gecko) Chrome/124.0 Safari/537.36'),
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+}
 
 
-def _fide_rating(label, html):
-    """The rating shown for STANDARD/RAPID/BLITZ on the profile, or None when the
-    player is unrated in that time control. The page lays each out as
+def _fide_rapid_rating(html):
+    """The player's RAPID rating, or None when unrated. Each rating renders as
     '<value> <LABEL>' where value is a number or 'Not rated'."""
-    m = re.search(r'(\d{3,4}|Not rated)\s*</[^>]+>\s*<[^>]*>\s*' + label, html)
+    m = re.search(r'(\d{3,4}|Not rated)\s*</[^>]+>\s*<[^>]*>\s*RAPID', html)
     return int(m.group(1)) if m and m.group(1).isdigit() else None
 
 
-def _fide_title(html):
-    """The player's FIDE title (e.g. 'Grandmaster'), or None when untitled."""
-    m = re.search(r'profile-info-title[^>]*>\s*<p>([^<]+)</p>', html)
-    title = m.group(1).strip() if m else None
-    return title if title and title != 'None' else None
-
-
-def _fetch_fide_player(fide_id):
-    """Scrape a FIDE player's profile (name, federation, title, the three
-    ratings), cached 24h. Returns None if the page can't be fetched."""
+def _fetch_fide_rapid(fide_id):
+    """Current FIDE rapid rating for one player, cached 24h. Returns
+    {'fide_id', 'rapid_rating'} or None if the page can't be fetched."""
     cached = _fide_cache.get(fide_id)
     if cached and time.time() - cached[1] < _FIDE_CACHE_TTL:
-        return cached[0]
+        return {'fide_id': fide_id, 'rapid_rating': cached[0]}
 
-    try:
-        resp = http_requests.get(
-            _FIDE_PROFILE.format(fide_id),
-            headers={'User-Agent': 'Mozilla/5.0'}, timeout=20,
-        )
-        resp.raise_for_status()
-        html = resp.text
-    except Exception as e:
-        logger.warning('FIDE profile fetch failed for %s: %s', fide_id, e)
-        return None
-
-    name = re.search(r'<title>([^<]*?)\s*FIDE Profile', html)
-    flag = re.search(r'/images/flags/([a-z]{2})\.svg', html)
-
-    data = {
-        'fide_id': fide_id,
-        'name': name.group(1).strip() if name else None,
-        'federation': flag.group(1).upper() if flag else None,
-        'fide_title': _fide_title(html),
-        'classical_rating': _fide_rating('STANDARD', html),
-        'rapid_rating': _fide_rating('RAPID', html),
-        'blitz_rating': _fide_rating('BLITZ', html),
-    }
-    _fide_cache[fide_id] = (data, time.time())
-    return data
+    for attempt in range(2):
+        try:
+            resp = http_requests.get(_FIDE_PROFILE.format(fide_id), headers=_FIDE_HEADERS, timeout=20)
+            resp.raise_for_status()
+            rating = _fide_rapid_rating(resp.text)
+            _fide_cache[fide_id] = (rating, time.time())
+            return {'fide_id': fide_id, 'rapid_rating': rating}
+        except Exception as e:
+            logger.warning('FIDE fetch failed for %s (attempt %d): %s', fide_id, attempt + 1, e)
+    return None
 
 
 @chess_bp.route('/api/chess/fide-rankings', methods=['GET'])
 @owner_required
 def fide_rankings():
-    """FIDE profile for everyone in FIDE_IDS, fetched in parallel. Ranking is left
-    to the client so the time control can be switched without a refetch."""
+    """Current FIDE rapid rating for each requested FIDE ID (comma-separated
+    `ids`), fetched in parallel."""
+    ids = [i.strip() for i in (request.args.get('ids') or '').split(',') if i.strip()][:50]
     with ThreadPoolExecutor(max_workers=8) as ex:
-        players = [p for p in ex.map(_fetch_fide_player, FIDE_IDS) if p]
+        players = [p for p in ex.map(_fetch_fide_rapid, ids) if p]
     return jsonify({'players': players})

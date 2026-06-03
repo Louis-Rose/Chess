@@ -1,170 +1,125 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Trophy } from 'lucide-react';
+import { Trophy, Loader2 } from 'lucide-react';
 
-type TimeClass = 'classical' | 'rapid' | 'blitz';
-
-interface FidePlayer {
-  fide_id: string;
-  name: string | null;
-  federation: string | null;
-  fide_title: string | null;
-  classical_rating: number | null;
-  rapid_rating: number | null;
-  blitz_rating: number | null;
-}
-
-const TIME_CLASSES: { key: TimeClass; label: string }[] = [
-  { key: 'classical', label: 'Standard' },
-  { key: 'rapid', label: 'Rapid' },
-  { key: 'blitz', label: 'Blitz' },
+// Players to track. Add one by appending { name, fideId }.
+const ROSTER: { name: string; fideId: string }[] = [
+  { name: 'Tallec, Gauthier', fideId: '576029000' },
 ];
 
-// FIDE federation codes are 3-letter; flag emoji needs the 2-letter ISO code.
-const FED_TO_ISO: Record<string, string> = {
-  FRA: 'FR', USA: 'US', GER: 'DE', ENG: 'GB', RUS: 'RU', ESP: 'ES', ITA: 'IT',
-  NED: 'NL', NOR: 'NO', SWE: 'SE', POL: 'PL', CZE: 'CZ', HUN: 'HU', ROU: 'RO',
-  UKR: 'UA', GEO: 'GE', ARM: 'AM', AZE: 'AZ', IND: 'IN', CHN: 'CN', JPN: 'JP',
-  KOR: 'KR', AUS: 'AU', CAN: 'CA', BRA: 'BR', ARG: 'AR', ISR: 'IL', TUR: 'TR',
-  GRE: 'GR', POR: 'PT', BEL: 'BE', SUI: 'CH', AUT: 'AT', DEN: 'DK', FIN: 'FI',
-  IRL: 'IE', CRO: 'HR', SRB: 'RS', BUL: 'BG', SVK: 'SK', SLO: 'SI', LTU: 'LT',
-  LAT: 'LV', EST: 'EE', ISL: 'IS', MEX: 'MX', COL: 'CO', PER: 'PE', CHI: 'CL',
-  CUB: 'CU', PHI: 'PH', INA: 'ID', VIE: 'VN', IRI: 'IR', EGY: 'EG', RSA: 'ZA',
-  MAR: 'MA', NZL: 'NZ', UZB: 'UZ', KAZ: 'KZ',
-};
+const DEFAULT_RATING = 1400; // provisional, replaced once a real rating is fetched
+const STORAGE_KEY = 'fide-rapid-ratings-v1';
 
-function federationToFlag(federation: string | null): string {
-  if (!federation) return '';
-  const iso = FED_TO_ISO[federation.toUpperCase()] || federation.slice(0, 2);
-  return String.fromCodePoint(...[...iso.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65));
+// Last-known rating per FIDE ID, kept in localStorage so the table fills in
+// instantly on revisit while a fresh fetch updates it in the background.
+type Cache = Record<string, { rating: number; real: boolean }>;
+
+function loadCache(): Cache {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch {
+    return {};
+  }
 }
 
-function ratingFor(p: FidePlayer, tc: TimeClass): number | null {
-  return p[`${tc}_rating`];
+function saveCache(cache: Cache) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
+  } catch {
+    // storage unavailable — ratings just won't persist across reloads
+  }
+}
+
+// Everyone starts provisional at 1400 unless we already have a saved value.
+function seed(cache: Cache): Cache {
+  const next: Cache = {};
+  for (const p of ROSTER) next[p.fideId] = cache[p.fideId] ?? { rating: DEFAULT_RATING, real: false };
+  return next;
 }
 
 export function FideDashboard() {
-  const [players, setPlayers] = useState<FidePlayer[]>([]);
-  const [timeClass, setTimeClass] = useState<TimeClass>('rapid');
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [ratings, setRatings] = useState<Cache>(() => {
+    const seeded = seed(loadCache());
+    saveCache(seeded);
+    return seeded;
+  });
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    axios.get<{ players: FidePlayer[] }>('/api/chess/fide-rankings')
-      .then(r => setPlayers(r.data.players ?? []))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+    setUpdating(true);
+    const ids = ROSTER.map(p => p.fideId).join(',');
+    axios.get<{ players: { fide_id: string; rapid_rating: number | null }[] }>(
+      `/api/chess/fide-rankings?ids=${encodeURIComponent(ids)}`,
+    )
+      .then(r => {
+        setRatings(prev => {
+          const next = { ...prev };
+          for (const p of r.data.players ?? []) {
+            if (p.rapid_rating != null) next[p.fide_id] = { rating: p.rapid_rating, real: true };
+          }
+          saveCache(next);
+          return next;
+        });
+      })
+      .catch(() => { /* keep last-known ratings on failure */ })
+      .finally(() => setUpdating(false));
   }, []);
 
-  // Rated players ranked by the selected time control (descending); unrated
-  // players fall to the bottom and share one rank.
-  const ranked = useMemo(() => {
-    const rows = [...players].sort((a, b) => {
-      const ra = ratingFor(a, timeClass);
-      const rb = ratingFor(b, timeClass);
-      if (ra != null && rb != null) return rb - ra;
-      if (ra != null) return -1;
-      if (rb != null) return 1;
-      return (a.name || '').localeCompare(b.name || '');
-    });
-    const ratedCount = rows.filter(r => ratingFor(r, timeClass) != null).length;
-    return rows.map((row, i) => ({
-      row,
-      rank: ratingFor(row, timeClass) != null ? i + 1 : ratedCount + 1,
-    }));
-  }, [players, timeClass]);
+  const rows = useMemo(() => (
+    ROSTER
+      .map(p => ({ ...p, ...(ratings[p.fideId] ?? { rating: DEFAULT_RATING, real: false }) }))
+      .sort((a, b) => b.rating - a.rating)
+  ), [ratings]);
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-6">
       <div className="max-w-3xl mx-auto">
-        <header className="flex items-center gap-3 mb-1">
+        <header className="flex items-center justify-center gap-3 mb-1">
           <Trophy className="w-7 h-7 text-emerald-400" />
           <h1 className="text-2xl font-semibold">FIDE rankings</h1>
         </header>
-        <p className="text-slate-400 text-sm mb-6">
-          Players ranked by their FIDE rating.
-          {players.length > 0 && <> {players.length} player{players.length === 1 ? '' : 's'} tracked.</>}
+        <p className="text-slate-400 text-sm mb-6 flex items-center justify-center gap-2">
+          Players ranked by their FIDE rapid rating.
+          {updating && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-500" />}
         </p>
 
-        <div className="inline-flex rounded-lg border border-slate-700 bg-slate-800/50 p-1 mb-6">
-          {TIME_CLASSES.map(tc => (
-            <button
-              key={tc.key}
-              onClick={() => setTimeClass(tc.key)}
-              className={`px-4 py-1.5 text-sm rounded-md transition-colors ${
-                timeClass === tc.key ? 'bg-emerald-600 text-white' : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              {tc.label}
-            </button>
-          ))}
-        </div>
-
-        {loading && (
-          <div className="h-64 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-slate-700 border-t-emerald-500 rounded-full animate-spin" />
-          </div>
-        )}
-
-        {!loading && error && (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-6 text-center text-slate-400 text-sm">
-            Could not load FIDE ratings. Try again later.
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="overflow-hidden rounded-lg border border-slate-700">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-slate-800 text-slate-300 text-xs uppercase tracking-wide">
-                  <th className="text-center py-2.5 px-3 font-medium w-14">Rank</th>
-                  <th className="text-left py-2.5 px-3 font-medium">Player</th>
-                  <th className="text-left py-2.5 px-3 font-medium">FIDE ID</th>
-                  <th className="text-right py-2.5 px-3 font-medium">Rating</th>
+        <div className="overflow-hidden rounded-lg border border-slate-700">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-800 text-slate-300 text-xs uppercase tracking-wide">
+                <th className="text-center py-2.5 px-3 font-medium w-14">Rank</th>
+                <th className="text-left py-2.5 px-3 font-medium">Player</th>
+                <th className="text-left py-2.5 px-3 font-medium">FIDE ID</th>
+                <th className="text-right py-2.5 px-3 font-medium">Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={row.fideId} className="border-t border-slate-700/70 hover:bg-slate-800/40">
+                  <td className="py-2.5 px-3 text-center font-mono text-slate-300">#{i + 1}</td>
+                  <td className="py-2.5 px-3">
+                    <a
+                      href={`https://ratings.fide.com/profile/${row.fideId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-100 hover:text-emerald-400 transition-colors"
+                    >
+                      {row.name}
+                    </a>
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-slate-400 text-sm">{row.fideId}</td>
+                  <td className="py-2.5 px-3 text-right font-mono">
+                    <span className={row.real ? 'text-slate-100' : 'text-slate-500 italic'}>{row.rating}</span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {ranked.map(({ row, rank }) => {
-                  const rating = ratingFor(row, timeClass);
-                  return (
-                    <tr key={row.fide_id} className="border-t border-slate-700/70 hover:bg-slate-800/40">
-                      <td className="py-2.5 px-3 text-center font-mono text-slate-300">#{rank}</td>
-                      <td className="py-2.5 px-3">
-                        <a
-                          href={`https://ratings.fide.com/profile/${row.fide_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-slate-100 hover:text-emerald-400 transition-colors"
-                        >
-                          <span className="mr-1.5">{federationToFlag(row.federation)}</span>
-                          {row.fide_title && row.fide_title !== 'None' && (
-                            <span className="text-amber-400 font-medium mr-1">{row.fide_title}</span>
-                          )}
-                          {row.name || row.fide_id}
-                        </a>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-slate-400 text-sm">{row.fide_id}</td>
-                      <td className="py-2.5 px-3 text-right font-mono">
-                        {rating != null ? (
-                          <span className="text-slate-100">{rating}</span>
-                        ) : (
-                          <span className="text-slate-500">Not rated</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {ranked.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-500 text-sm">
-                      No players tracked yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-slate-600 text-xs mt-3 text-center">
+          Greyed 1400 ratings are provisional and get replaced once a live FIDE rating is fetched.
+        </p>
       </div>
     </div>
   );
