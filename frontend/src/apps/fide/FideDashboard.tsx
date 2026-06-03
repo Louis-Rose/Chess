@@ -1,6 +1,6 @@
 import { Trophy } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized,
 } from 'recharts';
 
 // Monthly FIDE rapid rating since January 2026, one value per month. A null means
@@ -55,16 +55,56 @@ const lastIndex = MONTHS.length - 1;
 // Names are stored "Surname, First"; the chart labels show just the first name.
 const firstName = (name: string) => name.split(',')[1]?.trim() ?? name;
 
-// "Name (elo)" drawn just to the right of the player's final point.
-function endLabel(text: string, color: string) {
-  return (props: any) => {
-    if (props.index !== lastIndex) return null;
-    return (
-      <text x={Number(props.x) + 8} y={props.y} dy={4} fill={color} fontSize={12}>
-        {text}
-      </text>
-    );
-  };
+// Nudge overlapping labels apart: each colliding cluster is spread symmetrically
+// around its own centre by MIN_LABEL_GAP, and two clusters merge only when they
+// would otherwise overlap — so a label moves just enough and never onto another.
+const MIN_LABEL_GAP = 14;
+
+function deCollide<T extends { y: number }>(items: T[]): T[] {
+  const sorted = [...items].sort((a, b) => a.y - b.y);
+  type Group = { desired: number[]; items: T[] };
+  const centre = (g: Group) => g.desired.reduce((s, v) => s + v, 0) / g.desired.length;
+  const groups: Group[] = [];
+  for (const it of sorted) {
+    let g: Group = { desired: [it.y], items: [it] };
+    while (groups.length) {
+      const prev = groups[groups.length - 1];
+      const prevBottom = centre(prev) + (prev.items.length - 1) * MIN_LABEL_GAP / 2;
+      const gTop = centre(g) - (g.items.length - 1) * MIN_LABEL_GAP / 2;
+      if (gTop < prevBottom + MIN_LABEL_GAP) {
+        g = { desired: [...prev.desired, ...g.desired], items: [...prev.items, ...g.items] };
+        groups.pop();
+      } else break;
+    }
+    groups.push(g);
+  }
+  const out: T[] = [];
+  for (const g of groups) {
+    const start = centre(g) - (g.items.length - 1) * MIN_LABEL_GAP / 2;
+    g.items.forEach((it, i) => out.push({ ...it, y: start + i * MIN_LABEL_GAP }));
+  }
+  return out;
+}
+
+// Custom layer: every player's "First (elo)" label at their last point, de-collided.
+function EndLabels(props: any) {
+  const { yAxisMap, offset } = props;
+  if (!yAxisMap || !offset) return null;
+  const yScale = (Object.values(yAxisMap)[0] as any)?.scale;
+  if (!yScale) return null;
+  const x = offset.left + offset.width + 10;
+  const labels = deCollide(players.map(p => ({
+    color: p.color,
+    text: `${firstName(p.name)} (${p.current ?? 'Unrated'})`,
+    y: yScale(p.rapid[lastIndex] ?? UNRATED_Y),
+  })));
+  return (
+    <g>
+      {labels.map((l, i) => (
+        <text key={i} x={x} y={l.y} dy={4} fill={l.color} fontSize={12}>{l.text}</text>
+      ))}
+    </g>
+  );
 }
 
 function ChartTooltip({ active, label }: { active?: boolean; label?: string }) {
@@ -131,9 +171,9 @@ export function FideDashboard() {
                     dot={{ r: 2.5, fill: p.color, stroke: p.color }}
                     activeDot={{ r: 4 }}
                     isAnimationActive={false}
-                    label={endLabel(`${firstName(p.name)} (${p.current ?? 'Unrated'})`, p.color)}
                   />
                 ))}
+                <Customized component={EndLabels} />
               </LineChart>
             </ResponsiveContainer>
           </div>
