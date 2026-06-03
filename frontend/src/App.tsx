@@ -13,6 +13,7 @@ const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp')
 const GymApp = lazy(() => import('./apps/gym/GymApp').then(m => ({ default: m.GymApp })));
 const StocksApp = lazy(() => import('./apps/stocks/StocksApp').then(m => ({ default: m.StocksApp })));
 const ChessApp = lazy(() => import('./apps/chess/ChessApp').then(m => ({ default: m.ChessApp })));
+const FideApp = lazy(() => import('./apps/fide/FideApp').then(m => ({ default: m.FideApp })));
 const InvitePage = lazy(() => import('./apps/chesscoaches/panels/InvitePage').then(m => ({ default: m.InvitePage })));
 const WaitlistPage = lazy(() => import('./apps/chesscoaches/panels/WaitlistPage').then(m => ({ default: m.WaitlistPage })));
 
@@ -39,6 +40,7 @@ function App() {
         <Route path="/gym/*" element={<GymApp />} />
         <Route path="/stocks/*" element={<StocksApp />} />
         <Route path="/chess/*" element={<ChessApp />} />
+        <Route path="/fide/*" element={<FideApp />} />
         <Route path="/app/*" element={<DemoGate><ChessCoachesApp /></DemoGate>} />
       </Routes>
       <CookieBanner />
