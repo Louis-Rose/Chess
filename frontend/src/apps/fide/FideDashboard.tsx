@@ -151,25 +151,25 @@ export function FideDashboard() {
 
                 {/* Grey underlay: full path, drawn under everything. */}
                 {players.map(p => (
-                  <Line key={`${p.fideId}-gf`} type="monotone" dataKey={`${p.fideId}_gf`}
+                  <Line key={`${p.fideId}-gf`} type="linear" dataKey={`${p.fideId}_gf`}
                     stroke={GREY} strokeWidth={2} dot={false} activeDot={false} isAnimationActive={false} />
                 ))}
                 {/* Grey dots at the unrated months (and the end label when the last month is unrated). */}
                 {players.map(p => (
-                  <Line key={`${p.fideId}-gd`} type="monotone" dataKey={`${p.fideId}_gd`}
+                  <Line key={`${p.fideId}-gd`} type="linear" dataKey={`${p.fideId}_gd`}
                     stroke={GREY} strokeWidth={0} connectNulls={false}
                     dot={{ r: 2, fill: GREY, stroke: GREY }} activeDot={false} isAnimationActive={false}
                     label={endLabel(p.name, GREY)} />
                 ))}
                 {/* Coloured runs: rated-to-rated and out-of-unrated segments. */}
                 {players.flatMap(p => p.runs.map((_, k) => (
-                  <Line key={`${p.fideId}-r${k}`} type="monotone" dataKey={`${p.fideId}_r${k}`}
+                  <Line key={`${p.fideId}-r${k}`} type="linear" dataKey={`${p.fideId}_r${k}`}
                     stroke={p.color} strokeWidth={2} dot={false} activeDot={false}
                     connectNulls={false} isAnimationActive={false} />
                 )))}
                 {/* Coloured dots at the rated months (and the end label when the last month is rated). */}
                 {players.map(p => (
-                  <Line key={`${p.fideId}-cd`} type="monotone" dataKey={p.name}
+                  <Line key={`${p.fideId}-cd`} type="linear" dataKey={p.name}
                     stroke={p.color} strokeWidth={0} connectNulls={false}
                     dot={{ r: 2.5, fill: p.color, stroke: p.color }} activeDot={{ r: 4 }}
                     isAnimationActive={false} label={endLabel(p.name, p.color)} />
