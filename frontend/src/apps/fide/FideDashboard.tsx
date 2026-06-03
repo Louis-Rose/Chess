@@ -1,6 +1,6 @@
 import { Trophy } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Customized,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 
 // Monthly FIDE rapid rating since January 2026, one value per month. A null means
@@ -86,25 +86,31 @@ function deCollide<T extends { y: number }>(items: T[]): T[] {
   return out;
 }
 
-// Custom layer: every player's "First (elo)" label at their last point, de-collided.
-function EndLabels(props: any) {
-  const { yAxisMap, offset } = props;
-  if (!yAxisMap || !offset) return null;
-  const yScale = (Object.values(yAxisMap)[0] as any)?.scale;
-  if (!yScale) return null;
-  const x = offset.left + offset.width + 10;
-  const labels = deCollide(players.map(p => ({
-    color: p.color,
-    text: `${firstName(p.name)} (${p.current ?? 'Unrated'})`,
-    y: yScale(p.rapid[lastIndex] ?? UNRATED_Y),
-  })));
-  return (
-    <g>
-      {labels.map((l, i) => (
-        <text key={i} x={x} y={l.y} dy={4} fill={l.color} fontSize={12}>{l.text}</text>
-      ))}
-    </g>
-  );
+// Chart plot geometry — must match the ResponsiveContainer height + LineChart
+// margins + XAxis height set below. Used to place labels in the same pixel space.
+const CHART_HEIGHT = 560;
+const PLOT_TOP = 8;                          // LineChart top margin
+const PLOT_BOTTOM = CHART_HEIGHT - 8 - 70;   // minus bottom margin and XAxis height
+const yPixel = (v: number) => PLOT_TOP + (yMax - v) / (yMax - UNRATED_Y) * (PLOT_BOTTOM - PLOT_TOP);
+
+// Vertical offset per player so overlapping end labels separate. recharts gives
+// the exact point y at render; we add this de-collision delta on top.
+const labelOffset: Record<string, number> = Object.fromEntries(
+  deCollide(players.map(p => {
+    const y0 = yPixel(p.rapid[lastIndex] ?? UNRATED_Y);
+    return { fideId: p.fideId, y0, y: y0 };
+  })).map(pl => [pl.fideId, pl.y - pl.y0]),
+);
+
+function endLabel(text: string, color: string, offset: number) {
+  return (props: any) => {
+    if (props.index !== lastIndex) return null;
+    return (
+      <text x={Number(props.x) + 8} y={Number(props.y) + offset} dy={4} fill={color} fontSize={12}>
+        {text}
+      </text>
+    );
+  };
 }
 
 function ChartTooltip({ active, label }: { active?: boolean; label?: string }) {
@@ -171,9 +177,9 @@ export function FideDashboard() {
                     dot={{ r: 2.5, fill: p.color, stroke: p.color }}
                     activeDot={{ r: 4 }}
                     isAnimationActive={false}
+                    label={endLabel(`${firstName(p.name)} (${p.current ?? 'Unrated'})`, p.color, labelOffset[p.fideId])}
                   />
                 ))}
-                <Customized component={EndLabels} />
               </LineChart>
             </ResponsiveContainer>
           </div>
