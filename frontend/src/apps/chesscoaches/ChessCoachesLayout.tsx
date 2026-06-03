@@ -111,7 +111,7 @@ function PlayerMenuItems({ onClose, align }: { onClose: () => void; align: 'cent
       )}
       {user.email === 'rose.louis.mail@gmail.com' && (
         <button
-          onClick={() => { onClose(); navigate('/fide'); }}
+          onClick={() => { onClose(); navigate('/blitzcrewrankings'); }}
           className={`${rowBase} ${justify} text-emerald-400 border-b border-slate-700`}
         >
           <Trophy className="w-4 h-4" />

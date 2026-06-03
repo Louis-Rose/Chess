@@ -1,7 +1,7 @@
 // Root app with routing
 
 import { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 import { CookieBanner } from './components/CookieBanner';
@@ -40,7 +40,8 @@ function App() {
         <Route path="/gym/*" element={<GymApp />} />
         <Route path="/stocks/*" element={<StocksApp />} />
         <Route path="/chess/*" element={<ChessApp />} />
-        <Route path="/fide/*" element={<FideApp />} />
+        <Route path="/blitzcrewrankings/*" element={<FideApp />} />
+        <Route path="/fide/*" element={<Navigate to="/blitzcrewrankings" replace />} />
         <Route path="/app/*" element={<DemoGate><ChessCoachesApp /></DemoGate>} />
       </Routes>
       <CookieBanner />
