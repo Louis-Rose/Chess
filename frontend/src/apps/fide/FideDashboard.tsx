@@ -21,12 +21,13 @@ const ROSTER: { name: string; fideId: string; rapid: (number | null)[] }[] = [
   { name: 'Santini, Lauren',  fideId: '560003979', rapid: [null, 1416, null, null, null, 1433] },
   { name: 'Rose, Louis',      fideId: '560015160', rapid: [null, null, null, null, null, 1409] },
   { name: 'Teboul, Raphael',  fideId: '560080809', rapid: [null, null, null, null, null, null] },
+  { name: 'Cleon, Thomas',    fideId: '560003910', rapid: [1420, 1420, null, 1409, 1457, 1439] },
 ];
 
 // One distinct color per player, keyed by FIDE ID so the chart line, the end
 // label, and the table dot always match.
 const PALETTE = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#a855f7',
-                 '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
+                 '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#eab308'];
 const COLOR = Object.fromEntries(ROSTER.map((p, i) => [p.fideId, PALETTE[i % PALETTE.length]]));
 
 // Latest real rating (most recent non-null month), or null if never rated.
