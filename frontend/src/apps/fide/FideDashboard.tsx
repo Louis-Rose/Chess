@@ -12,6 +12,7 @@ const ROSTER: { name: string; fideId: string }[] = [
   { name: 'Dupont, Rémi', fideId: '576007308' },
   { name: 'Teboul, Raphael', fideId: '560080809' },
   { name: 'Courau, Eloi', fideId: '560003928' },
+  { name: 'Iwandza, Joel', fideId: '560098708' },
 ];
 
 const DEFAULT_RATING = 1400; // provisional, replaced once a real rating is fetched
