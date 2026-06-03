@@ -1,23 +1,50 @@
 import { Trophy } from 'lucide-react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
 
-// Players to track, with their last-known FIDE rapid rating. The production VM
-// can't reach ratings.fide.com (FIDE blocks the datacenter IP), so ratings are
-// filled in here from a manual lookup rather than fetched live. To refresh, ask
-// Claude to re-run the FIDE lookup; to add a player append { name, fideId, rating }.
-const ROSTER: { name: string; fideId: string; rating: number | null }[] = [
-  { name: 'Jia, David', fideId: '20630034', rating: 1852 },
-  { name: 'Houdard, Clément', fideId: '576014835', rating: 1642 },
-  { name: 'Courau, Eloi', fideId: '560003928', rating: 1611 },
-  { name: 'Tallec, Gauthier', fideId: '576029000', rating: 1541 },
-  { name: 'Iwandza, Joel', fideId: '560098708', rating: 1497 },
-  { name: 'Dupont, Rémi', fideId: '576007308', rating: 1460 },
-  { name: 'Santini, Lauren', fideId: '560003979', rating: 1433 },
-  { name: 'Rose, Louis', fideId: '560015160', rating: 1409 },
-  { name: 'Teboul, Raphael', fideId: '560080809', rating: null },
+// Monthly FIDE rapid rating since January 2026, one value per month. A null means
+// the player had no FIDE rating that month and is plotted at 1400 (DEFAULT_RATING).
+// The VM can't reach ratings.fide.com, so these come from a manual lookup. To
+// refresh, ask Claude to re-run the FIDE history lookup; to add a month, push a
+// value onto MONTHS and every player's `rapid` array.
+const MONTHS = ["Jan '26", "Feb '26", "Mar '26", "Apr '26", "May '26", "Jun '26"];
+const DEFAULT_RATING = 1400;
+
+const ROSTER: { name: string; fideId: string; rapid: (number | null)[] }[] = [
+  { name: 'Jia, David',       fideId: '20630034',  rapid: [null, null, null, 1858, 1852, 1852] },
+  { name: 'Houdard, Clément', fideId: '576014835', rapid: [null, null, null, 1649, 1649, 1642] },
+  { name: 'Courau, Eloi',     fideId: '560003928', rapid: [1565, 1565, 1588, 1608, 1611, 1611] },
+  { name: 'Tallec, Gauthier', fideId: '576029000', rapid: [null, null, null, null, 1541, 1541] },
+  { name: 'Iwandza, Joel',    fideId: '560098708', rapid: [null, null, 1636, 1586, 1497, 1497] },
+  { name: 'Dupont, Rémi',     fideId: '576007308', rapid: [null, null, null, 1460, 1460, 1460] },
+  { name: 'Santini, Lauren',  fideId: '560003979', rapid: [null, 1416, null, null, null, 1433] },
+  { name: 'Rose, Louis',      fideId: '560015160', rapid: [null, null, null, null, null, 1409] },
+  { name: 'Teboul, Raphael',  fideId: '560080809', rapid: [null, null, null, null, null, null] },
 ];
 
-// Rated players first (descending), unrated last.
-const rows = [...ROSTER].sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+// One distinct color per player, keyed by FIDE ID so the chart line and the table
+// dot always match.
+const PALETTE = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#a855f7',
+                 '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
+const COLOR = Object.fromEntries(ROSTER.map((p, i) => [p.fideId, PALETTE[i % PALETTE.length]]));
+
+// Latest real rating (most recent non-null month), or null if never rated.
+function currentRating(rapid: (number | null)[]): number | null {
+  for (let i = rapid.length - 1; i >= 0; i--) if (rapid[i] != null) return rapid[i];
+  return null;
+}
+
+// recharts wants one row per month with a key per player; nulls fill to 1400.
+const chartData = MONTHS.map((month, i) => {
+  const row: Record<string, number | string> = { month };
+  for (const p of ROSTER) row[p.name] = p.rapid[i] ?? DEFAULT_RATING;
+  return row;
+});
+
+const ranked = [...ROSTER]
+  .map(p => ({ ...p, rating: currentRating(p.rapid) }))
+  .sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
 
 export function FideDashboard() {
   return (
@@ -40,7 +67,7 @@ export function FideDashboard() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row, i) => (
+              {ranked.map((row, i) => (
                 <tr key={row.fideId} className="border-t border-slate-700/70 hover:bg-slate-800/40">
                   <td className="py-2.5 px-3 text-center font-mono text-slate-300">#{i + 1}</td>
                   <td className="py-2.5 px-3">
@@ -48,8 +75,9 @@ export function FideDashboard() {
                       href={`https://ratings.fide.com/profile/${row.fideId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-slate-100 hover:text-emerald-400 transition-colors"
+                      className="inline-flex items-center gap-2 text-slate-100 hover:text-emerald-400 transition-colors"
                     >
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLOR[row.fideId] }} />
                       {row.name}
                     </a>
                   </td>
@@ -63,6 +91,37 @@ export function FideDashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-8 rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+          <h2 className="text-sm font-medium text-slate-300 mb-1">Rapid rating since January 2026</h2>
+          <p className="text-xs text-slate-500 mb-4">Months without a FIDE rating are plotted at 1400.</p>
+          <div className="[&_*:focus]:outline-none">
+            <ResponsiveContainer width="100%" height={380}>
+              <LineChart data={chartData} margin={{ top: 8, right: 16, bottom: 4, left: -8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="month" tick={{ fill: '#e2e8f0', fontSize: 12 }} />
+                <YAxis tick={{ fill: '#e2e8f0', fontSize: 12 }} domain={[1380, 'auto']} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+                  labelStyle={{ color: '#e2e8f0' }}
+                  itemSorter={(item) => -(item.value as number)}
+                />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                {ROSTER.map(p => (
+                  <Line
+                    key={p.fideId}
+                    type="monotone"
+                    dataKey={p.name}
+                    stroke={COLOR[p.fideId]}
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                    activeDot={{ r: 4 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>
