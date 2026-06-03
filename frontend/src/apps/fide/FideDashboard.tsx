@@ -6,6 +6,11 @@ import { Trophy, Loader2 } from 'lucide-react';
 const ROSTER: { name: string; fideId: string }[] = [
   { name: 'Tallec, Gauthier', fideId: '576029000' },
   { name: 'Rose, Louis', fideId: '560015160' },
+  { name: 'Santini, Lauren', fideId: '560003979' },
+  { name: 'Jia, David', fideId: '20630034' },
+  { name: 'Houdard, Clément', fideId: '576014835' },
+  { name: 'Dupont, Rémi', fideId: '576007308' },
+  { name: 'Teboul, Raphael', fideId: '560080809' },
 ];
 
 const DEFAULT_RATING = 1400; // provisional, replaced once a real rating is fetched
