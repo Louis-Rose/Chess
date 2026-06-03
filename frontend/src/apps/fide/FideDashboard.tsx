@@ -5,6 +5,7 @@ import { Trophy, Loader2 } from 'lucide-react';
 // Players to track. Add one by appending { name, fideId }.
 const ROSTER: { name: string; fideId: string }[] = [
   { name: 'Tallec, Gauthier', fideId: '576029000' },
+  { name: 'Rose, Louis', fideId: '560015160' },
 ];
 
 const DEFAULT_RATING = 1400; // provisional, replaced once a real rating is fetched
