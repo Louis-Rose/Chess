@@ -12,6 +12,12 @@ export default defineConfig({
   build: {
     minify: 'esbuild',
     rollupOptions: {
+      // Two HTML entries: the app, and a copy with custom link-preview tags that
+      // nginx serves only for /blitzcrewrankings. Both boot the same SPA.
+      input: {
+        main: 'index.html',
+        blitzcrewrankings: 'blitzcrewrankings.html',
+      },
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
