@@ -4,12 +4,12 @@ import {
 } from 'recharts';
 
 // Monthly FIDE rapid rating since January 2026, one value per month. A null means
-// the player had no FIDE rating that month and is plotted at 1400 (DEFAULT_RATING).
-// The VM can't reach ratings.fide.com, so these come from a manual lookup. To
-// refresh, ask Claude to re-run the FIDE history lookup; to add a month, push a
-// value onto MONTHS and every player's `rapid` array.
+// the player had no FIDE rating that month, so it's left off the chart (the line
+// starts the month they first get rated). The VM can't reach ratings.fide.com, so
+// these come from a manual lookup. To refresh, ask Claude to re-run the FIDE
+// history lookup; to add a month, push a value onto MONTHS and every player's
+// `rapid` array.
 const MONTHS = ['January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026'];
-const DEFAULT_RATING = 1400;
 
 const ROSTER: { name: string; fideId: string; rapid: (number | null)[] }[] = [
   { name: 'Jia, David',       fideId: '20630034',  rapid: [null, null, null, 1858, 1852, 1852] },
@@ -35,15 +35,16 @@ function currentRating(rapid: (number | null)[]): number | null {
   return null;
 }
 
-// recharts wants one row per month with a key per player; nulls fill to 1400.
+// recharts wants one row per month with a key per player; null months are left
+// off (the line just doesn't draw there).
 const chartData = MONTHS.map((month, i) => {
-  const row: Record<string, number | string> = { month };
-  for (const p of ROSTER) row[p.name] = p.rapid[i] ?? DEFAULT_RATING;
+  const row: Record<string, number | string | null> = { month };
+  for (const p of ROSTER) row[p.name] = p.rapid[i];
   return row;
 });
 
 // Y axis: start at 1400, one tick every 100 up to just above the top rating.
-const yMax = Math.ceil(Math.max(...chartData.flatMap(r => ROSTER.map(p => r[p.name] as number))) / 100) * 100;
+const yMax = Math.ceil(Math.max(...ROSTER.flatMap(p => p.rapid.filter((r): r is number => r != null))) / 100) * 100;
 const yTicks = Array.from({ length: (yMax - 1400) / 100 + 1 }, (_, i) => 1400 + i * 100);
 
 const lastIndex = MONTHS.length - 1;
@@ -53,7 +54,7 @@ function endLabel(name: string, color: string) {
   // props is recharts' label payload ({ x, y, index, ... }); typed loosely as the
   // recharts type allows x/y to be string | number.
   return (props: any) => {
-    if (props.index !== lastIndex) return null;
+    if (props.index !== lastIndex || props.value == null) return null;
     return (
       <text x={Number(props.x) + 8} y={props.y} dy={4} fill={color} fontSize={12}>
         {name}
@@ -78,7 +79,7 @@ export function FideDashboard() {
 
         <div className="mb-8 rounded-lg border border-slate-700 bg-slate-800/50 p-4">
           <h2 className="text-sm font-medium text-slate-300 mb-1">Rapid rating since January 2026</h2>
-          <p className="text-xs text-slate-500 mb-4">Months without a FIDE rating are plotted at 1400.</p>
+          <p className="text-xs text-slate-500 mb-4">A player's line starts the month they first get a FIDE rating.</p>
           <div className="[&_*:focus]:outline-none">
             <ResponsiveContainer width="100%" height={560}>
               <LineChart data={chartData} margin={{ top: 8, right: 132, bottom: 8, left: -8 }}>
@@ -111,6 +112,7 @@ export function FideDashboard() {
                     strokeWidth={2}
                     dot={{ r: 2 }}
                     activeDot={{ r: 4 }}
+                    connectNulls={false}
                     isAnimationActive={false}
                     label={endLabel(p.name, COLOR[p.fideId])}
                   />
