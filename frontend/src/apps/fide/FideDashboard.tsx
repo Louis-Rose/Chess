@@ -25,7 +25,7 @@ export function FideDashboard() {
       <div className="max-w-3xl mx-auto">
         <header className="flex items-center justify-center gap-3 mb-1">
           <Trophy className="w-7 h-7 text-emerald-400" />
-          <h1 className="text-2xl font-semibold">FIDE rankings</h1>
+          <h1 className="text-2xl font-semibold">Blitz Crew Fide Rankings</h1>
         </header>
         <p className="text-slate-400 text-sm mb-6 text-center">Players ranked by their FIDE rapid rating.</p>
 
