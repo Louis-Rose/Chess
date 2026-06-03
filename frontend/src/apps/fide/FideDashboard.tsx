@@ -52,6 +52,9 @@ const yTicks = Array.from({ length: (yMax - UNRATED_Y) / 100 + 1 }, (_, i) => UN
 
 const lastIndex = MONTHS.length - 1;
 
+// Names are stored "Surname, First"; the chart labels show just the first name.
+const firstName = (name: string) => name.split(',')[1]?.trim() ?? name;
+
 // "Name (elo)" drawn just to the right of the player's final point.
 function endLabel(text: string, color: string) {
   return (props: any) => {
@@ -100,7 +103,7 @@ export function FideDashboard() {
           <p className="text-xs text-slate-500 mb-4">Months with no FIDE rating are shown on the UNRATED baseline.</p>
           <div className="[&_*:focus]:outline-none">
             <ResponsiveContainer width="100%" height={560}>
-              <LineChart data={chartData} margin={{ top: 8, right: 160, bottom: 8, left: 4 }}>
+              <LineChart data={chartData} margin={{ top: 8, right: 110, bottom: 8, left: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis
                   dataKey="month"
@@ -128,7 +131,7 @@ export function FideDashboard() {
                     dot={{ r: 2.5, fill: p.color, stroke: p.color }}
                     activeDot={{ r: 4 }}
                     isAnimationActive={false}
-                    label={endLabel(`${p.name} (${p.current ?? 'Unrated'})`, p.color)}
+                    label={endLabel(`${firstName(p.name)} (${p.current ?? 'Unrated'})`, p.color)}
                   />
                 ))}
               </LineChart>
