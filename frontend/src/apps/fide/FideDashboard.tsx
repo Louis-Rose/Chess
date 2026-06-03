@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer,
 } from 'recharts';
 
 // Monthly FIDE rapid rating since January 2026, one value per month. A null means
@@ -124,25 +124,6 @@ function useIsMobile() {
   return mobile;
 }
 
-function ChartTooltip({ active, label }: { active?: boolean; label?: string }) {
-  if (!active || label == null) return null;
-  const i = MONTHS.indexOf(label);
-  if (i < 0) return null;
-  const rows = players
-    .map(p => ({ name: p.name, color: p.color, rating: p.rapid[i] }))
-    .sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
-  return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
-      <div className="text-slate-300 font-medium mb-1">{label}</div>
-      {rows.map(r => (
-        <div key={r.name} style={{ color: r.color }}>
-          {r.name}: {r.rating ?? 'Unrated'}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 const ranked = [...players].sort((a, b) => (b.current ?? -1) - (a.current ?? -1));
 
 export function FideDashboard() {
@@ -184,7 +165,6 @@ export function FideDashboard() {
                   tickFormatter={(v) => (v === UNRATED_Y ? 'UNRATED' : String(v))}
                   width={56}
                 />
-                <Tooltip content={<ChartTooltip />} />
                 {players.map(p => (
                   <Line
                     key={p.fideId}
