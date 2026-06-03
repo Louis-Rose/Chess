@@ -11,7 +11,7 @@ import {
 // ask Claude to re-run the FIDE history lookup; to add a month, push a value onto
 // MONTHS and every player's `rapid` array.
 const MONTHS = ['January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026'];
-const UNRATED_Y = 1300; // grey "unrated" markers sit here, below the FIDE 1400 floor
+const UNRATED_Y = 1400; // grey "unrated" markers sit here, at the FIDE 1400 floor
 const GREY = '#64748b';
 
 const ROSTER: { name: string; fideId: string; rapid: (number | null)[] }[] = [
@@ -127,7 +127,7 @@ export function FideDashboard() {
         <div className="mb-8 rounded-lg border border-slate-700 bg-slate-800/50 p-4">
           <h2 className="text-sm font-medium text-slate-300 mb-1">Rapid rating since January 2026</h2>
           <p className="text-xs text-slate-500 mb-4">
-            Months with no FIDE rating sit at 1300 (grey dot); a line turns grey only as it drops into one.
+            Months with no FIDE rating sit at 1400 (grey dot); a line turns grey only as it drops into one.
           </p>
           <div className="[&_*:focus]:outline-none">
             <ResponsiveContainer width="100%" height={560}>
