@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -102,15 +103,25 @@ const labelOffset: Record<string, number> = Object.fromEntries(
   })).map(pl => [pl.fideId, pl.y - pl.y0]),
 );
 
-function endLabel(text: string, color: string, offset: number) {
+function endLabel(text: string, color: string, offset: number, fontSize: number, dx: number) {
   return (props: any) => {
     if (props.index !== lastIndex) return null;
     return (
-      <text x={Number(props.x) + 8} y={Number(props.y) + offset} dy={4} fill={color} fontSize={12}>
+      <text x={Number(props.x) + dx} y={Number(props.y) + offset} dy={4} fill={color} fontSize={fontSize}>
         {text}
       </text>
     );
   };
+}
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+  useEffect(() => {
+    const onResize = () => setMobile(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return mobile;
 }
 
 function ChartTooltip({ active, label }: { active?: boolean; label?: string }) {
@@ -135,8 +146,14 @@ function ChartTooltip({ active, label }: { active?: boolean; label?: string }) {
 const ranked = [...players].sort((a, b) => (b.current ?? -1) - (a.current ?? -1));
 
 export function FideDashboard() {
+  const isMobile = useIsMobile();
+  const rightMargin = isMobile ? 90 : 116; // room for the "First (elo)" labels
+  const labelFont = isMobile ? 10 : 12;
+  const labelDx = isMobile ? 5 : 8;
+  const axisFont = isMobile ? 11 : 12;
+
   return (
-    <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-6">
+    <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-3 sm:p-6">
       <div className="max-w-3xl mx-auto">
         <header className="flex items-center justify-center gap-3 mb-1">
           <Trophy className="w-7 h-7 text-emerald-400" />
@@ -144,27 +161,27 @@ export function FideDashboard() {
         </header>
         <p className="text-slate-400 text-sm mb-6 text-center">Players ranked by their FIDE rapid rating.</p>
 
-        <div className="mb-8 rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+        <div className="mb-8 rounded-lg border border-slate-700 bg-slate-800/50 p-3 sm:p-4">
           <h2 className="text-sm font-medium text-slate-300 mb-1">Rapid rating since January 2026</h2>
           <p className="text-xs text-slate-500 mb-4">Months with no FIDE rating are shown on the UNRATED baseline.</p>
           <div className="[&_*:focus]:outline-none">
             <ResponsiveContainer width="100%" height={560}>
-              <LineChart data={chartData} margin={{ top: 8, right: 110, bottom: 8, left: 4 }}>
+              <LineChart data={chartData} margin={{ top: 8, right: rightMargin, bottom: 8, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis
                   dataKey="month"
-                  tick={{ fill: '#e2e8f0', fontSize: 12 }}
+                  tick={{ fill: '#e2e8f0', fontSize: axisFont }}
                   angle={-35}
                   textAnchor="end"
                   height={70}
                   interval={0}
                 />
                 <YAxis
-                  tick={{ fill: '#e2e8f0', fontSize: 12 }}
+                  tick={{ fill: '#e2e8f0', fontSize: axisFont }}
                   domain={[UNRATED_Y, yMax]}
                   ticks={yTicks}
                   tickFormatter={(v) => (v === UNRATED_Y ? 'UNRATED' : String(v))}
-                  width={68}
+                  width={56}
                 />
                 <Tooltip content={<ChartTooltip />} />
                 {players.map(p => (
@@ -177,7 +194,7 @@ export function FideDashboard() {
                     dot={{ r: 2.5, fill: p.color, stroke: p.color }}
                     activeDot={{ r: 4 }}
                     isAnimationActive={false}
-                    label={endLabel(`${firstName(p.name)} (${p.current ?? 'Unrated'})`, p.color, labelOffset[p.fideId])}
+                    label={endLabel(`${firstName(p.name)} (${p.current ?? 'Unrated'})`, p.color, labelOffset[p.fideId], labelFont, labelDx)}
                   />
                 ))}
               </LineChart>
