@@ -134,6 +134,16 @@ export function FideDashboard() {
   const labelDx = isMobile ? 5 : 8;
   const axisFont = isMobile ? 11 : 12;
 
+  // Render "UNRATED" smaller than the numeric ticks so it fits the y-axis width.
+  const renderYTick = ({ x, y, payload }: any) => {
+    const unrated = payload.value === UNRATED_Y;
+    return (
+      <text x={x} y={y} dy={4} textAnchor="end" fill="#e2e8f0" fontSize={unrated ? 9 : axisFont}>
+        {unrated ? 'UNRATED' : payload.value}
+      </text>
+    );
+  };
+
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-3 sm:p-6">
       <div className="max-w-3xl mx-auto">
@@ -159,10 +169,9 @@ export function FideDashboard() {
                   interval={0}
                 />
                 <YAxis
-                  tick={{ fill: '#e2e8f0', fontSize: axisFont }}
+                  tick={renderYTick}
                   domain={[UNRATED_Y, yMax]}
                   ticks={yTicks}
-                  tickFormatter={(v) => (v === UNRATED_Y ? 'UNRATED' : String(v))}
                   width={56}
                 />
                 {players.map(p => (
