@@ -4,13 +4,14 @@ import {
 } from 'recharts';
 
 // Monthly FIDE rapid rating since January 2026, one value per month. A null means
-// the player had no FIDE rating that month; it's drawn as a grey dot at 1200 and
-// any line segment touching it is grey. The VM can't reach ratings.fide.com, so
-// these come from a manual lookup. To refresh, ask Claude to re-run the FIDE
-// history lookup; to add a month, push a value onto MONTHS and every player's
-// `rapid` array.
+// the player had no FIDE rating that month; it's drawn as a grey dot at 1300, and
+// a line is grey only on the segment that drops INTO an unrated month (a segment
+// climbing out of unrated into a real rating stays the player's color). The VM
+// can't reach ratings.fide.com, so these come from a manual lookup. To refresh,
+// ask Claude to re-run the FIDE history lookup; to add a month, push a value onto
+// MONTHS and every player's `rapid` array.
 const MONTHS = ['January 2026', 'February 2026', 'March 2026', 'April 2026', 'May 2026', 'June 2026'];
-const UNRATED_Y = 1200; // grey "unrated" markers sit here, below the FIDE 1400 floor
+const UNRATED_Y = 1300; // grey "unrated" markers sit here, below the FIDE 1400 floor
 const GREY = '#64748b';
 
 const ROSTER: { name: string; fideId: string; rapid: (number | null)[] }[] = [
@@ -32,34 +33,55 @@ const PALETTE = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#a855f7',
                  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#eab308'];
 const COLOR = Object.fromEntries(ROSTER.map((p, i) => [p.fideId, PALETTE[i % PALETTE.length]]));
 
-const greyKey = (fideId: string) => `${fideId}__grey`;
-
 // Latest real rating (most recent non-null month), or null if never rated.
 function currentRating(rapid: (number | null)[]): number | null {
   for (let i = rapid.length - 1; i >= 0; i--) if (rapid[i] != null) return rapid[i];
   return null;
 }
 
-// Two keys per player: the player-coloured series (rating, or null where unrated
-// so only rated-to-rated segments draw) and the grey underlay (rating, or 1200).
+// A segment i->i+1 is coloured when it ends at a real rating; grey when it ends
+// at an unrated month. Group consecutive coloured segments into "runs" so each
+// run can be drawn as one player-coloured polyline over the grey underlay.
+function colouredRuns(rapid: (number | null)[]): (number | null)[][] {
+  const runs: Set<number>[] = [];
+  let cur: Set<number> | null = null;
+  for (let i = 0; i < rapid.length - 1; i++) {
+    if (rapid[i + 1] != null) {            // segment ends at a rating -> coloured
+      (cur ??= new Set()).add(i); cur.add(i + 1);
+    } else if (cur) { runs.push(cur); cur = null; }
+  }
+  if (cur) runs.push(cur);
+  return runs.map(set => rapid.map((r, i) => (set.has(i) ? (r ?? UNRATED_Y) : null)));
+}
+
+const players = ROSTER.map(p => ({
+  ...p,
+  color: COLOR[p.fideId],
+  runs: colouredRuns(p.rapid),
+  current: currentRating(p.rapid),
+}));
+
+// One row per month. Keys per player: grey full path, grey dots (unrated only),
+// coloured dots (rated only), and one key per coloured run.
 const chartData = MONTHS.map((month, i) => {
   const row: Record<string, number | string | null> = { month };
-  for (const p of ROSTER) {
+  for (const p of players) {
+    row[`${p.fideId}_gf`] = p.rapid[i] ?? UNRATED_Y;
+    row[`${p.fideId}_gd`] = p.rapid[i] == null ? UNRATED_Y : null;
     row[p.name] = p.rapid[i];
-    row[greyKey(p.fideId)] = p.rapid[i] ?? UNRATED_Y;
+    p.runs.forEach((run, k) => { row[`${p.fideId}_r${k}`] = run[i]; });
   }
   return row;
 });
 
-// Y axis: from the 1200 unrated row, one tick every 100 up to just above the top.
+// Y axis: from the 1300 unrated row, one tick every 100 up to just above the top.
 const topRating = Math.max(...ROSTER.flatMap(p => p.rapid.filter((r): r is number => r != null)));
 const yMax = Math.ceil(topRating / 100) * 100;
 const yTicks = Array.from({ length: (yMax - UNRATED_Y) / 100 + 1 }, (_, i) => UNRATED_Y + i * 100);
 
 const lastIndex = MONTHS.length - 1;
 
-// Player name drawn just to the right of their final point (grey if that month
-// is itself unrated).
+// Player name drawn just to the right of their final point.
 function endLabel(name: string, color: string) {
   return (props: any) => {
     if (props.index !== lastIndex || props.value == null) return null;
@@ -75,8 +97,8 @@ function ChartTooltip({ active, label }: { active?: boolean; label?: string }) {
   if (!active || label == null) return null;
   const i = MONTHS.indexOf(label);
   if (i < 0) return null;
-  const rows = ROSTER
-    .map(p => ({ name: p.name, color: COLOR[p.fideId], rating: p.rapid[i] }))
+  const rows = players
+    .map(p => ({ name: p.name, color: p.color, rating: p.rapid[i] }))
     .sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
@@ -90,9 +112,7 @@ function ChartTooltip({ active, label }: { active?: boolean; label?: string }) {
   );
 }
 
-const ranked = [...ROSTER]
-  .map(p => ({ ...p, rating: currentRating(p.rapid) }))
-  .sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+const ranked = [...players].sort((a, b) => (b.current ?? -1) - (a.current ?? -1));
 
 export function FideDashboard() {
   return (
@@ -107,7 +127,7 @@ export function FideDashboard() {
         <div className="mb-8 rounded-lg border border-slate-700 bg-slate-800/50 p-4">
           <h2 className="text-sm font-medium text-slate-300 mb-1">Rapid rating since January 2026</h2>
           <p className="text-xs text-slate-500 mb-4">
-            Grey dots mark months with no FIDE rating (drawn at 1200); the line is grey wherever it touches one.
+            Months with no FIDE rating sit at 1300 (grey dot); a line turns grey only as it drops into one.
           </p>
           <div className="[&_*:focus]:outline-none">
             <ResponsiveContainer width="100%" height={560}>
@@ -129,34 +149,30 @@ export function FideDashboard() {
                 />
                 <Tooltip content={<ChartTooltip />} />
 
-                {/* Grey underlay: the full path, drawn under the colored segments. */}
-                {ROSTER.map(p => (
-                  <Line
-                    key={`${p.fideId}-grey`}
-                    type="monotone"
-                    dataKey={greyKey(p.fideId)}
-                    stroke={GREY}
-                    strokeWidth={2}
-                    dot={{ r: 2, fill: GREY, stroke: GREY }}
-                    activeDot={false}
-                    isAnimationActive={false}
-                    label={endLabel(p.name, currentRating(p.rapid) != null ? COLOR[p.fideId] : GREY)}
-                  />
+                {/* Grey underlay: full path, drawn under everything. */}
+                {players.map(p => (
+                  <Line key={`${p.fideId}-gf`} type="monotone" dataKey={`${p.fideId}_gf`}
+                    stroke={GREY} strokeWidth={2} dot={false} activeDot={false} isAnimationActive={false} />
                 ))}
-
-                {/* Colored overlay: only the rated-to-rated segments. */}
-                {ROSTER.map(p => (
-                  <Line
-                    key={`${p.fideId}-color`}
-                    type="monotone"
-                    dataKey={p.name}
-                    stroke={COLOR[p.fideId]}
-                    strokeWidth={2}
-                    dot={{ r: 2.5, fill: COLOR[p.fideId], stroke: COLOR[p.fideId] }}
-                    activeDot={{ r: 4 }}
-                    connectNulls={false}
-                    isAnimationActive={false}
-                  />
+                {/* Grey dots at the unrated months (and the end label when the last month is unrated). */}
+                {players.map(p => (
+                  <Line key={`${p.fideId}-gd`} type="monotone" dataKey={`${p.fideId}_gd`}
+                    stroke={GREY} strokeWidth={0} connectNulls={false}
+                    dot={{ r: 2, fill: GREY, stroke: GREY }} activeDot={false} isAnimationActive={false}
+                    label={endLabel(p.name, GREY)} />
+                ))}
+                {/* Coloured runs: rated-to-rated and out-of-unrated segments. */}
+                {players.flatMap(p => p.runs.map((_, k) => (
+                  <Line key={`${p.fideId}-r${k}`} type="monotone" dataKey={`${p.fideId}_r${k}`}
+                    stroke={p.color} strokeWidth={2} dot={false} activeDot={false}
+                    connectNulls={false} isAnimationActive={false} />
+                )))}
+                {/* Coloured dots at the rated months (and the end label when the last month is rated). */}
+                {players.map(p => (
+                  <Line key={`${p.fideId}-cd`} type="monotone" dataKey={p.name}
+                    stroke={p.color} strokeWidth={0} connectNulls={false}
+                    dot={{ r: 2.5, fill: p.color, stroke: p.color }} activeDot={{ r: 4 }}
+                    isAnimationActive={false} label={endLabel(p.name, p.color)} />
                 ))}
               </LineChart>
             </ResponsiveContainer>
@@ -184,14 +200,14 @@ export function FideDashboard() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-slate-100 hover:text-emerald-400 transition-colors"
                     >
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLOR[row.fideId] }} />
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
                       {row.name}
                     </a>
                   </td>
                   <td className="py-2.5 px-3 font-mono text-slate-400 text-sm">{row.fideId}</td>
                   <td className="py-2.5 px-3 text-right font-mono">
-                    {row.rating != null
-                      ? <span className="text-slate-100">{row.rating}</span>
+                    {row.current != null
+                      ? <span className="text-slate-100">{row.current}</span>
                       : <span className="text-slate-500">Not rated</span>}
                   </td>
                 </tr>
