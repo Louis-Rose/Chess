@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-  BarChart, Bar, Cell, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts';
 import { Crown } from 'lucide-react';
@@ -28,21 +28,22 @@ interface Regression {
   significant: boolean;
 }
 
-interface Streak {
-  streak: number; // negative = losses before, positive = wins before, 0 = after a draw
+interface AfterResult {
+  after: 'win' | 'draw' | 'loss';
   games: number;
-  win_rate: number;
-  p_value: number | null;
-  significant: boolean;
+  win_rate: number | null; // draws count as half a win; null when no games
 }
 
-const STREAK_COLORS = { win: '#10b981', loss: '#ef4444', even: '#94a3b8' };
-const STREAK_TEXT = { win: 'text-emerald-400', loss: 'text-red-400', even: 'text-slate-300' };
+const AFTER_LABEL: Record<AfterResult['after'], string> = {
+  win: 'After a win',
+  draw: 'After a draw',
+  loss: 'After a loss',
+};
 
-function streakState(winRate: number): 'win' | 'loss' | 'even' {
-  if (winRate > 50) return 'win';
-  if (winRate < 50) return 'loss';
-  return 'even';
+function afterColor(winRate: number): string {
+  if (winRate > 50) return 'text-emerald-400';
+  if (winRate < 50) return 'text-red-400';
+  return 'text-slate-300';
 }
 
 interface RapidStats {
@@ -51,7 +52,7 @@ interface RapidStats {
   months: MonthCount[];
   days: Day[];
   regression: Regression | null;
-  streaks: Streak[];
+  after_results: AfterResult[];
 }
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -78,24 +79,6 @@ function ScatterTooltip({ active, payload }: { active?: boolean; payload?: Array
   );
 }
 
-function streakDescription(s: number): string {
-  if (s === 0) return 'After a draw';
-  const n = Math.abs(s);
-  return s < 0 ? `After ${n} ${n === 1 ? 'loss' : 'losses'}` : `After ${n} ${n === 1 ? 'win' : 'wins'}`;
-}
-
-function StreakTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: Streak }> }) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
-      <div className="text-slate-300 font-medium mb-1">{streakDescription(d.streak)}</div>
-      <div className={STREAK_TEXT[streakState(d.win_rate)]}>{d.win_rate}% win rate</div>
-      <div className="text-slate-500">{d.games} games{d.p_value != null && ` (p = ${d.p_value})`}</div>
-    </div>
-  );
-}
-
 export function ChessDashboard() {
   const [data, setData] = useState<RapidStats | null>(null);
   const [error, setError] = useState(false);
@@ -111,11 +94,7 @@ export function ChessDashboard() {
   const monthData = (data?.months ?? []).map(m => ({ ...m, label: monthLabel(m.month) }));
   const days = data?.days ?? [];
   const reg = data?.regression ?? null;
-  const streakData = (data?.streaks ?? []).map(s => ({
-    ...s,
-    label: `${s.streak > 0 ? '+' : ''}${s.streak}`,
-    value: s.significant ? s.win_rate : null,
-  }));
+  const afterResults = data?.after_results ?? [];
 
   const regSegment = ((): [{ x: number; y: number }, { x: number; y: number }] | null => {
     if (!reg || days.length === 0) return null;
@@ -237,38 +216,32 @@ export function ChessDashboard() {
               )}
             </div>
 
-            {/* Win rate after a win/loss streak */}
+            {/* Win rate after the previous game's result */}
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-              <h2 className="text-sm font-medium text-slate-300 mb-1">Win rate after a streak</h2>
+              <h2 className="text-sm font-medium text-slate-300 mb-1">Win rate after the previous game</h2>
               <p className="text-xs text-slate-500 mb-4">
-                Win rate of the next game after consecutive losses (left) or wins (right). Only streaks whose win rate differs significantly from 50% (p &lt; 0.05, one-sample t-test) are shown. Green is winning, red is losing.
+                Win rate of a game grouped by the result of the game right before it. Only counts games that follow another game on the same day, where a day runs 3 AM to 3 AM Paris time. Draws count as half a win.
               </p>
-              <div className="[&_*:focus]:outline-none">
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={streakData} margin={{ top: 4, right: 8, bottom: 24, left: -8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: '#e2e8f0', fontSize: 11 }}
-                      interval={0}
-                      label={{ value: 'Streak before the game', position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      ticks={[0, 25, 50, 75, 100]}
-                      tick={{ fill: '#e2e8f0', fontSize: 12 }}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <ReferenceLine y={50} stroke="#64748b" strokeDasharray="3 3" />
-                    <Tooltip cursor={{ fill: '#334155', opacity: 0.3 }} content={<StreakTooltip />} />
-                    <Bar dataKey="value" radius={[3, 3, 0, 0]}>
-                      {streakData.map((d) => (
-                        <Cell key={d.streak} fill={STREAK_COLORS[streakState(d.win_rate)]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-slate-500 border-b border-slate-700">
+                    <th className="py-2 font-medium">Previous game</th>
+                    <th className="py-2 font-medium text-right">Win rate</th>
+                    <th className="py-2 font-medium text-right">Games</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {afterResults.map((r) => (
+                    <tr key={r.after} className="border-b border-slate-800 last:border-0">
+                      <td className="py-2.5 text-slate-300">{AFTER_LABEL[r.after]}</td>
+                      <td className={`py-2.5 text-right font-mono ${r.win_rate == null ? 'text-slate-600' : afterColor(r.win_rate)}`}>
+                        {r.win_rate == null ? '—' : `${r.win_rate}%`}
+                      </td>
+                      <td className="py-2.5 text-right font-mono text-slate-400">{r.games}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

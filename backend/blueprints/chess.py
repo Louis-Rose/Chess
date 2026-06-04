@@ -14,8 +14,9 @@ import re
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import requests as http_requests
@@ -61,6 +62,9 @@ def _fetch_json(url):
 
 _DRAW_RESULTS = {'stalemate', 'agreed', 'repetition', 'insufficient', '50move', 'timevsinsufficient'}
 _SCORE = {'win': 1.0, 'draw': 0.5, 'loss': 0.0}
+
+_PARIS = ZoneInfo('Europe/Paris')
+_DAY_CUTOFF_HOUR = 3  # a "chess day" runs 3am → 3am Paris time
 
 
 def _result(code):
@@ -149,39 +153,34 @@ def _regression(days):
     }
 
 
-def _streaks(games):
-    """Bucket each game by the win/loss streak immediately before it and report
-    the win rate of the games that follow.
+def _chess_day(end_time):
+    """The 'chess day' a unix timestamp belongs to: its Paris-local date with the
+    day boundary shifted to 3am, so a game before 3am counts as the prior day."""
+    local = datetime.fromtimestamp(end_time, tz=_PARIS) - timedelta(hours=_DAY_CUTOFF_HOUR)
+    return local.date()
 
-    The streak is signed: negative = consecutive losses, positive = consecutive
-    wins, 0 = right after a draw or the very first game. A draw resets the
-    streak. win_rate counts draws as half a win."""
-    buckets = defaultdict(list)
-    streak = 0
-    for _end, _rating, result in games:
-        buckets[streak].append(_SCORE[result])
-        if result == 'win':
-            streak = streak + 1 if streak > 0 else 1
-        elif result == 'loss':
-            streak = streak - 1 if streak < 0 else -1
-        else:
-            streak = 0
+
+def _after_results(games):
+    """Win rate of a game grouped by the result of the game right before it.
+
+    A game only counts as 'after' the previous one when both fall on the same
+    chess day (see _chess_day), so the first game of each day has no predecessor
+    and is skipped. win_rate counts draws as half a win."""
+    buckets = {'win': [], 'draw': [], 'loss': []}
+    for i in range(1, len(games)):
+        prev_end, _prev_rating, prev_result = games[i - 1]
+        end, _rating, result = games[i]
+        if _chess_day(prev_end) != _chess_day(end):
+            continue
+        buckets[prev_result].append(_SCORE[result])
     out = []
-    for s in sorted(buckets):
-        scores = buckets[s]
+    for prev in ('win', 'draw', 'loss'):
+        scores = buckets[prev]
         n = len(scores)
-        avg = sum(scores) / n
-        # Two-sided one-sample t-test of the game scores against 0.5 (no edge).
-        if n >= 2 and np.var(scores) > 0:
-            p = float(stats.ttest_1samp(scores, 0.5).pvalue)
-        else:
-            p = float('nan')
         out.append({
-            'streak': s,
+            'after': prev,
             'games': n,
-            'win_rate': round(avg * 100, 1),
-            'p_value': round(p, 4) if np.isfinite(p) else None,
-            'significant': bool(np.isfinite(p) and p < 0.05),
+            'win_rate': round(sum(scores) / n * 100, 1) if n else None,
         })
     return out
 
@@ -209,7 +208,7 @@ def rapid_stats():
         'months': _months(games),
         'days': days,
         'regression': _regression(days),
-        'streaks': _streaks(games),
+        'after_results': _after_results(games),
     })
 
 
