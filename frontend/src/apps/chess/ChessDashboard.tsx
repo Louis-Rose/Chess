@@ -186,7 +186,7 @@ export function ChessDashboard() {
                 </div>
                 {/* 50% win-rate marker, aligned to the bar track (offset past the index label) */}
                 <div
-                  className="pointer-events-none absolute inset-y-0 border-l border-dashed border-slate-400"
+                  className="pointer-events-none absolute inset-y-0 w-1 -translate-x-1/2 rounded bg-slate-950"
                   style={{ left: 'calc(50% + 1rem)' }}
                 />
               </div>
