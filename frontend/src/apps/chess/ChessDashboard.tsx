@@ -66,7 +66,12 @@ export function ChessDashboard() {
         </header>
         <p className="text-slate-400 text-sm mb-6 text-center">
           Rapid games on chess.com
-          {data && <> for <span className="text-slate-200 font-mono">{data.username}</span>.</>}
+          {data && <> for <a
+            href={`https://www.chess.com/member/${data.username}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-200 font-mono hover:text-emerald-400 hover:underline transition-colors"
+          >{data.username}</a>.</>}
         </p>
 
         {loading && (
