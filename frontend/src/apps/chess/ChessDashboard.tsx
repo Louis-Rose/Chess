@@ -56,19 +56,20 @@ interface WaitPoint {
   result: ResultKey;
 }
 
-// "After a win": bin waits into 10-minute columns (last column is the 90+
+// "After a win": bin waits into 30-minute columns (last column is the 90+
 // overflow) and report the win rate (draws count as half) of each column.
-const WAIT_BIN_MIN = 10;
+const WAIT_BIN_MIN = 30;
 const WAIT_MAX_MIN = 90;
 
 interface WaitRate {
-  x: number; // column centre on the minutes axis (overflow sits at 95)
+  x: number; // column centre on the minutes axis (overflow sits at 105)
   rate: number; // win rate %, draws as half a win
   total: number; // games in the column
+  ci: number; // 95% CI half-width in pp (worst-case p=0.5: 98/√n)
 }
 
 function buildWaitRates(points: WaitPoint[]): WaitRate[] {
-  const nBins = WAIT_MAX_MIN / WAIT_BIN_MIN; // index nBins == 60+ overflow column
+  const nBins = WAIT_MAX_MIN / WAIT_BIN_MIN; // index nBins == 90+ overflow column
   const agg = Array.from({ length: nBins + 1 }, () => ({ score: 0, total: 0 }));
   for (const p of points) {
     const b = Math.min(Math.floor(Math.max(0, p.wait) / WAIT_BIN_MIN), nBins);
@@ -78,7 +79,12 @@ function buildWaitRates(points: WaitPoint[]): WaitRate[] {
   const out: WaitRate[] = [];
   agg.forEach((a, b) => {
     if (!a.total) return;
-    out.push({ x: b * WAIT_BIN_MIN + WAIT_BIN_MIN / 2, rate: (a.score / a.total) * 100, total: a.total });
+    out.push({
+      x: b * WAIT_BIN_MIN + WAIT_BIN_MIN / 2,
+      rate: (a.score / a.total) * 100,
+      total: a.total,
+      ci: 98 / Math.sqrt(a.total),
+    });
   });
   return out;
 }
@@ -87,12 +93,13 @@ function waitRateColor(rate: number): string {
   return rate > 50 ? SEG.win.dot : rate < 50 ? SEG.loss.dot : SEG.draw.dot;
 }
 
-// Renders each column's win rate as a coloured number at its win-rate height.
+// Renders each column's win rate (with its 95% CI) at its win-rate height.
 function WaitRateLabel({ cx, cy, payload }: { cx?: number; cy?: number; payload?: WaitRate }) {
   if (cx == null || cy == null || !payload) return null;
   return (
-    <text x={cx} y={cy} dy={4} textAnchor="middle" fontSize={12} fontFamily="ui-monospace, monospace" fill={waitRateColor(payload.rate)}>
-      {`${payload.rate.toFixed(0)}%`}
+    <text x={cx} textAnchor="middle" fontFamily="ui-monospace, monospace">
+      <tspan x={cx} y={cy} dy={-2} fontSize={12} fill={waitRateColor(payload.rate)}>{`${payload.rate.toFixed(0)}%`}</tspan>
+      <tspan x={cx} y={cy} dy={13} fontSize={10} fill="#64748b">{`±${payload.ci.toFixed(0)}`}</tspan>
     </text>
   );
 }
@@ -103,13 +110,13 @@ function WaitRateTooltip({ active, payload }: { active?: boolean; payload?: Arra
   const color = d.rate > 50 ? SEG.win.text : d.rate < 50 ? SEG.loss.text : SEG.draw.text;
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
-      <div className={color}>{d.rate.toFixed(1)}% win rate</div>
-      <div className="text-slate-500">{d.total} {d.total === 1 ? 'game' : 'games'}</div>
+      <div className={color}>{d.rate.toFixed(1)}% ± {d.ci.toFixed(1)} pp</div>
+      <div className="text-slate-500">{d.total} {d.total === 1 ? 'game' : 'games'} (95% CI)</div>
     </div>
   );
 }
 
-const WAIT_TICKS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
+const WAIT_TICKS = [0, 30, 60, 90, 105];
 
 // Win rate of the next same-day game after a given result, by wait time.
 function WaitRateChart({ prevLabel, points }: { prevLabel: 'win' | 'loss'; points: WaitPoint[] }) {
@@ -120,7 +127,7 @@ function WaitRateChart({ prevLabel, points }: { prevLabel: 'win' | 'loss'; point
         After a {prevLabel} (N={points.length}): does waiting help?
       </h2>
       <p className="text-xs text-slate-500 text-center mb-4">
-        Win rate of the next same-day game after a {prevLabel}, by how long you waited first (10-minute bins, draws count as half). Dashed line is 50%.
+        Win rate of the next same-day game after a {prevLabel}, by how long you waited first (30-minute bins, draws count as half). Each number shows its 95% CI half-width (±pp); dashed line is 50%.
       </p>
       <div className="[&_*:focus]:outline-none">
         <ResponsiveContainer width="100%" height={360}>
@@ -129,9 +136,9 @@ function WaitRateChart({ prevLabel, points }: { prevLabel: 'win' | 'loss'; point
             <XAxis
               type="number"
               dataKey="x"
-              domain={[0, 100]}
+              domain={[0, 110]}
               ticks={WAIT_TICKS}
-              tickFormatter={(v) => (v >= 95 ? '90+' : `${v}`)}
+              tickFormatter={(v) => (v >= 105 ? '90+' : `${v}`)}
               tick={{ fill: '#e2e8f0', fontSize: 12 }}
               label={{ value: `Minutes waited after the ${prevLabel}`, position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
             />
