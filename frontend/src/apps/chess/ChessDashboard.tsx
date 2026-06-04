@@ -59,13 +59,7 @@ interface RapidStats {
   after_results: AfterResult[];
 }
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTH_NAMES_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-function monthLabel(month: string): string {
-  const [y, m] = month.split('-');
-  return `${MONTH_NAMES[Number(m) - 1]} '${y.slice(2)}`;
-}
 
 function monthLabelFull(month: string): string {
   const [y, m] = month.split('-');
@@ -85,7 +79,7 @@ export function ChessDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const monthData = (data?.months ?? []).map(m => ({ ...m, label: monthLabel(m.month) }));
+  const monthData = (data?.months ?? []).map(m => ({ ...m, label: monthLabelFull(m.month) }));
   const byGameIndex = data?.by_game_index ?? [];
   const afterResults = data?.after_results ?? [];
 
@@ -135,9 +129,9 @@ export function ChessDashboard() {
 
             {/* Games per month */}
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-              <h2 className="text-sm font-medium text-slate-300 mb-4">Games per month</h2>
+              <h2 className="text-lg font-semibold text-slate-200 text-center mb-4">Games per month</h2>
               <div className="[&_*:focus]:outline-none">
-                <ResponsiveContainer width="100%" height={320}>
+                <ResponsiveContainer width="100%" height={380}>
                   <BarChart data={monthData} margin={{ top: 4, right: 8, bottom: 24, left: -8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
@@ -145,7 +139,7 @@ export function ChessDashboard() {
                       tick={{ fill: '#e2e8f0', fontSize: 11 }}
                       angle={-45}
                       textAnchor="end"
-                      height={50}
+                      height={90}
                       interval={0}
                     />
                     <YAxis tick={{ fill: '#e2e8f0', fontSize: 12 }} allowDecimals={false} />
@@ -167,34 +161,41 @@ export function ChessDashboard() {
 
             {/* Result split by game number within the day */}
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-              <h2 className="text-sm font-medium text-slate-300 mb-1">Results by game number in the day</h2>
-              <p className="text-xs text-slate-500 mb-4">
+              <h2 className="text-lg font-semibold text-slate-200 text-center mb-1">Results by game number in the day</h2>
+              <p className="text-xs text-slate-500 text-center mb-4">
                 Each bar is the Nth game played in a day (day runs 3 AM to 3 AM Paris time), split into wins, draws and losses. Hover a segment for its share and game count.
               </p>
-              <div className="space-y-1.5">
-                {byGameIndex.map((b) => (
-                  <div key={b.index} className="flex items-center gap-2">
-                    <span className="w-6 shrink-0 text-right text-xs font-mono text-slate-500">{b.index}</span>
-                    <div className="flex h-5 flex-1 overflow-hidden rounded">
-                      {SEG_KEYS.map((k) => b[k] > 0 && (
-                        <div
-                          key={k}
-                          className={`${SEG[k].bar} h-full cursor-default transition-opacity hover:opacity-80`}
-                          style={{ width: `${(b[k] / b.total) * 100}%` }}
-                          onMouseMove={(e) => setTip({ x: e.clientX, y: e.clientY, key: k, pct: (b[k] / b.total) * 100, total: b.total })}
-                          onMouseLeave={() => setTip(null)}
-                        />
-                      ))}
+              <div className="relative">
+                <div className="space-y-1.5">
+                  {byGameIndex.map((b) => (
+                    <div key={b.index} className="flex items-center gap-2">
+                      <span className="w-6 shrink-0 text-right text-xs font-mono text-slate-500">{b.index}</span>
+                      <div className="flex h-5 flex-1 overflow-hidden rounded">
+                        {SEG_KEYS.map((k) => b[k] > 0 && (
+                          <div
+                            key={k}
+                            className={`${SEG[k].bar} h-full cursor-default transition-opacity hover:opacity-80`}
+                            style={{ width: `${(b[k] / b.total) * 100}%` }}
+                            onMouseMove={(e) => setTip({ x: e.clientX, y: e.clientY, key: k, pct: (b[k] / b.total) * 100, total: b.total })}
+                            onMouseLeave={() => setTip(null)}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {/* 50% win-rate marker, aligned to the bar track (offset past the index label) */}
+                <div
+                  className="pointer-events-none absolute inset-y-0 border-l border-dashed border-slate-400"
+                  style={{ left: 'calc(50% + 1rem)' }}
+                />
               </div>
             </div>
 
             {/* Win rate after the previous game's result */}
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-              <h2 className="text-sm font-medium text-slate-300 mb-1">Win rate after the previous game</h2>
-              <p className="text-xs text-slate-500 mb-4">
+              <h2 className="text-lg font-semibold text-slate-200 text-center mb-1">Win rate after the previous game</h2>
+              <p className="text-xs text-slate-500 text-center mb-4">
                 Win rate of a game grouped by the result of the game right before it. Only counts games that follow another game on the same day, where a day runs 3 AM to 3 AM Paris time. Draws count as half a win.
               </p>
               <table className="w-full text-sm">
