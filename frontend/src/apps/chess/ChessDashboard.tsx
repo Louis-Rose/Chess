@@ -56,13 +56,13 @@ interface WaitPoint {
   result: ResultKey;
 }
 
-// "After a win": bin waits into 5-minute columns (last column is the 60+
+// "After a win": bin waits into 10-minute columns (last column is the 90+
 // overflow) and report the win rate (draws count as half) of each column.
-const WAIT_BIN_MIN = 5;
-const WAIT_MAX_MIN = 60;
+const WAIT_BIN_MIN = 10;
+const WAIT_MAX_MIN = 90;
 
 interface WaitRate {
-  x: number; // column centre on the minutes axis (overflow sits at 62.5)
+  x: number; // column centre on the minutes axis (overflow sits at 95)
   rate: number; // win rate %, draws as half a win
   total: number; // games in the column
 }
@@ -144,7 +144,7 @@ export function ChessDashboard() {
   const afterResults = data?.after_results ?? [];
   const waitPoints = data?.after_win_waits ?? [];
   const waitRates = buildWaitRates(waitPoints);
-  const WAIT_TICKS = [0, 10, 20, 30, 40, 50, 60, 62.5];
+  const WAIT_TICKS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-6">
@@ -286,7 +286,7 @@ export function ChessDashboard() {
                 After a win (N={waitPoints.length}): does waiting help?
               </h2>
               <p className="text-xs text-slate-500 text-center mb-4">
-                Win rate of the next same-day game after a win, by how long you waited first (5-minute bins, draws count as half). Dashed line is 50%.
+                Win rate of the next same-day game after a win, by how long you waited first (10-minute bins, draws count as half). Dashed line is 50%.
               </p>
               <div className="[&_*:focus]:outline-none">
                 <ResponsiveContainer width="100%" height={360}>
@@ -295,9 +295,9 @@ export function ChessDashboard() {
                     <XAxis
                       type="number"
                       dataKey="x"
-                      domain={[0, 65]}
+                      domain={[0, 100]}
                       ticks={WAIT_TICKS}
-                      tickFormatter={(v) => (v >= 62.5 ? '60+' : `${v}`)}
+                      tickFormatter={(v) => (v >= 95 ? '90+' : `${v}`)}
                       tick={{ fill: '#e2e8f0', fontSize: 12 }}
                       label={{ value: 'Minutes waited after the win', position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
                     />
