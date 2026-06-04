@@ -52,13 +52,12 @@ const SEG: Record<ResultKey, { label: string; bar: string; text: string; dot: st
 const SEG_KEYS: ResultKey[] = ['win', 'draw', 'loss'];
 
 interface WaitPoint {
-  wait: number; // minutes waited after the previous (winning) game
+  wait: number; // minutes waited before this game (since the previous same-day game)
   result: ResultKey;
 }
 
-// "After a win": bin waits into 30-minute columns (last column is the 90+
-// overflow) and report the win rate (draws count as half) of each column.
-const WAIT_BIN_MIN = 30;
+// Wait charts: bin waits into `binMin`-minute columns (the last column is the
+// 90+ overflow) and report the win rate (draws count as half) of each column.
 const WAIT_MAX_MIN = 90;
 
 interface WaitRate {
@@ -66,24 +65,38 @@ interface WaitRate {
   rate: number; // win rate %, draws as half a win
   total: number; // games in the column
   ci: number; // 95% CI half-width in pp (worst-case p=0.5: 98/√n)
+  pAbove: number; // probability the true rate is above 50% (flat prior, normal approx)
 }
 
-function buildWaitRates(points: WaitPoint[]): WaitRate[] {
-  const nBins = WAIT_MAX_MIN / WAIT_BIN_MIN; // index nBins == 90+ overflow column
+// Standard normal CDF via the Abramowitz-Stegun erf approximation.
+function normCdf(z: number): number {
+  const sign = z < 0 ? -1 : 1;
+  const x = Math.abs(z) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return 0.5 * (1 + sign * y);
+}
+
+function buildWaitRates(points: WaitPoint[], binMin: number): WaitRate[] {
+  const nBins = WAIT_MAX_MIN / binMin; // index nBins == 90+ overflow column
   const agg = Array.from({ length: nBins + 1 }, () => ({ score: 0, total: 0 }));
   for (const p of points) {
-    const b = Math.min(Math.floor(Math.max(0, p.wait) / WAIT_BIN_MIN), nBins);
+    const b = Math.min(Math.floor(Math.max(0, p.wait) / binMin), nBins);
     agg[b].total += 1;
     agg[b].score += p.result === 'win' ? 1 : p.result === 'draw' ? 0.5 : 0;
   }
   const out: WaitRate[] = [];
   agg.forEach((a, b) => {
     if (!a.total) return;
+    const rate = (a.score / a.total) * 100;
+    const ci = 98 / Math.sqrt(a.total);
+    const se = ci / 1.96; // pp
     out.push({
-      x: b * WAIT_BIN_MIN + WAIT_BIN_MIN / 2,
-      rate: (a.score / a.total) * 100,
+      x: b * binMin + binMin / 2,
+      rate,
       total: a.total,
-      ci: 98 / Math.sqrt(a.total),
+      ci,
+      pAbove: normCdf((rate - 50) / se),
     });
   });
   return out;
@@ -108,26 +121,34 @@ function WaitRateTooltip({ active, payload }: { active?: boolean; payload?: Arra
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   const color = d.rate > 50 ? SEG.win.text : d.rate < 50 ? SEG.loss.text : SEG.draw.text;
+  const above = d.rate >= 50;
+  const pSide = above ? d.pAbove : 1 - d.pAbove;
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
       <div className={color}>{d.rate.toFixed(1)}% ± {d.ci.toFixed(1)} pp</div>
       <div className="text-slate-500">{d.total} {d.total === 1 ? 'game' : 'games'} (95% CI)</div>
+      <div className="text-slate-400 mt-1">{(pSide * 100).toFixed(0)}% chance {above ? 'above' : 'below'} 50%</div>
     </div>
   );
 }
 
-const WAIT_TICKS = [0, 30, 60, 90, 105];
-
-// Win rate of the next same-day game after a given result, by wait time.
-function WaitRateChart({ prevLabel, points }: { prevLabel: 'win' | 'loss'; points: WaitPoint[] }) {
-  const rates = buildWaitRates(points);
+// Win rate vs. wait time, binned into `binMin`-minute columns with a 90+
+// overflow. `heading`/`lead`/`axisLabel` adapt it to all games or a subset.
+function WaitRateChart({ heading, lead, axisLabel, points, binMin }: {
+  heading: string; lead: string; axisLabel: string; points: WaitPoint[]; binMin: number;
+}) {
+  const rates = buildWaitRates(points, binMin);
+  const overflowX = WAIT_MAX_MIN + binMin / 2;
+  const ticks: number[] = [];
+  for (let v = 0; v <= WAIT_MAX_MIN; v += binMin) ticks.push(v);
+  ticks.push(overflowX);
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
       <h2 className="text-lg font-semibold text-slate-200 text-center mb-1">
-        After a {prevLabel} (N={points.length}): does waiting help?
+        {heading} (N={points.length}): does waiting help?
       </h2>
       <p className="text-xs text-slate-500 text-center mb-4">
-        Win rate of the next same-day game after a {prevLabel}, by how long you waited first (30-minute bins, draws count as half). Each number shows its 95% CI half-width (±pp); dashed line is 50%.
+        {lead} ({binMin}-minute bins, draws count as half). Each number shows its 95% CI half-width (±pp); dashed line is 50%.
       </p>
       <div className="[&_*:focus]:outline-none">
         <ResponsiveContainer width="100%" height={360}>
@@ -136,11 +157,11 @@ function WaitRateChart({ prevLabel, points }: { prevLabel: 'win' | 'loss'; point
             <XAxis
               type="number"
               dataKey="x"
-              domain={[0, 110]}
-              ticks={WAIT_TICKS}
-              tickFormatter={(v) => (v >= 105 ? '90+' : `${v}`)}
+              domain={[0, WAIT_MAX_MIN + binMin]}
+              ticks={ticks}
+              tickFormatter={(v) => (v >= overflowX ? '90+' : `${v}`)}
               tick={{ fill: '#e2e8f0', fontSize: 12 }}
-              label={{ value: `Minutes waited after the ${prevLabel}`, position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
+              label={{ value: axisLabel, position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
             />
             <YAxis
               type="number"
@@ -167,6 +188,7 @@ interface RapidStats {
   months: MonthCount[];
   by_game_index: GameIndexBar[];
   after_results: AfterResult[];
+  game_waits: WaitPoint[];
   after_win_waits: WaitPoint[];
   after_loss_waits: WaitPoint[];
 }
@@ -329,8 +351,27 @@ export function ChessDashboard() {
               </table>
             </div>
 
-            <WaitRateChart prevLabel="win" points={data.after_win_waits} />
-            <WaitRateChart prevLabel="loss" points={data.after_loss_waits} />
+            <WaitRateChart
+              heading="All games"
+              lead="Win rate by how long you waited before the game (since the previous same-day game)"
+              axisLabel="Minutes waited before the game"
+              points={data.game_waits}
+              binMin={15}
+            />
+            <WaitRateChart
+              heading="After a win"
+              lead="Win rate of the next same-day game after a win, by how long you waited first"
+              axisLabel="Minutes waited after the win"
+              points={data.after_win_waits}
+              binMin={30}
+            />
+            <WaitRateChart
+              heading="After a loss"
+              lead="Win rate of the next same-day game after a loss, by how long you waited first"
+              axisLabel="Minutes waited after the loss"
+              points={data.after_loss_waits}
+              binMin={30}
+            />
           </div>
         )}
       </div>
