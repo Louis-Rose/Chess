@@ -194,26 +194,23 @@ export function ChessDashboard() {
 
             {/* Win rate after the previous game's result */}
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-              <h2 className="text-lg font-semibold text-slate-200 text-center mb-1">Win rate after the previous game</h2>
-              <p className="text-xs text-slate-500 text-center mb-4">
-                Win rate of a game grouped by the result of the game right before it. Only counts games that follow another game on the same day, where a day runs 3 AM to 3 AM Paris time. Draws count as half a win.
-              </p>
-              <table className="w-full text-sm">
+              <h2 className="text-lg font-semibold text-slate-200 text-center mb-4">Win rate after the previous game</h2>
+              <table className="w-full table-fixed text-sm">
                 <thead>
-                  <tr className="text-left text-slate-500 border-b border-slate-700">
-                    <th className="py-2 font-medium">Previous game</th>
-                    <th className="py-2 font-medium text-right">Win rate</th>
-                    <th className="py-2 font-medium text-right">Games</th>
+                  <tr className="text-center text-slate-500 border-b border-slate-700">
+                    <th className="w-1/3 py-2 font-medium">Previous game</th>
+                    <th className="w-1/3 py-2 font-medium">Win rate</th>
+                    <th className="w-1/3 py-2 font-medium">Games</th>
                   </tr>
                 </thead>
                 <tbody>
                   {afterResults.map((r) => (
-                    <tr key={r.after} className="border-b border-slate-800 last:border-0">
+                    <tr key={r.after} className="border-b border-slate-800 last:border-0 text-center">
                       <td className="py-2.5 text-slate-300">{AFTER_LABEL[r.after]}</td>
-                      <td className={`py-2.5 text-right font-mono ${r.win_rate == null ? 'text-slate-600' : afterColor(r.win_rate)}`}>
+                      <td className={`py-2.5 font-mono ${r.win_rate == null ? 'text-slate-600' : afterColor(r.win_rate)}`}>
                         {r.win_rate == null ? '—' : `${r.win_rate}%`}
                       </td>
-                      <td className="py-2.5 text-right font-mono text-slate-400">{r.games}</td>
+                      <td className="py-2.5 font-mono text-slate-400">{r.games}</td>
                     </tr>
                   ))}
                 </tbody>
