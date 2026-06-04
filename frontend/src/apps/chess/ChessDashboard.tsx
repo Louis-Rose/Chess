@@ -138,8 +138,8 @@ function WaitRateTooltip({ active, payload }: { active?: boolean; payload?: Arra
 
 // Win rate vs. wait time, binned into `binMin`-minute columns with a 90+
 // overflow. `heading`/`lead`/`axisLabel` adapt it to all games or a subset.
-function WaitRateChart({ heading, lead, axisLabel, points, binMin }: {
-  heading: string; lead: string; axisLabel: string; points: WaitPoint[]; binMin: number;
+function WaitRateChart({ heading, axisLabel, points, binMin }: {
+  heading: string; axisLabel: string; points: WaitPoint[]; binMin: number;
 }) {
   const rates = buildWaitRates(points, binMin);
   const overflowX = WAIT_MAX_MIN + binMin / 2;
@@ -148,12 +148,9 @@ function WaitRateChart({ heading, lead, axisLabel, points, binMin }: {
   ticks.push(overflowX);
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-      <h2 className="text-lg font-semibold text-slate-200 text-center mb-1">
+      <h2 className="text-lg font-semibold text-slate-200 text-center mb-4">
         {heading} (N={points.length}): does waiting help?
       </h2>
-      <p className="text-xs text-slate-500 text-center mb-4">
-        {lead} ({binMin}-minute bins, draws count as half). Each number shows its 95% CI half-width (±pp); dashed line is 50%.
-      </p>
       <div className="[&_*:focus]:outline-none">
         <ResponsiveContainer width="100%" height={360}>
           <ScatterChart margin={{ top: 8, right: 24, bottom: 28, left: 0 }}>
@@ -357,21 +354,18 @@ export function ChessDashboard() {
 
             <WaitRateChart
               heading="All games"
-              lead="Win rate by how long you waited before the game (since the previous same-day game)"
               axisLabel="Minutes waited before the game"
               points={data.game_waits}
               binMin={15}
             />
             <WaitRateChart
               heading="After a win"
-              lead="Win rate of the next same-day game after a win, by how long you waited first"
               axisLabel="Minutes waited after the win"
               points={data.after_win_waits}
               binMin={15}
             />
             <WaitRateChart
               heading="After a loss"
-              lead="Win rate of the next same-day game after a loss, by how long you waited first"
               axisLabel="Minutes waited after the loss"
               points={data.after_loss_waits}
               binMin={15}
