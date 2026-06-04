@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-  BarChart, Bar, ScatterChart, Scatter, ZAxis, ReferenceLine,
+  BarChart, Bar, ScatterChart, Scatter, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { Crown } from 'lucide-react';
@@ -56,35 +56,57 @@ interface WaitPoint {
   result: ResultKey;
 }
 
-// "After a win" scatter: bin waits into 5-minute columns (last column is the
-// 60+ overflow), then stack dots within each column — wins up, losses down,
-// draws clustered around the centre line.
+// "After a win": bin waits into 5-minute columns (last column is the 60+
+// overflow) and report the win rate (draws count as half) of each column.
 const WAIT_BIN_MIN = 5;
 const WAIT_MAX_MIN = 60;
 
-function buildWaitSeries(points: WaitPoint[]) {
+interface WaitRate {
+  x: number; // column centre on the minutes axis (overflow sits at 62.5)
+  rate: number; // win rate %, draws as half a win
+  total: number; // games in the column
+}
+
+function buildWaitRates(points: WaitPoint[]): WaitRate[] {
   const nBins = WAIT_MAX_MIN / WAIT_BIN_MIN; // index nBins == 60+ overflow column
-  const bins: WaitPoint[][] = Array.from({ length: nBins + 1 }, () => []);
+  const agg = Array.from({ length: nBins + 1 }, () => ({ score: 0, total: 0 }));
   for (const p of points) {
     const b = Math.min(Math.floor(Math.max(0, p.wait) / WAIT_BIN_MIN), nBins);
-    bins[b].push(p);
+    agg[b].total += 1;
+    agg[b].score += p.result === 'win' ? 1 : p.result === 'draw' ? 0.5 : 0;
   }
-  const win: { x: number; y: number }[] = [];
-  const draw: { x: number; y: number }[] = [];
-  const loss: { x: number; y: number }[] = [];
-  bins.forEach((arr, b) => {
-    const x = b * WAIT_BIN_MIN + WAIT_BIN_MIN / 2; // column centre (overflow sits at 62.5)
-    let up = 0, down = 0, mid = 0;
-    for (const p of arr) {
-      if (p.result === 'win') win.push({ x, y: ++up });
-      else if (p.result === 'loss') loss.push({ x, y: -(++down) });
-      else {
-        const k = mid++;
-        draw.push({ x, y: (k % 2 === 0 ? 1 : -1) * (Math.floor(k / 2) + 1) * 0.4 });
-      }
-    }
+  const out: WaitRate[] = [];
+  agg.forEach((a, b) => {
+    if (!a.total) return;
+    out.push({ x: b * WAIT_BIN_MIN + WAIT_BIN_MIN / 2, rate: (a.score / a.total) * 100, total: a.total });
   });
-  return { win, draw, loss };
+  return out;
+}
+
+function waitRateColor(rate: number): string {
+  return rate > 50 ? SEG.win.dot : rate < 50 ? SEG.loss.dot : SEG.draw.dot;
+}
+
+// Renders each column's win rate as a coloured number at its win-rate height.
+function WaitRateLabel({ cx, cy, payload }: { cx?: number; cy?: number; payload?: WaitRate }) {
+  if (cx == null || cy == null || !payload) return null;
+  return (
+    <text x={cx} y={cy} dy={4} textAnchor="middle" fontSize={12} fontFamily="ui-monospace, monospace" fill={waitRateColor(payload.rate)}>
+      {`${payload.rate.toFixed(0)}%`}
+    </text>
+  );
+}
+
+function WaitRateTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: WaitRate }> }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  const color = d.rate > 50 ? SEG.win.text : d.rate < 50 ? SEG.loss.text : SEG.draw.text;
+  return (
+    <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
+      <div className={color}>{d.rate.toFixed(1)}% win rate</div>
+      <div className="text-slate-500">{d.total} {d.total === 1 ? 'game' : 'games'}</div>
+    </div>
+  );
 }
 
 interface RapidStats {
@@ -121,7 +143,7 @@ export function ChessDashboard() {
   const byGameIndex = data?.by_game_index ?? [];
   const afterResults = data?.after_results ?? [];
   const waitPoints = data?.after_win_waits ?? [];
-  const waitSeries = buildWaitSeries(waitPoints);
+  const waitRates = buildWaitRates(waitPoints);
   const WAIT_TICKS = [0, 10, 20, 30, 40, 50, 60, 62.5];
 
   return (
@@ -264,11 +286,11 @@ export function ChessDashboard() {
                 After a win (N={waitPoints.length}): does waiting help?
               </h2>
               <p className="text-xs text-slate-500 text-center mb-4">
-                Each dot is the next same-day game after a win, placed by how long you waited first. Wins stack up, losses down.
+                Win rate of the next same-day game after a win, by how long you waited first (5-minute bins, draws count as half). Dashed line is 50%.
               </p>
               <div className="[&_*:focus]:outline-none">
-                <ResponsiveContainer width="100%" height={420}>
-                  <ScatterChart margin={{ top: 8, right: 16, bottom: 28, left: 8 }}>
+                <ResponsiveContainer width="100%" height={360}>
+                  <ScatterChart margin={{ top: 8, right: 24, bottom: 28, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
                       type="number"
@@ -279,12 +301,17 @@ export function ChessDashboard() {
                       tick={{ fill: '#e2e8f0', fontSize: 12 }}
                       label={{ value: 'Minutes waited after the win', position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
                     />
-                    <YAxis type="number" dataKey="y" hide domain={['dataMin - 1', 'dataMax + 1']} />
-                    <ZAxis range={[18, 18]} />
-                    <ReferenceLine y={0} stroke="#64748b" />
-                    <Scatter data={waitSeries.loss} fill={SEG.loss.dot} fillOpacity={0.8} />
-                    <Scatter data={waitSeries.draw} fill={SEG.draw.dot} fillOpacity={0.85} />
-                    <Scatter data={waitSeries.win} fill={SEG.win.dot} fillOpacity={0.8} />
+                    <YAxis
+                      type="number"
+                      dataKey="rate"
+                      domain={[0, 100]}
+                      ticks={[0, 25, 50, 75, 100]}
+                      tickFormatter={(v) => `${v}%`}
+                      tick={{ fill: '#e2e8f0', fontSize: 12 }}
+                    />
+                    <ReferenceLine y={50} stroke="#64748b" strokeDasharray="3 3" />
+                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<WaitRateTooltip />} />
+                    <Scatter data={waitRates} shape={<WaitRateLabel />} />
                   </ScatterChart>
                 </ResponsiveContainer>
               </div>
