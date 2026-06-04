@@ -60,13 +60,13 @@ export function ChessDashboard() {
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-6">
       <div className="max-w-5xl mx-auto">
-        <header className="flex items-center gap-3 mb-1">
+        <header className="flex items-center justify-center gap-3 mb-1">
           <Crown className="w-7 h-7 text-emerald-400" />
           <h1 className="text-2xl font-semibold">Chess</h1>
         </header>
-        <p className="text-slate-400 text-sm mb-6">
+        <p className="text-slate-400 text-sm mb-6 text-center">
           Rapid games on chess.com
-          {data && <> for <span className="text-slate-200 font-mono">{data.username}</span>. {data.total} games total.</>}
+          {data && <> for <span className="text-slate-200 font-mono">{data.username}</span>.</>}
         </p>
 
         {loading && (
