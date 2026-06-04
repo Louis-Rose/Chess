@@ -2,7 +2,6 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import axios from 'axios';
-import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 import { LanguageToggle } from '../apps/chesscoaches/components/LanguageToggle';
@@ -44,7 +43,6 @@ const COPY = {
 
 export function DemoGate({ children }: { children: ReactNode }) {
   const { language } = useLanguage();
-  const { user, isLoading } = useAuth();
   const t = COPY[language];
 
   const [unlocked] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
@@ -52,12 +50,7 @@ export function DemoGate({ children }: { children: ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Owner/admin accounts skip the gate entirely — no password needed.
-  if (user?.is_admin || unlocked) return <>{children}</>;
-
-  // Wait for the session check to resolve before showing the password form, so
-  // a logged-in admin never sees a flash of the gate while auth is loading.
-  if (isLoading) return <div className="min-h-dvh bg-slate-900" />;
+  if (unlocked) return <>{children}</>;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
