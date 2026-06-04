@@ -36,10 +36,16 @@ interface RapidStats {
 }
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_NAMES_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 function monthLabel(month: string): string {
   const [y, m] = month.split('-');
   return `${MONTH_NAMES[Number(m) - 1]} '${y.slice(2)}`;
+}
+
+function monthLabelFull(month: string): string {
+  const [y, m] = month.split('-');
+  return `${MONTH_NAMES_FULL[Number(m) - 1]} '${y.slice(2)}`;
 }
 
 export function ChessDashboard() {
@@ -108,6 +114,10 @@ export function ChessDashboard() {
                       cursor={{ fill: '#334155', opacity: 0.3 }}
                       contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                       labelStyle={{ color: '#e2e8f0' }}
+                      labelFormatter={(_label, payload) => {
+                        const month = payload?.[0]?.payload?.month;
+                        return month ? monthLabelFull(month) : _label;
+                      }}
                       formatter={(value) => [`${value} games`, 'Rapid']}
                     />
                     <Bar dataKey="count" fill="#10b981" radius={[3, 3, 0, 0]} />
