@@ -102,7 +102,11 @@ function buildWaitRates(points: WaitPoint[], binMin: number): WaitRate[] {
   return out;
 }
 
-function waitRateColor(rate: number): string {
+// Only colour (green/red) a result we're ≥80% sure is above/below 50%;
+// otherwise grey it out as "direction unknown".
+const WAIT_CONFIDENCE = 0.8;
+function waitRateColor(rate: number, pAbove: number): string {
+  if (Math.max(pAbove, 1 - pAbove) < WAIT_CONFIDENCE) return SEG.draw.dot;
   return rate > 50 ? SEG.win.dot : rate < 50 ? SEG.loss.dot : SEG.draw.dot;
 }
 
@@ -111,7 +115,7 @@ function WaitRateLabel({ cx, cy, payload }: { cx?: number; cy?: number; payload?
   if (cx == null || cy == null || !payload) return null;
   return (
     <text x={cx} textAnchor="middle" fontFamily="ui-monospace, monospace">
-      <tspan x={cx} y={cy} dy={-2} fontSize={12} fill={waitRateColor(payload.rate)}>{`${payload.rate.toFixed(0)}%`}</tspan>
+      <tspan x={cx} y={cy} dy={-2} fontSize={12} fill={waitRateColor(payload.rate, payload.pAbove)}>{`${payload.rate.toFixed(0)}%`}</tspan>
       <tspan x={cx} y={cy} dy={13} fontSize={10} fill="#64748b">{`±${payload.ci.toFixed(0)}`}</tspan>
     </text>
   );
@@ -120,9 +124,9 @@ function WaitRateLabel({ cx, cy, payload }: { cx?: number; cy?: number; payload?
 function WaitRateTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: WaitRate }> }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
-  const color = d.rate > 50 ? SEG.win.text : d.rate < 50 ? SEG.loss.text : SEG.draw.text;
   const above = d.rate >= 50;
   const pSide = above ? d.pAbove : 1 - d.pAbove;
+  const color = pSide < WAIT_CONFIDENCE ? SEG.draw.text : d.rate > 50 ? SEG.win.text : d.rate < 50 ? SEG.loss.text : SEG.draw.text;
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs">
       <div className={color}>{d.rate.toFixed(1)}% ± {d.ci.toFixed(1)} pp</div>
@@ -363,14 +367,14 @@ export function ChessDashboard() {
               lead="Win rate of the next same-day game after a win, by how long you waited first"
               axisLabel="Minutes waited after the win"
               points={data.after_win_waits}
-              binMin={30}
+              binMin={15}
             />
             <WaitRateChart
               heading="After a loss"
               lead="Win rate of the next same-day game after a loss, by how long you waited first"
               axisLabel="Minutes waited after the loss"
               points={data.after_loss_waits}
-              binMin={30}
+              binMin={15}
             />
           </div>
         )}
