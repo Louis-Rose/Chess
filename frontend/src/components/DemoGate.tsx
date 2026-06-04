@@ -45,7 +45,7 @@ export function DemoGate({ children }: { children: ReactNode }) {
   const { language } = useLanguage();
   const t = COPY[language];
 
-  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(STORAGE_KEY) === '1');
+  const [unlocked, setUnlocked] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function DemoGate({ children }: { children: ReactNode }) {
     setSubmitting(true);
     try {
       await axios.post('/api/demo-gate', { password });
-      sessionStorage.setItem(STORAGE_KEY, '1');
+      localStorage.setItem(STORAGE_KEY, '1');
       setUnlocked(true);
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
