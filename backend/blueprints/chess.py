@@ -1,9 +1,8 @@
 """Chess sub-app — private, owner-only.
 
-Fetches the owner's chess.com rapid games and serves three things in one pass:
+Fetches the owner's chess.com rapid games and serves two things in one pass:
   - monthly game counts (bar chart),
-  - per-day points of {games that day, average per-game elo change that day},
-  - a linear regression of average per-game elo change on daily game volume.
+  - win rate after a win/draw/loss for consecutive same-day games (table).
 
 Gated to the site owner via GYM_OWNER_EMAIL (reused as the single owner email).
 """
@@ -18,10 +17,8 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from zoneinfo import ZoneInfo
 
-import numpy as np
 import requests as http_requests
 from flask import Blueprint, jsonify, request
-from scipy import stats
 
 from auth import get_current_user
 from database import get_db
@@ -32,7 +29,6 @@ chess_bp = Blueprint('chess', __name__)
 
 CHESS_USERNAME = 'akyrosu'
 _USER_AGENT = 'LUMNA/1.0 (https://lumna.co; rose.louis.mail@gmail.com)'
-_MIN_GAMES_PER_DAY = 3  # 1-2 game days are too noisy to average, so they're dropped
 
 
 # ── Owner gate ───────────────────────────────────────────────────────────────
@@ -116,43 +112,6 @@ def _months(games):
     return out
 
 
-def _days(games):
-    """Per-day {date, games, avg_elo}. A game's elo change is its post-game
-    rating minus the previous rapid game's rating, so the first game ever (no
-    predecessor) is excluded."""
-    by_day = defaultdict(list)
-    for i in range(1, len(games)):
-        end, rating, _result_ = games[i]
-        delta = rating - games[i - 1][1]
-        day = datetime.fromtimestamp(end, tz=timezone.utc).strftime('%Y-%m-%d')
-        by_day[day].append(delta)
-    return [
-        {'date': day, 'games': len(deltas), 'avg_elo': round(sum(deltas) / len(deltas), 2)}
-        for day, deltas in sorted(by_day.items())
-    ]
-
-
-def _regression(days):
-    """OLS of average per-game elo change (y) on daily game volume (x)."""
-    if len(days) < 3:
-        return None
-    xs = np.array([d['games'] for d in days], dtype=float)
-    ys = np.array([d['avg_elo'] for d in days], dtype=float)
-    if np.ptp(xs) == 0:
-        return None
-    r = stats.linregress(xs, ys)
-    return {
-        'n': len(days),
-        'slope': round(float(r.slope), 4),
-        'intercept': round(float(r.intercept), 4),
-        'r': round(float(r.rvalue), 4),
-        'r2': round(float(r.rvalue) ** 2, 4),
-        'stderr': round(float(r.stderr), 4),
-        'p_value': float(r.pvalue),
-        'significant': bool(r.pvalue < 0.05),
-    }
-
-
 def _chess_day(end_time):
     """The 'chess day' a unix timestamp belongs to: its Paris-local date with the
     day boundary shifted to 3am, so a game before 3am counts as the prior day."""
@@ -201,13 +160,10 @@ def rapid_stats():
             games.extend(chunk)
     games.sort(key=lambda g: g[0])
 
-    days = [d for d in _days(games) if d['games'] >= _MIN_GAMES_PER_DAY]
     return jsonify({
         'username': CHESS_USERNAME,
         'total': len(games),
         'months': _months(games),
-        'days': days,
-        'regression': _regression(days),
         'after_results': _after_results(games),
     })
 
