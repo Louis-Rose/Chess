@@ -47,7 +47,7 @@ export function DemoGate({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const t = COPY[language];
 
-  const [unlocked, setUnlocked] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
+  const [unlocked] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,11 @@ export function DemoGate({ children }: { children: ReactNode }) {
     try {
       await axios.post('/api/demo-gate', { password });
       localStorage.setItem(STORAGE_KEY, '1');
-      setUnlocked(true);
+      // Reload rather than mounting the lazy app in place: a fresh document load
+      // fetches the current index.html + chunk hashes, avoiding a stale-chunk
+      // 404 that would otherwise strand us on the blank Suspense fallback.
+      window.location.reload();
+      return;
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 401) setError(t.errorWrong);
