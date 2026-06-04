@@ -4,7 +4,8 @@ Fetches the owner's chess.com rapid games and serves these in one pass:
   - overall win/draw/loss record,
   - monthly game counts (bar chart),
   - win/draw/loss split by a game's position within its day (stacked bars),
-  - win rate after a win/draw/loss for consecutive same-day games (table).
+  - win rate after a win/draw/loss for consecutive same-day games (table),
+  - wait time vs. result for games that follow a same-day win (scatter).
 
 Gated to the site owner via GYM_OWNER_EMAIL (reused as the single owner email).
 """
@@ -73,9 +74,25 @@ def _result(code):
     return 'loss'
 
 
+def _parse_start_time(g):
+    """Game start as a unix timestamp, parsed from the PGN's UTCDate/UTCTime
+    (both UTC). None when the PGN lacks them."""
+    pgn = g.get('pgn') or ''
+    d = re.search(r'\[UTCDate "([\d.]+)"\]', pgn)
+    t = re.search(r'\[UTCTime "([\d:]+)"\]', pgn)
+    if not (d and t):
+        return None
+    try:
+        dt = datetime.strptime(f'{d.group(1)} {t.group(1)}', '%Y.%m.%d %H:%M:%S')
+        return dt.replace(tzinfo=timezone.utc).timestamp()
+    except ValueError:
+        return None
+
+
 def _fetch_rapid(url):
-    """Return [(end_time, post_game_rating, result)] for the owner's rapid games
-    in one monthly archive. result is 'win' | 'loss' | 'draw'."""
+    """Return [(end_time, post_game_rating, result, start_time)] for the owner's
+    rapid games in one monthly archive. result is 'win' | 'loss' | 'draw';
+    start_time may be None when the PGN lacks the UTC start tags."""
     try:
         games = _fetch_json(url).get('games', [])
     except Exception as e:
@@ -89,14 +106,14 @@ def _fetch_rapid(url):
         side = white if white.get('username', '').lower() == CHESS_USERNAME else g.get('black', {})
         rating, end = side.get('rating'), g.get('end_time')
         if rating is not None and end is not None:
-            out.append((end, rating, _result(side.get('result'))))
+            out.append((end, rating, _result(side.get('result')), _parse_start_time(g)))
     return out
 
 
 def _record(games):
     """Overall win/draw/loss counts across all games."""
     counts = {'win': 0, 'draw': 0, 'loss': 0}
-    for _end, _rating, result in games:
+    for _end, _rating, result, _start in games:
         counts[result] += 1
     return counts
 
@@ -104,7 +121,7 @@ def _record(games):
 def _months(games):
     """Continuous, chronological list of {month, count}, gaps filled with zero."""
     counts = defaultdict(int)
-    for end, _rating, _result_ in games:
+    for end, _rating, _result_, _start in games:
         counts[datetime.fromtimestamp(end, tz=timezone.utc).strftime('%Y-%m')] += 1
     if not counts:
         return []
@@ -137,8 +154,8 @@ def _after_results(games):
     and is skipped. win_rate counts draws as half a win."""
     buckets = {'win': [], 'draw': [], 'loss': []}
     for i in range(1, len(games)):
-        prev_end, _prev_rating, prev_result = games[i - 1]
-        end, _rating, result = games[i]
+        prev_end, _prev_rating, prev_result, _prev_start = games[i - 1]
+        end, _rating, result, _start = games[i]
         if _chess_day(prev_end) != _chess_day(end):
             continue
         buckets[prev_result].append(_SCORE[result])
@@ -160,7 +177,7 @@ def _by_game_index(games):
     chronologically so per-day order matches play order."""
     seen_per_day = defaultdict(int)  # chess_day -> games encountered so far
     buckets = defaultdict(lambda: {'win': 0, 'draw': 0, 'loss': 0})
-    for end, _rating, result in games:
+    for end, _rating, result, _start in games:
         day = _chess_day(end)
         idx = seen_per_day[day]  # 0-based position within the day
         seen_per_day[day] += 1
@@ -175,6 +192,23 @@ def _by_game_index(games):
             'loss': c['loss'],
             'total': c['win'] + c['draw'] + c['loss'],
         })
+    return out
+
+
+def _after_win_waits(games):
+    """For each game that follows a win on the same chess day, the idle minutes
+    waited (previous game's end to this game's start) and this game's result.
+    Games whose start time couldn't be parsed are skipped."""
+    out = []
+    for i in range(1, len(games)):
+        prev_end, _prev_rating, prev_result, _prev_start = games[i - 1]
+        end, _rating, result, start = games[i]
+        if prev_result != 'win' or start is None:
+            continue
+        if _chess_day(prev_end) != _chess_day(end):
+            continue
+        wait_min = max(0.0, (start - prev_end) / 60)
+        out.append({'wait': round(wait_min, 2), 'result': result})
     return out
 
 
@@ -201,6 +235,7 @@ def rapid_stats():
         'months': _months(games),
         'by_game_index': _by_game_index(games),
         'after_results': _after_results(games),
+        'after_win_waits': _after_win_waits(games),
     })
 
 

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, ScatterChart, Scatter, ZAxis, ReferenceLine,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { Crown } from 'lucide-react';
 
@@ -43,12 +44,48 @@ interface GameIndexBar {
 }
 
 type ResultKey = 'win' | 'draw' | 'loss';
-const SEG: Record<ResultKey, { label: string; bar: string; text: string }> = {
-  win: { label: 'Won', bar: 'bg-emerald-500', text: 'text-emerald-400' },
-  draw: { label: 'Drawn', bar: 'bg-slate-400', text: 'text-slate-300' },
-  loss: { label: 'Lost', bar: 'bg-red-500', text: 'text-red-400' },
+const SEG: Record<ResultKey, { label: string; bar: string; text: string; dot: string }> = {
+  win: { label: 'Won', bar: 'bg-emerald-500', text: 'text-emerald-400', dot: '#10b981' },
+  draw: { label: 'Drawn', bar: 'bg-slate-400', text: 'text-slate-300', dot: '#94a3b8' },
+  loss: { label: 'Lost', bar: 'bg-red-500', text: 'text-red-400', dot: '#ef4444' },
 };
 const SEG_KEYS: ResultKey[] = ['win', 'draw', 'loss'];
+
+interface WaitPoint {
+  wait: number; // minutes waited after the previous (winning) game
+  result: ResultKey;
+}
+
+// "After a win" scatter: bin waits into 5-minute columns (last column is the
+// 60+ overflow), then stack dots within each column — wins up, losses down,
+// draws clustered around the centre line.
+const WAIT_BIN_MIN = 5;
+const WAIT_MAX_MIN = 60;
+
+function buildWaitSeries(points: WaitPoint[]) {
+  const nBins = WAIT_MAX_MIN / WAIT_BIN_MIN; // index nBins == 60+ overflow column
+  const bins: WaitPoint[][] = Array.from({ length: nBins + 1 }, () => []);
+  for (const p of points) {
+    const b = Math.min(Math.floor(Math.max(0, p.wait) / WAIT_BIN_MIN), nBins);
+    bins[b].push(p);
+  }
+  const win: { x: number; y: number }[] = [];
+  const draw: { x: number; y: number }[] = [];
+  const loss: { x: number; y: number }[] = [];
+  bins.forEach((arr, b) => {
+    const x = b * WAIT_BIN_MIN + WAIT_BIN_MIN / 2; // column centre (overflow sits at 62.5)
+    let up = 0, down = 0, mid = 0;
+    for (const p of arr) {
+      if (p.result === 'win') win.push({ x, y: ++up });
+      else if (p.result === 'loss') loss.push({ x, y: -(++down) });
+      else {
+        const k = mid++;
+        draw.push({ x, y: (k % 2 === 0 ? 1 : -1) * (Math.floor(k / 2) + 1) * 0.4 });
+      }
+    }
+  });
+  return { win, draw, loss };
+}
 
 interface RapidStats {
   username: string;
@@ -57,6 +94,7 @@ interface RapidStats {
   months: MonthCount[];
   by_game_index: GameIndexBar[];
   after_results: AfterResult[];
+  after_win_waits: WaitPoint[];
 }
 
 const MONTH_NAMES_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -82,6 +120,9 @@ export function ChessDashboard() {
   const monthData = (data?.months ?? []).map(m => ({ ...m, label: monthLabelFull(m.month) }));
   const byGameIndex = data?.by_game_index ?? [];
   const afterResults = data?.after_results ?? [];
+  const waitPoints = data?.after_win_waits ?? [];
+  const waitSeries = buildWaitSeries(waitPoints);
+  const WAIT_TICKS = [0, 10, 20, 30, 40, 50, 60, 62.5];
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-6">
@@ -215,6 +256,38 @@ export function ChessDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* After a win: wait time vs. result */}
+            <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+              <h2 className="text-lg font-semibold text-slate-200 text-center mb-1">
+                After a win (N={waitPoints.length}): does waiting help?
+              </h2>
+              <p className="text-xs text-slate-500 text-center mb-4">
+                Each dot is the next same-day game after a win, placed by how long you waited first. Wins stack up, losses down.
+              </p>
+              <div className="[&_*:focus]:outline-none">
+                <ResponsiveContainer width="100%" height={420}>
+                  <ScatterChart margin={{ top: 8, right: 16, bottom: 28, left: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis
+                      type="number"
+                      dataKey="x"
+                      domain={[0, 65]}
+                      ticks={WAIT_TICKS}
+                      tickFormatter={(v) => (v >= 62.5 ? '60+' : `${v}`)}
+                      tick={{ fill: '#e2e8f0', fontSize: 12 }}
+                      label={{ value: 'Minutes waited after the win', position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
+                    />
+                    <YAxis type="number" dataKey="y" hide domain={['dataMin - 1', 'dataMax + 1']} />
+                    <ZAxis range={[18, 18]} />
+                    <ReferenceLine y={0} stroke="#64748b" />
+                    <Scatter data={waitSeries.loss} fill={SEG.loss.dot} fillOpacity={0.8} />
+                    <Scatter data={waitSeries.draw} fill={SEG.draw.dot} fillOpacity={0.85} />
+                    <Scatter data={waitSeries.win} fill={SEG.win.dot} fillOpacity={0.8} />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
