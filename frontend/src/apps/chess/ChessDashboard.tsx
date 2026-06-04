@@ -114,9 +114,8 @@ function waitRateColor(rate: number, pAbove: number): string {
 function WaitRateLabel({ cx, cy, payload }: { cx?: number; cy?: number; payload?: WaitRate }) {
   if (cx == null || cy == null || !payload) return null;
   return (
-    <text x={cx} textAnchor="middle" fontFamily="ui-monospace, monospace">
-      <tspan x={cx} y={cy} dy={-2} fontSize={12} fill={waitRateColor(payload.rate, payload.pAbove)}>{`${payload.rate.toFixed(0)}%`}</tspan>
-      <tspan x={cx} y={cy} dy={13} fontSize={10} fill="#64748b">{`±${payload.ci.toFixed(0)}`}</tspan>
+    <text x={cx} y={cy} dy={4} textAnchor="middle" fontSize={12} fontFamily="ui-monospace, monospace" fill={waitRateColor(payload.rate, payload.pAbove)}>
+      {`${payload.rate.toFixed(0)}% (±${payload.ci.toFixed(0)})`}
     </text>
   );
 }
