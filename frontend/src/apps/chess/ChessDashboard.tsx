@@ -28,9 +28,16 @@ function afterColor(winRate: number): string {
   return 'text-slate-300';
 }
 
+interface GameRecord {
+  win: number;
+  draw: number;
+  loss: number;
+}
+
 interface RapidStats {
   username: string;
   total: number;
+  record: GameRecord;
   months: MonthCount[];
   after_results: AfterResult[];
 }
@@ -94,6 +101,19 @@ export function ChessDashboard() {
 
         {!loading && !error && data && (
           <div className="space-y-6">
+            {/* Overall record */}
+            <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+              <div className="text-center mb-5">
+                <div className="text-3xl font-semibold text-slate-100">{data.total}</div>
+                <div className="text-xs text-slate-500 mt-0.5">games total</div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <RecordStat label="Won" count={data.record.win} total={data.total} color="text-emerald-400" />
+                <RecordStat label="Drawn" count={data.record.draw} total={data.total} color="text-slate-300" />
+                <RecordStat label="Lost" count={data.record.loss} total={data.total} color="text-red-400" />
+              </div>
+            </div>
+
             {/* Games per month */}
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
               <h2 className="text-sm font-medium text-slate-300 mb-4">Games per month</h2>
@@ -156,6 +176,17 @@ export function ChessDashboard() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function RecordStat({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
+  const pct = total > 0 ? (count / total) * 100 : 0;
+  return (
+    <div>
+      <div className={`text-2xl font-semibold ${color}`}>{count}</div>
+      <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+      <div className={`text-sm font-mono mt-1 ${color}`}>{pct.toFixed(1)}%</div>
     </div>
   );
 }

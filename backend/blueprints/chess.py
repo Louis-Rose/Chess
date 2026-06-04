@@ -1,6 +1,7 @@
 """Chess sub-app — private, owner-only.
 
-Fetches the owner's chess.com rapid games and serves two things in one pass:
+Fetches the owner's chess.com rapid games and serves these in one pass:
+  - overall win/draw/loss record,
   - monthly game counts (bar chart),
   - win rate after a win/draw/loss for consecutive same-day games (table).
 
@@ -91,6 +92,14 @@ def _fetch_rapid(url):
     return out
 
 
+def _record(games):
+    """Overall win/draw/loss counts across all games."""
+    counts = {'win': 0, 'draw': 0, 'loss': 0}
+    for _end, _rating, result in games:
+        counts[result] += 1
+    return counts
+
+
 def _months(games):
     """Continuous, chronological list of {month, count}, gaps filled with zero."""
     counts = defaultdict(int)
@@ -163,6 +172,7 @@ def rapid_stats():
     return jsonify({
         'username': CHESS_USERNAME,
         'total': len(games),
+        'record': _record(games),
         'months': _months(games),
         'after_results': _after_results(games),
     })
