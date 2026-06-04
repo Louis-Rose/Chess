@@ -34,11 +34,28 @@ interface GameRecord {
   loss: number;
 }
 
+interface GameIndexBar {
+  index: number; // 1 = first game of the day, 2 = second, ...
+  win: number;
+  draw: number;
+  loss: number;
+  total: number;
+}
+
+type ResultKey = 'win' | 'draw' | 'loss';
+const SEG: Record<ResultKey, { label: string; bar: string; text: string }> = {
+  win: { label: 'Won', bar: 'bg-emerald-500', text: 'text-emerald-400' },
+  draw: { label: 'Drawn', bar: 'bg-slate-400', text: 'text-slate-300' },
+  loss: { label: 'Lost', bar: 'bg-red-500', text: 'text-red-400' },
+};
+const SEG_KEYS: ResultKey[] = ['win', 'draw', 'loss'];
+
 interface RapidStats {
   username: string;
   total: number;
   record: GameRecord;
   months: MonthCount[];
+  by_game_index: GameIndexBar[];
   after_results: AfterResult[];
 }
 
@@ -59,6 +76,7 @@ export function ChessDashboard() {
   const [data, setData] = useState<RapidStats | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tip, setTip] = useState<{ x: number; y: number; key: ResultKey; pct: number; total: number } | null>(null);
 
   useEffect(() => {
     axios.get<RapidStats>('/api/chess/rapid-stats')
@@ -68,6 +86,7 @@ export function ChessDashboard() {
   }, []);
 
   const monthData = (data?.months ?? []).map(m => ({ ...m, label: monthLabel(m.month) }));
+  const byGameIndex = data?.by_game_index ?? [];
   const afterResults = data?.after_results ?? [];
 
   return (
@@ -146,6 +165,32 @@ export function ChessDashboard() {
               </div>
             </div>
 
+            {/* Result split by game number within the day */}
+            <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+              <h2 className="text-sm font-medium text-slate-300 mb-1">Results by game number in the day</h2>
+              <p className="text-xs text-slate-500 mb-4">
+                Each bar is the Nth game played in a day (day runs 3 AM to 3 AM Paris time), split into wins, draws and losses. Hover a segment for its share and game count.
+              </p>
+              <div className="space-y-1.5">
+                {byGameIndex.map((b) => (
+                  <div key={b.index} className="flex items-center gap-2">
+                    <span className="w-6 shrink-0 text-right text-xs font-mono text-slate-500">{b.index}</span>
+                    <div className="flex h-5 flex-1 overflow-hidden rounded">
+                      {SEG_KEYS.map((k) => b[k] > 0 && (
+                        <div
+                          key={k}
+                          className={`${SEG[k].bar} h-full cursor-default transition-opacity hover:opacity-80`}
+                          style={{ width: `${(b[k] / b.total) * 100}%` }}
+                          onMouseMove={(e) => setTip({ x: e.clientX, y: e.clientY, key: k, pct: (b[k] / b.total) * 100, total: b.total })}
+                          onMouseLeave={() => setTip(null)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Win rate after the previous game's result */}
             <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
               <h2 className="text-sm font-medium text-slate-300 mb-1">Win rate after the previous game</h2>
@@ -176,6 +221,16 @@ export function ChessDashboard() {
           </div>
         )}
       </div>
+
+      {tip && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs"
+          style={{ left: tip.x + 12, top: tip.y + 12 }}
+        >
+          <div className={SEG[tip.key].text}>{SEG[tip.key].label} {tip.pct.toFixed(1)}%</div>
+          <div className="text-slate-500">{tip.total} games</div>
+        </div>
+      )}
     </div>
   );
 }

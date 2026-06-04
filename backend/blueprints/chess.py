@@ -3,6 +3,7 @@
 Fetches the owner's chess.com rapid games and serves these in one pass:
   - overall win/draw/loss record,
   - monthly game counts (bar chart),
+  - win/draw/loss split by a game's position within its day (stacked bars),
   - win rate after a win/draw/loss for consecutive same-day games (table).
 
 Gated to the site owner via GYM_OWNER_EMAIL (reused as the single owner email).
@@ -153,6 +154,30 @@ def _after_results(games):
     return out
 
 
+def _by_game_index(games):
+    """Win/draw/loss counts bucketed by a game's position within its chess day
+    (1 = first game of the day, 2 = second, ...). `games` must be sorted
+    chronologically so per-day order matches play order."""
+    seen_per_day = defaultdict(int)  # chess_day -> games encountered so far
+    buckets = defaultdict(lambda: {'win': 0, 'draw': 0, 'loss': 0})
+    for end, _rating, result in games:
+        day = _chess_day(end)
+        idx = seen_per_day[day]  # 0-based position within the day
+        seen_per_day[day] += 1
+        buckets[idx][result] += 1
+    out = []
+    for idx in sorted(buckets):
+        c = buckets[idx]
+        out.append({
+            'index': idx + 1,
+            'win': c['win'],
+            'draw': c['draw'],
+            'loss': c['loss'],
+            'total': c['win'] + c['draw'] + c['loss'],
+        })
+    return out
+
+
 @chess_bp.route('/api/chess/rapid-stats', methods=['GET'])
 @owner_required
 def rapid_stats():
@@ -174,6 +199,7 @@ def rapid_stats():
         'total': len(games),
         'record': _record(games),
         'months': _months(games),
+        'by_game_index': _by_game_index(games),
         'after_results': _after_results(games),
     })
 
