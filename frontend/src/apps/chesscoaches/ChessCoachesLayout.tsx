@@ -6,6 +6,7 @@ import { Users, LogOut, Clock, Grid3X3, Home, Shield, CreditCard, UserCircle, Me
 import type { LucideIcon } from 'lucide-react';
 import { CoachesDataProvider } from './contexts/CoachesDataContext';
 import { CoachesSidebar } from './CoachesSidebar';
+import { DEMO_GATE_KEY } from '../../components/DemoGate';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { LumnaBrand, LumnaBrandSubtitle } from './components/LumnaBrand';
@@ -129,6 +130,7 @@ function PlayerMenuItems({ onClose, align }: { onClose: () => void; align: 'cent
         <button
           onClick={async () => {
             onClose();
+            localStorage.removeItem(DEMO_GATE_KEY);
             await fetch('/api/auth/reset-role', { method: 'POST', credentials: 'include' });
             await logout();
           }}

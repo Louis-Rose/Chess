@@ -6,7 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 import { LanguageToggle } from '../apps/chesscoaches/components/LanguageToggle';
 
-const STORAGE_KEY = 'demo-gate-passed';
+export const DEMO_GATE_KEY = 'demo-gate-passed';
 
 const COPY = {
   fr: {
@@ -45,7 +45,7 @@ export function DemoGate({ children }: { children: ReactNode }) {
   const { language } = useLanguage();
   const t = COPY[language];
 
-  const [unlocked] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
+  const [unlocked] = useState(() => localStorage.getItem(DEMO_GATE_KEY) === '1');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function DemoGate({ children }: { children: ReactNode }) {
     setSubmitting(true);
     try {
       await axios.post('/api/demo-gate', { password });
-      localStorage.setItem(STORAGE_KEY, '1');
+      localStorage.setItem(DEMO_GATE_KEY, '1');
       // Reload rather than mounting the lazy app in place: a fresh document load
       // fetches the current index.html + chunk hashes, avoiding a stale-chunk
       // 404 that would otherwise strand us on the blank Suspense fallback.
