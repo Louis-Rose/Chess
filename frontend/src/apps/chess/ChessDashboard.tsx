@@ -109,6 +109,50 @@ function WaitRateTooltip({ active, payload }: { active?: boolean; payload?: Arra
   );
 }
 
+const WAIT_TICKS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
+
+// Win rate of the next same-day game after a given result, by wait time.
+function WaitRateChart({ prevLabel, points }: { prevLabel: 'win' | 'loss'; points: WaitPoint[] }) {
+  const rates = buildWaitRates(points);
+  return (
+    <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
+      <h2 className="text-lg font-semibold text-slate-200 text-center mb-1">
+        After a {prevLabel} (N={points.length}): does waiting help?
+      </h2>
+      <p className="text-xs text-slate-500 text-center mb-4">
+        Win rate of the next same-day game after a {prevLabel}, by how long you waited first (10-minute bins, draws count as half). Dashed line is 50%.
+      </p>
+      <div className="[&_*:focus]:outline-none">
+        <ResponsiveContainer width="100%" height={360}>
+          <ScatterChart margin={{ top: 8, right: 24, bottom: 28, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <XAxis
+              type="number"
+              dataKey="x"
+              domain={[0, 100]}
+              ticks={WAIT_TICKS}
+              tickFormatter={(v) => (v >= 95 ? '90+' : `${v}`)}
+              tick={{ fill: '#e2e8f0', fontSize: 12 }}
+              label={{ value: `Minutes waited after the ${prevLabel}`, position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
+            />
+            <YAxis
+              type="number"
+              dataKey="rate"
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tickFormatter={(v) => `${v}%`}
+              tick={{ fill: '#e2e8f0', fontSize: 12 }}
+            />
+            <ReferenceLine y={50} stroke="#64748b" strokeDasharray="3 3" />
+            <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<WaitRateTooltip />} />
+            <Scatter data={rates} shape={<WaitRateLabel />} />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 interface RapidStats {
   username: string;
   total: number;
@@ -117,6 +161,7 @@ interface RapidStats {
   by_game_index: GameIndexBar[];
   after_results: AfterResult[];
   after_win_waits: WaitPoint[];
+  after_loss_waits: WaitPoint[];
 }
 
 const MONTH_NAMES_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -142,9 +187,6 @@ export function ChessDashboard() {
   const monthData = (data?.months ?? []).map(m => ({ ...m, label: monthLabelFull(m.month) }));
   const byGameIndex = data?.by_game_index ?? [];
   const afterResults = data?.after_results ?? [];
-  const waitPoints = data?.after_win_waits ?? [];
-  const waitRates = buildWaitRates(waitPoints);
-  const WAIT_TICKS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-6">
@@ -280,42 +322,8 @@ export function ChessDashboard() {
               </table>
             </div>
 
-            {/* After a win: wait time vs. result */}
-            <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4">
-              <h2 className="text-lg font-semibold text-slate-200 text-center mb-1">
-                After a win (N={waitPoints.length}): does waiting help?
-              </h2>
-              <p className="text-xs text-slate-500 text-center mb-4">
-                Win rate of the next same-day game after a win, by how long you waited first (10-minute bins, draws count as half). Dashed line is 50%.
-              </p>
-              <div className="[&_*:focus]:outline-none">
-                <ResponsiveContainer width="100%" height={360}>
-                  <ScatterChart margin={{ top: 8, right: 24, bottom: 28, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                    <XAxis
-                      type="number"
-                      dataKey="x"
-                      domain={[0, 100]}
-                      ticks={WAIT_TICKS}
-                      tickFormatter={(v) => (v >= 95 ? '90+' : `${v}`)}
-                      tick={{ fill: '#e2e8f0', fontSize: 12 }}
-                      label={{ value: 'Minutes waited after the win', position: 'insideBottom', offset: -14, fill: '#94a3b8', fontSize: 12 }}
-                    />
-                    <YAxis
-                      type="number"
-                      dataKey="rate"
-                      domain={[0, 100]}
-                      ticks={[0, 25, 50, 75, 100]}
-                      tickFormatter={(v) => `${v}%`}
-                      tick={{ fill: '#e2e8f0', fontSize: 12 }}
-                    />
-                    <ReferenceLine y={50} stroke="#64748b" strokeDasharray="3 3" />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<WaitRateTooltip />} />
-                    <Scatter data={waitRates} shape={<WaitRateLabel />} />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            <WaitRateChart prevLabel="win" points={data.after_win_waits} />
+            <WaitRateChart prevLabel="loss" points={data.after_loss_waits} />
           </div>
         )}
       </div>

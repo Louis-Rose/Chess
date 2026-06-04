@@ -5,7 +5,7 @@ Fetches the owner's chess.com rapid games and serves these in one pass:
   - monthly game counts (bar chart),
   - win/draw/loss split by a game's position within its day (stacked bars),
   - win rate after a win/draw/loss for consecutive same-day games (table),
-  - wait time vs. result for games that follow a same-day win (scatter).
+  - wait time vs. result for games that follow a same-day win/loss (scatter).
 
 Gated to the site owner via GYM_OWNER_EMAIL (reused as the single owner email).
 """
@@ -195,15 +195,16 @@ def _by_game_index(games):
     return out
 
 
-def _after_win_waits(games):
-    """For each game that follows a win on the same chess day, the idle minutes
-    waited (previous game's end to this game's start) and this game's result.
-    Games whose start time couldn't be parsed are skipped."""
+def _after_result_waits(games, prev_kind):
+    """For each game that follows a `prev_kind` ('win'/'loss'/'draw') result on
+    the same chess day, the idle minutes waited (previous game's end to this
+    game's start) and this game's result. Games whose start time couldn't be
+    parsed are skipped."""
     out = []
     for i in range(1, len(games)):
         prev_end, _prev_rating, prev_result, _prev_start = games[i - 1]
         end, _rating, result, start = games[i]
-        if prev_result != 'win' or start is None:
+        if prev_result != prev_kind or start is None:
             continue
         if _chess_day(prev_end) != _chess_day(end):
             continue
@@ -235,7 +236,8 @@ def rapid_stats():
         'months': _months(games),
         'by_game_index': _by_game_index(games),
         'after_results': _after_results(games),
-        'after_win_waits': _after_win_waits(games),
+        'after_win_waits': _after_result_waits(games, 'win'),
+        'after_loss_waits': _after_result_waits(games, 'loss'),
     })
 
 
