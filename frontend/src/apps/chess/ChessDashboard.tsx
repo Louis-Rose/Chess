@@ -228,7 +228,7 @@ export function ChessDashboard() {
           style={{ left: tip.x + 12, top: tip.y + 12 }}
         >
           <div className={SEG[tip.key].text}>{SEG[tip.key].label} {tip.pct.toFixed(1)}%</div>
-          <div className="text-slate-500">{tip.total} games</div>
+          <div className="text-slate-500">{tip.total} {tip.total === 1 ? 'game' : 'games'}</div>
         </div>
       )}
     </div>
