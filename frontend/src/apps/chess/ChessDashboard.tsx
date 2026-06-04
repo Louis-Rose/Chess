@@ -113,9 +113,11 @@ function waitRateColor(rate: number, pAbove: number): string {
 // Renders each column's win rate (with its 95% CI) at its win-rate height.
 function WaitRateLabel({ cx, cy, payload }: { cx?: number; cy?: number; payload?: WaitRate }) {
   if (cx == null || cy == null || !payload) return null;
+  const confident = Math.max(payload.pAbove, 1 - payload.pAbove) >= WAIT_CONFIDENCE;
+  const text = `${payload.rate.toFixed(0)}% (±${payload.ci.toFixed(0)})`;
   return (
     <text x={cx} y={cy} dy={4} textAnchor="middle" fontSize={12} fontFamily="ui-monospace, monospace" fill={waitRateColor(payload.rate, payload.pAbove)}>
-      {`${payload.rate.toFixed(0)}% (±${payload.ci.toFixed(0)})`}
+      {confident ? text : `(${text})`}
     </text>
   );
 }
