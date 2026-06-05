@@ -26,17 +26,17 @@ export function SiteNav() {
           </div>
           <LanguageToggle flagsOnly />
         </div>
-        {/* Row 2: actions — both buttons, visible on mobile too */}
-        <div className="h-16 flex items-center justify-end gap-3">
+        {/* Row 2: actions — two equal-width buttons, each centered in its half */}
+        <div className="h-16 grid grid-cols-2 items-center gap-3">
           <Link
             to="/contact"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
+            className="justify-self-center w-full max-w-[16rem] inline-flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
           >
             {t.cta}
           </Link>
           <Link
             to="/chess/app"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 transition-colors"
+            className="justify-self-center w-full max-w-[16rem] inline-flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-100 transition-colors"
           >
             {t.signIn}
           </Link>
