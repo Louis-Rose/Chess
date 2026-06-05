@@ -13,7 +13,7 @@ type Exercise = string | { name: string; variants: string[] };
 
 const MUSCLES: { name: string; exercises: Exercise[] }[] = [
   { name: 'Pectoraux', exercises: ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'] },
-  { name: 'Dos', exercises: [{ name: 'Tractions', variants: ['Pronation', 'Supination', 'Prise neutre'] }, 'Tirage vertical à la poulie haute', 'Rowing barre'] },
+  { name: 'Dos', exercises: [{ name: 'Tractions', variants: ['Pronation', 'Supination', 'Prise neutre'] }, 'Tirage vertical à la poulie haute', 'Rowing barre', 'Rowing assis'] },
   { name: 'Quadriceps', exercises: ['Squat arrière', 'Hack squat', 'Presse à cuisses'] },
   { name: 'Ischio-jambiers', exercises: ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'] },
   { name: 'Fessiers', exercises: ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'] },
@@ -124,7 +124,7 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
                 </button>
 
                 {expanded && (
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {ex.variants.map(v => {
                       const id = variantId(ex.name, v);
                       const vActive = selected.includes(id);
@@ -134,7 +134,7 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
                           type="button"
                           aria-pressed={vActive}
                           onClick={() => toggle(id)}
-                          className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                          className={`rounded-lg border px-1.5 py-2 text-center text-xs leading-tight transition-colors ${
                             vActive
                               ? 'border-emerald-500 bg-emerald-500/10 text-slate-100'
                               : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
