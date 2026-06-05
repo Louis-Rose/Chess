@@ -3,10 +3,14 @@ import { Link } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import axios from 'axios';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 import { LanguageToggle } from '../apps/chesscoaches/components/LanguageToggle';
 
 export const DEMO_GATE_KEY = 'demo-gate-passed';
+
+// This account never sees the password gate.
+const OWNER_EMAIL = 'rose.louis.mail@gmail.com';
 
 const COPY = {
   fr: {
@@ -43,6 +47,7 @@ const COPY = {
 
 export function DemoGate({ children }: { children: ReactNode }) {
   const { language } = useLanguage();
+  const { user, isAuthenticated } = useAuth();
   const t = COPY[language];
 
   const [unlocked] = useState(() => localStorage.getItem(DEMO_GATE_KEY) === '1');
@@ -50,6 +55,11 @@ export function DemoGate({ children }: { children: ReactNode }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Google auth comes first: until the user is logged in, let the app render
+  // its own login screen. The password gate only applies once authenticated —
+  // and the owner account skips it entirely.
+  if (!isAuthenticated) return <>{children}</>;
+  if (user?.email === OWNER_EMAIL) return <>{children}</>;
   if (unlocked) return <>{children}</>;
 
   const handleSubmit = async (e: FormEvent) => {
