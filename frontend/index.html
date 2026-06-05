@@ -20,7 +20,13 @@
       (function() {
         var p = location.pathname;
         var t = 'LUMNA';
-        if (p.startsWith('/coach')) t = 'Coach';
+        if (p.startsWith('/fit')) {
+          // Scoped PWA: install /fit as its own standalone app, locked to /fit/*.
+          t = 'Mon Programme';
+          var m = document.querySelector('link[rel="manifest"]');
+          if (m) m.href = '/fit-manifest.json';
+        }
+        else if (p.startsWith('/coach')) t = 'Coach';
         else if (p.startsWith('/chess')) t = 'Chess';
         document.querySelector('meta[name="apple-mobile-web-app-title"]').content = t;
       })();
