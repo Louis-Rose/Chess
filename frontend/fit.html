@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LUMNA</title>
 
-    <!-- PWA manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- Gym PWA: static manifest so Safari "Add to Home Screen" uses it
+         (a JS-swapped manifest is ignored by Safari). Served by nginx for /fit. -->
+    <link rel="manifest" href="/fit-manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/fit-apple-touch-icon.png" />
 
     <!-- Theme color for browser UI -->
     <meta name="theme-color" content="#16a34a" />
@@ -17,28 +18,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="LUMNA" />
-    <!-- In production nginx serves dedicated static HTML (fit.html / chess.html)
-         for /fit and /chess with the right manifest hard-coded. This swap is a
-         dev-server fallback only (and for browsers that honor a JS-set manifest);
-         Safari ignores a JS-swapped manifest, which is why the static files exist. -->
-    <script>
-      (function() {
-        var p = location.pathname;
-        var m = document.querySelector('link[rel="manifest"]');
-        if (p.startsWith('/fit')) {
-          if (m) m.href = '/fit-manifest.json';
-          var ai = document.querySelector('link[rel="apple-touch-icon"]');
-          if (ai) ai.href = '/icons/fit-apple-touch-icon.png';
-        }
-        else if (p.startsWith('/chess')) {
-          if (m) m.href = '/chess-manifest.json';
-        }
-        else if (m) {
-          // Chooser and other pages aren't an installable app of their own.
-          m.remove();
-        }
-      })();
-    </script>
 
     <!-- Preload Google Identity Services so login button renders instantly -->
     <link rel="preconnect" href="https://accounts.google.com" />

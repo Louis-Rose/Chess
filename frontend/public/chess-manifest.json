@@ -1,6 +1,6 @@
 {
-  "name": "LUMNA Chess",
-  "short_name": "Chess",
+  "name": "LUMNA",
+  "short_name": "LUMNA",
   "description": "AI-powered tools for chess coaches",
   "start_url": "/chess/app",
   "scope": "/chess",
