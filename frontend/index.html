@@ -21,15 +21,23 @@
       (function() {
         var p = location.pathname;
         var t = 'LUMNA';
+        var m = document.querySelector('link[rel="manifest"]');
         if (p.startsWith('/fit')) {
-          // Scoped PWA: install /fit as its own standalone app, locked to /fit/*.
+          // Gym PWA — scoped to /fit, opens the gym.
           t = 'Mon Programme';
-          var m = document.querySelector('link[rel="manifest"]');
           if (m) m.href = '/fit-manifest.json';
           var ai = document.querySelector('link[rel="apple-touch-icon"]');
           if (ai) ai.href = '/icons/fit-apple-touch-icon.png';
         }
-        else if (p.startsWith('/chess')) t = 'Chess';
+        else if (p.startsWith('/chess')) {
+          // Chess PWA — scoped to /chess, opens the coach app (/chess/app).
+          t = 'Chess';
+          if (m) m.href = '/chess-manifest.json';
+        }
+        else if (m) {
+          // Chooser and other pages aren't an installable app of their own.
+          m.remove();
+        }
         document.querySelector('meta[name="apple-mobile-web-app-title"]').content = t;
       })();
     </script>
