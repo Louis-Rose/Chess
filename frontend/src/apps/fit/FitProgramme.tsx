@@ -76,7 +76,7 @@ export function FitProgramme() {
                   aria-checked={isActive}
                   disabled={saving}
                   onClick={() => choose(key)}
-                  className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors disabled:opacity-60 ${
+                  className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
                     isActive
                       ? 'border-emerald-500 bg-emerald-500/10'
                       : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
