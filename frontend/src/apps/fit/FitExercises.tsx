@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
 
 // Second step of the Programme flow: for each muscle group, pick the exercises
 // done (multi-select). Persisted per-muscle via /api/fit/exercises on "Suivant".
-// Keep MUSCLES in sync with MUSCLE_EXERCISES in backend/blueprints/fit.py.
+// Keep this in sync with MUSCLE_EXERCISES in backend/blueprints/fit.py — an
+// exercise with variants is stored as the leaf string `"<name> — <variant>"`.
 
-const MUSCLES: { name: string; exercises: string[] }[] = [
+type Exercise = string | { name: string; variants: string[] };
+
+const MUSCLES: { name: string; exercises: Exercise[] }[] = [
   { name: 'Pectoraux', exercises: ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'] },
-  { name: 'Dos', exercises: ['Tractions', 'Tirage vertical à la poulie haute', 'Rowing barre'] },
+  { name: 'Dos', exercises: [{ name: 'Tractions', variants: ['Pronation', 'Supination', 'Prise neutre'] }, 'Tirage vertical à la poulie haute', 'Rowing barre'] },
   { name: 'Quadriceps', exercises: ['Squat arrière', 'Hack squat', 'Presse à cuisses'] },
   { name: 'Ischio-jambiers', exercises: ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'] },
   { name: 'Fessiers', exercises: ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'] },
@@ -22,9 +25,12 @@ const MUSCLES: { name: string; exercises: string[] }[] = [
   { name: 'Sangle Abdominale', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche'] },
 ];
 
+const variantId = (name: string, variant: string) => `${name} — ${variant}`;
+
 export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: () => void }) {
   const [index, setIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [open, setOpen] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,16 +43,15 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
   const muscle = MUSCLES[index];
   const selected = selections[muscle.name] ?? [];
 
-  function toggle(ex: string) {
+  function toggle(id: string) {
     setSelections(prev => {
       const cur = prev[muscle.name] ?? [];
-      const next = cur.includes(ex) ? cur.filter(e => e !== ex) : [...cur, ex];
+      const next = cur.includes(id) ? cur.filter(e => e !== id) : [...cur, id];
       return { ...prev, [muscle.name]: next };
     });
   }
 
   function next() {
-    // Persist this muscle's picks in the background, then advance.
     fitRequest(() => axios.put('/api/fit/exercises', { muscle: muscle.name, exercises: selected })).catch(() => {});
     if (index < MUSCLES.length - 1) setIndex(index + 1);
     else onDone();
@@ -56,6 +61,10 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
     if (index > 0) setIndex(index - 1);
     else onBack();
   }
+
+  const cardBase = 'flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors';
+  const cardOn = 'border-emerald-500 bg-emerald-500/10';
+  const cardOff = 'border-slate-700 bg-slate-800/50 active:bg-slate-800';
 
   return (
     <FitShell
@@ -80,21 +89,64 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
       ) : (
         <div className="mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle.name}`}>
           {muscle.exercises.map(ex => {
-            const isActive = selected.includes(ex);
+            // Leaf exercise.
+            if (typeof ex === 'string') {
+              const isActive = selected.includes(ex);
+              return (
+                <button
+                  key={ex}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => toggle(ex)}
+                  className={`${cardBase} ${isActive ? cardOn : cardOff}`}
+                >
+                  <span className="font-medium text-slate-100">{ex}</span>
+                </button>
+              );
+            }
+
+            // Group with variants — expands to reveal its sub-options.
+            const anySelected = ex.variants.some(v => selected.includes(variantId(ex.name, v)));
+            const key = `${muscle.name}:${ex.name}`;
+            const expanded = open[key] ?? anySelected;
             return (
-              <button
-                key={ex}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() => toggle(ex)}
-                className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
-                  isActive
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
-                }`}
-              >
-                <span className="font-medium text-slate-100">{ex}</span>
-              </button>
+              <div key={ex.name} className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setOpen(prev => ({ ...prev, [key]: !expanded }))}
+                  className={`relative ${cardBase} ${anySelected ? cardOn : cardOff}`}
+                >
+                  <span className="font-medium text-slate-100">{ex.name}</span>
+                  {expanded
+                    ? <ChevronUp className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    : <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />}
+                </button>
+
+                {expanded && (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {ex.variants.map(v => {
+                      const id = variantId(ex.name, v);
+                      const vActive = selected.includes(id);
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          aria-pressed={vActive}
+                          onClick={() => toggle(id)}
+                          className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                            vActive
+                              ? 'border-emerald-500 bg-emerald-500/10 text-slate-100'
+                              : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
+                          }`}
+                        >
+                          {v}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
