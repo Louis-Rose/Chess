@@ -67,7 +67,7 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
         <button
           type="button"
           onClick={next}
-          className="mb-6 w-full max-w-[12rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+          className="mb-8 w-full max-w-[12rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
         >
           Suivant
         </button>
