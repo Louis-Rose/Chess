@@ -25,6 +25,8 @@
           t = 'Mon Programme';
           var m = document.querySelector('link[rel="manifest"]');
           if (m) m.href = '/fit-manifest.json';
+          var ai = document.querySelector('link[rel="apple-touch-icon"]');
+          if (ai) ai.href = '/icons/fit-apple-touch-icon.png';
         }
         else if (p.startsWith('/coach')) t = 'Coach';
         else if (p.startsWith('/chess')) t = 'Chess';
