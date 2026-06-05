@@ -65,7 +65,7 @@ export function FitProgramme() {
             {error && (
               <p className="mt-4 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
             )}
-            <div className="mt-6 flex max-w-[16rem] mx-auto w-full flex-col gap-3" role="radiogroup" aria-label="Choix du split">
+            <div className="mt-9 flex max-w-[16rem] mx-auto w-full flex-col gap-3" role="radiogroup" aria-label="Choix du split">
               {SPLITS.map(({ key, label }) => {
               const isActive = key === selected;
               return (
