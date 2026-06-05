@@ -95,7 +95,14 @@ def fit_google_auth():
     access_token = create_access_token(user_id)
     refresh_token, _ = create_refresh_token(user_id)
 
-    response = make_response(jsonify({'user': _user_payload(user_id)}))
+    # Build the payload from data already in hand (avoids a redundant SELECT).
+    user_payload = {
+        'id': user_id,
+        'email': google_user['email'],
+        'name': google_user['name'],
+        'picture': google_user['picture'],
+    }
+    response = make_response(jsonify({'user': user_payload}))
     _set_fit_cookies(response, access_token, refresh_token)
     return response
 

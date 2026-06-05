@@ -8,6 +8,7 @@
 
     <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
     <!-- Theme color for browser UI -->
     <meta name="theme-color" content="#16a34a" />
@@ -28,12 +29,10 @@
           var ai = document.querySelector('link[rel="apple-touch-icon"]');
           if (ai) ai.href = '/icons/fit-apple-touch-icon.png';
         }
-        else if (p.startsWith('/coach')) t = 'Coach';
         else if (p.startsWith('/chess')) t = 'Chess';
         document.querySelector('meta[name="apple-mobile-web-app-title"]').content = t;
       })();
     </script>
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
     <!-- Preload Google Identity Services so login button renders instantly -->
     <link rel="preconnect" href="https://accounts.google.com" />
