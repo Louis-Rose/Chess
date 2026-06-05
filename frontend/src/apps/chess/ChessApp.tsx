@@ -20,7 +20,7 @@ export function ChessApp() {
       </div>
     );
   }
-  if (user?.email !== OWNER_EMAIL) return <Navigate to="/app" replace />;
+  if (user?.email !== OWNER_EMAIL) return <Navigate to="/chess/app" replace />;
 
   return (
     <Suspense fallback={<div className="h-dvh bg-slate-900" />}>

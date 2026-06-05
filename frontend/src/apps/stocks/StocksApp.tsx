@@ -29,7 +29,7 @@ export function StocksApp() {
       </div>
     );
   }
-  if (!allowed) return <Navigate to="/app" replace />;
+  if (!allowed) return <Navigate to="/chess/app" replace />;
 
   return (
     <Suspense fallback={<div className="h-dvh bg-slate-900" />}>

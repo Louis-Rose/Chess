@@ -5,6 +5,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 import { CookieBanner } from './components/CookieBanner';
+import { ChooserPage } from './components/ChooserPage';
 import { LandingPage } from './components/LandingPage';
 import { ContactPage } from './components/ContactPage';
 import { DemoGate } from './components/DemoGate';
@@ -38,15 +39,16 @@ function App() {
   return (
     <Suspense fallback={<div className="h-dvh bg-slate-800" />}>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<ChooserPage />} />
+        <Route path="/chess" element={<LandingPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/invite/*" element={<InvitePage />} />
         <Route path="/waitlist" element={<WaitlistPage />} />
         <Route path="/fit/*" element={<FitApp />} />
         <Route path="/stocks/*" element={<StocksApp />} />
-        <Route path="/chess/*" element={<ChessApp />} />
+        <Route path="/chess/stats/*" element={<ChessApp />} />
         <Route path="/blitzcrewrankings/*" element={<FideApp />} />
-        <Route path="/app/*" element={<DemoGate><ChessCoachesApp /></DemoGate>} />
+        <Route path="/chess/app/*" element={<DemoGate><ChessCoachesApp /></DemoGate>} />
       </Routes>
       {!isFit && <CookieBanner />}
     </Suspense>

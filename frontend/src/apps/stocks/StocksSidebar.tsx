@@ -40,7 +40,7 @@ export function StocksSidebar({ tab, onTab }: { tab: StocksTab; onTab: (t: Stock
 
         <div className="h-px bg-slate-700 my-1.5" />
 
-        <button onClick={() => navigate('/app')} className={itemClass(false)}>
+        <button onClick={() => navigate('/chess/app')} className={itemClass(false)}>
           <ArrowLeft className="w-4 h-4 flex-shrink-0" />
           <span className="flex-1 text-left">Back to app</span>
         </button>

@@ -18,7 +18,7 @@ declare global {
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-export function LoginButton({ size = 'medium', redirectTo = '/app', login: loginOverride }: { size?: 'small' | 'medium' | 'large'; redirectTo?: string; login?: (credential: string) => Promise<void> }) {
+export function LoginButton({ size = 'medium', redirectTo = '/chess/app', login: loginOverride }: { size?: 'small' | 'medium' | 'large'; redirectTo?: string; login?: (credential: string) => Promise<void> }) {
   const { login: defaultLogin } = useAuth();
   const login = loginOverride ?? defaultLogin;
   const { language } = useLanguage();

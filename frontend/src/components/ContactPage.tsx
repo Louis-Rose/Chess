@@ -130,7 +130,7 @@ export function ContactPage() {
             <h1 className="text-3xl font-bold mb-3">{t.successTitle}</h1>
             <p className="text-slate-400 mb-8">{t.successBody}</p>
             <Link
-              to="/"
+              to="/chess"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors"
             >
               {t.successBack}

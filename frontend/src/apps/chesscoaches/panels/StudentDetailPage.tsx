@@ -63,11 +63,11 @@ export function StudentDetailPage() {
   const fetchStudent = useCallback(async () => {
     try {
       const res = await authFetch(`/api/coaches/students/${studentId}/lessons`);
-      if (!res.ok) { navigate('/app/students'); return; }
+      if (!res.ok) { navigate('/chess/app/students'); return; }
       const json = await res.json();
       setStudent(json.student);
       setLessons(json.lessons || []);
-    } catch { navigate('/app/students'); }
+    } catch { navigate('/chess/app/students'); }
   }, [studentId, navigate]);
 
   const fetchPacks = useCallback(async () => {
@@ -101,7 +101,7 @@ export function StudentDetailPage() {
 
   const handleDelete = async () => {
     const res = await authFetch(`/api/coaches/students/${studentId}`, { method: 'DELETE' });
-    if (res.ok) navigate('/app/students');
+    if (res.ok) navigate('/chess/app/students');
   };
 
   if (loading) {
