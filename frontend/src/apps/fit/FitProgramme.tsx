@@ -51,8 +51,8 @@ export function FitProgramme() {
 
   return (
     <div className="mx-auto w-full max-w-md px-5 pt-8 pb-24">
-      <h1 className="text-2xl font-semibold">Programme</h1>
-      <p className="mt-1 text-sm text-slate-400">Quel est ton split d'entraînement ?</p>
+      <h1 className="text-center text-2xl font-semibold">Programme</h1>
+      <p className="mt-8 text-lg text-white">Quel est ton split d'entraînement ?</p>
 
       {loading ? (
         <div className="mt-10 flex justify-center">
