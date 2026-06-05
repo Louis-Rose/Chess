@@ -18,7 +18,7 @@ declare global {
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | 'large' }) {
+export function LoginButton({ size = 'medium', redirectTo = '/app' }: { size?: 'small' | 'medium' | 'large'; redirectTo?: string }) {
   const { login } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -34,12 +34,12 @@ export function LoginButton({ size = 'medium' }: { size?: 'small' | 'medium' | '
     try {
       if (response.credential) {
         await login(response.credential);
-        navigate('/app');
+        navigate(redirectTo);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     }
-  }, [login, navigate]);
+  }, [login, navigate, redirectTo]);
 
   useEffect(() => {
     if (initializedRef.current) return;

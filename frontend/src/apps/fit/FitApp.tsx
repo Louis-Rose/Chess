@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { CalendarDays, Dumbbell, TrendingUp } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { FitBottomNav, type FitTab } from './FitBottomNav';
 import { FitProgramme } from './FitProgramme';
+import { FitLogin } from './FitLogin';
 
 // New native fitness app (replaces the old Notion-synced Gym page).
-// French only, designed primarily for phone. Placeholder content for now.
+// French only, designed primarily for phone. Per-user, auth-gated.
 
 const TABS: FitTab[] = [
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
@@ -13,11 +15,15 @@ const TABS: FitTab[] = [
 ];
 
 export function FitApp() {
+  const { isLoading, isAuthenticated } = useAuth();
   const [active, setActive] = useState('calendrier');
 
   useEffect(() => {
     document.title = 'Mon Programme';
   }, []);
+
+  if (isLoading) return <div className="min-h-dvh bg-slate-900" />;
+  if (!isAuthenticated) return <FitLogin />;
 
   const current = TABS.find(t => t.key === active) ?? TABS[0];
 
