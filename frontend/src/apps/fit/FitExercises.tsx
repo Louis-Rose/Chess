@@ -69,7 +69,7 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
 
       <h1 className="mt-4 text-center text-2xl font-semibold">{muscle.name}</h1>
       <p className="mt-1 text-center text-xs text-slate-500">{index + 1} / {MUSCLES.length}</p>
-      <p className="mt-9 text-center text-lg text-white">Quels exercices fais-tu ?</p>
+      <p className="mt-12 text-center text-lg text-white">Quels exercices fais-tu ?</p>
 
       {loading ? (
         <div className="mt-9 flex justify-center">
