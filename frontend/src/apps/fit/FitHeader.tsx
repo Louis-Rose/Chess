@@ -48,13 +48,13 @@ export function FitHeader() {
           {open && (
             <div
               role="menu"
-              className="absolute left-0 top-full mt-2 w-44 overflow-hidden rounded-lg border border-slate-700 bg-slate-800 shadow-lg"
+              className="absolute left-0 top-full mt-2 w-max overflow-hidden rounded-lg border border-slate-700 bg-slate-800 shadow-lg"
             >
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => { setOpen(false); logout(); }}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700"
+                className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700"
               >
                 <LogOut className="h-4 w-4" />
                 Se déconnecter
