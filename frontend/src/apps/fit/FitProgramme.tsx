@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Check, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 
 // First step of the Programme tab: pick a training split.
@@ -76,14 +76,13 @@ export function FitProgramme() {
                   aria-checked={isActive}
                   disabled={saving}
                   onClick={() => choose(key)}
-                  className={`relative flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors disabled:opacity-60 ${
+                  className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors disabled:opacity-60 ${
                     isActive
                       ? 'border-emerald-500 bg-emerald-500/10'
                       : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
                   }`}
                 >
                   <span className="font-medium text-slate-100">{label}</span>
-                  {isActive && <Check className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-emerald-400" />}
                 </button>
               );
             })}
