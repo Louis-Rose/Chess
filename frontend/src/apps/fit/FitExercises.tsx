@@ -101,7 +101,7 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
           <button
             type="button"
             onClick={next}
-            className="mt-auto mx-auto w-full max-w-[18rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+            className="mt-auto mb-6 mx-auto w-full max-w-[12rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
           >
             Suivant
           </button>
