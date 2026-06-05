@@ -11,8 +11,8 @@ import { FitAuthProvider, useFitAuth } from './fitAuth';
 // independent auth session (see fitAuth).
 
 const TABS: FitTab[] = [
-  { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
   { key: 'programme', label: 'Programme', Icon: Dumbbell },
+  { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
   { key: 'performances', label: 'Performances', Icon: TrendingUp },
 ];
 
@@ -30,7 +30,7 @@ export function FitApp() {
 
 function FitAppInner() {
   const { isLoading, isAuthenticated } = useFitAuth();
-  const [active, setActive] = useState('calendrier');
+  const [active, setActive] = useState('programme');
 
   if (isLoading) return <div className="min-h-dvh bg-slate-900" />;
   if (!isAuthenticated) return <FitLogin />;
@@ -44,7 +44,7 @@ function FitAppInner() {
         {active === 'programme' ? (
           <FitProgramme />
         ) : (
-          <div className="flex min-h-[70dvh] flex-col items-center justify-center px-6 pb-24 text-center">
+          <div className="flex min-h-[calc(100dvh-3.5rem-1px)] flex-col items-center justify-center px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center">
             <h1 className="text-2xl font-semibold">{current.label}</h1>
             <p className="mt-3 text-sm text-slate-400">Bientôt disponible.</p>
           </div>
