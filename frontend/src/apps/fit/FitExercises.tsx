@@ -8,7 +8,7 @@ import { fitRequest } from './fitAuth';
 // Keep MUSCLES in sync with MUSCLE_EXERCISES in backend/blueprints/fit.py.
 
 const MUSCLES: { name: string; exercises: string[] }[] = [
-  { name: 'Pectoraux', exercises: ['Développé couché', 'Développé incliné', 'Pompes'] },
+  { name: 'Pectoraux', exercises: ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'] },
   { name: 'Dos', exercises: ['Tractions', 'Tirage vertical à la poulie haute', 'Rowing barre'] },
   { name: 'Quadriceps', exercises: ['Squat arrière', 'Hack squat', 'Presse à cuisses'] },
   { name: 'Ischio-jambiers', exercises: ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'] },

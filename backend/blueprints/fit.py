@@ -39,7 +39,7 @@ VALID_SPLITS = {'full_body', 'upper_lower', 'push_pull_legs', 'body_part', 'no_s
 
 # Allowed exercises per muscle group — keep in sync with FitExercises.tsx.
 MUSCLE_EXERCISES = {
-    'Pectoraux': ['Développé couché', 'Développé incliné', 'Pompes'],
+    'Pectoraux': ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'],
     'Dos': ['Tractions', 'Tirage vertical à la poulie haute', 'Rowing barre'],
     'Quadriceps': ['Squat arrière', 'Hack squat', 'Presse à cuisses'],
     'Ischio-jambiers': ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'],
