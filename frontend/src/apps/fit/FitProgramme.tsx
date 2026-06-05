@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitExercises } from './FitExercises';
+import { FitShell } from './FitShell';
 
 // First step of the Programme tab: pick a training split.
 // Persisted per-user via /api/fit/profile.
@@ -55,21 +56,18 @@ export function FitProgramme() {
   if (step === 'exercises') return <FitExercises onDone={() => setStep('split')} onBack={() => setStep('split')} />;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-8 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <h1 className="text-center text-2xl font-semibold">Programme</h1>
-      <p className="mt-12 text-center text-lg text-white">Quel est ton split d'entraînement ?</p>
-
+    <FitShell title="Programme" question="Quel est ton split d'entraînement ?">
       {loading ? (
-          <div className="mt-8 flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
-          </div>
-        ) : (
-          <>
-            {error && (
-              <p className="mt-4 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
-            )}
-            <div className="mt-9 flex max-w-[16rem] mx-auto w-full flex-col gap-3" role="radiogroup" aria-label="Choix du split">
-              {SPLITS.map(({ key, label }) => {
+        <div className="flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+        </div>
+      ) : (
+        <>
+          {error && (
+            <p className="mb-3 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
+          )}
+          <div className="mx-auto flex w-full max-w-[16rem] flex-col gap-3" role="radiogroup" aria-label="Choix du split">
+            {SPLITS.map(({ key, label }) => {
               const isActive = key === selected;
               return (
                 <button
@@ -89,9 +87,9 @@ export function FitProgramme() {
                 </button>
               );
             })}
-            </div>
-          </>
-        )}
-    </div>
+          </div>
+        </>
+      )}
+    </FitShell>
   );
 }

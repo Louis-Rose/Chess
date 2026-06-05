@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
+import { FitShell } from './FitShell';
 
 // Second step of the Programme flow: for each muscle group, pick the exercises
 // done (multi-select). Persisted per-muscle via /api/fit/exercises on "Suivant".
@@ -57,56 +58,47 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <button
-        type="button"
-        onClick={back}
-        className="self-start inline-flex items-center gap-2 py-1 text-slate-300 transition-colors hover:text-white"
-      >
-        <ArrowLeft className="h-5 w-5" />
-        <span>Précédent</span>
-      </button>
-
-      <h1 className="mt-4 text-center text-2xl font-semibold">{muscle.name}</h1>
-      <p className="mt-1 text-center text-xs text-slate-500">{index + 1} / {MUSCLES.length}</p>
-      <p className="mt-12 text-center text-lg text-white">Quels exercices fais-tu ?</p>
-
+    <FitShell
+      title={muscle.name}
+      counter={`${index + 1} / ${MUSCLES.length}`}
+      question="Quels exercices fais-tu ?"
+      onBack={back}
+      footer={!loading ? (
+        <button
+          type="button"
+          onClick={next}
+          className="mb-6 w-full max-w-[12rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+        >
+          Suivant
+        </button>
+      ) : undefined}
+    >
       {loading ? (
-        <div className="mt-9 flex justify-center">
+        <div className="flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>
       ) : (
-        <>
-          <div className="mt-6 mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle.name}`}>
-            {muscle.exercises.map(ex => {
-              const isActive = selected.includes(ex);
-              return (
-                <button
-                  key={ex}
-                  type="button"
-                  aria-pressed={isActive}
-                  onClick={() => toggle(ex)}
-                  className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
-                    isActive
-                      ? 'border-emerald-500 bg-emerald-500/10'
-                      : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
-                  }`}
-                >
-                  <span className="font-medium text-slate-100">{ex}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            onClick={next}
-            className="mt-auto mb-6 mx-auto w-full max-w-[12rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
-          >
-            Suivant
-          </button>
-        </>
+        <div className="mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle.name}`}>
+          {muscle.exercises.map(ex => {
+            const isActive = selected.includes(ex);
+            return (
+              <button
+                key={ex}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => toggle(ex)}
+                className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
+                  isActive
+                    ? 'border-emerald-500 bg-emerald-500/10'
+                    : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
+                }`}
+              >
+                <span className="font-medium text-slate-100">{ex}</span>
+              </button>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </FitShell>
   );
 }
