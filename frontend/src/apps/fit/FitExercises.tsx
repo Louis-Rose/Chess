@@ -61,7 +61,7 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
       <button
         type="button"
         onClick={back}
-        className="self-start inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-1.5 text-white transition-colors hover:text-slate-200"
+        className="self-start inline-flex items-center gap-2 py-1 text-slate-300 transition-colors hover:text-white"
       >
         <ArrowLeft className="h-5 w-5" />
         <span>Précédent</span>
@@ -69,7 +69,7 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
 
       <h1 className="mt-4 text-center text-2xl font-semibold">{muscle.name}</h1>
       <p className="mt-1 text-center text-xs text-slate-500">{index + 1} / {MUSCLES.length}</p>
-      <p className="mt-3 text-center text-lg text-white">Quels exercices fais-tu ?</p>
+      <p className="mt-9 text-center text-lg text-white">Quels exercices fais-tu ?</p>
 
       {loading ? (
         <div className="mt-9 flex justify-center">
