@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Dumbbell, ClipboardList, History } from 'lucide-react';
+import { CalendarDays, Dumbbell, TrendingUp } from 'lucide-react';
 import { FitBottomNav, type FitTab } from './FitBottomNav';
 
 // New native fitness app (replaces the old Notion-synced Gym page).
 // French only, designed primarily for phone. Placeholder content for now.
 
 const TABS: FitTab[] = [
+  { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
   { key: 'programme', label: 'Programme', Icon: Dumbbell },
-  { key: 'seance', label: 'Séance', Icon: ClipboardList },
-  { key: 'historique', label: 'Historique', Icon: History },
+  { key: 'performances', label: 'Performances', Icon: TrendingUp },
 ];
 
 export function FitApp() {
-  const [active, setActive] = useState('programme');
+  const [active, setActive] = useState('calendrier');
 
   useEffect(() => {
     document.title = 'Mon Programme';
