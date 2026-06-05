@@ -37,12 +37,20 @@ FIT_REFRESH_PATH = '/api/fit/auth'
 # Allowed training splits — keep in sync with the frontend selector.
 VALID_SPLITS = {'full_body', 'upper_lower', 'push_pull_legs', 'body_part', 'no_split'}
 
-# Allowed muscle groups + exercise slots — keep in sync with FitExercises.tsx.
-VALID_MUSCLES = {
-    'Pectoraux', 'Épaules', 'Dos', 'Biceps', 'Triceps', 'Avant-bras',
-    'Abdominaux', 'Quadriceps', 'Fessiers', 'Ischio-jambiers', 'Mollets',
+# Allowed exercises per muscle group — keep in sync with FitExercises.tsx.
+MUSCLE_EXERCISES = {
+    'Pectoraux': ['Développé couché', 'Développé incliné', 'Pompes'],
+    'Dos': ['Tractions', 'Tirage vertical à la poulie haute', 'Rowing barre'],
+    'Quadriceps': ['Squat arrière', 'Hack squat', 'Presse à cuisses'],
+    'Ischio-jambiers': ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'],
+    'Fessiers': ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'],
+    'Épaules': ['Développé militaire', 'Élévations latérales', 'Oiseau'],
+    'Triceps': ['Extensions à la poulie', 'Développé couché prise serrée', 'Extensions barre au front'],
+    'Biceps': ['Curl barre', 'Curl incliné', 'Curl pupitre'],
+    'Mollets': ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'],
+    'Sangle Abdominale': ['Crunch', 'Enroulements de bassin', 'Gainage planche'],
 }
-VALID_EXERCISES = {'Exercice 1', 'Exercice 2', 'Exercice 3'}
+VALID_MUSCLES = set(MUSCLE_EXERCISES)
 
 
 def _set_fit_cookies(response, access_token, refresh_token):
@@ -205,7 +213,8 @@ def update_exercises():
     exercises = data.get('exercises')
     if muscle not in VALID_MUSCLES or not isinstance(exercises, list):
         return jsonify({'error': 'Invalid payload'}), 400
-    exercises = list({e for e in exercises if e in VALID_EXERCISES})
+    allowed = set(MUSCLE_EXERCISES[muscle])
+    exercises = list({e for e in exercises if e in allowed})
 
     with get_db() as conn:
         conn.execute(

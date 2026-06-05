@@ -5,14 +5,20 @@ import { fitRequest } from './fitAuth';
 
 // Second step of the Programme flow: for each muscle group, pick the exercises
 // done (multi-select). Persisted per-muscle via /api/fit/exercises on "Suivant".
-// The "Exercice 1/2/3" labels are placeholders until real exercises are defined.
+// Keep MUSCLES in sync with MUSCLE_EXERCISES in backend/blueprints/fit.py.
 
-const MUSCLES = [
-  'Pectoraux', 'Épaules', 'Dos', 'Biceps', 'Triceps', 'Avant-bras',
-  'Abdominaux', 'Quadriceps', 'Fessiers', 'Ischio-jambiers', 'Mollets',
+const MUSCLES: { name: string; exercises: string[] }[] = [
+  { name: 'Pectoraux', exercises: ['Développé couché', 'Développé incliné', 'Pompes'] },
+  { name: 'Dos', exercises: ['Tractions', 'Tirage vertical à la poulie haute', 'Rowing barre'] },
+  { name: 'Quadriceps', exercises: ['Squat arrière', 'Hack squat', 'Presse à cuisses'] },
+  { name: 'Ischio-jambiers', exercises: ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'] },
+  { name: 'Fessiers', exercises: ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'] },
+  { name: 'Épaules', exercises: ['Développé militaire', 'Élévations latérales', 'Oiseau'] },
+  { name: 'Triceps', exercises: ['Extensions à la poulie', 'Développé couché prise serrée', 'Extensions barre au front'] },
+  { name: 'Biceps', exercises: ['Curl barre', 'Curl incliné', 'Curl pupitre'] },
+  { name: 'Mollets', exercises: ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'] },
+  { name: 'Sangle Abdominale', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche'] },
 ];
-
-const EXERCISES = ['Exercice 1', 'Exercice 2', 'Exercice 3'];
 
 export function FitExercises({ onDone }: { onDone: () => void }) {
   const [index, setIndex] = useState(0);
@@ -27,26 +33,26 @@ export function FitExercises({ onDone }: { onDone: () => void }) {
   }, []);
 
   const muscle = MUSCLES[index];
-  const selected = selections[muscle] ?? [];
+  const selected = selections[muscle.name] ?? [];
 
   function toggle(ex: string) {
     setSelections(prev => {
-      const cur = prev[muscle] ?? [];
+      const cur = prev[muscle.name] ?? [];
       const next = cur.includes(ex) ? cur.filter(e => e !== ex) : [...cur, ex];
-      return { ...prev, [muscle]: next };
+      return { ...prev, [muscle.name]: next };
     });
   }
 
   function next() {
     // Persist this muscle's picks in the background, then advance.
-    fitRequest(() => axios.put('/api/fit/exercises', { muscle, exercises: selected })).catch(() => {});
+    fitRequest(() => axios.put('/api/fit/exercises', { muscle: muscle.name, exercises: selected })).catch(() => {});
     if (index < MUSCLES.length - 1) setIndex(index + 1);
     else onDone();
   }
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-8">
-      <h1 className="text-center text-2xl font-semibold">{muscle}</h1>
+      <h1 className="text-center text-2xl font-semibold">{muscle.name}</h1>
       <p className="mt-1 text-center text-xs text-slate-500">{index + 1} / {MUSCLES.length}</p>
 
       <div className="flex flex-1 flex-col justify-center pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -58,8 +64,8 @@ export function FitExercises({ onDone }: { onDone: () => void }) {
           </div>
         ) : (
           <>
-            <div className="mt-9 mx-auto flex w-full max-w-[16rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle}`}>
-              {EXERCISES.map(ex => {
+            <div className="mt-9 mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle.name}`}>
+              {muscle.exercises.map(ex => {
                 const isActive = selected.includes(ex);
                 return (
                   <button
@@ -82,7 +88,7 @@ export function FitExercises({ onDone }: { onDone: () => void }) {
             <button
               type="button"
               onClick={next}
-              className="mt-9 mx-auto w-full max-w-[16rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+              className="mt-9 mx-auto w-full max-w-[18rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
             >
               Suivant
             </button>
