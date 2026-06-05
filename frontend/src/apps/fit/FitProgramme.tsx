@@ -16,7 +16,7 @@ const SPLITS: Split[] = [
   { key: 'upper_lower', label: 'Upper / Lower' },
   { key: 'push_pull_legs', label: 'Push / Pull / Legs' },
   { key: 'body_part', label: 'Body Part Split' },
-  { key: 'no_split', label: 'Sans split' },
+  { key: 'no_split', label: 'Pas de split' },
 ];
 
 export function FitProgramme() {
@@ -49,21 +49,24 @@ export function FitProgramme() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-5 pt-8 pb-24">
+    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-8">
       <h1 className="text-center text-2xl font-semibold">Programme</h1>
-      <p className="mt-8 text-center text-lg text-white">Quel est ton split d'entraînement ?</p>
 
-      {loading ? (
-        <div className="mt-10 flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
-        </div>
-      ) : (
-        <>
-          {error && (
-            <p className="mt-4 text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
-          )}
-          <div className="mt-6 flex max-w-xs mx-auto flex-col gap-3" role="radiogroup" aria-label="Choix du split">
-            {SPLITS.map(({ key, label }) => {
+      {/* Centered between the title and the bottom bar (reserve the bar's height). */}
+      <div className="flex flex-1 flex-col justify-center pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+        <p className="text-center text-lg text-white">Quel est ton split d'entraînement ?</p>
+
+        {loading ? (
+          <div className="mt-8 flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+          </div>
+        ) : (
+          <>
+            {error && (
+              <p className="mt-4 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
+            )}
+            <div className="mt-6 flex max-w-[16rem] mx-auto w-full flex-col gap-3" role="radiogroup" aria-label="Choix du split">
+              {SPLITS.map(({ key, label }) => {
               const isActive = key === selected;
               return (
                 <button
@@ -84,9 +87,10 @@ export function FitProgramme() {
                 </button>
               );
             })}
-          </div>
-        </>
-      )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
