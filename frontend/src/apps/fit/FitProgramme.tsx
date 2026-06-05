@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
+import { FitExercises } from './FitExercises';
 
 // First step of the Programme tab: pick a training split.
 // Persisted per-user via /api/fit/profile.
@@ -24,6 +25,7 @@ export function FitProgramme() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
+  const [step, setStep] = useState<'split' | 'exercises'>('split');
 
   useEffect(() => {
     fitRequest(() => axios.get<{ split: string | null }>('/api/fit/profile'))
@@ -33,13 +35,15 @@ export function FitProgramme() {
   }, []);
 
   async function choose(key: string) {
-    if (key === selected || saving) return;
+    if (saving) return;
+    if (key === selected) { setStep('exercises'); return; } // already saved — just continue
     const previous = selected;
     setSelected(key);          // optimistic
     setSaving(true);
     setError(false);
     try {
       await fitRequest(() => axios.put('/api/fit/profile', { split: key }));
+      setStep('exercises');
     } catch {
       setSelected(previous);   // revert on failure
       setError(true);
@@ -47,6 +51,8 @@ export function FitProgramme() {
       setSaving(false);
     }
   }
+
+  if (step === 'exercises') return <FitExercises onDone={() => setStep('split')} />;
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-8">
