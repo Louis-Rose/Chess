@@ -37,6 +37,13 @@ FIT_REFRESH_PATH = '/api/fit/auth'
 # Allowed training splits — keep in sync with the frontend selector.
 VALID_SPLITS = {'full_body', 'upper_lower', 'push_pull_legs', 'body_part', 'no_split'}
 
+# Allowed muscle groups + exercise slots — keep in sync with FitExercises.tsx.
+VALID_MUSCLES = {
+    'Pectoraux', 'Épaules', 'Dos', 'Biceps', 'Triceps', 'Avant-bras',
+    'Abdominaux', 'Quadriceps', 'Fessiers', 'Ischio-jambiers', 'Mollets',
+}
+VALID_EXERCISES = {'Exercice 1', 'Exercice 2', 'Exercice 3'}
+
 
 def _set_fit_cookies(response, access_token, refresh_token):
     set_auth_cookies(
@@ -173,3 +180,41 @@ def update_profile():
             (request.user_id, split)
         )
     return jsonify({'split': split})
+
+
+@fit_bp.route('/api/fit/exercises', methods=['GET'])
+@fit_login_required
+def get_exercises():
+    """Return the user's selected exercises grouped by muscle."""
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT muscle, exercise FROM fit_exercises WHERE user_id = ?', (request.user_id,)
+        ).fetchall()
+    selections: dict[str, list] = {}
+    for r in rows:
+        selections.setdefault(r['muscle'], []).append(r['exercise'])
+    return jsonify({'selections': selections})
+
+
+@fit_bp.route('/api/fit/exercises', methods=['PUT'])
+@fit_login_required
+def update_exercises():
+    """Replace the selected exercises for one muscle group."""
+    data = request.get_json(silent=True) or {}
+    muscle = data.get('muscle')
+    exercises = data.get('exercises')
+    if muscle not in VALID_MUSCLES or not isinstance(exercises, list):
+        return jsonify({'error': 'Invalid payload'}), 400
+    exercises = list({e for e in exercises if e in VALID_EXERCISES})
+
+    with get_db() as conn:
+        conn.execute(
+            'DELETE FROM fit_exercises WHERE user_id = ? AND muscle = ?',
+            (request.user_id, muscle)
+        )
+        for ex in exercises:
+            conn.execute(
+                'INSERT INTO fit_exercises (user_id, muscle, exercise) VALUES (?, ?, ?)',
+                (request.user_id, muscle, ex)
+            )
+    return jsonify({'ok': True})

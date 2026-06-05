@@ -354,6 +354,18 @@ def init_db():
             """)
             logger.info("Created fit_profile table")
 
+        # Migration: Fit sub-app — selected exercises per muscle group, per user
+        if not _table_exists(conn, 'fit_exercises'):
+            conn.execute("""
+                CREATE TABLE fit_exercises (
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    muscle TEXT NOT NULL,
+                    exercise TEXT NOT NULL,
+                    PRIMARY KEY (user_id, muscle, exercise)
+                )
+            """)
+            logger.info("Created fit_exercises table")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

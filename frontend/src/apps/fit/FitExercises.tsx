@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Loader2 } from 'lucide-react';
+import { fitRequest } from './fitAuth';
 
 // Second step of the Programme flow: for each muscle group, pick the exercises
-// done (multi-select), or skip it. Selections are local-only for now (the
-// "Exercice 1/2/3" labels are placeholders until real exercises are defined).
+// done (multi-select). Persisted per-muscle via /api/fit/exercises on "Suivant".
+// The "Exercice 1/2/3" labels are placeholders until real exercises are defined.
 
 const MUSCLES = [
   'Pectoraux', 'Épaules', 'Dos', 'Biceps', 'Triceps', 'Avant-bras',
@@ -14,6 +17,14 @@ const EXERCISES = ['Exercice 1', 'Exercice 2', 'Exercice 3'];
 export function FitExercises({ onDone }: { onDone: () => void }) {
   const [index, setIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises'))
+      .then(res => setSelections(res.data.selections ?? {}))
+      .catch(() => { /* start empty */ })
+      .finally(() => setLoading(false));
+  }, []);
 
   const muscle = MUSCLES[index];
   const selected = selections[muscle] ?? [];
@@ -27,17 +38,10 @@ export function FitExercises({ onDone }: { onDone: () => void }) {
   }
 
   function next() {
+    // Persist this muscle's picks in the background, then advance.
+    fitRequest(() => axios.put('/api/fit/exercises', { muscle, exercises: selected })).catch(() => {});
     if (index < MUSCLES.length - 1) setIndex(index + 1);
     else onDone();
-  }
-
-  function skip() {
-    setSelections(prev => {
-      const n = { ...prev };
-      delete n[muscle];
-      return n;
-    });
-    next();
   }
 
   return (
@@ -48,41 +52,42 @@ export function FitExercises({ onDone }: { onDone: () => void }) {
       <div className="flex flex-1 flex-col justify-center pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         <p className="text-center text-lg text-white">Quels exercices fais-tu ?</p>
 
-        <div className="mt-9 mx-auto flex w-full max-w-[16rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle}`}>
-          {EXERCISES.map(ex => {
-            const isActive = selected.includes(ex);
-            return (
-              <button
-                key={ex}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() => toggle(ex)}
-                className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
-                  isActive
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
-                }`}
-              >
-                <span className="font-medium text-slate-100">{ex}</span>
-              </button>
-            );
-          })}
-        </div>
+        {loading ? (
+          <div className="mt-9 flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+          </div>
+        ) : (
+          <>
+            <div className="mt-9 mx-auto flex w-full max-w-[16rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle}`}>
+              {EXERCISES.map(ex => {
+                const isActive = selected.includes(ex);
+                return (
+                  <button
+                    key={ex}
+                    type="button"
+                    aria-pressed={isActive}
+                    onClick={() => toggle(ex)}
+                    className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
+                      isActive
+                        ? 'border-emerald-500 bg-emerald-500/10'
+                        : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
+                    }`}
+                  >
+                    <span className="font-medium text-slate-100">{ex}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-        <button
-          type="button"
-          onClick={next}
-          className="mt-9 mx-auto w-full max-w-[16rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
-        >
-          Suivant
-        </button>
-        <button
-          type="button"
-          onClick={skip}
-          className="mt-3 text-center text-sm text-slate-400 transition-colors hover:text-slate-200"
-        >
-          Passer
-        </button>
+            <button
+              type="button"
+              onClick={next}
+              className="mt-9 mx-auto w-full max-w-[16rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+            >
+              Suivant
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
