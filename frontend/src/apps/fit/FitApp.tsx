@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CalendarDays, Dumbbell, TrendingUp } from 'lucide-react';
 import { FitBottomNav, type FitTab } from './FitBottomNav';
+import { FitHeader } from './FitHeader';
 import { FitProgramme } from './FitProgramme';
 import { FitLogin } from './FitLogin';
 import { FitAuthProvider, useFitAuth } from './fitAuth';
@@ -38,11 +39,12 @@ function FitAppInner() {
 
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100">
-      <main className="min-h-dvh">
+      <FitHeader />
+      <main>
         {active === 'programme' ? (
           <FitProgramme />
         ) : (
-          <div className="flex min-h-dvh flex-col items-center justify-center px-6 pb-24 text-center">
+          <div className="flex min-h-[70dvh] flex-col items-center justify-center px-6 pb-24 text-center">
             <h1 className="text-2xl font-semibold">{current.label}</h1>
             <p className="mt-3 text-sm text-slate-400">Bientôt disponible.</p>
           </div>
