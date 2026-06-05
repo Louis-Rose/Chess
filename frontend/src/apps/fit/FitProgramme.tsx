@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Check, Loader2 } from 'lucide-react';
+import { fitRequest } from './fitAuth';
 
 // First step of the Programme tab: pick a training split.
 // Persisted per-user via /api/fit/profile.
@@ -26,7 +27,7 @@ export function FitProgramme() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    axios.get<{ split: string | null }>('/api/fit/profile')
+    fitRequest(() => axios.get<{ split: string | null }>('/api/fit/profile'))
       .then(res => setSelected(res.data.split))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -39,7 +40,7 @@ export function FitProgramme() {
     setSaving(true);
     setError(false);
     try {
-      await axios.put('/api/fit/profile', { split: key });
+      await fitRequest(() => axios.put('/api/fit/profile', { split: key }));
     } catch {
       setSelected(previous);   // revert on failure
       setError(true);

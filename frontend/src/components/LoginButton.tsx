@@ -18,8 +18,9 @@ declare global {
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-export function LoginButton({ size = 'medium', redirectTo = '/app' }: { size?: 'small' | 'medium' | 'large'; redirectTo?: string }) {
-  const { login } = useAuth();
+export function LoginButton({ size = 'medium', redirectTo = '/app', login: loginOverride }: { size?: 'small' | 'medium' | 'large'; redirectTo?: string; login?: (credential: string) => Promise<void> }) {
+  const { login: defaultLogin } = useAuth();
+  const login = loginOverride ?? defaultLogin;
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export function LoginButton({ size = 'medium', redirectTo = '/app' }: { size?: '
     try {
       if (response.credential) {
         await login(response.credential);
-        navigate(redirectTo);
+        if (redirectTo) navigate(redirectTo);  // empty redirectTo: stay in place (e.g. fit)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

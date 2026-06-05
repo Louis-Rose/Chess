@@ -95,36 +95,71 @@ def get_or_create_user(google_user: dict, registered_app: str = None) -> int:
         return user_id
 
 
-def set_auth_cookies(response, access_token: str, refresh_token: str):
-    """Set HTTP-only cookies for tokens."""
+def set_auth_cookies(response, access_token: str, refresh_token: str,
+                     access_name: str = 'access_token', refresh_name: str = 'refresh_token',
+                     access_path: str = '/', refresh_path: str = '/api/auth'):
+    """Set HTTP-only cookies for tokens.
+
+    Defaults match the main app. Sub-apps (e.g. fit) pass distinct names/paths
+    to keep an independent, isolated session.
+    """
     response.set_cookie(
-        'access_token',
+        access_name,
         access_token,
         httponly=True,
         secure=IS_PRODUCTION,
         samesite='Lax',
-        max_age=int(ACCESS_TOKEN_EXPIRES.total_seconds())
+        max_age=int(ACCESS_TOKEN_EXPIRES.total_seconds()),
+        path=access_path
     )
     response.set_cookie(
-        'refresh_token',
+        refresh_name,
         refresh_token,
         httponly=True,
         secure=IS_PRODUCTION,
         samesite='Lax',
         max_age=int(REFRESH_TOKEN_EXPIRES.total_seconds()),
-        path='/api/auth'
+        path=refresh_path
     )
 
 
-def clear_auth_cookies(response):
-    """Clear authentication cookies."""
-    response.delete_cookie('access_token')
-    response.delete_cookie('refresh_token', path='/api/auth')
+def clear_auth_cookies(response, access_name: str = 'access_token', refresh_name: str = 'refresh_token',
+                       access_path: str = '/', refresh_path: str = '/api/auth'):
+    """Clear authentication cookies (path must match how they were set)."""
+    response.delete_cookie(access_name, path=access_path)
+    response.delete_cookie(refresh_name, path=refresh_path)
 
 
-def get_current_user():
+def consume_refresh_token(raw_token: str):
+    """Validate and rotate (delete) a refresh token. Returns user_id or None."""
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT user_id, expires_at FROM refresh_tokens WHERE token_hash = ?',
+            (token_hash,)
+        ).fetchone()
+        if not row:
+            return None
+        expires_at = row['expires_at']
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            conn.execute('DELETE FROM refresh_tokens WHERE token_hash = ?', (token_hash,))
+            return None
+        conn.execute('DELETE FROM refresh_tokens WHERE token_hash = ?', (token_hash,))
+        return row['user_id']
+
+
+def revoke_refresh_token(raw_token: str):
+    """Delete a refresh token (logout)."""
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    with get_db() as conn:
+        conn.execute('DELETE FROM refresh_tokens WHERE token_hash = ?', (token_hash,))
+
+
+def get_current_user(cookie_name: str = 'access_token'):
     """Extract user from access token cookie. Returns None if not authenticated."""
-    token = request.cookies.get('access_token')
+    token = request.cookies.get(cookie_name)
     if not token:
         return None
 
