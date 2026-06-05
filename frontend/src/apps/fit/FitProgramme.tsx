@@ -62,7 +62,7 @@ export function FitProgramme() {
           {error && (
             <p className="mt-4 text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
           )}
-          <div className="mt-6 flex flex-col gap-3" role="radiogroup" aria-label="Choix du split">
+          <div className="mt-6 flex max-w-xs mx-auto flex-col gap-3" role="radiogroup" aria-label="Choix du split">
             {SPLITS.map(({ key, label }) => {
               const isActive = key === selected;
               return (
@@ -73,14 +73,14 @@ export function FitProgramme() {
                   aria-checked={isActive}
                   disabled={saving}
                   onClick={() => choose(key)}
-                  className={`flex items-center justify-between rounded-xl border px-4 py-3.5 text-left transition-colors disabled:opacity-60 ${
+                  className={`relative flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors disabled:opacity-60 ${
                     isActive
                       ? 'border-emerald-500 bg-emerald-500/10'
                       : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
                   }`}
                 >
                   <span className="font-medium text-slate-100">{label}</span>
-                  {isActive && <Check className="h-5 w-5 shrink-0 text-emerald-400" />}
+                  {isActive && <Check className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-emerald-400" />}
                 </button>
               );
             })}
