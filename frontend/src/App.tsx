@@ -1,7 +1,7 @@
 // Root app with routing
 
 import { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 import { CookieBanner } from './components/CookieBanner';
@@ -20,6 +20,11 @@ const WaitlistPage = lazy(() => import('./apps/chesscoaches/panels/WaitlistPage'
 function App() {
   const { user } = useAuth();
   const { language, setLanguage } = useLanguage();
+  const location = useLocation();
+
+  // The /fit PWA is self-contained and sets no tracking cookies, so it skips
+  // the global consent banner.
+  const isFit = location.pathname.startsWith('/fit');
 
   // Hydrate language from the server for returning users (page refresh with
   // valid session). On a fresh login, login() already sends the pre-login
@@ -43,7 +48,7 @@ function App() {
         <Route path="/blitzcrewrankings/*" element={<FideApp />} />
         <Route path="/app/*" element={<DemoGate><ChessCoachesApp /></DemoGate>} />
       </Routes>
-      <CookieBanner />
+      {!isFit && <CookieBanner />}
     </Suspense>
   );
 }
