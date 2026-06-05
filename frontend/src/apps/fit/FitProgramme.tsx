@@ -9,15 +9,14 @@ import { fitRequest } from './fitAuth';
 interface Split {
   key: string;
   label: string;
-  desc: string;
 }
 
 const SPLITS: Split[] = [
-  { key: 'full_body', label: 'Full Body', desc: 'Tout le corps à chaque séance' },
-  { key: 'upper_lower', label: 'Upper / Lower', desc: 'Haut du corps, puis bas du corps' },
-  { key: 'push_pull_legs', label: 'Push / Pull / Legs', desc: 'Poussée, tirage, jambes' },
-  { key: 'body_part', label: 'Body Part Split', desc: 'Un groupe musculaire par séance' },
-  { key: 'no_split', label: 'Sans split', desc: 'Séances libres, sans structure' },
+  { key: 'full_body', label: 'Full Body' },
+  { key: 'upper_lower', label: 'Upper / Lower' },
+  { key: 'push_pull_legs', label: 'Push / Pull / Legs' },
+  { key: 'body_part', label: 'Body Part Split' },
+  { key: 'no_split', label: 'Sans split' },
 ];
 
 export function FitProgramme() {
@@ -64,7 +63,7 @@ export function FitProgramme() {
             <p className="mt-4 text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
           )}
           <div className="mt-6 flex flex-col gap-3" role="radiogroup" aria-label="Choix du split">
-            {SPLITS.map(({ key, label, desc }) => {
+            {SPLITS.map(({ key, label }) => {
               const isActive = key === selected;
               return (
                 <button
@@ -80,10 +79,7 @@ export function FitProgramme() {
                       : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
                   }`}
                 >
-                  <span>
-                    <span className="block font-medium text-slate-100">{label}</span>
-                    <span className="mt-0.5 block text-xs text-slate-400">{desc}</span>
-                  </span>
+                  <span className="font-medium text-slate-100">{label}</span>
                   {isActive && <Check className="h-5 w-5 shrink-0 text-emerald-400" />}
                 </button>
               );
