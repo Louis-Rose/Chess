@@ -36,10 +36,10 @@ export function FitHeader() {
                 src={user.picture}
                 alt={user.name ?? ''}
                 referrerPolicy="no-referrer"
-                className="h-9 w-9 rounded-full border border-slate-700"
+                className="h-10 w-10 rounded-full border border-slate-700"
               />
             ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-sm font-semibold">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-sm font-semibold">
                 {(user?.name ?? '?').charAt(0).toUpperCase()}
               </span>
             )}
