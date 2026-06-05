@@ -25,11 +25,11 @@ export function FitBottomNav({ tabs, active, onSelect }: Props) {
                 type="button"
                 onClick={() => onSelect(key)}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex w-full flex-col items-center gap-1 pt-2.5 pb-3.5 text-xs transition-colors ${
+                className={`flex w-full flex-col items-center gap-1 pt-3.5 pb-[18px] text-sm transition-colors ${
                   isActive ? 'text-emerald-400' : 'text-slate-400'
                 }`}
               >
-                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.4 : 1.8} />
+                <Icon className="h-6 w-6" strokeWidth={isActive ? 2.4 : 1.8} />
                 {label}
               </button>
             </li>
