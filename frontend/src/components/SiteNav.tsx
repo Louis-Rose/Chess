@@ -15,20 +15,21 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur bg-slate-900/80 border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        {/* Row 1: brand + language */}
-        <div className="h-16 flex items-center">
-          <div className="flex-1 flex">
-            <Link to="/chess" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <LumnaLogo className="w-7 h-7" />
-              <span className="text-lg font-bold tracking-wide">LUMNA</span>
-            </Link>
-          </div>
+      {/* One flex-wrap row that reflows by breakpoint:
+          - mobile: brand + language on line 1, the two buttons wrap to line 2
+            (full width, equal halves, centered).
+          - sm+: single h-16 row — brand left, buttons + language on the right. */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-wrap items-center gap-y-3 py-3 sm:py-0 sm:h-16">
+        <Link to="/chess" className="order-1 mr-auto flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <LumnaLogo className="w-7 h-7" />
+          <span className="text-lg font-bold tracking-wide">LUMNA</span>
+        </Link>
+
+        <div className="order-2 sm:order-3 sm:ml-3">
           <LanguageToggle flagsOnly />
         </div>
-        {/* Row 2: actions — mobile: equal halves, each button centered; sm+:
-            right-aligned natural-width buttons (the original desktop look). */}
-        <div className="h-16 grid grid-cols-2 items-center gap-3 sm:flex sm:justify-end">
+
+        <div className="order-3 sm:order-2 w-full sm:w-auto grid grid-cols-2 items-center gap-3 sm:flex">
           <Link
             to="/contact"
             className="justify-self-center w-full max-w-[11rem] sm:w-auto sm:max-w-none inline-flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
