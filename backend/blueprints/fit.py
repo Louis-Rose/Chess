@@ -47,6 +47,7 @@ MUSCLE_EXERCISES = {
     'Épaules': ['Développé militaire', 'Élévations latérales', 'Oiseau'],
     'Triceps': ['Extensions à la poulie', 'Développé couché prise serrée', 'Extensions barre au front'],
     'Biceps': ['Curl barre', 'Curl incliné', 'Curl pupitre'],
+    'Avant-bras': ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'],
     'Mollets': ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'],
     'Sangle Abdominale': ['Crunch', 'Enroulements de bassin', 'Gainage planche'],
 }

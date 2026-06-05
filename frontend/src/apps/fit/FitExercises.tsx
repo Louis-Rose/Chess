@@ -16,6 +16,7 @@ const MUSCLES: { name: string; exercises: string[] }[] = [
   { name: 'Épaules', exercises: ['Développé militaire', 'Élévations latérales', 'Oiseau'] },
   { name: 'Triceps', exercises: ['Extensions à la poulie', 'Développé couché prise serrée', 'Extensions barre au front'] },
   { name: 'Biceps', exercises: ['Curl barre', 'Curl incliné', 'Curl pupitre'] },
+  { name: 'Avant-bras', exercises: ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'] },
   { name: 'Mollets', exercises: ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'] },
   { name: 'Sangle Abdominale', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche'] },
 ];
