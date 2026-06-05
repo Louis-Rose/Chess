@@ -98,7 +98,7 @@ function PlayerMenuItems({ onClose, align }: { onClose: () => void; align: 'cent
           className={`${rowBase} ${justify} text-emerald-400 border-b border-slate-700`}
         >
           <Crown className="w-4 h-4" />
-          Chess
+          Chess stats
         </button>
       )}
       {user.email === 'rose.louis.mail@gmail.com' && (
