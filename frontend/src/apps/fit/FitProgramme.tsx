@@ -52,7 +52,7 @@ export function FitProgramme() {
     }
   }
 
-  if (step === 'exercises') return <FitExercises onDone={() => setStep('split')} />;
+  if (step === 'exercises') return <FitExercises onDone={() => setStep('split')} onBack={() => setStep('split')} />;
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-8">

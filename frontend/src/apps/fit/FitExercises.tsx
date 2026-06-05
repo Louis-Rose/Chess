@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 
 // Second step of the Programme flow: for each muscle group, pick the exercises
@@ -21,7 +21,7 @@ const MUSCLES: { name: string; exercises: string[] }[] = [
   { name: 'Sangle Abdominale', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche'] },
 ];
 
-export function FitExercises({ onDone }: { onDone: () => void }) {
+export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: () => void }) {
   const [index, setIndex] = useState(0);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
@@ -51,51 +51,62 @@ export function FitExercises({ onDone }: { onDone: () => void }) {
     else onDone();
   }
 
+  function back() {
+    if (index > 0) setIndex(index - 1);
+    else onBack();
+  }
+
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-8">
-      <h1 className="text-center text-2xl font-semibold">{muscle.name}</h1>
+    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+      <button
+        type="button"
+        onClick={back}
+        className="self-start inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-700/50 px-3 py-1.5 text-white transition-colors hover:text-slate-200"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        <span>Précédent</span>
+      </button>
+
+      <h1 className="mt-4 text-center text-2xl font-semibold">{muscle.name}</h1>
       <p className="mt-1 text-center text-xs text-slate-500">{index + 1} / {MUSCLES.length}</p>
+      <p className="mt-3 text-center text-lg text-white">Quels exercices fais-tu ?</p>
 
-      <div className="flex flex-1 flex-col justify-center pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-        <p className="text-center text-lg text-white">Quels exercices fais-tu ?</p>
-
-        {loading ? (
-          <div className="mt-9 flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+      {loading ? (
+        <div className="mt-9 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+        </div>
+      ) : (
+        <>
+          <div className="mt-6 mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle.name}`}>
+            {muscle.exercises.map(ex => {
+              const isActive = selected.includes(ex);
+              return (
+                <button
+                  key={ex}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => toggle(ex)}
+                  className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
+                    isActive
+                      ? 'border-emerald-500 bg-emerald-500/10'
+                      : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
+                  }`}
+                >
+                  <span className="font-medium text-slate-100">{ex}</span>
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <>
-            <div className="mt-9 mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle.name}`}>
-              {muscle.exercises.map(ex => {
-                const isActive = selected.includes(ex);
-                return (
-                  <button
-                    key={ex}
-                    type="button"
-                    aria-pressed={isActive}
-                    onClick={() => toggle(ex)}
-                    className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
-                      isActive
-                        ? 'border-emerald-500 bg-emerald-500/10'
-                        : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
-                    }`}
-                  >
-                    <span className="font-medium text-slate-100">{ex}</span>
-                  </button>
-                );
-              })}
-            </div>
 
-            <button
-              type="button"
-              onClick={next}
-              className="mt-9 mx-auto w-full max-w-[18rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
-            >
-              Suivant
-            </button>
-          </>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={next}
+            className="mt-auto mx-auto w-full max-w-[18rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+          >
+            Suivant
+          </button>
+        </>
+      )}
     </div>
   );
 }
