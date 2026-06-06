@@ -31,15 +31,18 @@ export const SPLITS: Split[] = [...SPLITS_RAW].sort((a, b) => {
 export const splitLabel = (key: string | null) =>
   SPLITS.find(s => s.key === key)?.label ?? '';
 
-export type Exercise = string | { name: string; variants: string[] };
+// An exercise with variants expands into one or more rows of sub-options
+// (`variants` is an array of rows). Each leaf is stored as `"<name> — <variant>"`.
+export type Exercise = string | { name: string; variants: string[][] };
 
 const exLabel = (ex: Exercise) => (typeof ex === 'string' ? ex : ex.name);
 
-// Defined freely; MUSCLES exposes each group's exercises (and variants)
-// alphabetically. Muscle order itself is anatomical, left as-is.
+// Defined freely; MUSCLES exposes each group's exercises (and the variants
+// within each row) alphabetically. Row order is preserved as written. Muscle
+// order itself is anatomical, left as-is.
 const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
   { name: 'Pectoraux', exercises: ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'] },
-  { name: 'Dos', exercises: [{ name: 'Tractions', variants: ['Pronation', 'Supination', 'Prise neutre'] }, 'Tirage vertical à la poulie haute', 'Rowing barre', 'Rowing assis'] },
+  { name: 'Dos', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, 'Tirage vertical à la poulie haute', 'Rowing barre', { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
   { name: 'Quadriceps', exercises: ['Squat arrière', 'Hack squat', 'Presse à cuisses'] },
   { name: 'Ischio-jambiers', exercises: ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'] },
   { name: 'Fessiers', exercises: ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'] },
@@ -54,7 +57,7 @@ const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
 export const MUSCLES = MUSCLES_RAW.map(m => ({
   name: m.name,
   exercises: m.exercises
-    .map(ex => (typeof ex === 'string' ? ex : { name: ex.name, variants: sortLabels(ex.variants) }))
+    .map(ex => (typeof ex === 'string' ? ex : { name: ex.name, variants: ex.variants.map(sortLabels) }))
     .sort((a, b) => collator.compare(exLabel(a), exLabel(b))),
 }));
 

@@ -86,8 +86,8 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
               );
             }
 
-            // Group with variants — expands to reveal its sub-options.
-            const anySelected = ex.variants.some(v => selected.includes(variantId(ex.name, v)));
+            // Group with variants — expands to reveal its sub-options (rows).
+            const anySelected = ex.variants.flat().some(v => selected.includes(variantId(ex.name, v)));
             const key = `${muscle.name}:${ex.name}`;
             const expanded = open[key] ?? anySelected;
             return (
@@ -105,26 +105,30 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
                 </button>
 
                 {expanded && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {ex.variants.map(v => {
-                      const id = variantId(ex.name, v);
-                      const vActive = selected.includes(id);
-                      return (
-                        <button
-                          key={v}
-                          type="button"
-                          aria-pressed={vActive}
-                          onClick={() => toggle(id)}
-                          className={`rounded-lg border px-1.5 py-2 text-center text-xs leading-tight transition-colors ${
-                            vActive
-                              ? 'border-emerald-500 bg-emerald-500/10 text-slate-100'
-                              : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
-                          }`}
-                        >
-                          {v}
-                        </button>
-                      );
-                    })}
+                  <div className="flex flex-col gap-2">
+                    {ex.variants.map((row, ri) => (
+                      <div key={ri} className={`grid gap-2 ${row.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                        {row.map(v => {
+                          const id = variantId(ex.name, v);
+                          const vActive = selected.includes(id);
+                          return (
+                            <button
+                              key={v}
+                              type="button"
+                              aria-pressed={vActive}
+                              onClick={() => toggle(id)}
+                              className={`rounded-lg border px-1.5 py-2 text-center text-xs leading-tight transition-colors ${
+                                vActive
+                                  ? 'border-emerald-500 bg-emerald-500/10 text-slate-100'
+                                  : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
+                              }`}
+                            >
+                              {v}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
