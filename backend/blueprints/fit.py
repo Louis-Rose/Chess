@@ -39,17 +39,17 @@ VALID_SPLITS = {'full_body', 'upper_lower', 'push_pull_legs', 'body_part', 'no_s
 
 # Allowed exercises per muscle group — keep in sync with FitExercises.tsx.
 MUSCLE_EXERCISES = {
+    'Épaules': ['Développé militaire', 'Élévations latérales', 'Oiseau'],
     'Pectoraux': ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'],
     'Dos': ['Tractions — Pronation', 'Tractions — Supination', 'Tractions — Prise neutre', 'Tirage vertical (poulie haute) — Pronation', 'Tirage vertical (poulie haute) — Supination', 'Tirage vertical (poulie haute) — Prise neutre', 'Rowing assis — Machine', 'Rowing assis — Poulie basse', 'Rowing assis — Pronation', 'Rowing assis — Supination', 'Rowing assis — Prise neutre'],
+    'Biceps': ['Curl barre', 'Curl incliné', 'Curl pupitre'],
+    'Triceps': ['Extensions à la poulie', 'Développé couché prise serrée', 'Extensions barre au front'],
+    'Avant-bras': ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'],
+    'Abdos': ['Crunch', 'Enroulements de bassin', 'Gainage planche'],
+    'Fessiers': ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'],
     'Quadriceps': ['Squat arrière', 'Hack squat', 'Presse à cuisses'],
     'Ischio-jambiers': ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'],
-    'Fessiers': ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'],
-    'Épaules': ['Développé militaire', 'Élévations latérales', 'Oiseau'],
-    'Triceps': ['Extensions à la poulie', 'Développé couché prise serrée', 'Extensions barre au front'],
-    'Biceps': ['Curl barre', 'Curl incliné', 'Curl pupitre'],
-    'Avant-bras': ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'],
     'Mollets': ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'],
-    'Sangle Abdominale': ['Crunch', 'Enroulements de bassin', 'Gainage planche'],
 }
 VALID_MUSCLES = set(MUSCLE_EXERCISES)
 
