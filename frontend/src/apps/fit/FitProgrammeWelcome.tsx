@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
-import { MUSCLES, MUSCLE_LEAVES, splitLabel, sortLabels, exerciseLabel } from './programData';
+import { MUSCLES, MUSCLE_LEAVES, splitLabel, sortLabels, groupExerciseLabels } from './programData';
 
 // Landing for the Programme tab. The user only ever has one program, so it is
 // shown directly (split + selected exercises per muscle). Tapping the card
@@ -90,8 +90,8 @@ export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreat
                   <div key={name}>
                     <p className="text-xs uppercase tracking-wide text-slate-500">{name}</p>
                     <ul className="mt-1.5 flex flex-col gap-1">
-                      {validLeaves(name).map(ex => (
-                        <li key={ex} className="text-slate-200">{exerciseLabel(ex)}</li>
+                      {groupExerciseLabels(validLeaves(name)).map(label => (
+                        <li key={label} className="text-slate-200">{label}</li>
                       ))}
                     </ul>
                   </div>

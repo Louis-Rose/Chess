@@ -66,10 +66,23 @@ export const MUSCLES = MUSCLES_RAW.map(m => ({
 
 export const variantId = (name: string, variant: string) => `${name} — ${variant}`;
 
-// Display a stored leaf nicely: "Tractions — Prise neutre" -> "Tractions (Prise neutre)".
-export const exerciseLabel = (leaf: string) => {
-  const i = leaf.indexOf(' — ');
-  return i === -1 ? leaf : `${leaf.slice(0, i)} (${leaf.slice(i + 3)})`;
+// Group stored leaves by their base exercise and format each line as "Name" or
+// "Name (variant1, variant2, ...)". So "Rowing assis — Machine" + "Rowing assis
+// — Prise neutre" collapse into one "Rowing assis (Machine, Prise neutre)".
+// Pass a pre-sorted list (sortLabels) so bases and variants come out ordered.
+export const groupExerciseLabels = (leaves: string[]): string[] => {
+  const order: string[] = [];
+  const variantsByBase = new Map<string, string[]>();
+  for (const leaf of leaves) {
+    const i = leaf.indexOf(' — ');
+    const base = i === -1 ? leaf : leaf.slice(0, i);
+    if (!variantsByBase.has(base)) { variantsByBase.set(base, []); order.push(base); }
+    if (i !== -1) variantsByBase.get(base)!.push(leaf.slice(i + 3));
+  }
+  return order.map(base => {
+    const vs = variantsByBase.get(base)!;
+    return vs.length ? `${base} (${vs.join(', ')})` : base;
+  });
 };
 
 // The valid stored leaves per muscle, derived from the catalogue. Used to hide
