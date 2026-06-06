@@ -42,7 +42,7 @@ MUSCLE_EXERCISES = {
     'Épaules': ['Développé épaules — Machine', 'Développé épaules — Haltères', 'Développé épaules — Pronation', 'Développé épaules — Prise neutre', 'Développé militaire', 'Élévations latérales — Poulie basse', 'Élévations latérales — Haltères'],
     'Pectoraux': ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'],
     'Dos': ['Tractions — Pronation', 'Tractions — Supination', 'Tractions — Prise neutre', 'Tirage vertical (poulie haute) — Pronation', 'Tirage vertical (poulie haute) — Supination', 'Tirage vertical (poulie haute) — Prise neutre', 'Rowing assis — Machine', 'Rowing assis — Poulie basse', 'Rowing assis — Pronation', 'Rowing assis — Supination', 'Rowing assis — Prise neutre'],
-    'Biceps': ['Curl barre', 'Curl incliné', 'Curl pupitre'],
+    'Biceps': ['Curl incliné — Supination', 'Curl incliné — Rotation', 'Curl pupitre — Machine', 'Curl pupitre — Haltères', 'Curl pupitre — Barre EZ'],
     'Triceps': ['Extensions à la poulie', 'Développé couché prise serrée', 'Extensions barre au front'],
     'Avant-bras': ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'],
     'Abdos': ['Crunch', 'Enroulements de bassin', 'Gainage planche'],
