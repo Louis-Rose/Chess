@@ -52,6 +52,8 @@ MUSCLE_EXERCISES = {
     'Mollets': ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'],
 }
 VALID_MUSCLES = set(MUSCLE_EXERCISES)
+# Every valid exercise leaf, across all muscles — used to validate logged sets.
+ALL_EXERCISES = {ex for exercises in MUSCLE_EXERCISES.values() for ex in exercises}
 
 
 def _set_fit_cookies(response, access_token, refresh_token):
@@ -258,4 +260,105 @@ def update_exercises():
                 'INSERT INTO fit_exercises (user_id, muscle, exercise) VALUES (?, ?, ?)',
                 (request.user_id, muscle, ex)
             )
+    return jsonify({'ok': True})
+
+
+# ── Sessions (workout logging) ───────────────────────────────────────────────
+
+def _owned_session(conn, session_id):
+    """Return the session row if it belongs to the current user, else None."""
+    return conn.execute(
+        'SELECT id, started_at, ended_at FROM fit_sessions WHERE id = ? AND user_id = ?',
+        (session_id, request.user_id)
+    ).fetchone()
+
+
+def _session_payload(conn, row):
+    """Serialize a session row together with its logged sets (in order)."""
+    sets = conn.execute(
+        'SELECT id, exercise, weight, reps FROM fit_session_sets WHERE session_id = ? ORDER BY id',
+        (row['id'],)
+    ).fetchall()
+    return {
+        'id': row['id'],
+        'started_at': row['started_at'].isoformat() if row['started_at'] else None,
+        'ended_at': row['ended_at'].isoformat() if row['ended_at'] else None,
+        'sets': [{'id': s['id'], 'exercise': s['exercise'], 'weight': s['weight'], 'reps': s['reps']} for s in sets],
+    }
+
+
+@fit_bp.route('/api/fit/sessions', methods=['POST'])
+@fit_login_required
+def create_session():
+    """Start a new (empty) workout session."""
+    with get_db() as conn:
+        row = conn.execute(
+            'INSERT INTO fit_sessions (user_id) VALUES (?) RETURNING id, started_at, ended_at',
+            (request.user_id,)
+        ).fetchone()
+        return jsonify(_session_payload(conn, row))
+
+
+@fit_bp.route('/api/fit/sessions/<int:session_id>', methods=['GET'])
+@fit_login_required
+def get_session(session_id):
+    """Return a session and its logged sets."""
+    with get_db() as conn:
+        row = _owned_session(conn, session_id)
+        if not row:
+            return jsonify({'error': 'Not found'}), 404
+        return jsonify(_session_payload(conn, row))
+
+
+@fit_bp.route('/api/fit/sessions/<int:session_id>/sets', methods=['POST'])
+@fit_login_required
+def add_session_set(session_id):
+    """Log one set (exercise + weight + reps) onto a session."""
+    data = request.get_json(silent=True) or {}
+    exercise = data.get('exercise')
+    weight = data.get('weight')
+    reps = data.get('reps')
+    if exercise not in ALL_EXERCISES:
+        return jsonify({'error': 'Invalid exercise'}), 400
+    if not isinstance(reps, int) or isinstance(reps, bool) or not 1 <= reps <= 1000:
+        return jsonify({'error': 'Invalid reps'}), 400
+    if weight is not None:
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not 0 <= weight <= 1000:
+            return jsonify({'error': 'Invalid weight'}), 400
+
+    with get_db() as conn:
+        if not _owned_session(conn, session_id):
+            return jsonify({'error': 'Not found'}), 404
+        row = conn.execute(
+            'INSERT INTO fit_session_sets (session_id, exercise, weight, reps) VALUES (?, ?, ?, ?) RETURNING id',
+            (session_id, exercise, weight, reps)
+        ).fetchone()
+    return jsonify({'id': row['id'], 'exercise': exercise, 'weight': weight, 'reps': reps})
+
+
+@fit_bp.route('/api/fit/sessions/<int:session_id>/sets/<int:set_id>', methods=['DELETE'])
+@fit_login_required
+def delete_session_set(session_id, set_id):
+    """Remove a logged set from a session."""
+    with get_db() as conn:
+        if not _owned_session(conn, session_id):
+            return jsonify({'error': 'Not found'}), 404
+        conn.execute(
+            'DELETE FROM fit_session_sets WHERE id = ? AND session_id = ?',
+            (set_id, session_id)
+        )
+    return jsonify({'ok': True})
+
+
+@fit_bp.route('/api/fit/sessions/<int:session_id>/finish', methods=['POST'])
+@fit_login_required
+def finish_session(session_id):
+    """Mark a session as ended."""
+    with get_db() as conn:
+        if not _owned_session(conn, session_id):
+            return jsonify({'error': 'Not found'}), 404
+        conn.execute(
+            'UPDATE fit_sessions SET ended_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (session_id,)
+        )
     return jsonify({'ok': True})

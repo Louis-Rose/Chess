@@ -66,6 +66,12 @@ export const MUSCLES = MUSCLES_RAW.map(m => ({
 
 export const variantId = (name: string, variant: string) => `${name} — ${variant}`;
 
+// Display a single stored leaf: "Rowing assis — Machine" -> "Rowing assis (Machine)".
+export const leafLabel = (leaf: string) => {
+  const i = leaf.indexOf(' — ');
+  return i === -1 ? leaf : `${leaf.slice(0, i)} (${leaf.slice(i + 3)})`;
+};
+
 // Group stored leaves by their base exercise, collecting variants. So "Rowing
 // assis — Machine" + "Rowing assis — Prise neutre" become one entry
 // { name: 'Rowing assis', variants: ['Machine', 'Prise neutre'] }.

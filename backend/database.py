@@ -372,6 +372,31 @@ def init_db():
             """)
             logger.info("Created fit_exercises table")
 
+        # Migration: Fit sub-app — workout sessions and their logged sets
+        if not _table_exists(conn, 'fit_sessions'):
+            conn.execute("""
+                CREATE TABLE fit_sessions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    ended_at TIMESTAMP
+                )
+            """)
+            logger.info("Created fit_sessions table")
+
+        if not _table_exists(conn, 'fit_session_sets'):
+            conn.execute("""
+                CREATE TABLE fit_session_sets (
+                    id SERIAL PRIMARY KEY,
+                    session_id INTEGER NOT NULL REFERENCES fit_sessions(id) ON DELETE CASCADE,
+                    exercise TEXT NOT NULL,
+                    weight REAL,
+                    reps INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            logger.info("Created fit_session_sets table")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
