@@ -5,16 +5,18 @@ import { fitRequest } from './fitAuth';
 import { FitExercises } from './FitExercises';
 import { FitProgrammeWelcome } from './FitProgrammeWelcome';
 import { FitShell } from './FitShell';
+import { FitWorkSets } from './FitWorkSets';
 import { SPLITS } from './programData';
 
 // The Programme tab. Lands on the user's single program (shown directly, with
 // Modifier / Supprimer) or an invite to create one. Editing re-enters the
-// picker: split -> exercises.
+// picker: split -> working sets -> exercises.
 
-type Step = 'welcome' | 'split' | 'exercises';
+type Step = 'welcome' | 'split' | 'sets' | 'exercises';
 
 export function FitProgramme() {
   const [selected, setSelected] = useState<string | null>(null);
+  const [workSets, setWorkSets] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -22,8 +24,8 @@ export function FitProgramme() {
   const [step, setStep] = useState<Step>('welcome');
 
   useEffect(() => {
-    fitRequest(() => axios.get<{ split: string | null }>('/api/fit/profile'))
-      .then(res => setSelected(res.data.split))
+    fitRequest(() => axios.get<{ split: string | null; work_sets: number | null }>('/api/fit/profile'))
+      .then(res => { setSelected(res.data.split); setWorkSets(res.data.work_sets); })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
@@ -34,6 +36,7 @@ export function FitProgramme() {
     try {
       await fitRequest(() => axios.delete('/api/fit/profile'));
       setSelected(null);   // back to the empty welcome state
+      setWorkSets(null);
     } catch {
       setError(true);
     } finally {
@@ -43,14 +46,14 @@ export function FitProgramme() {
 
   async function choose(key: string) {
     if (saving) return;
-    if (key === selected) { setStep('exercises'); return; } // already saved — just continue
+    if (key === selected) { setStep('sets'); return; } // already saved — just continue
     const previous = selected;
     setSelected(key);          // optimistic
     setSaving(true);
     setError(false);
     try {
       await fitRequest(() => axios.put('/api/fit/profile', { split: key }));
-      setStep('exercises');
+      setStep('sets');
     } catch {
       setSelected(previous);   // revert on failure
       setError(true);
@@ -75,6 +78,7 @@ export function FitProgramme() {
     return (
       <FitProgrammeWelcome
         split={selected}
+        workSets={workSets}
         deleting={deleting}
         onEdit={() => setStep('split')}
         onCreate={() => setStep('split')}
@@ -82,8 +86,17 @@ export function FitProgramme() {
       />
     );
 
+  if (step === 'sets')
+    return (
+      <FitWorkSets
+        initial={workSets}
+        onDone={n => { setWorkSets(n); setStep('exercises'); }}
+        onBack={() => setStep('split')}
+      />
+    );
+
   if (step === 'exercises')
-    return <FitExercises onDone={() => setStep('welcome')} onBack={() => setStep('split')} />;
+    return <FitExercises onDone={() => setStep('welcome')} onBack={() => setStep('sets')} />;
 
   return (
     <FitShell

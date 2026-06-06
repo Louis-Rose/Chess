@@ -14,13 +14,14 @@ const MUSCLE_ORDER = MUSCLES.map(m => m.name);
 
 interface Props {
   split: string | null;             // null => no program yet
+  workSets: number | null;          // working sets per exercise
   deleting: boolean;
   onEdit: () => void;
   onCreate: () => void;
   onDelete: () => void;
 }
 
-export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelete }: Props) {
+export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreate, onDelete }: Props) {
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(!!split);   // only fetch when a program exists
   const [confirming, setConfirming] = useState(false);
@@ -73,6 +74,13 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
           >
             <p className="text-xs uppercase tracking-wide text-slate-500">Split</p>
             <p className="mt-1 text-lg font-medium text-slate-100">{splitLabel(split)}</p>
+
+            {workSets != null && (
+              <div className="mt-6">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Séries de travail</p>
+                <p className="mt-1 text-lg font-medium text-slate-100">{workSets}</p>
+              </div>
+            )}
 
             {chosen.length === 0 ? (
               <p className="mt-8 text-sm text-slate-400">Aucun exercice sélectionné pour le moment.</p>

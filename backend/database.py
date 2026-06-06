@@ -349,10 +349,16 @@ def init_db():
                 CREATE TABLE fit_profile (
                     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
                     split TEXT,
+                    work_sets INTEGER,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             logger.info("Created fit_profile table")
+
+        # Migration: fit_profile — working sets per exercise (2..6)
+        if not _column_exists(conn, 'fit_profile', 'work_sets'):
+            conn.execute("ALTER TABLE fit_profile ADD COLUMN work_sets INTEGER")
+            logger.info("Added fit_profile.work_sets column")
 
         # Migration: Fit sub-app — selected exercises per muscle group, per user
         if not _table_exists(conn, 'fit_exercises'):

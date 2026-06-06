@@ -166,29 +166,50 @@ def get_profile():
     """Return the current user's training profile."""
     with get_db() as conn:
         row = conn.execute(
-            'SELECT split FROM fit_profile WHERE user_id = ?', (request.user_id,)
+            'SELECT split, work_sets FROM fit_profile WHERE user_id = ?', (request.user_id,)
         ).fetchone()
-    return jsonify({'split': row['split'] if row else None})
+    return jsonify({
+        'split': row['split'] if row else None,
+        'work_sets': row['work_sets'] if row else None,
+    })
+
+
+# Allowed working-sets-per-exercise range — keep in sync with the frontend.
+WORK_SETS_MIN, WORK_SETS_MAX = 2, 6
 
 
 @fit_bp.route('/api/fit/profile', methods=['PUT'])
 @fit_login_required
 def update_profile():
-    """Upsert the current user's chosen split."""
+    """Upsert the chosen split and/or working-sets-per-exercise count."""
     data = request.get_json(silent=True) or {}
-    split = data.get('split')
-    if split not in VALID_SPLITS:
-        return jsonify({'error': 'Invalid split'}), 400
+    updates = {}
+    if 'split' in data:
+        if data['split'] not in VALID_SPLITS:
+            return jsonify({'error': 'Invalid split'}), 400
+        updates['split'] = data['split']
+    if 'work_sets' in data:
+        ws = data['work_sets']
+        if not isinstance(ws, int) or isinstance(ws, bool) or not WORK_SETS_MIN <= ws <= WORK_SETS_MAX:
+            return jsonify({'error': 'Invalid work_sets'}), 400
+        updates['work_sets'] = ws
+    if not updates:
+        return jsonify({'error': 'Nothing to update'}), 400
+
+    cols = list(updates.keys())
+    insert_cols = ', '.join(['user_id', *cols, 'updated_at'])
+    insert_vals = ', '.join(['?'] * (1 + len(cols)) + ['CURRENT_TIMESTAMP'])
+    set_clause = ', '.join([f'{c} = EXCLUDED.{c}' for c in cols] + ['updated_at = CURRENT_TIMESTAMP'])
+    params = (request.user_id, *(updates[c] for c in cols))
 
     with get_db() as conn:
         conn.execute(
-            """INSERT INTO fit_profile (user_id, split, updated_at)
-               VALUES (?, ?, CURRENT_TIMESTAMP)
-               ON CONFLICT (user_id)
-               DO UPDATE SET split = EXCLUDED.split, updated_at = CURRENT_TIMESTAMP""",
-            (request.user_id, split)
+            f"""INSERT INTO fit_profile ({insert_cols})
+                VALUES ({insert_vals})
+                ON CONFLICT (user_id) DO UPDATE SET {set_clause}""",
+            params,
         )
-    return jsonify({'split': split})
+    return jsonify(updates)
 
 
 @fit_bp.route('/api/fit/profile', methods=['DELETE'])
