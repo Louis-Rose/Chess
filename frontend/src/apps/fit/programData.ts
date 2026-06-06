@@ -71,3 +71,15 @@ export const exerciseLabel = (leaf: string) => {
   const i = leaf.indexOf(' — ');
   return i === -1 ? leaf : `${leaf.slice(0, i)} (${leaf.slice(i + 3)})`;
 };
+
+// The valid stored leaves per muscle, derived from the catalogue. Used to hide
+// orphaned selections left over after the catalogue changed (an exercise that
+// was once a leaf and later became a variant group, etc.).
+export const MUSCLE_LEAVES: Record<string, Set<string>> = Object.fromEntries(
+  MUSCLES.map(m => [
+    m.name,
+    new Set(m.exercises.flatMap(ex =>
+      typeof ex === 'string' ? [ex] : ex.variants.flat().map(v => variantId(ex.name, v))
+    )),
+  ]),
+);

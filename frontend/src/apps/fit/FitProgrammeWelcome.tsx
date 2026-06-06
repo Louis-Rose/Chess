@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
-import { MUSCLES, splitLabel, sortLabels, exerciseLabel } from './programData';
+import { MUSCLES, MUSCLE_LEAVES, splitLabel, sortLabels, exerciseLabel } from './programData';
 
 // Landing for the Programme tab. The user only ever has one program, so it is
 // shown directly (split + selected exercises per muscle) with Modifier /
@@ -51,7 +51,10 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
     );
   }
 
-  const chosen = MUSCLE_ORDER.filter(name => (selections[name]?.length ?? 0) > 0);
+  // Only show leaves still valid in the catalogue (drop orphaned old picks).
+  const validLeaves = (name: string) =>
+    sortLabels((selections[name] ?? []).filter(ex => MUSCLE_LEAVES[name]?.has(ex)));
+  const chosen = MUSCLE_ORDER.filter(name => validLeaves(name).length > 0);
 
   return (
     <FitShell title="Mon Programme">
@@ -73,7 +76,7 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
                   <div key={name}>
                     <p className="text-xs uppercase tracking-wide text-slate-500">{name}</p>
                     <ul className="mt-1.5 flex flex-col gap-1">
-                      {sortLabels(selections[name]).map(ex => (
+                      {validLeaves(name).map(ex => (
                         <li key={ex} className="text-slate-200">{exerciseLabel(ex)}</li>
                       ))}
                     </ul>
