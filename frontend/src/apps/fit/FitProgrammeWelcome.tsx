@@ -61,28 +61,30 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
         </div>
       ) : (
         <div className="mx-auto w-full max-w-[20rem]">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Split</p>
-          <p className="mt-1 text-lg font-medium text-slate-100">{splitLabel(split)}</p>
+          <div className="rounded-2xl border border-slate-800 bg-slate-800/30 px-5 py-7 text-center">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Split</p>
+            <p className="mt-1 text-lg font-medium text-slate-100">{splitLabel(split)}</p>
 
-          {chosen.length === 0 ? (
-            <p className="mt-8 text-sm text-slate-400">Aucun exercice sélectionné pour le moment.</p>
-          ) : (
-            <div className="mt-7 flex flex-col gap-5">
-              {chosen.map(name => (
-                <div key={name}>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">{name}</p>
-                  <ul className="mt-1.5 flex flex-col gap-1">
-                    {sortLabels(selections[name]).map(ex => (
-                      <li key={ex} className="text-slate-200">{ex}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
+            {chosen.length === 0 ? (
+              <p className="mt-8 text-sm text-slate-400">Aucun exercice sélectionné pour le moment.</p>
+            ) : (
+              <div className="mt-7 flex flex-col gap-5">
+                {chosen.map(name => (
+                  <div key={name}>
+                    <p className="text-xs uppercase tracking-wide text-slate-500">{name}</p>
+                    <ul className="mt-1.5 flex flex-col gap-1">
+                      {sortLabels(selections[name]).map(ex => (
+                        <li key={ex} className="text-slate-200">{ex}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {confirming ? (
-            <div className="mt-10 flex flex-col gap-3">
+            <div className="mt-6 flex flex-col gap-3">
               <p className="text-center text-sm text-slate-300">Supprimer ce programme ?</p>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -104,7 +106,7 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
               </div>
             </div>
           ) : (
-            <div className="mt-10 grid grid-cols-2 gap-3">
+            <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={onEdit}
