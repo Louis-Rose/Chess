@@ -10,7 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 //   - optional footer pinned to the bottom (e.g. a "Suivant" button)
 interface FitShellProps {
   title: string;
-  question: string;
+  question?: string;      // omitted on pages that aren't a question (e.g. the overview)
   counter?: string;       // e.g. "1 / 11"
   onBack?: () => void;    // renders a "Précédent" text link when provided
   footer?: ReactNode;     // pinned to the bottom
@@ -33,9 +33,9 @@ export function FitShell({ title, question, counter, onBack, footer, children }:
 
       <h1 className={`text-center text-2xl font-semibold ${onBack ? 'mt-4' : ''}`}>{title}</h1>
       {counter && <p className="mt-1 text-center text-xs text-slate-500">{counter}</p>}
-      <p className="mt-12 text-center text-lg text-white">{question}</p>
+      {question && <p className="mt-12 text-center text-lg text-white">{question}</p>}
 
-      <div className="mt-9">{children}</div>
+      <div className={question ? 'mt-9' : 'mt-10'}>{children}</div>
 
       {footer && <div className="mt-auto flex justify-center">{footer}</div>}
     </div>

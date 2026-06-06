@@ -3,34 +3,29 @@ import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitExercises } from './FitExercises';
+import { FitProgrammeOverview } from './FitProgrammeOverview';
 import { FitShell } from './FitShell';
+import { SPLITS } from './programData';
 
-// First step of the Programme tab: pick a training split.
-// Persisted per-user via /api/fit/profile.
+// The Programme tab. Once a split is chosen it lands on the saved-state overview
+// (FitProgrammeOverview); "Modifier" re-enters the picker: split -> exercises.
+// First-time users (no split yet) start straight on the split picker.
 
-interface Split {
-  key: string;
-  label: string;
-}
-
-const SPLITS: Split[] = [
-  { key: 'full_body', label: 'Full Body' },
-  { key: 'upper_lower', label: 'Upper / Lower' },
-  { key: 'push_pull_legs', label: 'Push / Pull / Legs' },
-  { key: 'body_part', label: 'Body Part Split' },
-  { key: 'no_split', label: 'Pas de split' },
-];
+type Step = 'overview' | 'split' | 'exercises';
 
 export function FitProgramme() {
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
-  const [step, setStep] = useState<'split' | 'exercises'>('split');
+  const [step, setStep] = useState<Step>('split');
 
   useEffect(() => {
     fitRequest(() => axios.get<{ split: string | null }>('/api/fit/profile'))
-      .then(res => setSelected(res.data.split))
+      .then(res => {
+        setSelected(res.data.split);
+        if (res.data.split) setStep('overview');   // already set up — show the recap
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
@@ -53,10 +48,18 @@ export function FitProgramme() {
     }
   }
 
-  if (step === 'exercises') return <FitExercises onDone={() => setStep('split')} onBack={() => setStep('split')} />;
+  if (step === 'overview' && selected)
+    return <FitProgrammeOverview split={selected} onEdit={() => setStep('split')} />;
+
+  if (step === 'exercises')
+    return <FitExercises onDone={() => setStep('overview')} onBack={() => setStep('split')} />;
 
   return (
-    <FitShell title="Programme" question="Quel est ton split d'entraînement ?">
+    <FitShell
+      title="Programme"
+      question="Quel est ton split d'entraînement ?"
+      onBack={selected ? () => setStep('overview') : undefined}
+    >
       {loading ? (
         <div className="flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />

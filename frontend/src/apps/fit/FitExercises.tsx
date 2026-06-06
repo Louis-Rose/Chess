@@ -3,29 +3,10 @@ import axios from 'axios';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
+import { MUSCLES, variantId } from './programData';
 
 // Second step of the Programme flow: for each muscle group, pick the exercises
 // done (multi-select). Persisted per-muscle via /api/fit/exercises on "Suivant".
-// Keep this in sync with MUSCLE_EXERCISES in backend/blueprints/fit.py — an
-// exercise with variants is stored as the leaf string `"<name> — <variant>"`.
-
-type Exercise = string | { name: string; variants: string[] };
-
-const MUSCLES: { name: string; exercises: Exercise[] }[] = [
-  { name: 'Pectoraux', exercises: ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'] },
-  { name: 'Dos', exercises: [{ name: 'Tractions', variants: ['Pronation', 'Supination', 'Prise neutre'] }, 'Tirage vertical à la poulie haute', 'Rowing barre', 'Rowing assis'] },
-  { name: 'Quadriceps', exercises: ['Squat arrière', 'Hack squat', 'Presse à cuisses'] },
-  { name: 'Ischio-jambiers', exercises: ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'] },
-  { name: 'Fessiers', exercises: ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'] },
-  { name: 'Épaules', exercises: ['Développé militaire', 'Élévations latérales', 'Oiseau'] },
-  { name: 'Triceps', exercises: ['Extensions à la poulie', 'Développé couché prise serrée', 'Extensions barre au front'] },
-  { name: 'Biceps', exercises: ['Curl barre', 'Curl incliné', 'Curl pupitre'] },
-  { name: 'Avant-bras', exercises: ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'] },
-  { name: 'Mollets', exercises: ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'] },
-  { name: 'Sangle Abdominale', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche'] },
-];
-
-const variantId = (name: string, variant: string) => `${name} — ${variant}`;
 
 export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: () => void }) {
   const [index, setIndex] = useState(0);
