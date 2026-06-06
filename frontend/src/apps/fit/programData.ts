@@ -65,3 +65,9 @@ export const MUSCLES = MUSCLES_RAW.map(m => ({
 }));
 
 export const variantId = (name: string, variant: string) => `${name} — ${variant}`;
+
+// Display a stored leaf nicely: "Tractions — Prise neutre" -> "Tractions (Prise neutre)".
+export const exerciseLabel = (leaf: string) => {
+  const i = leaf.indexOf(' — ');
+  return i === -1 ? leaf : `${leaf.slice(0, i)} (${leaf.slice(i + 3)})`;
+};
