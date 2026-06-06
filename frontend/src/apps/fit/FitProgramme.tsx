@@ -5,8 +5,8 @@ import { fitRequest } from './fitAuth';
 import { FitExercises } from './FitExercises';
 import { FitProgrammeWelcome } from './FitProgrammeWelcome';
 import { FitShell } from './FitShell';
+import { FitSplit } from './FitSplit';
 import { FitWorkSets } from './FitWorkSets';
-import { SPLITS } from './programData';
 
 // The Programme tab. Lands on the user's single program (shown directly, with
 // Modifier / Supprimer) or an invite to create one. Editing re-enters the
@@ -18,15 +18,13 @@ export function FitProgramme() {
   const [selected, setSelected] = useState<string | null>(null);
   const [workSets, setWorkSets] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState(false);
   const [step, setStep] = useState<Step>('welcome');
 
   useEffect(() => {
     fitRequest(() => axios.get<{ split: string | null; work_sets: number | null }>('/api/fit/profile'))
       .then(res => { setSelected(res.data.split); setWorkSets(res.data.work_sets); })
-      .catch(() => setError(true))
+      .catch(() => { /* leave empty — welcome shows the create state */ })
       .finally(() => setLoading(false));
   }, []);
 
@@ -38,27 +36,9 @@ export function FitProgramme() {
       setSelected(null);   // back to the empty welcome state
       setWorkSets(null);
     } catch {
-      setError(true);
+      /* keep the program shown on failure */
     } finally {
       setDeleting(false);
-    }
-  }
-
-  async function choose(key: string) {
-    if (saving) return;
-    if (key === selected) { setStep('sets'); return; } // already saved — just continue
-    const previous = selected;
-    setSelected(key);          // optimistic
-    setSaving(true);
-    setError(false);
-    try {
-      await fitRequest(() => axios.put('/api/fit/profile', { split: key }));
-      setStep('sets');
-    } catch {
-      setSelected(previous);   // revert on failure
-      setError(true);
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -86,6 +66,15 @@ export function FitProgramme() {
       />
     );
 
+  if (step === 'split')
+    return (
+      <FitSplit
+        initial={selected}
+        onDone={s => { setSelected(s); setStep('sets'); }}
+        onBack={() => setStep('welcome')}
+      />
+    );
+
   if (step === 'sets')
     return (
       <FitWorkSets
@@ -95,41 +84,5 @@ export function FitProgramme() {
       />
     );
 
-  if (step === 'exercises')
-    return <FitExercises onDone={() => setStep('welcome')} onBack={() => setStep('sets')} />;
-
-  return (
-    <FitShell
-      question="Quel est ton split d'entraînement ?"
-      onBack={() => setStep('welcome')}
-    >
-      <>
-        {error && (
-          <p className="mb-3 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
-        )}
-        <div className="mx-auto flex w-full max-w-[16rem] flex-col gap-3" role="radiogroup" aria-label="Choix du split">
-            {SPLITS.map(({ key, label }) => {
-              const isActive = key === selected;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  role="radio"
-                  aria-checked={isActive}
-                  disabled={saving}
-                  onClick={() => choose(key)}
-                  className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
-                    isActive
-                      ? 'border-emerald-500 bg-emerald-500/10'
-                      : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
-                  }`}
-                >
-                  <span className="font-medium text-slate-100">{label}</span>
-                </button>
-              );
-            })}
-        </div>
-      </>
-    </FitShell>
-  );
+  return <FitExercises onDone={() => setStep('welcome')} onBack={() => setStep('sets')} />;
 }

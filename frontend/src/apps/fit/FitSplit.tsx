@@ -2,30 +2,27 @@ import { useState } from 'react';
 import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
+import { SPLITS } from './programData';
 
-// Programme step between the split and the exercise picker: how many working
-// sets per exercise (2..6). Selecting an option only marks it; "Suivant" saves
-// it (/api/fit/profile { work_sets }) and advances.
-// Keep the range in sync with WORK_SETS_MIN/MAX in backend/blueprints/fit.py.
+// Programme step 1: pick a training split. Selecting an option only marks it;
+// "Suivant" saves it (/api/fit/profile { split }) and advances.
 
-const OPTIONS = [2, 3, 4, 5, 6];
-
-export function FitWorkSets({ initial, onDone, onBack }: {
-  initial: number | null;
-  onDone: (n: number) => void;
+export function FitSplit({ initial, onDone, onBack }: {
+  initial: string | null;
+  onDone: (split: string) => void;
   onBack: () => void;
 }) {
-  const [selected, setSelected] = useState<number | null>(initial);
+  const [selected, setSelected] = useState<string | null>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
 
   async function next() {
-    if (selected == null || saving) return;
+    if (!selected || saving) return;
     if (selected === initial) { onDone(selected); return; } // unchanged — just continue
     setSaving(true);
     setError(false);
     try {
-      await fitRequest(() => axios.put('/api/fit/profile', { work_sets: selected }));
+      await fitRequest(() => axios.put('/api/fit/profile', { split: selected }));
       onDone(selected);
     } catch {
       setError(true);
@@ -36,13 +33,13 @@ export function FitWorkSets({ initial, onDone, onBack }: {
 
   return (
     <FitShell
-      question="Combien de séries de travail par exercice ?"
+      question="Quel est ton split d'entraînement ?"
       onBack={onBack}
       footer={
         <button
           type="button"
           onClick={next}
-          disabled={selected == null || saving}
+          disabled={!selected || saving}
           className="mb-8 w-full max-w-[12rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
         >
           Suivant
@@ -52,23 +49,23 @@ export function FitWorkSets({ initial, onDone, onBack }: {
       {error && (
         <p className="mb-3 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
       )}
-      <div className="mx-auto grid w-full max-w-[16rem] grid-cols-5 gap-2" role="radiogroup" aria-label="Séries de travail par exercice">
-        {OPTIONS.map(n => {
-          const isActive = n === selected;
+      <div className="mx-auto flex w-full max-w-[16rem] flex-col gap-3" role="radiogroup" aria-label="Choix du split">
+        {SPLITS.map(({ key, label }) => {
+          const isActive = key === selected;
           return (
             <button
-              key={n}
+              key={key}
               type="button"
               role="radio"
               aria-checked={isActive}
-              onClick={() => setSelected(n)}
-              className={`flex items-center justify-center rounded-xl border py-3.5 text-lg font-medium text-slate-100 transition-colors ${
+              onClick={() => setSelected(key)}
+              className={`flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors ${
                 isActive
                   ? 'border-emerald-500 bg-emerald-500/10'
                   : 'border-slate-700 bg-slate-800/50 active:bg-slate-800'
               }`}
             >
-              {n}
+              <span className="font-medium text-slate-100">{label}</span>
             </button>
           );
         })}
