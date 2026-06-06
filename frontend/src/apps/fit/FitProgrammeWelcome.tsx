@@ -97,7 +97,7 @@ export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreat
                         <li key={ex.name}>
                           <p className="text-slate-200">{ex.name}</p>
                           {ex.variants.length > 0 && (
-                            <p className="mt-0.5 text-sm text-slate-400">{ex.variants.join(', ')}</p>
+                            <p className="mt-0.5 text-sm text-slate-200">({ex.variants.join(', ')})</p>
                           )}
                         </li>
                       ))}
