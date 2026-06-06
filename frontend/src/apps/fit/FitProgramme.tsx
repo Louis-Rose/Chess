@@ -3,16 +3,15 @@ import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitExercises } from './FitExercises';
-import { FitProgrammeOverview } from './FitProgrammeOverview';
 import { FitProgrammeWelcome } from './FitProgrammeWelcome';
 import { FitShell } from './FitShell';
 import { SPLITS } from './programData';
 
-// The Programme tab. Lands on a welcome hub listing the user's program with
-// view / modifier / supprimer (or an invite to create one). "View" opens the
-// recap (FitProgrammeOverview); editing re-enters the picker: split -> exercises.
+// The Programme tab. Lands on the user's single program (shown directly, with
+// Modifier / Supprimer) or an invite to create one. Editing re-enters the
+// picker: split -> exercises.
 
-type Step = 'welcome' | 'overview' | 'split' | 'exercises';
+type Step = 'welcome' | 'split' | 'exercises';
 
 export function FitProgramme() {
   const [selected, setSelected] = useState<string | null>(null);
@@ -60,11 +59,11 @@ export function FitProgramme() {
     }
   }
 
-  // Show a neutral spinner until the profile resolves, so the welcome hub
-  // appears already populated rather than flashing an empty state.
+  // Show a neutral spinner until the profile resolves, so the landing appears
+  // already populated rather than flashing an empty state.
   if (loading) {
     return (
-      <FitShell title="Programme">
+      <FitShell title="Mon Programme">
         <div className="flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>
@@ -77,18 +76,14 @@ export function FitProgramme() {
       <FitProgrammeWelcome
         split={selected}
         deleting={deleting}
-        onView={() => setStep('overview')}
         onEdit={() => setStep('split')}
         onCreate={() => setStep('split')}
         onDelete={remove}
       />
     );
 
-  if (step === 'overview' && selected)
-    return <FitProgrammeOverview split={selected} onBack={() => setStep('welcome')} />;
-
   if (step === 'exercises')
-    return <FitExercises onDone={() => setStep('overview')} onBack={() => setStep('split')} />;
+    return <FitExercises onDone={() => setStep('welcome')} onBack={() => setStep('split')} />;
 
   return (
     <FitShell
