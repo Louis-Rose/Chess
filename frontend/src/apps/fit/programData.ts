@@ -44,7 +44,7 @@ const exLabel = (ex: Exercise) => (typeof ex === 'string' ? ex : ex.name);
 // within each row) alphabetically. Row order is preserved as written. Muscle
 // order itself is anatomical, left as-is.
 const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
-  { name: 'Épaules', exercises: ['Développé militaire', 'Élévations latérales', 'Oiseau'] },
+  { name: 'Épaules', exercises: [{ name: 'Développé épaules', variants: [['Machine', 'Haltères'], ['Pronation', 'Prise neutre']] }, 'Développé militaire', { name: 'Élévations latérales', variants: [['Poulie basse', 'Haltères']] }] },
   { name: 'Pectoraux', exercises: ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères'] },
   { name: 'Dos', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
   { name: 'Biceps', exercises: ['Curl barre', 'Curl incliné', 'Curl pupitre'] },
