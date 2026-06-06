@@ -299,6 +299,31 @@ def create_session():
         return jsonify(_session_payload(conn, row))
 
 
+@fit_bp.route('/api/fit/sessions', methods=['GET'])
+@fit_login_required
+def list_sessions():
+    """History: the user's sessions that have at least one logged set, newest first."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT s.id, s.started_at, s.ended_at,
+                      COUNT(ss.id) AS set_count,
+                      COUNT(DISTINCT ss.exercise) AS exercise_count
+               FROM fit_sessions s
+               JOIN fit_session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id = ?
+               GROUP BY s.id, s.started_at, s.ended_at
+               ORDER BY s.started_at DESC""",
+            (request.user_id,)
+        ).fetchall()
+    return jsonify({'sessions': [{
+        'id': r['id'],
+        'started_at': r['started_at'].isoformat() if r['started_at'] else None,
+        'ended_at': r['ended_at'].isoformat() if r['ended_at'] else None,
+        'set_count': r['set_count'],
+        'exercise_count': r['exercise_count'],
+    } for r in rows]})
+
+
 @fit_bp.route('/api/fit/sessions/<int:session_id>', methods=['GET'])
 @fit_login_required
 def get_session(session_id):
