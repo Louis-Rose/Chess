@@ -3,6 +3,9 @@
 // saved-state overview. Keep in sync with backend/blueprints/fit.py
 // (VALID_SPLITS / MUSCLE_EXERCISES) — a variant is stored as `"<name> — <variant>"`.
 
+// The user's single training program is named once, here.
+export const PROGRAM_NAME = 'Programme de musculation';
+
 // Option lists are shown alphabetically, with any "negative" option (e.g. "Pas
 // de split") pinned last. sortLabels is the single helper enforcing that order.
 const collator = new Intl.Collator('fr', { sensitivity: 'base' });

@@ -4,31 +4,43 @@ import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitExercises } from './FitExercises';
 import { FitProgrammeOverview } from './FitProgrammeOverview';
+import { FitProgrammeWelcome } from './FitProgrammeWelcome';
 import { FitShell } from './FitShell';
 import { SPLITS } from './programData';
 
-// The Programme tab. Once a split is chosen it lands on the saved-state overview
-// (FitProgrammeOverview); "Modifier" re-enters the picker: split -> exercises.
-// First-time users (no split yet) start straight on the split picker.
+// The Programme tab. Lands on a welcome hub listing the user's program with
+// view / modifier / supprimer (or an invite to create one). "View" opens the
+// recap (FitProgrammeOverview); editing re-enters the picker: split -> exercises.
 
-type Step = 'overview' | 'split' | 'exercises';
+type Step = 'welcome' | 'overview' | 'split' | 'exercises';
 
 export function FitProgramme() {
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(false);
-  const [step, setStep] = useState<Step>('split');
+  const [step, setStep] = useState<Step>('welcome');
 
   useEffect(() => {
     fitRequest(() => axios.get<{ split: string | null }>('/api/fit/profile'))
-      .then(res => {
-        setSelected(res.data.split);
-        if (res.data.split) setStep('overview');   // already set up — show the recap
-      })
+      .then(res => setSelected(res.data.split))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
+
+  async function remove() {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await fitRequest(() => axios.delete('/api/fit/profile'));
+      setSelected(null);   // back to the empty welcome state
+    } catch {
+      setError(true);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function choose(key: string) {
     if (saving) return;
@@ -48,9 +60,8 @@ export function FitProgramme() {
     }
   }
 
-  // Until the profile resolves we don't know whether to land on the overview or
-  // the split picker — show a neutral spinner so a returning user goes straight
-  // to the overview without flashing the picker question.
+  // Show a neutral spinner until the profile resolves, so the welcome hub
+  // appears already populated rather than flashing an empty state.
   if (loading) {
     return (
       <FitShell title="Programme">
@@ -61,8 +72,20 @@ export function FitProgramme() {
     );
   }
 
+  if (step === 'welcome')
+    return (
+      <FitProgrammeWelcome
+        split={selected}
+        deleting={deleting}
+        onView={() => setStep('overview')}
+        onEdit={() => setStep('split')}
+        onCreate={() => setStep('split')}
+        onDelete={remove}
+      />
+    );
+
   if (step === 'overview' && selected)
-    return <FitProgrammeOverview split={selected} onEdit={() => setStep('split')} />;
+    return <FitProgrammeOverview split={selected} onBack={() => setStep('welcome')} />;
 
   if (step === 'exercises')
     return <FitExercises onDone={() => setStep('overview')} onBack={() => setStep('split')} />;
@@ -71,7 +94,7 @@ export function FitProgramme() {
     <FitShell
       title="Programme"
       question="Quel est ton split d'entraînement ?"
-      onBack={selected ? () => setStep('overview') : undefined}
+      onBack={() => setStep('welcome')}
     >
       <>
         {error && (

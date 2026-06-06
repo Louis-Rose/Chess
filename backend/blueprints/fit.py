@@ -191,6 +191,16 @@ def update_profile():
     return jsonify({'split': split})
 
 
+@fit_bp.route('/api/fit/profile', methods=['DELETE'])
+@fit_login_required
+def delete_profile():
+    """Delete the user's whole program — chosen split and all selected exercises."""
+    with get_db() as conn:
+        conn.execute('DELETE FROM fit_exercises WHERE user_id = ?', (request.user_id,))
+        conn.execute('DELETE FROM fit_profile WHERE user_id = ?', (request.user_id,))
+    return jsonify({'ok': True})
+
+
 @fit_bp.route('/api/fit/exercises', methods=['GET'])
 @fit_login_required
 def get_exercises():

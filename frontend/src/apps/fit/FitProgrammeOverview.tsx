@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Pencil } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
-import { MUSCLES, splitLabel, sortLabels } from './programData';
+import { MUSCLES, PROGRAM_NAME, splitLabel, sortLabels } from './programData';
 
-// Saved-state landing for the Programme tab: once a split is chosen, returning
-// to Programme shows a recap (split + selected exercises per muscle) instead of
-// restarting the picker. "Modifier" re-enters the picker flow. Remounted each
-// time this step is shown, so it always reflects the latest saved selections.
+// Read-only detail of the program (reached via "view" on the welcome hub):
+// the chosen split + selected exercises per muscle. Remounted each time it is
+// shown, so it always reflects the latest saved selections.
 
 const MUSCLE_ORDER = MUSCLES.map(m => m.name);
 
-export function FitProgrammeOverview({ split, onEdit }: { split: string; onEdit: () => void }) {
+export function FitProgrammeOverview({ split, onBack }: { split: string; onBack: () => void }) {
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
 
@@ -26,19 +25,7 @@ export function FitProgrammeOverview({ split, onEdit }: { split: string; onEdit:
   const chosen = MUSCLE_ORDER.filter(name => (selections[name]?.length ?? 0) > 0);
 
   return (
-    <FitShell
-      title="Programme"
-      footer={
-        <button
-          type="button"
-          onClick={onEdit}
-          className="mb-8 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 py-3 font-medium text-slate-100 transition-colors active:bg-slate-800"
-        >
-          <Pencil className="h-4 w-4" />
-          Modifier
-        </button>
-      }
-    >
+    <FitShell title={PROGRAM_NAME} onBack={onBack}>
       {loading ? (
         <div className="flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
