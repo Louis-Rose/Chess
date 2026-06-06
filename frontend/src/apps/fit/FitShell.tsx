@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 //   - 48px gap title -> question, 36px gap question -> options
 //   - optional footer pinned to the bottom (e.g. a "Suivant" button)
 interface FitShellProps {
-  title: string;
+  title?: string;         // omitted when the page owns its own heading (e.g. inside a card)
   question?: string;      // omitted on pages that aren't a question (e.g. the overview)
   counter?: string;       // e.g. "1 / 11"
   onBack?: () => void;    // renders a "Précédent" text link when provided
@@ -31,7 +31,7 @@ export function FitShell({ title, question, counter, onBack, footer, children }:
         </button>
       )}
 
-      <h1 className={`text-center text-2xl font-semibold ${onBack ? 'mt-4' : ''}`}>{title}</h1>
+      {title && <h1 className={`text-center text-2xl font-semibold ${onBack ? 'mt-4' : ''}`}>{title}</h1>}
       {counter && <p className="mt-1 text-center text-xs text-slate-500">{counter}</p>}
       {question && <p className="mt-12 text-center text-lg text-white">{question}</p>}
 

@@ -58,7 +58,7 @@ export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreat
   const chosen = MUSCLE_ORDER.filter(name => validLeaves(name).length > 0);
 
   return (
-    <FitShell title="Mon Programme">
+    <FitShell>
       {loading ? (
         <div className="flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
@@ -72,7 +72,9 @@ export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreat
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(); } }}
             className="cursor-pointer rounded-2xl border border-slate-800 bg-slate-800/30 px-5 py-7 text-center transition-colors hover:border-slate-700 active:bg-slate-800/60"
           >
-            <p className="text-xs uppercase tracking-wide text-slate-500">Split</p>
+            <h1 className="text-2xl font-semibold text-slate-100">Mon Programme</h1>
+
+            <p className="mt-7 text-xs uppercase tracking-wide text-slate-500">Split</p>
             <p className="mt-1 text-lg font-medium text-slate-100">{splitLabel(split)}</p>
 
             {workSets != null && (
