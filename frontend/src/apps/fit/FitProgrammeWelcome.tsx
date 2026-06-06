@@ -100,7 +100,7 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
                   type="button"
                   onClick={() => setConfirming(false)}
                   disabled={deleting}
-                  className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
+                  className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-xs font-medium text-slate-100 transition-colors active:bg-slate-800"
                 >
                   Annuler
                 </button>
@@ -108,7 +108,7 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
                   type="button"
                   onClick={onDelete}
                   disabled={deleting}
-                  className="rounded-lg bg-red-600/90 px-4 py-2 text-sm font-semibold text-white transition-colors active:bg-red-600 disabled:opacity-60"
+                  className="rounded-lg bg-red-600/90 px-3 py-1.5 text-xs font-semibold text-white transition-colors active:bg-red-600 disabled:opacity-60"
                 >
                   Supprimer
                 </button>
@@ -119,9 +119,9 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
               <button
                 type="button"
                 onClick={() => setConfirming(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-red-900/60 bg-red-950/30 px-4 py-2 text-sm font-medium text-red-300 transition-colors active:bg-red-950/50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors active:bg-red-950/50"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
                 Supprimer
               </button>
             </div>
