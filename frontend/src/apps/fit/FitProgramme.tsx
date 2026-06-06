@@ -100,7 +100,6 @@ export function FitProgramme() {
 
   return (
     <FitShell
-      title="Programme"
       question="Quel est ton split d'entraînement ?"
       onBack={() => setStep('welcome')}
     >

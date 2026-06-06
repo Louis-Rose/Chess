@@ -37,7 +37,7 @@ export function FitWorkSets({ initial, onDone, onBack }: {
   }
 
   return (
-    <FitShell title="Programme" question="Combien de séries de travail par exercice ?" onBack={onBack}>
+    <FitShell question="Combien de séries de travail par exercice ?" onBack={onBack}>
       {error && (
         <p className="mb-3 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
       )}
