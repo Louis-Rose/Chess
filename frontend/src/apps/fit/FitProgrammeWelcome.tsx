@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
 import { MUSCLES, MUSCLE_LEAVES, splitLabel, sortLabels, exerciseLabel } from './programData';
 
 // Landing for the Programme tab. The user only ever has one program, so it is
-// shown directly (split + selected exercises per muscle) with Modifier /
-// Supprimer actions — no click-through card. Empty state invites creating one.
+// shown directly (split + selected exercises per muscle). Tapping the card
+// edits it; a small Supprimer below deletes it. Empty state invites creating one.
 // Deletion is confirmed inline (no native dialog). API calls live in FitProgramme.
 
 const MUSCLE_ORDER = MUSCLES.map(m => m.name);
@@ -64,7 +64,13 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
         </div>
       ) : (
         <div className="mx-auto w-full max-w-[20rem]">
-          <div className="rounded-2xl border border-slate-800 bg-slate-800/30 px-5 py-7 text-center">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onEdit}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(); } }}
+            className="cursor-pointer rounded-2xl border border-slate-800 bg-slate-800/30 px-5 py-7 text-center transition-colors hover:border-slate-700 active:bg-slate-800/60"
+          >
             <p className="text-xs uppercase tracking-wide text-slate-500">Split</p>
             <p className="mt-1 text-lg font-medium text-slate-100">{splitLabel(split)}</p>
 
@@ -87,14 +93,14 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
           </div>
 
           {confirming ? (
-            <div className="mt-6 flex flex-col gap-3">
-              <p className="text-center text-sm text-slate-300">Supprimer ce programme ?</p>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <p className="text-sm text-slate-300">Supprimer ce programme ?</p>
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setConfirming(false)}
                   disabled={deleting}
-                  className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 font-medium text-slate-100 transition-colors active:bg-slate-800"
+                  className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
                 >
                   Annuler
                 </button>
@@ -102,26 +108,18 @@ export function FitProgrammeWelcome({ split, deleting, onEdit, onCreate, onDelet
                   type="button"
                   onClick={onDelete}
                   disabled={deleting}
-                  className="rounded-xl bg-red-600/90 px-4 py-3 font-semibold text-white transition-colors active:bg-red-600 disabled:opacity-60"
+                  className="rounded-lg bg-red-600/90 px-4 py-2 text-sm font-semibold text-white transition-colors active:bg-red-600 disabled:opacity-60"
                 >
                   Supprimer
                 </button>
               </div>
             </div>
           ) : (
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={onEdit}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 font-medium text-slate-100 transition-colors active:bg-slate-800"
-              >
-                <Pencil className="h-4 w-4" />
-                Modifier
-              </button>
+            <div className="mt-6 flex justify-center">
               <button
                 type="button"
                 onClick={() => setConfirming(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-900/60 bg-red-950/30 px-4 py-3 font-medium text-red-300 transition-colors active:bg-red-950/50"
+                className="inline-flex items-center gap-2 rounded-lg border border-red-900/60 bg-red-950/30 px-4 py-2 text-sm font-medium text-red-300 transition-colors active:bg-red-950/50"
               >
                 <Trash2 className="h-4 w-4" />
                 Supprimer
