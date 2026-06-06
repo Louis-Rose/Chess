@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Loader2, Pencil } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
-import { MUSCLES, splitLabel } from './programData';
+import { MUSCLES, splitLabel, sortLabels } from './programData';
 
 // Saved-state landing for the Programme tab: once a split is chosen, returning
 // to Programme shows a recap (split + selected exercises per muscle) instead of
@@ -56,7 +56,7 @@ export function FitProgrammeOverview({ split, onEdit }: { split: string; onEdit:
                 <div key={name}>
                   <p className="text-xs uppercase tracking-wide text-slate-500">{name}</p>
                   <ul className="mt-1.5 flex flex-col gap-1">
-                    {selections[name].map(ex => (
+                    {sortLabels(selections[name]).map(ex => (
                       <li key={ex} className="text-slate-200">{ex}</li>
                     ))}
                   </ul>

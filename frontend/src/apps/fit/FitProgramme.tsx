@@ -48,6 +48,19 @@ export function FitProgramme() {
     }
   }
 
+  // Until the profile resolves we don't know whether to land on the overview or
+  // the split picker — show a neutral spinner so a returning user goes straight
+  // to the overview without flashing the picker question.
+  if (loading) {
+    return (
+      <FitShell title="Programme">
+        <div className="flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+        </div>
+      </FitShell>
+    );
+  }
+
   if (step === 'overview' && selected)
     return <FitProgrammeOverview split={selected} onEdit={() => setStep('split')} />;
 
@@ -60,16 +73,11 @@ export function FitProgramme() {
       question="Quel est ton split d'entraînement ?"
       onBack={selected ? () => setStep('overview') : undefined}
     >
-      {loading ? (
-        <div className="flex justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
-        </div>
-      ) : (
-        <>
-          {error && (
-            <p className="mb-3 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
-          )}
-          <div className="mx-auto flex w-full max-w-[16rem] flex-col gap-3" role="radiogroup" aria-label="Choix du split">
+      <>
+        {error && (
+          <p className="mb-3 text-center text-sm text-red-400">Échec de l'enregistrement. Réessaie.</p>
+        )}
+        <div className="mx-auto flex w-full max-w-[16rem] flex-col gap-3" role="radiogroup" aria-label="Choix du split">
             {SPLITS.map(({ key, label }) => {
               const isActive = key === selected;
               return (
@@ -90,9 +98,8 @@ export function FitProgramme() {
                 </button>
               );
             })}
-          </div>
-        </>
-      )}
+        </div>
+      </>
     </FitShell>
   );
 }
