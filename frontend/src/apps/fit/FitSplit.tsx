@@ -33,6 +33,7 @@ export function FitSplit({ initial, onDone, onBack }: {
 
   return (
     <FitShell
+      title="Split"
       question="Quel est ton split d'entraînement ?"
       onBack={onBack}
       footer={

@@ -36,6 +36,7 @@ export function FitWorkSets({ initial, onDone, onBack }: {
 
   return (
     <FitShell
+      title="Volume d'entraînement"
       question="Combien de séries de travail par exercice ?"
       onBack={onBack}
       footer={
