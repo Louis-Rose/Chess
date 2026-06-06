@@ -52,7 +52,7 @@ const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
   { name: 'Avant-bras', exercises: ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'] },
   { name: 'Abdos', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche'] },
   { name: 'Fessiers', exercises: ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'] },
-  { name: 'Quadriceps', exercises: ['Squat arrière', 'Hack squat', 'Presse à cuisses'] },
+  { name: 'Quadriceps', exercises: ['Soulevé de terre barre hex', 'Hack squat', 'Presse à cuisses'] },
   { name: 'Ischio-jambiers', exercises: ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'] },
   { name: 'Mollets', exercises: ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'] },
 ];
