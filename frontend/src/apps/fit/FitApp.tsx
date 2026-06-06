@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, Dumbbell, TrendingUp } from 'lucide-react';
+import { CalendarDays, Dumbbell, Home, TrendingUp } from 'lucide-react';
 import { FitBottomNav, type FitTab } from './FitBottomNav';
 import { FitHeader } from './FitHeader';
 import { FitProgramme } from './FitProgramme';
@@ -11,6 +11,7 @@ import { FitAuthProvider, useFitAuth } from './fitAuth';
 // independent auth session (see fitAuth).
 
 const TABS: FitTab[] = [
+  { key: 'accueil', label: 'Accueil', Icon: Home },
   { key: 'programme', label: 'Programme', Icon: Dumbbell },
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
   { key: 'performances', label: 'Performances', Icon: TrendingUp },
@@ -30,7 +31,7 @@ export function FitApp() {
 
 function FitAppInner() {
   const { isLoading, isAuthenticated } = useFitAuth();
-  const [active, setActive] = useState('programme');
+  const [active, setActive] = useState('accueil');
 
   if (isLoading) return <div className="min-h-dvh bg-slate-900" />;
   if (!isAuthenticated) return <FitLogin />;
@@ -43,6 +44,9 @@ function FitAppInner() {
       <main>
         {active === 'programme' ? (
           <FitProgramme />
+        ) : active === 'accueil' ? (
+          // Empty for now.
+          <div className="min-h-[calc(100dvh-3.5rem-1px)]" />
         ) : (
           <div className="flex min-h-[calc(100dvh-3.5rem-1px)] flex-col items-center justify-center px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center">
             <h1 className="text-2xl font-semibold">{current.label}</h1>
