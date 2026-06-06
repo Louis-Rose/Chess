@@ -66,7 +66,7 @@ export function FitProgramme() {
   // already populated rather than flashing an empty state.
   if (loading) {
     return (
-      <FitShell title="Mon Programme">
+      <FitShell title="Mon programme">
         <div className="flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>

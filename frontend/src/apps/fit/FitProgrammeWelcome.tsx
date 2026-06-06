@@ -36,7 +36,7 @@ export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreat
 
   if (!split) {
     return (
-      <FitShell title="Mon Programme">
+      <FitShell title="Mon programme">
         <div className="mx-auto w-full max-w-[20rem] text-center">
           <p className="text-sm text-slate-400">Aucun programme pour le moment.</p>
           <button
@@ -72,7 +72,7 @@ export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreat
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(); } }}
             className="cursor-pointer rounded-2xl border border-slate-800 bg-slate-800/30 px-5 py-7 text-center transition-colors hover:border-slate-700 active:bg-slate-800/60"
           >
-            <h1 className="text-2xl font-semibold text-slate-100">Mon Programme</h1>
+            <h1 className="text-2xl font-semibold text-slate-100">Mon programme</h1>
             <div className="mx-auto mt-4 h-px w-24 bg-slate-700" />
 
             <p className="mt-6 text-xs uppercase tracking-wide text-slate-500">Split</p>

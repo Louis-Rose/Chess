@@ -19,7 +19,7 @@ const TABS: FitTab[] = [
 
 export function FitApp() {
   useEffect(() => {
-    document.title = 'Mon Programme';
+    document.title = 'Mon programme';
   }, []);
 
   return (
