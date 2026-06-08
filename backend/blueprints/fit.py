@@ -47,7 +47,7 @@ MUSCLE_EXERCISES = {
     'Avant-bras': ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'],
     'Abdos': ['Crunch', 'Enroulements de bassin', 'Gainage planche'],
     'Fessiers': ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'],
-    'Quadriceps': ['Soulevé de terre barre hex', 'Hack squat', 'Presse à cuisses', 'Presse à cuisses incliné'],
+    'Quadriceps': ['Soulevé de terre barre hex', 'Hack squat', 'Presse à cuisses', 'Presse à cuisses incliné', 'Presse à cuisses horizontale'],
     'Ischio-jambiers': ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'],
     'Mollets': ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'],
 }
