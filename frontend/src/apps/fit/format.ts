@@ -13,3 +13,11 @@ export const formatSessionDate = (iso: string | null) => {
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 };
+
+// "13 mai" — short date (day + month, no weekday).
+export const formatShortDate = (iso: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+};

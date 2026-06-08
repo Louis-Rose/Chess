@@ -4,6 +4,7 @@ import { Loader2, Plus, X } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { MUSCLE_ORDER, MUSCLE_LEAVES, leafLabel, sortLabels } from './programData';
+import { formatShortDate } from './format';
 
 // A workout session. Starts empty; the user adds exercises from their program
 // "à la volée" and logs sets (poids + reps) on each. Everything persists as it
@@ -16,6 +17,7 @@ interface Entry {
 
 export function FitSession({ onDone }: { onDone: () => void }) {
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const [startedAt, setStartedAt] = useState<string | null>(null);
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,11 +26,12 @@ export function FitSession({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     Promise.all([
-      fitRequest(() => axios.post<{ id: number }>('/api/fit/sessions')),
+      fitRequest(() => axios.post<{ id: number; started_at: string | null }>('/api/fit/sessions')),
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
     ])
       .then(([sessionRes, exRes]) => {
         setSessionId(sessionRes.data.id);
+        setStartedAt(sessionRes.data.started_at);
         setProgram(exRes.data.selections ?? {});
       })
       .catch(() => { /* leave empty; user can retry by closing */ })
@@ -71,7 +74,9 @@ export function FitSession({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <h1 className="text-center text-2xl font-semibold">Séance</h1>
+      <h1 className="text-center text-2xl font-semibold">
+        Séance{startedAt ? ` du ${formatShortDate(startedAt)}` : ''}
+      </h1>
 
       {loading ? (
         <div className="mt-10 flex justify-center">
@@ -79,11 +84,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         </div>
       ) : (
         <>
-          {entries.length === 0 ? (
-            <p className="mt-10 text-center text-sm text-slate-400">
-              Ajoute ton premier exercice pour commencer.
-            </p>
-          ) : (
+          {entries.length > 0 && (
             <div className="mt-8 flex flex-col gap-4">
               {entries.map(e => (
                 <FitSessionExercise
