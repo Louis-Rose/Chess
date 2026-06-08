@@ -57,21 +57,14 @@ export function FitSessionDetail({ sessionId, onBack }: { sessionId: number; onB
 
           <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-4">
             {groups.map(g => (
-              <div key={g.exercise} className="rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4">
+              <div key={g.exercise} className="flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center">
                 <p className="font-medium text-slate-100">{leafLabel(g.exercise)}</p>
                 <ul className="mt-2 flex flex-col gap-1.5">
-                  {(() => {
-                    let workIdx = 0;
-                    return g.sets.map(s => {
-                      const num = s.warmup ? null : ++workIdx;
-                      return (
-                        <li key={s.id} className={`text-sm ${s.warmup ? 'text-slate-400' : 'text-slate-200'}`}>
-                          <span className="text-slate-500">{num != null ? `${num}.` : '·'}</span>{' '}
-                          {formatSet(s.weight, s.reps, s.warmup)}
-                        </li>
-                      );
-                    });
-                  })()}
+                  {g.sets.map(s => (
+                    <li key={s.id} className={`text-sm ${s.warmup ? 'text-slate-400' : 'text-slate-200'}`}>
+                      {formatSet(s.weight, s.reps, s.warmup)}
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}
