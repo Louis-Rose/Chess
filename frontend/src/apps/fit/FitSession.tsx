@@ -148,9 +148,9 @@ function ExercisePicker({ program, added, onPick, onClose }: {
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col bg-slate-900 text-slate-100">
-      <header className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+      <header className="relative flex items-center justify-center border-b border-slate-800 px-5 py-4">
         <h2 className="text-lg font-semibold">Ajouter un exercice</h2>
-        <button type="button" onClick={onClose} aria-label="Fermer" className="rounded p-1 text-slate-400 active:text-white">
+        <button type="button" onClick={onClose} aria-label="Fermer" className="absolute right-5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 active:text-white">
           <X className="h-6 w-6" />
         </button>
       </header>
