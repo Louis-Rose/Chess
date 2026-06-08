@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Plus, X } from 'lucide-react';
+import { ChevronRight, Loader2, Plus, X } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { MUSCLE_ORDER, MUSCLE_LEAVES, leafLabel, sortLabels } from './programData';
@@ -23,6 +23,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);   // exercise being edited, else overview
 
   useEffect(() => {
     Promise.all([
@@ -41,6 +42,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   function addExercise(leaf: string) {
     setPicking(false);
     setEntries(prev => (prev.some(e => e.exercise === leaf) ? prev : [...prev, { exercise: leaf, sets: [] }]));
+    setEditing(leaf);
   }
 
   async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean) {
@@ -71,6 +73,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   }
 
   const added = new Set(entries.map(e => e.exercise));
+  const editingEntry = editing ? entries.find(e => e.exercise === editing) ?? null : null;
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -82,18 +85,46 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         <div className="mt-10 flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>
+      ) : editingEntry ? (
+        // Editing one exercise: just its card + "Valider l'exercice".
+        <>
+          <div className="mt-8">
+            <FitSessionExercise
+              exercise={editingEntry.exercise}
+              sets={editingEntry.sets}
+              onAddSet={(w, r, warmup) => addSet(editingEntry.exercise, w, r, warmup)}
+              onDeleteSet={id => deleteSet(editingEntry.exercise, id)}
+            />
+          </div>
+
+          <div className="mt-auto flex justify-center pt-8">
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className="mb-8 w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+            >
+              Valider l'exercice
+            </button>
+          </div>
+        </>
       ) : (
+        // Overview: tap an exercise to edit it, or add one / finish the session.
         <>
           {entries.length > 0 && (
-            <div className="mt-8 flex flex-col gap-4">
+            <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-3">
               {entries.map(e => (
-                <FitSessionExercise
+                <button
                   key={e.exercise}
-                  exercise={e.exercise}
-                  sets={e.sets}
-                  onAddSet={(w, r, warmup) => addSet(e.exercise, w, r, warmup)}
-                  onDeleteSet={id => deleteSet(e.exercise, id)}
-                />
+                  type="button"
+                  onClick={() => setEditing(e.exercise)}
+                  className="relative flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center transition-colors active:bg-slate-800/60"
+                >
+                  <span className="font-medium text-slate-100">{leafLabel(e.exercise)}</span>
+                  <span className="mt-0.5 text-sm text-slate-400">
+                    {e.sets.length} série{e.sets.length > 1 ? 's' : ''}
+                  </span>
+                  <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                </button>
               ))}
             </div>
           )}
