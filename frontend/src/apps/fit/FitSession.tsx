@@ -42,10 +42,10 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     setEntries(prev => (prev.some(e => e.exercise === leaf) ? prev : [...prev, { exercise: leaf, sets: [] }]));
   }
 
-  async function addSet(exercise: string, weight: number | null, reps: number) {
+  async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean) {
     if (sessionId == null) return;
     const res = await fitRequest(() =>
-      axios.post<LoggedSet>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps }));
+      axios.post<LoggedSet>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup }));
     setEntries(prev => prev.map(e =>
       e.exercise === exercise ? { ...e, sets: [...e.sets, res.data] } : e));
   }
@@ -92,7 +92,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
                   key={e.exercise}
                   exercise={e.exercise}
                   sets={e.sets}
-                  onAddSet={(w, r) => addSet(e.exercise, w, r)}
+                  onAddSet={(w, r, warmup) => addSet(e.exercise, w, r, warmup)}
                   onDeleteSet={id => deleteSet(e.exercise, id)}
                 />
               ))}

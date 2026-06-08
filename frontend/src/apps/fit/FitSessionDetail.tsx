@@ -3,12 +3,12 @@ import axios from 'axios';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { leafLabel } from './programData';
-import { formatSessionDate } from './format';
+import { formatSessionDate, formatSet } from './format';
 
 // Read-only view of a past session (reached from the Calendrier history):
 // its date and the logged sets, grouped by exercise in workout order.
 
-interface SetRow { id: number; exercise: string; weight: number | null; reps: number; }
+interface SetRow { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean; }
 interface Session { id: number; started_at: string | null; ended_at: string | null; sets: SetRow[]; }
 
 function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[] {
@@ -60,12 +60,18 @@ export function FitSessionDetail({ sessionId, onBack }: { sessionId: number; onB
               <div key={g.exercise} className="rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4">
                 <p className="font-medium text-slate-100">{leafLabel(g.exercise)}</p>
                 <ul className="mt-2 flex flex-col gap-1.5">
-                  {g.sets.map((s, i) => (
-                    <li key={s.id} className="text-sm text-slate-200">
-                      <span className="text-slate-500">{i + 1}.</span>{' '}
-                      {s.weight != null ? `${s.weight} kg × ${s.reps}` : `${s.reps} reps`}
-                    </li>
-                  ))}
+                  {(() => {
+                    let workIdx = 0;
+                    return g.sets.map(s => {
+                      const num = s.warmup ? null : ++workIdx;
+                      return (
+                        <li key={s.id} className={`text-sm ${s.warmup ? 'text-slate-400' : 'text-slate-200'}`}>
+                          <span className="text-slate-500">{num != null ? `${num}.` : '·'}</span>{' '}
+                          {formatSet(s.weight, s.reps, s.warmup)}
+                        </li>
+                      );
+                    });
+                  })()}
                 </ul>
               </div>
             ))}

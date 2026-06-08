@@ -276,14 +276,15 @@ def _owned_session(conn, session_id):
 def _session_payload(conn, row):
     """Serialize a session row together with its logged sets (in order)."""
     sets = conn.execute(
-        'SELECT id, exercise, weight, reps FROM fit_session_sets WHERE session_id = ? ORDER BY id',
+        'SELECT id, exercise, weight, reps, warmup FROM fit_session_sets WHERE session_id = ? ORDER BY id',
         (row['id'],)
     ).fetchall()
     return {
         'id': row['id'],
         'started_at': row['started_at'].isoformat() if row['started_at'] else None,
         'ended_at': row['ended_at'].isoformat() if row['ended_at'] else None,
-        'sets': [{'id': s['id'], 'exercise': s['exercise'], 'weight': s['weight'], 'reps': s['reps']} for s in sets],
+        'sets': [{'id': s['id'], 'exercise': s['exercise'], 'weight': s['weight'],
+                  'reps': s['reps'], 'warmup': bool(s['warmup'])} for s in sets],
     }
 
 
@@ -343,6 +344,7 @@ def add_session_set(session_id):
     exercise = data.get('exercise')
     weight = data.get('weight')
     reps = data.get('reps')
+    warmup = bool(data.get('warmup'))
     if exercise not in ALL_EXERCISES:
         return jsonify({'error': 'Invalid exercise'}), 400
     if not isinstance(reps, int) or isinstance(reps, bool) or not 1 <= reps <= 1000:
@@ -355,10 +357,10 @@ def add_session_set(session_id):
         if not _owned_session(conn, session_id):
             return jsonify({'error': 'Not found'}), 404
         row = conn.execute(
-            'INSERT INTO fit_session_sets (session_id, exercise, weight, reps) VALUES (?, ?, ?, ?) RETURNING id',
-            (session_id, exercise, weight, reps)
+            'INSERT INTO fit_session_sets (session_id, exercise, weight, reps, warmup) VALUES (?, ?, ?, ?, ?) RETURNING id',
+            (session_id, exercise, weight, reps, warmup)
         ).fetchone()
-    return jsonify({'id': row['id'], 'exercise': exercise, 'weight': weight, 'reps': reps})
+    return jsonify({'id': row['id'], 'exercise': exercise, 'weight': weight, 'reps': reps, 'warmup': warmup})
 
 
 @fit_bp.route('/api/fit/sessions/<int:session_id>/sets/<int:set_id>', methods=['DELETE'])

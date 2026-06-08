@@ -397,6 +397,11 @@ def init_db():
             """)
             logger.info("Created fit_session_sets table")
 
+        # Migration: fit_session_sets — mark warmup sets (vs working sets)
+        if not _column_exists(conn, 'fit_session_sets', 'warmup'):
+            conn.execute("ALTER TABLE fit_session_sets ADD COLUMN warmup BOOLEAN NOT NULL DEFAULT FALSE")
+            logger.info("Added fit_session_sets.warmup column")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
