@@ -99,3 +99,13 @@ export const MUSCLE_LEAVES: Record<string, Set<string>> = Object.fromEntries(
     )),
   ]),
 );
+
+// Muscle groups in catalogue (anatomical) order.
+export const MUSCLE_ORDER = MUSCLES.map(m => m.name);
+
+// Reverse lookup: a stored leaf -> its muscle group (null if orphaned).
+const LEAF_TO_MUSCLE: Record<string, string> = {};
+for (const [muscle, leaves] of Object.entries(MUSCLE_LEAVES)) {
+  for (const leaf of leaves) LEAF_TO_MUSCLE[leaf] = muscle;
+}
+export const muscleOf = (leaf: string): string | null => LEAF_TO_MUSCLE[leaf] ?? null;

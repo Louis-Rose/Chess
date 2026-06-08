@@ -102,7 +102,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
             value={weight}
             onChange={e => setWeight(e.target.value)}
             inputMode="decimal"
-            placeholder="—"
             className={`mt-1 ${inputClass}`}
           />
         </label>
@@ -112,7 +111,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
             value={reps}
             onChange={e => setReps(e.target.value)}
             inputMode="numeric"
-            placeholder="—"
             className={`mt-1 ${inputClass}`}
           />
         </label>

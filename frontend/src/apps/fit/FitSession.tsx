@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Loader2, Plus, X } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
-import { MUSCLES, MUSCLE_LEAVES, leafLabel, sortLabels } from './programData';
+import { MUSCLE_ORDER, MUSCLE_LEAVES, leafLabel, sortLabels } from './programData';
 
 // A workout session. Starts empty; the user adds exercises from their program
 // "à la volée" and logs sets (poids + reps) on each. Everything persists as it
@@ -13,8 +13,6 @@ interface Entry {
   exercise: string;       // stored leaf
   sets: LoggedSet[];
 }
-
-const MUSCLE_ORDER = MUSCLES.map(m => m.name);
 
 export function FitSession({ onDone }: { onDone: () => void }) {
   const [sessionId, setSessionId] = useState<number | null>(null);
