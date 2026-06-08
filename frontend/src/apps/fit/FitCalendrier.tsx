@@ -53,7 +53,7 @@ export function FitCalendrier() {
             >
               <span className="font-medium capitalize text-slate-100">{formatSessionDate(s.started_at)}</span>
               <span className="mt-0.5 text-sm text-slate-400">
-                {plural(s.exercise_count, 'exercice')} · {plural(s.set_count, 'série')}
+                {plural(s.exercise_count, 'exercice')} - {plural(s.set_count, 'série')}
               </span>
               <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
             </button>
