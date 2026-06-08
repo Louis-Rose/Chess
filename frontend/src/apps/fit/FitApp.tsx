@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CalendarDays, Dumbbell, Home, TrendingUp } from 'lucide-react';
 import { FitAccueil } from './FitAccueil';
 import { FitCalendrier } from './FitCalendrier';
+import { FitPerformances } from './FitPerformances';
 import { FitBottomNav, type FitTab } from './FitBottomNav';
 import { FitHeader } from './FitHeader';
 import { FitProgramme } from './FitProgramme';
@@ -50,6 +51,8 @@ function FitAppInner() {
           <FitAccueil />
         ) : active === 'calendrier' ? (
           <FitCalendrier />
+        ) : active === 'performances' ? (
+          <FitPerformances />
         ) : (
           <div className="flex min-h-[calc(100dvh-3.5rem-1px)] flex-col items-center justify-center px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center">
             <h1 className="text-2xl font-semibold">{current.label}</h1>

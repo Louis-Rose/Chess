@@ -377,6 +377,49 @@ def delete_session_set(session_id, set_id):
     return jsonify({'ok': True})
 
 
+@fit_bp.route('/api/fit/performances', methods=['GET'])
+@fit_login_required
+def performances():
+    """Per-exercise progression: for each exercise the user has logged working
+    sets on, one data point per session (date + that session's top working set
+    and total working volume), oldest first."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT s.id AS session_id, s.started_at, ss.exercise, ss.weight, ss.reps
+               FROM fit_sessions s
+               JOIN fit_session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id = ? AND ss.warmup = FALSE
+               ORDER BY s.started_at, ss.id""",
+            (request.user_id,)
+        ).fetchall()
+
+    # exercise -> session_id -> {date, sets:[(weight, reps)]} (insertion = time order)
+    by_exercise = {}
+    for r in rows:
+        sessions = by_exercise.setdefault(r['exercise'], {})
+        sess = sessions.get(r['session_id'])
+        if sess is None:
+            sess = {'date': r['started_at'].isoformat() if r['started_at'] else None, 'sets': []}
+            sessions[r['session_id']] = sess
+        sess['sets'].append((r['weight'], r['reps']))
+
+    exercises = []
+    for exercise, sessions in by_exercise.items():
+        points = []
+        for sess in sessions.values():
+            weighted = [(w, reps) for (w, reps) in sess['sets'] if w is not None]
+            if weighted:
+                top_weight, top_reps = max(weighted, key=lambda t: (t[0], t[1]))
+                volume = sum(w * reps for (w, reps) in weighted)
+            else:
+                top_weight, volume = None, None
+                top_reps = max(reps for (_, reps) in sess['sets'])
+            points.append({'date': sess['date'], 'weight': top_weight, 'reps': top_reps, 'volume': volume})
+        exercises.append({'exercise': exercise, 'points': points})
+
+    return jsonify({'exercises': exercises})
+
+
 @fit_bp.route('/api/fit/sessions/<int:session_id>/finish', methods=['POST'])
 @fit_login_required
 def finish_session(session_id):
