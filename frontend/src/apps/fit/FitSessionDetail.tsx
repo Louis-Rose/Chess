@@ -59,10 +59,19 @@ export function FitSessionDetail({ sessionId, onBack }: { sessionId: number; onB
             {groups.map(g => (
               <div key={g.exercise} className="flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center">
                 <p className="font-medium text-slate-100">{leafLabel(g.exercise)}</p>
-                <ul className="mt-2 flex flex-col gap-1.5">
+                <ul className="mt-2 flex w-44 flex-col gap-1.5">
                   {g.sets.map(s => (
                     <li key={s.id} className={`text-sm ${s.warmup ? 'text-slate-400' : 'text-slate-200'}`}>
-                      {formatSet(s.weight, s.reps, s.warmup)}
+                      {s.weight != null ? (
+                        // 3-column grid keeps the "×" on the card's centerline
+                        <span className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-x-1.5">
+                          <span className="text-right">{s.warmup ? '(' : ''}{s.reps}</span>
+                          <span>×</span>
+                          <span className="text-left">{s.weight} kg{s.warmup ? ')' : ''}</span>
+                        </span>
+                      ) : (
+                        formatSet(s.weight, s.reps, s.warmup)
+                      )}
                     </li>
                   ))}
                 </ul>
