@@ -44,7 +44,9 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
     }
   }
 
-  const inputClass = 'w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-center text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none';
+  // text-base (16px) is required on the inputs: iOS Safari auto-zooms any
+  // focused input whose font-size is under 16px.
+  const inputClass = 'w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-center text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none';
 
   let workIdx = 0;
 
