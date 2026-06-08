@@ -52,7 +52,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4">
-      <p className="font-medium text-slate-100">{leafLabel(exercise)}</p>
+      <p className="text-center font-medium text-slate-100">{leafLabel(exercise)}</p>
 
       {sets.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1.5">
@@ -78,16 +78,14 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
         </ul>
       )}
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {([[false, 'Travail'], [true, 'Échauffement']] as const).map(([w, label]) => (
+      <div className="mx-auto mt-3 flex w-fit rounded-lg border border-slate-700 p-0.5 text-sm">
+        {([[true, 'Échauffement'], [false, 'Travail']] as const).map(([w, label]) => (
           <button
             key={label}
             type="button"
             onClick={() => setWarmup(w)}
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-              warmup === w
-                ? 'border-emerald-500 bg-emerald-600/20 text-emerald-300'
-                : 'border-slate-700 bg-slate-800/40 text-slate-400 active:bg-slate-800'
+            className={`rounded-md px-4 py-1.5 font-medium transition-colors ${
+              warmup === w ? 'bg-emerald-600 text-white' : 'text-slate-400 active:text-slate-200'
             }`}
           >
             {label}
@@ -95,22 +93,22 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
         ))}
       </div>
 
-      <div className="mt-2 flex items-end gap-2">
-        <label className="flex-1 text-xs text-slate-500">
+      <div className="mt-3 flex items-end gap-2">
+        <label className="flex-1 text-center text-xs text-slate-100">
+          Répétitions
+          <input
+            value={reps}
+            onChange={e => setReps(e.target.value)}
+            inputMode="numeric"
+            className={`mt-1 ${inputClass}`}
+          />
+        </label>
+        <label className="flex-1 text-center text-xs text-slate-100">
           Poids (kg)
           <input
             value={weight}
             onChange={e => setWeight(e.target.value)}
             inputMode="decimal"
-            className={`mt-1 ${inputClass}`}
-          />
-        </label>
-        <label className="flex-1 text-xs text-slate-500">
-          Reps
-          <input
-            value={reps}
-            onChange={e => setReps(e.target.value)}
-            inputMode="numeric"
             className={`mt-1 ${inputClass}`}
           />
         </label>
