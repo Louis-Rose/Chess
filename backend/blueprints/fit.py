@@ -381,8 +381,8 @@ def delete_session_set(session_id, set_id):
 @fit_login_required
 def performances():
     """Per-exercise progression: for each exercise the user has logged working
-    sets on, one data point per session (date + that session's top working set
-    and total working volume), oldest first."""
+    sets on, one data point per session (date + total working reps + the
+    session's working weight), oldest first. Warmup sets are excluded."""
     with get_db() as conn:
         rows = conn.execute(
             """SELECT s.id AS session_id, s.started_at, ss.exercise, ss.weight, ss.reps
@@ -407,14 +407,10 @@ def performances():
     for exercise, sessions in by_exercise.items():
         points = []
         for sess in sessions.values():
-            weighted = [(w, reps) for (w, reps) in sess['sets'] if w is not None]
-            if weighted:
-                top_weight, top_reps = max(weighted, key=lambda t: (t[0], t[1]))
-                volume = sum(w * reps for (w, reps) in weighted)
-            else:
-                top_weight, volume = None, None
-                top_reps = max(reps for (_, reps) in sess['sets'])
-            points.append({'date': sess['date'], 'weight': top_weight, 'reps': top_reps, 'volume': volume})
+            total_reps = sum(reps for (_, reps) in sess['sets'])
+            weights = [w for (w, _) in sess['sets'] if w is not None]
+            weight = max(weights) if weights else None
+            points.append({'date': sess['date'], 'weight': weight, 'reps': total_reps})
         exercises.append({'exercise': exercise, 'points': points})
 
     return jsonify({'exercises': exercises})

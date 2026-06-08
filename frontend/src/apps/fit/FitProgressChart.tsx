@@ -1,12 +1,15 @@
 // Minimal responsive SVG line chart for an exercise's progression. Kept
 // dependency-free (no recharts) so the fit bundle stays small.
+//
+// value = the plotted Y (total working reps). `tag` is an optional label drawn
+// above the point (the working weight); `highlight` marks a step up in weight.
 
-export interface ChartPoint { label: string; value: number; }
+export interface ChartPoint { label: string; value: number; tag?: string; highlight?: boolean; }
 
 export function FitProgressChart({ points, unit }: { points: ChartPoint[]; unit: string }) {
   if (points.length === 0) return null;
 
-  const W = 320, H = 190, padL = 38, padR = 14, padT = 16, padB = 30;
+  const W = 320, H = 200, padL = 34, padR = 14, padT = 28, padB = 30;
   const innerW = W - padL - padR, innerH = H - padT - padB;
 
   const values = points.map(p => p.value);
@@ -32,7 +35,20 @@ export function FitProgressChart({ points, unit }: { points: ChartPoint[]; unit:
       {points.length > 1 && <path d={line} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
 
       {points.map((p, i) => (
-        <circle key={i} cx={x(i)} cy={y(p.value)} r="3.5" className="fill-emerald-400" />
+        <g key={i}>
+          {p.highlight && <circle cx={x(i)} cy={y(p.value)} r="7" className="fill-amber-400/25" />}
+          <circle cx={x(i)} cy={y(p.value)} r="3.5" className={p.highlight ? 'fill-amber-400' : 'fill-emerald-400'} />
+          {p.tag && (
+            <text
+              x={x(i)}
+              y={y(p.value) - 9}
+              textAnchor="middle"
+              className={`text-[9px] ${p.highlight ? 'fill-amber-300 font-semibold' : 'fill-slate-400'}`}
+            >
+              {p.highlight ? `↑ ${p.tag}` : p.tag}
+            </text>
+          )}
+        </g>
       ))}
 
       {/* first & last date labels */}
@@ -41,7 +57,7 @@ export function FitProgressChart({ points, unit }: { points: ChartPoint[]; unit:
         <text x={W - padR} y={H - 8} textAnchor="end" className="fill-slate-500 text-[10px]">{points[points.length - 1].label}</text>
       )}
 
-      <text x={W - padR} y={padT - 4} textAnchor="end" className="fill-slate-500 text-[10px]">{unit}</text>
+      <text x={W - padR} y={padT - 14} textAnchor="end" className="fill-slate-500 text-[10px]">{unit}</text>
     </svg>
   );
 }

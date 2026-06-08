@@ -9,7 +9,7 @@ import { FitProgressChart, type ChartPoint } from './FitProgressChart';
 // Performances tab: one entry per exercise the user has worked. Tap an
 // exercise to see its progression graph (top working set per session).
 
-interface Point { date: string | null; weight: number | null; reps: number; volume: number | null; }
+interface Point { date: string | null; weight: number | null; reps: number; }
 interface ExercisePerf { exercise: string; points: Point[]; }
 
 export function FitPerformances() {
@@ -76,12 +76,19 @@ export function FitPerformances() {
 }
 
 function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () => void }) {
-  // Chart the top working set: weight (kg) when the exercise is loaded, else reps.
-  const hasWeight = perf.points.some(p => p.weight != null);
-  const chartPoints: ChartPoint[] = perf.points.map(p => ({
-    label: formatShortDate(p.date),
-    value: hasWeight ? (p.weight ?? 0) : p.reps,
-  }));
+  // Y = total working reps per session. Each point is tagged with the session's
+  // working weight; a step up to a heavier weight is highlighted.
+  let prevWeight: number | null = null;
+  const chartPoints: ChartPoint[] = perf.points.map(p => {
+    const up = p.weight != null && prevWeight != null && p.weight > prevWeight;
+    if (p.weight != null) prevWeight = p.weight;
+    return {
+      label: formatShortDate(p.date),
+      value: p.reps,
+      tag: p.weight != null ? `${p.weight} kg` : undefined,
+      highlight: up,
+    };
+  });
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -97,9 +104,9 @@ function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () =>
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
 
       <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-5">
-        <FitProgressChart points={chartPoints} unit={hasWeight ? 'kg' : 'reps'} />
+        <FitProgressChart points={chartPoints} unit="reps" />
         <p className="mt-3 text-center text-xs text-slate-500">
-          Meilleure série de travail par séance.
+          Répétitions totales de travail par séance. Le poids est indiqué à chaque point.
         </p>
       </div>
     </div>
