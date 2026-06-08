@@ -78,13 +78,13 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
         </ul>
       )}
 
-      <div className="mx-auto mt-3 flex w-fit rounded-lg border border-slate-700 p-0.5 text-sm">
+      <div className="mx-auto mt-3 grid w-64 grid-cols-2 rounded-lg border border-slate-700 p-0.5 text-sm">
         {([[true, 'Échauffement'], [false, 'Travail']] as const).map(([w, label]) => (
           <button
             key={label}
             type="button"
             onClick={() => setWarmup(w)}
-            className={`rounded-md px-4 py-1.5 font-medium transition-colors ${
+            className={`rounded-md py-1.5 font-medium transition-colors ${
               warmup === w ? 'bg-emerald-600 text-white' : 'text-slate-400 active:text-slate-200'
             }`}
           >
