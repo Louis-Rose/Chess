@@ -49,9 +49,9 @@ export function FitCalendrier() {
               key={s.id}
               type="button"
               onClick={() => setSelected(s.id)}
-              className="relative flex flex-col rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-left transition-colors active:bg-slate-800/60"
+              className="relative flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center transition-colors active:bg-slate-800/60"
             >
-              <span className="pr-6 font-medium capitalize text-slate-100">{formatSessionDate(s.started_at)}</span>
+              <span className="font-medium capitalize text-slate-100">{formatSessionDate(s.started_at)}</span>
               <span className="mt-0.5 text-sm text-slate-400">
                 {plural(s.exercise_count, 'exercice')} · {plural(s.set_count, 'série')}
               </span>
