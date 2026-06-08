@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
-import { leafLabel, muscleOf, MUSCLE_ORDER } from './programData';
+import { leafLabel, muscleContribution, MUSCLE_ORDER } from './programData';
 import { formatSessionDate, formatSet } from './format';
 
 // Read-only view of a past session (reached from the Calendrier history):
@@ -21,17 +21,22 @@ function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[]
   return groups;
 }
 
-// Work volume per muscle group: count of working (non-warmup) sets, in
-// catalogue order. Warmup sets and orphaned exercises are excluded.
+// Weighted work volume per muscle group, in catalogue order. Each working
+// (non-warmup) set counts 1 for the exercise's primary group(s) and 0.5 for
+// each secondary group. Totals are multiples of 0.5.
 function workVolume(sets: SetRow[]): { muscle: string; sets: number }[] {
   const counts = new Map<string, number>();
   for (const s of sets) {
     if (s.warmup) continue;
-    const m = muscleOf(s.exercise);
-    if (m) counts.set(m, (counts.get(m) ?? 0) + 1);
+    const c = muscleContribution(s.exercise);
+    for (const m of c.primary) counts.set(m, (counts.get(m) ?? 0) + 1);
+    for (const m of c.secondary) counts.set(m, (counts.get(m) ?? 0) + 0.5);
   }
   return MUSCLE_ORDER.filter(m => counts.has(m)).map(m => ({ muscle: m, sets: counts.get(m)! }));
 }
+
+// "4", "2.5" — drop the trailing .0 for whole numbers.
+const fmtVolume = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 export function FitSessionDetail({ sessionId, onBack }: { sessionId: number; onBack: () => void }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -73,7 +78,7 @@ export function FitSessionDetail({ sessionId, onBack }: { sessionId: number; onB
               <p className="text-xs uppercase tracking-wide text-slate-500">Volume de travail</p>
               <ul className="mt-2 flex flex-col gap-1 text-sm text-slate-200">
                 {volume.map(v => (
-                  <li key={v.muscle}>{v.muscle} - {v.sets} série{v.sets > 1 ? 's' : ''}</li>
+                  <li key={v.muscle}>{v.muscle} - {fmtVolume(v.sets)} série{v.sets > 1 ? 's' : ''}</li>
                 ))}
               </ul>
             </div>

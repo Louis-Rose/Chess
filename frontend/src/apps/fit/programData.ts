@@ -109,3 +109,84 @@ for (const [muscle, leaves] of Object.entries(MUSCLE_LEAVES)) {
   for (const leaf of leaves) LEAF_TO_MUSCLE[leaf] = muscle;
 }
 export const muscleOf = (leaf: string): string | null => LEAF_TO_MUSCLE[leaf] ?? null;
+
+// Muscle involvement per exercise, used to weight training volume: each
+// working set adds 1 to every `primary` group and 0.5 to every `secondary`
+// group. Only the 11 tracked groups appear here (sub-muscles and untracked
+// stabilisers like coiffe/adducteurs/érecteurs-as-such are folded into their
+// group or dropped). Keyed by stored leaf, with base-name fallback for
+// exercises whose variants share the same involvement.
+interface Contribution { primary: string[]; secondary: string[] }
+
+const Ep = 'Épaules', Pec = 'Pectoraux', Dos = 'Dos', Bi = 'Biceps', Tri = 'Triceps',
+  AB = 'Avant-bras', Abdo = 'Abdos', Fes = 'Fessiers', Quad = 'Quadriceps',
+  Isch = 'Ischio-jambiers', Mol = 'Mollets';
+
+const CONTRIB: Record<string, Contribution> = {
+  // Épaules
+  'Développé épaules': { primary: [Ep], secondary: [Tri, Pec, Dos] },
+  'Développé militaire': { primary: [Ep], secondary: [Tri, Pec, Abdo, Fes] },
+  'Élévations latérales': { primary: [Ep], secondary: [Dos] },
+  // Pectoraux
+  'Développé couché barre': { primary: [Pec], secondary: [Tri, Ep] },
+  'Développé couché haltères': { primary: [Pec], secondary: [Ep, Tri] },
+  'Développé incliné barre': { primary: [Pec], secondary: [Ep, Tri] },
+  'Développé incliné haltères': { primary: [Pec], secondary: [Ep, Tri] },
+  'Pec Deck — Poignées': { primary: [Pec], secondary: [Ep, Bi, AB] },
+  'Pec Deck — Boudins': { primary: [Pec], secondary: [Ep] },
+  // Dos
+  'Tractions — Pronation': { primary: [Dos], secondary: [Ep, Bi, AB] },
+  'Tractions — Supination': { primary: [Dos], secondary: [Bi, AB] },
+  'Tractions — Prise neutre': { primary: [Dos], secondary: [Bi, AB] },
+  'Tirage vertical (poulie haute) — Pronation': { primary: [Dos], secondary: [Ep, Bi] },
+  'Tirage vertical (poulie haute) — Supination': { primary: [Dos], secondary: [Bi, AB] },
+  'Tirage vertical (poulie haute) — Prise neutre': { primary: [Dos], secondary: [Bi, AB] },
+  'Rowing assis — Machine': { primary: [Dos], secondary: [Bi, AB] },
+  'Rowing assis — Poulie basse': { primary: [Dos], secondary: [Bi, AB] },
+  'Rowing assis — Pronation': { primary: [Dos], secondary: [Ep] },
+  'Rowing assis — Supination': { primary: [Dos], secondary: [Bi, AB] },
+  'Rowing assis — Prise neutre': { primary: [Dos], secondary: [Bi, AB] },
+  // Biceps
+  'Curl incliné': { primary: [Bi], secondary: [AB] },
+  'Curl pupitre': { primary: [Bi], secondary: [AB] },
+  // Triceps
+  'Extension poulie haute': { primary: [Tri], secondary: [Ep] },
+  'Extension poulie basse (overhead)': { primary: [Tri], secondary: [Abdo] },
+  // Avant-bras
+  'Curl marteau': { primary: [AB], secondary: [Bi] },
+  'Flexions de poignets': { primary: [AB], secondary: [] },
+  'Extensions de poignets': { primary: [AB], secondary: [] },
+  // Abdos
+  'Crunch': { primary: [Abdo], secondary: [] },
+  'Enroulements de bassin': { primary: [Abdo], secondary: [] },
+  'Gainage planche': { primary: [Abdo], secondary: [Quad, Pec, Ep, Tri, Dos] },
+  // Fessiers
+  'Hip thrust': { primary: [Fes], secondary: [Isch, Quad, Dos] },
+  'Squat gobelet': { primary: [Fes, Quad], secondary: [Isch, Abdo, Ep, Bi] },
+  'Soulevé de terre sumo': { primary: [Fes], secondary: [Quad, Isch, Dos, AB] },
+  // Quadriceps
+  'Soulevé de terre barre hex': { primary: [Quad, Fes], secondary: [Isch, Dos, AB, Abdo] },
+  'Hack squat': { primary: [Quad], secondary: [Fes, Isch] },
+  'Presse à cuisses': { primary: [Quad], secondary: [Fes, Isch] },
+  'Presse à cuisses incliné': { primary: [Quad], secondary: [Fes, Isch] },
+  'Presse à cuisses horizontale': { primary: [Quad], secondary: [Fes, Isch] },
+  // Ischio-jambiers
+  'Soulevé de terre jambes tendues': { primary: [Isch], secondary: [Fes, Dos, AB] },
+  'Leg curl allongé': { primary: [Isch], secondary: [Mol] },
+  'Leg curl assis': { primary: [Isch], secondary: [Mol] },
+  // Mollets
+  'Extensions de mollets debout': { primary: [Mol], secondary: [] },
+  'Extensions de mollets assis': { primary: [Mol], secondary: [] },
+  'Extensions à la presse à cuisses': { primary: [Mol], secondary: [] },
+};
+
+// Muscle involvement of a stored leaf, falling back to the base exercise name
+// (for variants that share it) then to its catalogue group as sole primary.
+export const muscleContribution = (leaf: string): Contribution => {
+  if (CONTRIB[leaf]) return CONTRIB[leaf];
+  const i = leaf.indexOf(' — ');
+  const base = i === -1 ? leaf : leaf.slice(0, i);
+  if (CONTRIB[base]) return CONTRIB[base];
+  const m = muscleOf(leaf);
+  return { primary: m ? [m] : [], secondary: [] };
+};
