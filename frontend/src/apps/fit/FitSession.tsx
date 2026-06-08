@@ -164,14 +164,14 @@ function ExercisePicker({ program, added, onPick, onClose }: {
           <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-6">
             {groups.map(g => (
               <section key={g.name}>
-                <h3 className="text-xs uppercase tracking-wide text-slate-500">{g.name}</h3>
+                <h3 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.name}</h3>
                 <div className="mt-2 flex flex-col gap-2">
                   {g.leaves.map(leaf => (
                     <button
                       key={leaf}
                       type="button"
                       onClick={() => onPick(leaf)}
-                      className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-left font-medium text-slate-100 transition-colors active:bg-slate-800"
+                      className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-center font-medium text-slate-100 transition-colors active:bg-slate-800"
                     >
                       {leafLabel(leaf)}
                     </button>
