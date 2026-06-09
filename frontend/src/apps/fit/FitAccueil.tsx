@@ -11,7 +11,7 @@ interface YearStats {
   work_sets_this_year: number;
   avg_sessions_per_week: number | null;
   avg_work_sets_per_session: number | null;
-  hours_since_last_session: number | null;
+  days_since_last_session: number | null;
 }
 
 // One decimal with a dot separator (e.g. "2.6"); em dash when no data yet.
@@ -51,11 +51,11 @@ export function FitAccueil() {
               <Stat value={fr1(stats.avg_work_sets_per_session)} label="Séries / séance" />
             </div>
           </div>
-          {stats.hours_since_last_session != null && (
+          {stats.days_since_last_session != null && (
             <div className="mt-4 rounded-2xl border border-slate-700 p-4">
               <div className="flex gap-4">
                 <div className="w-1/2">
-                  <Stat value={stats.hours_since_last_session} label="Heures depuis la dernière séance" />
+                  <Stat value={stats.days_since_last_session} label="Jours depuis la dernière séance" />
                 </div>
               </div>
             </div>
