@@ -59,14 +59,12 @@ export function FitAccueil() {
             <button
               type="button"
               onClick={() => setLastDone(true)}
-              className="mt-4 block w-full rounded-2xl border border-slate-700 p-4 text-left transition-colors active:bg-slate-800/40"
+              className="relative mt-4 block w-full rounded-2xl border border-slate-700 p-4 transition-colors active:bg-slate-800/40"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-1/2">
-                  <Stat value={stats.days_since_last_session} label="Jours depuis la dernière séance" />
-                </div>
-                <ChevronRight className="ml-auto h-5 w-5 shrink-0 text-slate-500" />
+              <div className="mx-auto w-1/2">
+                <Stat value={stats.days_since_last_session} label="Jours depuis la dernière séance" />
               </div>
+              <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
             </button>
           )}
         </div>
