@@ -93,7 +93,7 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
 
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Heading pinned at the top; the body fills and centers below it. */}
-          <h2 className="mt-8 text-center text-lg font-semibold text-slate-100">
+          <h2 className="mt-12 text-center text-lg font-semibold text-slate-100">
             {active === 'split' ? 'Training split' : active === 'sets' ? 'Séries de travail' : active}
           </h2>
           <div className="flex flex-1 flex-col justify-center pt-2">
