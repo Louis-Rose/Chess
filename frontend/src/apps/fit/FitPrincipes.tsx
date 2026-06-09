@@ -20,7 +20,7 @@ const PRINCIPES: Principe[] = [
   {
     titre: 'Gestion de la fatigue',
     corps:
-      "La gestion de la fatigue exige de laisser au moins 48 heures de repos à un muscle avant de le solliciter à nouveau, car c'est pendant la récupération qu'il se reconstruit plus fort. Pour éviter le surentraînement, il faut également intégrer une semaine de \"décharge\" (allègement des poids et du volume) toutes les 6 à 8 semaines.",
+      "La gestion de la fatigue exige de laisser au moins 48 heures de repos à un muscle avant de le solliciter à nouveau, car c'est pendant la récupération qu'il se reconstruit plus fort.",
   },
   {
     titre: 'Volume de travail',
