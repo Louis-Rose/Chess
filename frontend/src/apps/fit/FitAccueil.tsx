@@ -29,9 +29,12 @@ export function FitAccueil() {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col items-center px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center">
       {stats && (
-        <div className="mt-6 flex w-full max-w-[24rem] gap-4">
-          <Stat value={stats.sessions_this_year} label={`Séances en ${year}`} />
-          <Stat value={stats.work_sets_this_year} label="Séries de travail" />
+        <div className="mt-6 w-full max-w-[24rem]">
+          <h2 className="text-lg font-semibold text-white">{year}</h2>
+          <div className="mt-3 flex gap-4">
+            <Stat value={stats.sessions_this_year} label="Séances" />
+            <Stat value={stats.work_sets_this_year} label="Séries de travail" />
+          </div>
         </div>
       )}
 
