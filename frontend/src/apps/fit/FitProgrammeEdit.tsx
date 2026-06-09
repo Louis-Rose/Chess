@@ -136,7 +136,7 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
+      <h2 className="text-center text-lg font-semibold text-slate-100">{title}</h2>
       <div className="mt-4">{children}</div>
     </div>
   );
