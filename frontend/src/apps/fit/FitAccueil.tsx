@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Plus } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSession } from './FitSession';
+import { FitLastDone } from './FitLastDone';
 
 // Accueil tab: start a new workout, with year-to-date totals above the button.
 
@@ -25,6 +26,7 @@ const fr1 = (n: number | string | null) => {
 
 export function FitAccueil() {
   const [inSession, setInSession] = useState(false);
+  const [lastDone, setLastDone] = useState(false);
   const [stats, setStats] = useState<YearStats | null>(null);
 
   useEffect(() => {
@@ -33,6 +35,8 @@ export function FitAccueil() {
       .then(res => setStats(res.data))
       .catch(() => { /* hide stats */ });
   }, [inSession]);
+
+  if (lastDone) return <FitLastDone onBack={() => setLastDone(false)} />;
 
   if (inSession) return <FitSession onDone={() => setInSession(false)} />;
 
@@ -52,13 +56,18 @@ export function FitAccueil() {
             </div>
           </div>
           {stats.days_since_last_session != null && (
-            <div className="mt-4 rounded-2xl border border-slate-700 p-4">
-              <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setLastDone(true)}
+              className="mt-4 block w-full rounded-2xl border border-slate-700 p-4 text-left transition-colors active:bg-slate-800/40"
+            >
+              <div className="flex items-center gap-4">
                 <div className="w-1/2">
                   <Stat value={stats.days_since_last_session} label="Jours depuis la dernière séance" />
                 </div>
+                <ChevronRight className="ml-auto h-5 w-5 shrink-0 text-slate-500" />
               </div>
-            </div>
+            </button>
           )}
         </div>
       )}
