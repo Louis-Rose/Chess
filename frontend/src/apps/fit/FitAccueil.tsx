@@ -14,13 +14,13 @@ interface YearStats {
   hours_since_last_session: number | null;
 }
 
-// One decimal, French comma (e.g. 2.6 -> "2,6"); em dash when no data yet.
+// One decimal with a dot separator (e.g. "2.6"); em dash when no data yet.
 // Coerce with Number() so a stringified value (e.g. a JSON-serialized Decimal)
 // can't blow up .toFixed and take the page down.
 const fr1 = (n: number | string | null) => {
   if (n == null) return '—';
   const v = Number(n);
-  return Number.isFinite(v) ? v.toFixed(1).replace('.', ',') : '—';
+  return Number.isFinite(v) ? v.toFixed(1) : '—';
 };
 
 export function FitAccueil() {
