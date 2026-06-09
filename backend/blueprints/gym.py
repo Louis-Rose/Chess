@@ -141,30 +141,28 @@ def _exercise_name(label: str) -> str:
 _BODYWEIGHT_RE = re.compile(r'^\d+(?:\s*\+\s*\d+)*$')
 
 
-def _parse_cell_sets(cell_text: str) -> list[dict]:
-    """Return a list of {reps, weight_kg, is_warmup, raw_line} from one cell.
+def _parse_cell_lines(cell_text: str) -> list[dict]:
+    """Return one entry per logged line in a cell:
+        {is_warmup, raw_line, pairs}
+    where `pairs` is the ordered list of (reps, weight_kg) parsed from the
+    line's comma-separated tokens. _parse_table decides what the tokens mean:
+    for a single exercise they are successive sets (a dropset), and for an
+    "A → B" superset row they map positionally to the two exercises.
 
     Handles:
-      - "10 x 52.3"           → 1 set of 10 reps @ 52.3kg
-      - "(10 x 27)"            → warmup
-      - "11, 12 x 4.5"         → 2 sets of 11 and 12 reps @ 4.5kg each
-      - "15,12 x 24.8,18"      → 2 sets: 15@24.8, 12@18 (dropset)
-      - "3 x 30% ROM"          → bodyweight working set (`%` = ROM, not weight)
-      - "4"                    → bodyweight: 1 set of 4 reps @ 0kg
-      - "2 + 4 (50%)"          → bodyweight: 2 sets (2 reps, 4 reps)
-      - "4 (slow, 50%)"        → bodyweight: 1 set of 4 reps
+      - "10 x 52.3"        → pairs [(10, 52.3)]
+      - "(10 x 27)"        → warmup, pairs [(10, 27)]
+      - "15,12 x 24.8,18"  → pairs [(15, 24.8), (12, 18)]
+      - "12,7 x 24.8,18"   → pairs [(12, 24.8), (7, 18)]
+      - "3 x 30% ROM"      → pairs [(3, 0.0)]  (`%` = ROM, not kilograms)
+      - "4"                → bodyweight, pairs [(4, 0.0)]
+      - "2 + 4 (50%)"      → bodyweight, pairs [(2, 0.0), (4, 0.0)]
+    A lone +/=/-/*/→ line is a marker (PR / same / down / next), not a set.
     """
-    out = []
-    group = 0   # a lone "→" line starts a new group, used to split an
-                # "A → B" exercise (one movement then the next) into two.
+    entries = []
     for raw_line in cell_text.split('\n'):
         line = raw_line.strip()
-        if not line:
-            continue
-        if line == '→':
-            group += 1
-            continue
-        if line in {'+', '=', '-', '*'}:
+        if not line or line in {'+', '=', '-', '*', '→'}:
             continue
 
         is_warmup = line.startswith('(') and ')' in line
@@ -174,12 +172,11 @@ def _parse_cell_sets(cell_text: str) -> list[dict]:
             # Strip trailing "(...)" annotations on non-warmup lines
             content = re.sub(r'\s*\([^)]*\)\s*$', '', line).strip()
 
+        pairs = []
         m = SET_RE.search(content)
         if m:
-            reps_part = m.group(1)
-            weight_part = m.group(2)
-            rep_tokens = [t.strip() for t in reps_part.split(',') if t.strip()]
-            weight_tokens = [t.strip() for t in weight_part.split(',') if t.strip()]
+            rep_tokens = [t.strip() for t in m.group(1).split(',') if t.strip()]
+            weight_tokens = [t.strip() for t in m.group(2).split(',') if t.strip()]
             if not rep_tokens or not weight_tokens:
                 continue
             for i, rep_tok in enumerate(rep_tokens):
@@ -192,31 +189,14 @@ def _parse_cell_sets(cell_text: str) -> list[dict]:
                 # `30% ROM` means partial range of motion, not kilograms —
                 # the regex captured '30', but '%' follows in the raw content.
                 post = content[m.end(2):m.end(2) + 2] if mw else ''
-                if mw and '%' not in weight_tok and '%' not in post:
-                    weight = float(mw.group(1))
-                else:
-                    weight = 0.0
-                out.append({
-                    'reps': reps,
-                    'weight_kg': weight,
-                    'is_warmup': is_warmup,
-                    'raw_line': raw_line.strip(),
-                    'group': group,
-                })
-            continue
+                weight = float(mw.group(1)) if (mw and '%' not in weight_tok and '%' not in post) else 0.0
+                pairs.append((reps, weight))
+        elif _BODYWEIGHT_RE.match(content):
+            pairs = [(int(part), 0.0) for part in re.split(r'\s*\+\s*', content)]
 
-        # No `N x W` match — check for bodyweight shorthand: "4" or "2 + 4"
-        if _BODYWEIGHT_RE.match(content):
-            for part in re.split(r'\s*\+\s*', content):
-                reps = int(part)
-                out.append({
-                    'reps': reps,
-                    'weight_kg': 0.0,
-                    'is_warmup': is_warmup,
-                    'raw_line': raw_line.strip(),
-                    'group': group,
-                })
-    return out
+        if pairs:
+            entries.append({'is_warmup': is_warmup, 'raw_line': raw_line.strip(), 'pairs': pairs})
+    return entries
 
 
 def _parse_table(rows: list[list[str]]) -> list[dict]:
@@ -247,8 +227,9 @@ def _parse_table(rows: list[list[str]]) -> list[dict]:
         exercise = _exercise_name(label)
         if not exercise:
             continue
-        # An "A → B" label is two exercises done in sequence; each set carries
-        # a group index (split on the "→" line) so it lands on the right part.
+        # "A → B" is two exercises supersetted on one line: each line's comma
+        # tokens map positionally to the parts (first → A, second → B). A single
+        # exercise keeps the dropset reading — every token is one of its sets.
         parts = [p.strip() for p in exercise.split('→') if p.strip()] or [exercise]
         for col_idx, cell in enumerate(row[1:], start=1):
             if col_idx >= len(dates):
@@ -256,14 +237,18 @@ def _parse_table(rows: list[list[str]]) -> list[dict]:
             d = dates[col_idx]
             if not d or not cell.strip():
                 continue
-            for s in _parse_cell_sets(cell):
-                grp = s.pop('group', 0)
-                records.append({
-                    'session_date': d,
-                    'muscle_group': current_muscle,
-                    'exercise': parts[grp] if grp < len(parts) else parts[-1],
-                    **s,
-                })
+            for entry in _parse_cell_lines(cell):
+                for i, (reps, weight) in enumerate(entry['pairs']):
+                    name = parts[0] if len(parts) == 1 else parts[min(i, len(parts) - 1)]
+                    records.append({
+                        'session_date': d,
+                        'muscle_group': current_muscle,
+                        'exercise': name,
+                        'reps': reps,
+                        'weight_kg': weight,
+                        'is_warmup': entry['is_warmup'],
+                        'raw_line': entry['raw_line'],
+                    })
     return records
 
 
@@ -282,19 +267,13 @@ def gym_access():
     return jsonify({'allowed': allowed})
 
 
-@gym_bp.route('/api/gym/sync', methods=['POST'])
-@owner_required
-def sync_gym():
-    """Fetch the Notion page, re-parse, replace all rows."""
-    try:
-        rows = _fetch_gym_table()
-    except http_requests.HTTPError as e:
-        logger.exception('Notion fetch failed')
-        return jsonify({'error': f'Notion API error: {e}'}), 502
-    except Exception as e:
-        logger.exception('Gym sync failed')
-        return jsonify({'error': str(e)}), 500
+def resync_gym_sets():
+    """Fetch the Notion page, re-parse, and replace all gym_sets rows.
 
+    Returns (set_count, exercise_count). Shared by the /api/gym/sync endpoint
+    and the one-off migration CLI (backend/resync_gym.py) so both stay in sync.
+    """
+    rows = _fetch_gym_table()
     records = _parse_table(rows)
     with get_db() as conn:
         conn.execute('DELETE FROM gym_sets')
@@ -311,11 +290,23 @@ def sync_gym():
             'INSERT INTO gym_sync_meta (id, last_synced_at, last_status) VALUES (1, CURRENT_TIMESTAMP, ?)',
             ('ok',)
         )
-    return jsonify({
-        'synced': True,
-        'set_count': len(records),
-        'exercise_count': len({r['exercise'] for r in records}),
-    })
+    return len(records), len({r['exercise'] for r in records})
+
+
+@gym_bp.route('/api/gym/sync', methods=['POST'])
+@owner_required
+def sync_gym():
+    """Fetch the Notion page, re-parse, replace all rows."""
+    try:
+        set_count, exercise_count = resync_gym_sets()
+    except http_requests.HTTPError as e:
+        logger.exception('Notion fetch failed')
+        return jsonify({'error': f'Notion API error: {e}'}), 502
+    except Exception as e:
+        logger.exception('Gym sync failed')
+        return jsonify({'error': str(e)}), 500
+
+    return jsonify({'synced': True, 'set_count': set_count, 'exercise_count': exercise_count})
 
 
 AUTO_ARCHIVE_DAYS = 30
