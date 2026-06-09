@@ -16,10 +16,10 @@ import { FitAuthProvider, useFitAuth } from './fitAuth';
 
 const TABS: FitTab[] = [
   { key: 'accueil', label: 'Accueil', Icon: Home },
+  { key: 'principes', label: 'Principes', Icon: BookOpen },
   { key: 'programme', label: 'Programme', Icon: Dumbbell },
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
   { key: 'performances', label: 'Performances', Icon: TrendingUp },
-  { key: 'principes', label: 'Principes', Icon: BookOpen },
 ];
 
 export function FitApp() {
