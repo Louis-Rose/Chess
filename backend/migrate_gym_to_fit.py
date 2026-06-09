@@ -31,7 +31,7 @@ MAPPING = {
     'Leg raises (roman chair)': 'Relevés de jambes',
     'Diverging Seated row Prise neutre': 'Rowing assis — Prise neutre',
     'Tractions': 'Tractions — Prise neutre',
-    'Preacher Curl': 'Curl pupitre — Barre EZ',
+    'Preacher Curl': 'Curl pupitre — Machine',
     'Bench press Prise + large Down & forward': 'Développé couché barre',
     'Dips': 'Dips',
     'Inclined bench press': 'Développé incliné barre',
