@@ -4,6 +4,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitShell } from './FitShell';
 import { MUSCLES, MUSCLE_LEAVES, splitLabel, sortLabels, groupExercises } from './programData';
+import { FitVolumeBars } from './FitVolumeBars';
 
 // Landing for the Programme tab. The user only ever has one program, so it is
 // shown directly (split + selected exercises per muscle). Tapping the card
@@ -107,6 +108,15 @@ export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreat
               </div>
             )}
           </div>
+
+          {chosen.length > 0 && workSets != null && (
+            <div className="mt-8">
+              <h2 className="text-center text-xs uppercase tracking-wide text-slate-500">Volume de travail</h2>
+              <div className="mt-5">
+                <FitVolumeBars selections={selections} workSets={workSets} />
+              </div>
+            </div>
+          )}
 
           {confirming ? (
             <div className="mt-6 flex flex-col items-center gap-3">
