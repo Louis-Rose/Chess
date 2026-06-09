@@ -424,7 +424,7 @@ def stats():
     return jsonify({
         'sessions_this_year': sessions,
         'work_sets_this_year': work_sets,
-        'avg_sessions_per_week': round(sessions / weeks, 1) if weeks else None,
+        'avg_sessions_per_week': round(sessions / float(weeks), 1) if weeks else None,
         'avg_work_sets_per_session': round(work_sets / sessions, 1) if sessions else None,
         'hours_since_last_session': round(hours) if hours is not None else None,
     })

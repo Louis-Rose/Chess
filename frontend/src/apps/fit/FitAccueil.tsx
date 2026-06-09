@@ -15,7 +15,13 @@ interface YearStats {
 }
 
 // One decimal, French comma (e.g. 2.6 -> "2,6"); em dash when no data yet.
-const fr1 = (n: number | null) => (n == null ? '—' : n.toFixed(1).replace('.', ','));
+// Coerce with Number() so a stringified value (e.g. a JSON-serialized Decimal)
+// can't blow up .toFixed and take the page down.
+const fr1 = (n: number | string | null) => {
+  if (n == null) return '—';
+  const v = Number(n);
+  return Number.isFinite(v) ? v.toFixed(1).replace('.', ',') : '—';
+};
 
 export function FitAccueil() {
   const [inSession, setInSession] = useState(false);
