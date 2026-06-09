@@ -7,6 +7,8 @@ import { FitSession } from './FitSession';
 // Accueil tab: start a new workout, with year-to-date totals above the button.
 
 interface YearStats {
+  sessions_this_year: number;
+  work_sets_this_year: number;
   avg_sessions_per_week: number | null;
   avg_work_sets_per_session: number | null;
   hours_since_last_session: number | null;
@@ -36,7 +38,9 @@ export function FitAccueil() {
         <div className="mt-6 w-full max-w-[24rem]">
           <div className="rounded-2xl border border-slate-700 p-4">
             <h2 className="text-lg font-semibold text-white">{year}</h2>
-            <div className="mt-3 flex gap-4">
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <Stat value={stats.sessions_this_year} label="Séances" />
+              <Stat value={stats.work_sets_this_year} label="Séries de travail" />
               <Stat value={fr1(stats.avg_sessions_per_week)} label="Séances / semaine" />
               <Stat value={fr1(stats.avg_work_sets_per_session)} label="Séries / séance" />
             </div>
