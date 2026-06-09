@@ -22,6 +22,11 @@ const PRINCIPES: Principe[] = [
     corps:
       "La gestion de la fatigue exige de laisser au moins 48 heures de repos à un muscle avant de le solliciter à nouveau, car c'est pendant la récupération qu'il se reconstruit plus fort. Pour éviter le surentraînement, il faut également intégrer une semaine de \"décharge\" (allègement des poids et du volume) toutes les 6 à 8 semaines.",
   },
+  {
+    titre: 'Volume de travail',
+    corps:
+      "Le volume hebdomadaire optimal se situe entre 10 et 20 séries effectives par groupe musculaire et par semaine, à ajuster selon ton niveau de pratique. Pour maximiser l'efficacité de ce volume et éviter la fatigue inutile, il est recommandé de le répartir sur deux séances distinctes dans la semaine.",
+  },
 ];
 
 export function FitPrincipes() {
