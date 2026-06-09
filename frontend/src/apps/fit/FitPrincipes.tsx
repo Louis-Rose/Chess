@@ -25,7 +25,7 @@ const PRINCIPES: Principe[] = [
   {
     titre: 'Volume de travail',
     corps:
-      "Le volume hebdomadaire optimal se situe entre 10 et 20 séries effectives par groupe musculaire et par semaine, à ajuster selon ton niveau de pratique. Pour maximiser l'efficacité de ce volume et éviter la fatigue inutile, il est recommandé de le répartir sur deux séances distinctes dans la semaine.",
+      "Le volume hebdomadaire optimal se situe entre 10 et 20 séries effectives par groupe musculaire et par semaine. Pour maximiser l'efficacité de ce volume, il est recommandé de le répartir sur deux séances distinctes dans la semaine.",
   },
 ];
 
