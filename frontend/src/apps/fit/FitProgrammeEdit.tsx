@@ -50,9 +50,9 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
     });
   }
 
-  // Split + working sets first, then one entry per muscle (a divider sits
-  // before the muscle list). Rail labels are shortened to keep it narrow; the
-  // full name still shows as the section heading.
+  // Split + working sets first, then one entry per muscle. Rail labels are
+  // shortened to keep it narrow; the full name still shows as the section
+  // heading. A thin separator is drawn between every entry.
   const sections = [
     { key: 'split', label: 'Split' },
     { key: 'sets', label: 'Séries' },
@@ -71,15 +71,15 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
       </button>
 
       <div className="mt-4 flex gap-2">
-        <nav className="flex w-20 shrink-0 flex-col gap-1 self-start rounded-xl border border-slate-800 bg-slate-800/20 p-1.5" aria-label="Sections du programme">
+        <nav className="flex w-24 shrink-0 flex-col gap-1 self-start rounded-xl border border-slate-800 bg-slate-800/20 p-1.5" aria-label="Sections du programme">
           {sections.map((s, i) => (
             <Fragment key={s.key}>
-              {i === 2 && <div className="my-1 h-px bg-slate-800" />}
+              {i > 0 && <div className="my-1 h-px bg-slate-800" />}
               <button
                 type="button"
                 onClick={() => setActive(s.key)}
                 aria-current={active === s.key ? 'true' : undefined}
-                className={`rounded-lg px-2 py-2 text-left text-[13px] leading-tight transition-colors ${
+                className={`rounded-lg px-1.5 py-2 text-left text-[13px] leading-tight transition-colors ${
                   active === s.key
                     ? 'bg-emerald-500/10 font-medium text-emerald-300'
                     : 'text-slate-400 active:bg-slate-800/60'
