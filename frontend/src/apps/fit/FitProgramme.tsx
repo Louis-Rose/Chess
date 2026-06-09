@@ -3,16 +3,18 @@ import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitExercises } from './FitExercises';
+import { FitProgrammeEdit } from './FitProgrammeEdit';
 import { FitProgrammeWelcome } from './FitProgrammeWelcome';
 import { FitShell } from './FitShell';
 import { FitSplit } from './FitSplit';
 import { FitWorkSets } from './FitWorkSets';
 
 // The Programme tab. Lands on the user's single program (shown directly, with
-// Modifier / Supprimer) or an invite to create one. Editing re-enters the
-// picker: split -> working sets -> exercises.
+// Modifier / Supprimer) or an invite to create one. Creating walks a guided
+// wizard (split -> working sets -> exercises); editing opens a tabbed view
+// (FitProgrammeEdit) where any part can be changed directly.
 
-type Step = 'welcome' | 'split' | 'sets' | 'exercises';
+type Step = 'welcome' | 'split' | 'sets' | 'exercises' | 'edit';
 
 export function FitProgramme() {
   const [selected, setSelected] = useState<string | null>(null);
@@ -60,9 +62,20 @@ export function FitProgramme() {
         split={selected}
         workSets={workSets}
         deleting={deleting}
-        onEdit={() => setStep('split')}
+        onEdit={() => setStep('edit')}
         onCreate={() => setStep('split')}
         onDelete={remove}
+      />
+    );
+
+  if (step === 'edit')
+    return (
+      <FitProgrammeEdit
+        split={selected ?? ''}
+        workSets={workSets}
+        onSplitChange={setSelected}
+        onWorkSetsChange={setWorkSets}
+        onBack={() => setStep('welcome')}
       />
     );
 
