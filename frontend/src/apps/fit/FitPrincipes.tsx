@@ -15,7 +15,7 @@ const PRINCIPES: Principe[] = [
   {
     titre: 'La surcharge progressive',
     corps:
-      "La surcharge progressive consiste à forcer tes muscles à travailler de plus en plus dur au fil du temps pour les obliger à s'adapter et à se développer. Pour l'appliquer, il suffit d'augmenter très légèrement le poids, le nombre de répétitions ou le nombre de séries d'une séance à l'autre.",
+      "La surcharge progressive consiste à forcer tes muscles à travailler de plus en plus dur au fil du temps pour les obliger à s'adapter et à se développer. Pour l'appliquer, il suffit d'augmenter très légèrement le poids ou le nombre de répétitions d'une séance à l'autre.",
   },
   {
     titre: 'Gestion de la fatigue',
