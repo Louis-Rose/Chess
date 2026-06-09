@@ -377,6 +377,39 @@ def delete_session_set(session_id, set_id):
     return jsonify({'ok': True})
 
 
+@fit_bp.route('/api/fit/stats', methods=['GET'])
+@fit_login_required
+def stats():
+    """Year-to-date totals for the Accueil tab: number of sessions (with at
+    least one logged set) and number of working sets logged this calendar year.
+    Warmup sets are excluded from the working-set count."""
+    with get_db() as conn:
+        sessions_row = conn.execute(
+            """SELECT COUNT(*) AS n FROM (
+                   SELECT s.id
+                   FROM fit_sessions s
+                   JOIN fit_session_sets ss ON ss.session_id = s.id
+                   WHERE s.user_id = ?
+                     AND EXTRACT(YEAR FROM s.started_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+                   GROUP BY s.id
+               ) t""",
+            (request.user_id,)
+        ).fetchone()
+        sets_row = conn.execute(
+            """SELECT COUNT(*) AS n
+               FROM fit_sessions s
+               JOIN fit_session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id = ?
+                 AND ss.warmup = FALSE
+                 AND EXTRACT(YEAR FROM s.started_at) = EXTRACT(YEAR FROM CURRENT_DATE)""",
+            (request.user_id,)
+        ).fetchone()
+    return jsonify({
+        'sessions_this_year': sessions_row['n'],
+        'work_sets_this_year': sets_row['n'],
+    })
+
+
 @fit_bp.route('/api/fit/performances', methods=['GET'])
 @fit_login_required
 def performances():
