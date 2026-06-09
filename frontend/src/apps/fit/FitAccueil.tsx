@@ -9,6 +9,7 @@ import { FitSession } from './FitSession';
 interface YearStats {
   sessions_this_year: number;
   work_sets_this_year: number;
+  hours_since_last_session: number | null;
 }
 
 export function FitAccueil() {
@@ -35,6 +36,11 @@ export function FitAccueil() {
             <Stat value={stats.sessions_this_year} label="Séances" />
             <Stat value={stats.work_sets_this_year} label="Séries de travail" />
           </div>
+          {stats.hours_since_last_session != null && (
+            <p className="mt-4 text-sm text-slate-400">
+              Dernière séance il y a {stats.hours_since_last_session} h
+            </p>
+          )}
         </div>
       )}
 

@@ -404,9 +404,20 @@ def stats():
                  AND EXTRACT(YEAR FROM s.started_at) = EXTRACT(YEAR FROM CURRENT_DATE)""",
             (request.user_id,)
         ).fetchone()
+        # Hours since the most recent session (one with at least one set),
+        # computed DB-side so server/client timezones never enter into it.
+        last_row = conn.execute(
+            """SELECT EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - MAX(s.started_at))) / 3600.0 AS hours
+               FROM fit_sessions s
+               JOIN fit_session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id = ?""",
+            (request.user_id,)
+        ).fetchone()
+    hours = last_row['hours']
     return jsonify({
         'sessions_this_year': sessions_row['n'],
         'work_sets_this_year': sets_row['n'],
+        'hours_since_last_session': round(hours) if hours is not None else None,
     })
 
 
