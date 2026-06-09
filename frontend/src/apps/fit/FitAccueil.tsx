@@ -7,10 +7,13 @@ import { FitSession } from './FitSession';
 // Accueil tab: start a new workout, with year-to-date totals above the button.
 
 interface YearStats {
-  sessions_this_year: number;
-  work_sets_this_year: number;
+  avg_sessions_per_week: number | null;
+  avg_work_sets_per_session: number | null;
   hours_since_last_session: number | null;
 }
+
+// One decimal, French comma (e.g. 2.6 -> "2,6"); em dash when no data yet.
+const fr1 = (n: number | null) => (n == null ? '—' : n.toFixed(1).replace('.', ','));
 
 export function FitAccueil() {
   const [inSession, setInSession] = useState(false);
@@ -34,8 +37,8 @@ export function FitAccueil() {
           <div className="rounded-2xl border border-slate-700 p-4">
             <h2 className="text-lg font-semibold text-white">{year}</h2>
             <div className="mt-3 flex gap-4">
-              <Stat value={stats.sessions_this_year} label="Séances" />
-              <Stat value={stats.work_sets_this_year} label="Séries de travail" />
+              <Stat value={fr1(stats.avg_sessions_per_week)} label="Séances / semaine" />
+              <Stat value={fr1(stats.avg_work_sets_per_session)} label="Séries / séance" />
             </div>
           </div>
           {stats.hours_since_last_session != null && (
@@ -62,7 +65,7 @@ export function FitAccueil() {
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label }: { value: number | string; label: string }) {
   return (
     <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5">
       <span className="text-base font-medium text-white">{label}</span>

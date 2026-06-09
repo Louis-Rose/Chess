@@ -380,9 +380,9 @@ def delete_session_set(session_id, set_id):
 @fit_bp.route('/api/fit/stats', methods=['GET'])
 @fit_login_required
 def stats():
-    """Year-to-date totals for the Accueil tab: number of sessions (with at
-    least one logged set) and number of working sets logged this calendar year.
-    Warmup sets are excluded from the working-set count."""
+    """Year-to-date figures for the Accueil tab: average sessions per week and
+    average working sets per session this calendar year, plus the hours since
+    the last session. Warmup sets are excluded from the working-set count."""
     with get_db() as conn:
         sessions_row = conn.execute(
             """SELECT COUNT(*) AS n FROM (
@@ -413,10 +413,17 @@ def stats():
                WHERE s.user_id = ?""",
             (request.user_id,)
         ).fetchone()
+        # Weeks elapsed since Jan 1 (DB-side), for the per-week average.
+        weeks_row = conn.execute(
+            "SELECT EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - date_trunc('year', CURRENT_TIMESTAMP))) / 604800.0 AS weeks"
+        ).fetchone()
+    sessions = sessions_row['n']
+    work_sets = sets_row['n']
+    weeks = weeks_row['weeks'] or 0
     hours = last_row['hours']
     return jsonify({
-        'sessions_this_year': sessions_row['n'],
-        'work_sets_this_year': sets_row['n'],
+        'avg_sessions_per_week': round(sessions / weeks, 1) if weeks else None,
+        'avg_work_sets_per_session': round(work_sets / sessions, 1) if sessions else None,
         'hours_since_last_session': round(hours) if hours is not None else None,
     })
 
