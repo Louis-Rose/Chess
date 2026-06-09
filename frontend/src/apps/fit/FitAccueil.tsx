@@ -39,8 +39,12 @@ export function FitAccueil() {
             </div>
           </div>
           {stats.hours_since_last_session != null && (
-            <div className="mt-4 w-1/2">
-              <Stat value={stats.hours_since_last_session} label="Heures depuis la dernière séance" />
+            <div className="mt-4 rounded-2xl border border-slate-700 p-4">
+              <div className="flex gap-4">
+                <div className="w-1/2">
+                  <Stat value={stats.hours_since_last_session} label="Heures depuis la dernière séance" />
+                </div>
+              </div>
             </div>
           )}
         </div>
