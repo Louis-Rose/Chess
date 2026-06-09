@@ -434,18 +434,24 @@ def stats():
 @fit_bp.route('/api/fit/last-done', methods=['GET'])
 @fit_login_required
 def last_done():
-    """Per-exercise calendar days since it was last logged (any set). Date
-    difference, so it increments at midnight like days_since_last_session."""
+    """Per-exercise calendar days since it was last logged (any set) plus the
+    id of that most-recent session. Date difference, so days increments at
+    midnight like days_since_last_session."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT ss.exercise, (CURRENT_DATE - MAX(s.started_at)::date) AS days
+            """SELECT DISTINCT ON (ss.exercise)
+                      ss.exercise,
+                      s.id AS session_id,
+                      (CURRENT_DATE - s.started_at::date) AS days
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
                WHERE s.user_id = ?
-               GROUP BY ss.exercise""",
+               ORDER BY ss.exercise, s.started_at DESC""",
             (request.user_id,)
         ).fetchall()
-    return jsonify({'exercises': [{'exercise': r['exercise'], 'days': int(r['days'])} for r in rows]})
+    return jsonify({'exercises': [
+        {'exercise': r['exercise'], 'days': int(r['days']), 'session_id': r['session_id']} for r in rows
+    ]})
 
 
 @fit_bp.route('/api/fit/performances', methods=['GET'])

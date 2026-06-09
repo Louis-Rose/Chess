@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { groupExercises, MUSCLE_LEAVES, MUSCLE_ORDER, sortLabels } from './programData';
+import { FitSessionDetail } from './FitSessionDetail';
 
 // Days-since-last-done for each exercise currently in the program, grouped by
 // muscle. Opened from the "Jours depuis la dernière séance" card on Accueil.
@@ -24,29 +25,34 @@ const sinceLabel = (d: number | undefined) => {
   return `${d} j`;
 };
 
+interface BaseInfo { days: number; sessionId: number; }
+
 export function FitLastDone({ onBack }: { onBack: () => void }) {
-  const [baseDays, setBaseDays] = useState<Record<string, number>>({});
+  const [baseInfo, setBaseInfo] = useState<Record<string, BaseInfo>>({});
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([
-      fitRequest(() => axios.get<{ exercises: { exercise: string; days: number }[] }>('/api/fit/last-done')),
+      fitRequest(() => axios.get<{ exercises: { exercise: string; days: number; session_id: number }[] }>('/api/fit/last-done')),
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
     ])
       .then(([ld, ex]) => {
-        // Days per base exercise = most recent across all its logged leaves.
-        const bd: Record<string, number> = {};
+        // Per base exercise, keep the most recent leaf (its days + session).
+        const bd: Record<string, BaseInfo> = {};
         for (const e of ld.data.exercises ?? []) {
           const b = baseOf(e.exercise);
-          bd[b] = bd[b] == null ? e.days : Math.min(bd[b], e.days);
+          if (bd[b] == null || e.days < bd[b].days) bd[b] = { days: e.days, sessionId: e.session_id };
         }
-        setBaseDays(bd);
+        setBaseInfo(bd);
         setSelections(ex.data.selections ?? {});
       })
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
   }, []);
+
+  if (session != null) return <FitSessionDetail sessionId={session} onBack={() => setSession(null)} />;
 
   const groups = MUSCLE_ORDER
     .map(m => {
@@ -80,20 +86,41 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
             <section key={g.name}>
               <h2 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.name}</h2>
               <div className="mt-2 flex flex-col gap-2">
-                {g.entries.map(entry => (
-                  <div
-                    key={entry.name}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3"
-                  >
-                    <span className="min-w-0 text-slate-100">
+                {g.entries.map(entry => {
+                  const info = baseInfo[entry.name];
+                  const name = (
+                    <span className="min-w-0 text-left text-slate-100">
                       {entry.name}
                       {entry.variants.length > 0 && (
                         <span className="text-slate-400"> ({entry.variants.join(', ')})</span>
                       )}
                     </span>
-                    <span className="shrink-0 text-sm tabular-nums text-slate-300">{sinceLabel(baseDays[entry.name])}</span>
-                  </div>
-                ))}
+                  );
+                  const since = (
+                    <span className="shrink-0 text-sm tabular-nums text-slate-300">{sinceLabel(info?.days)}</span>
+                  );
+                  const cls = 'flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3';
+                  // Tappable only when there's a session to open (i.e. it was done).
+                  return info ? (
+                    <button
+                      key={entry.name}
+                      type="button"
+                      onClick={() => setSession(info.sessionId)}
+                      className={`${cls} text-left transition-colors active:bg-slate-800`}
+                    >
+                      {name}
+                      <span className="flex shrink-0 items-center gap-1">
+                        {since}
+                        <ChevronRight className="h-4 w-4 text-slate-500" />
+                      </span>
+                    </button>
+                  ) : (
+                    <div key={entry.name} className={cls}>
+                      {name}
+                      {since}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           ))}
