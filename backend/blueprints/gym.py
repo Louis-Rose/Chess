@@ -155,11 +155,16 @@ def _parse_cell_sets(cell_text: str) -> list[dict]:
       - "4 (slow, 50%)"        → bodyweight: 1 set of 4 reps
     """
     out = []
+    group = 0   # a lone "→" line starts a new group, used to split an
+                # "A → B" exercise (one movement then the next) into two.
     for raw_line in cell_text.split('\n'):
         line = raw_line.strip()
         if not line:
             continue
-        if line in {'+', '=', '-', '*', '→'}:
+        if line == '→':
+            group += 1
+            continue
+        if line in {'+', '=', '-', '*'}:
             continue
 
         is_warmup = line.startswith('(') and ')' in line
@@ -196,6 +201,7 @@ def _parse_cell_sets(cell_text: str) -> list[dict]:
                     'weight_kg': weight,
                     'is_warmup': is_warmup,
                     'raw_line': raw_line.strip(),
+                    'group': group,
                 })
             continue
 
@@ -208,6 +214,7 @@ def _parse_cell_sets(cell_text: str) -> list[dict]:
                     'weight_kg': 0.0,
                     'is_warmup': is_warmup,
                     'raw_line': raw_line.strip(),
+                    'group': group,
                 })
     return out
 
@@ -240,6 +247,9 @@ def _parse_table(rows: list[list[str]]) -> list[dict]:
         exercise = _exercise_name(label)
         if not exercise:
             continue
+        # An "A → B" label is two exercises done in sequence; each set carries
+        # a group index (split on the "→" line) so it lands on the right part.
+        parts = [p.strip() for p in exercise.split('→') if p.strip()] or [exercise]
         for col_idx, cell in enumerate(row[1:], start=1):
             if col_idx >= len(dates):
                 continue
@@ -247,10 +257,11 @@ def _parse_table(rows: list[list[str]]) -> list[dict]:
             if not d or not cell.strip():
                 continue
             for s in _parse_cell_sets(cell):
+                grp = s.pop('group', 0)
                 records.append({
                     'session_date': d,
                     'muscle_group': current_muscle,
-                    'exercise': exercise,
+                    'exercise': parts[grp] if grp < len(parts) else parts[-1],
                     **s,
                 })
     return records
