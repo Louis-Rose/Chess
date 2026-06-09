@@ -37,9 +37,9 @@ export function FitAccueil() {
             <Stat value={stats.work_sets_this_year} label="Séries de travail" />
           </div>
           {stats.hours_since_last_session != null && (
-            <p className="mt-4 text-sm text-slate-400">
-              Dernière séance il y a {stats.hours_since_last_session} h
-            </p>
+            <div className="mt-4">
+              <Stat value={stats.hours_since_last_session} label="Heures depuis la dernière séance" />
+            </div>
           )}
         </div>
       )}
