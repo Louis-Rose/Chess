@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
@@ -7,9 +7,16 @@ import { formatSessionDate, formatSet } from './format';
 
 // Read-only view of a past session (reached from the Calendrier history):
 // its date and the logged sets, grouped by exercise in workout order.
+// An optional focusBase scrolls the matching exercise to the centre and
+// highlights it (used when arriving from the "Dernière fois" view).
 
 interface SetRow { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean; }
 interface Session { id: number; started_at: string | null; ended_at: string | null; sets: SetRow[]; }
+
+const baseOf = (leaf: string) => {
+  const i = leaf.indexOf(' — ');
+  return i === -1 ? leaf : leaf.slice(0, i);
+};
 
 function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[] {
   const groups: { exercise: string; sets: SetRow[] }[] = [];
@@ -38,9 +45,10 @@ function workVolume(sets: SetRow[]): { muscle: string; sets: number }[] {
 // "4", "2.5" — drop the trailing .0 for whole numbers.
 const fmtVolume = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-export function FitSessionDetail({ sessionId, onBack }: { sessionId: number; onBack: () => void }) {
+export function FitSessionDetail({ sessionId, onBack, focusBase }: { sessionId: number; onBack: () => void; focusBase?: string }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const focusRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fitRequest(() => axios.get<Session>(`/api/fit/sessions/${sessionId}`))
@@ -51,6 +59,14 @@ export function FitSessionDetail({ sessionId, onBack }: { sessionId: number; onB
 
   const groups = session ? groupByExercise(session.sets) : [];
   const volume = session ? workVolume(session.sets) : [];
+  const focusIndex = focusBase != null ? groups.findIndex(g => baseOf(g.exercise) === focusBase) : -1;
+
+  // Once the session is rendered, centre the focused exercise in the viewport.
+  useEffect(() => {
+    if (focusRef.current) {
+      requestAnimationFrame(() => focusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    }
+  }, [loading, focusIndex]);
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -85,8 +101,14 @@ export function FitSessionDetail({ sessionId, onBack }: { sessionId: number; onB
           )}
 
           <div className="mx-auto mt-4 flex w-full max-w-[22rem] flex-col gap-4">
-            {groups.map(g => (
-              <div key={g.exercise} className="flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center">
+            {groups.map((g, i) => (
+              <div
+                key={g.exercise}
+                ref={i === focusIndex ? focusRef : undefined}
+                className={`flex flex-col items-center rounded-2xl border bg-slate-800/30 px-4 py-4 text-center transition-colors ${
+                  i === focusIndex ? 'border-emerald-500/70' : 'border-slate-800'
+                }`}
+              >
                 <p className="font-medium text-slate-100">{leafLabel(g.exercise)}</p>
                 <ul className="mt-2 flex w-44 flex-col gap-1.5">
                   {g.sets.map(s => (

@@ -31,7 +31,7 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
   const [baseInfo, setBaseInfo] = useState<Record<string, BaseInfo>>({});
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<number | null>(null);
+  const [session, setSession] = useState<{ id: number; base: string } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -52,7 +52,7 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
       .finally(() => setLoading(false));
   }, []);
 
-  if (session != null) return <FitSessionDetail sessionId={session} onBack={() => setSession(null)} />;
+  if (session != null) return <FitSessionDetail sessionId={session.id} focusBase={session.base} onBack={() => setSession(null)} />;
 
   const groups = MUSCLE_ORDER
     .map(m => {
@@ -108,7 +108,7 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
                     <button
                       key={entry.name}
                       type="button"
-                      onClick={() => setSession(info.sessionId)}
+                      onClick={() => setSession({ id: info.sessionId, base: entry.name })}
                       className={`${cls} w-full transition-colors active:bg-slate-800`}
                     >
                       {inner}
