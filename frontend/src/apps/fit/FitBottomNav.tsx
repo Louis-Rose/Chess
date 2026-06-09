@@ -20,17 +20,17 @@ export function FitBottomNav({ tabs, active, onSelect }: Props) {
         {tabs.map(({ key, label, Icon }) => {
           const isActive = key === active;
           return (
-            <li key={key} className="flex-1">
+            <li key={key} className="min-w-0 flex-1">
               <button
                 type="button"
                 onClick={() => onSelect(key)}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex w-full flex-col items-center gap-1 pt-3.5 pb-[22px] text-sm transition-colors ${
+                className={`flex w-full flex-col items-center gap-1 pt-3 pb-[22px] text-xs transition-colors ${
                   isActive ? 'text-emerald-400' : 'text-slate-400'
                 }`}
               >
+                <span className="max-w-full truncate">{label}</span>
                 <Icon className="h-6 w-6" strokeWidth={isActive ? 2.4 : 1.8} />
-                {label}
               </button>
             </li>
           );
