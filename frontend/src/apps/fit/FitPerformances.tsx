@@ -14,12 +14,23 @@ interface ExercisePerf { exercise: string; points: Point[]; }
 
 export function FitPerformances() {
   const [exercises, setExercises] = useState<ExercisePerf[]>([]);
+  const [programLeaves, setProgramLeaves] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
-    fitRequest(() => axios.get<{ exercises: ExercisePerf[] }>('/api/fit/performances'))
-      .then(res => setExercises(res.data.exercises ?? []))
+    // Show only exercises currently in the program, so fetch both the logged
+    // performances and the program's selected exercises.
+    Promise.all([
+      fitRequest(() => axios.get<{ exercises: ExercisePerf[] }>('/api/fit/performances')),
+      fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
+    ])
+      .then(([perfRes, exRes]) => {
+        setExercises(perfRes.data.exercises ?? []);
+        const leaves = new Set<string>();
+        for (const arr of Object.values(exRes.data.selections ?? {})) for (const l of arr) leaves.add(l);
+        setProgramLeaves(leaves);
+      })
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
   }, []);
@@ -28,8 +39,10 @@ export function FitPerformances() {
   if (current) return <PerformanceDetail perf={current} onBack={() => setSelected(null)} />;
 
   // Group worked exercises by muscle, in catalogue order, sorted within.
+  // Only exercises currently in the program are shown.
   const byMuscle = new Map<string, string[]>();
   for (const e of exercises) {
+    if (!programLeaves.has(e.exercise)) continue;
     const m = muscleOf(e.exercise);
     if (!m) continue;
     if (!byMuscle.has(m)) byMuscle.set(m, []);
