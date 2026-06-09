@@ -40,14 +40,14 @@ VALID_SPLITS = {'full_body', 'upper_lower', 'push_pull_legs', 'body_part', 'no_s
 # Allowed exercises per muscle group — keep in sync with FitExercises.tsx.
 MUSCLE_EXERCISES = {
     'Épaules': ['Développé épaules — Machine', 'Développé épaules — Haltères', 'Développé épaules — Pronation', 'Développé épaules — Prise neutre', 'Développé militaire', 'Élévations latérales — Poulie basse', 'Élévations latérales — Haltères'],
-    'Pectoraux': ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères', 'Pec Deck — Poignées', 'Pec Deck — Boudins'],
+    'Pectoraux': ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères', 'Dips', 'Pec Deck — Poignées', 'Pec Deck — Boudins'],
     'Dos': ['Tractions — Pronation', 'Tractions — Supination', 'Tractions — Prise neutre', 'Tirage vertical (poulie haute) — Pronation', 'Tirage vertical (poulie haute) — Supination', 'Tirage vertical (poulie haute) — Prise neutre', 'Rowing assis — Machine', 'Rowing assis — Poulie basse', 'Rowing assis — Pronation', 'Rowing assis — Supination', 'Rowing assis — Prise neutre'],
     'Biceps': ['Curl incliné — Supination', 'Curl incliné — Rotation', 'Curl pupitre — Machine', 'Curl pupitre — Haltères', 'Curl pupitre — Barre EZ'],
     'Triceps': ['Extension poulie haute — Barre', 'Extension poulie haute — Corde', 'Extension poulie basse (overhead) — Barre', 'Extension poulie basse (overhead) — Corde'],
     'Avant-bras': ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'],
-    'Abdos': ['Crunch', 'Enroulements de bassin', 'Gainage planche'],
+    'Abdos': ['Crunch', 'Enroulements de bassin', 'Gainage planche', 'Relevés de jambes'],
     'Fessiers': ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'],
-    'Quadriceps': ['Soulevé de terre barre hex', 'Hack squat', 'Presse à cuisses', 'Presse à cuisses incliné', 'Presse à cuisses horizontale'],
+    'Quadriceps': ['Soulevé de terre barre hex', 'Hack squat', 'Leg extension', 'Presse à cuisses', 'Presse à cuisses incliné', 'Presse à cuisses horizontale'],
     'Ischio-jambiers': ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'],
     'Mollets': ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'],
 }
