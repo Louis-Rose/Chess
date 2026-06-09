@@ -88,37 +88,33 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
               <div className="mt-2 flex flex-col gap-2">
                 {g.entries.map(entry => {
                   const info = baseInfo[entry.name];
-                  const name = (
-                    <span className="min-w-0 text-left text-slate-100">
-                      {entry.name}
-                      {entry.variants.length > 0 && (
-                        <span className="text-slate-400"> ({entry.variants.join(', ')})</span>
-                      )}
-                    </span>
+                  const inner = (
+                    <>
+                      <div className="min-w-0 flex-1 text-center">
+                        <div className="text-slate-100">{entry.name}</div>
+                        {entry.variants.length > 0 && (
+                          <div className="text-sm text-slate-400">({entry.variants.join(', ')})</div>
+                        )}
+                      </div>
+                      <span className="flex shrink-0 items-center gap-1 text-sm tabular-nums text-slate-300">
+                        {sinceLabel(info?.days)}
+                        {info && <ChevronRight className="h-4 w-4 text-slate-500" />}
+                      </span>
+                    </>
                   );
-                  const since = (
-                    <span className="shrink-0 text-sm tabular-nums text-slate-300">{sinceLabel(info?.days)}</span>
-                  );
-                  const cls = 'flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3';
+                  const cls = 'flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3';
                   // Tappable only when there's a session to open (i.e. it was done).
                   return info ? (
                     <button
                       key={entry.name}
                       type="button"
                       onClick={() => setSession(info.sessionId)}
-                      className={`${cls} text-left transition-colors active:bg-slate-800`}
+                      className={`${cls} w-full transition-colors active:bg-slate-800`}
                     >
-                      {name}
-                      <span className="flex shrink-0 items-center gap-1">
-                        {since}
-                        <ChevronRight className="h-4 w-4 text-slate-500" />
-                      </span>
+                      {inner}
                     </button>
                   ) : (
-                    <div key={entry.name} className={cls}>
-                      {name}
-                      {since}
-                    </div>
+                    <div key={entry.name} className={cls}>{inner}</div>
                   );
                 })}
               </div>
