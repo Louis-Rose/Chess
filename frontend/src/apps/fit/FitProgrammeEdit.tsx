@@ -91,7 +91,7 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
           ))}
         </nav>
 
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col justify-center">
           {loading ? (
             <div className="flex justify-center pt-6">
               <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
