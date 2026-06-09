@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { groupExercises, MUSCLE_LEAVES, MUSCLE_ORDER, sortLabels } from './programData';
-import { FitSessionDetail } from './FitSessionDetail';
+import { FitExerciseHistory } from './FitExerciseHistory';
 
 // Days-since-last-done for each exercise currently in the program, grouped by
 // muscle. Opened from the "Jours depuis la dernière séance" card on Accueil.
@@ -31,7 +31,7 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
   const [baseInfo, setBaseInfo] = useState<Record<string, BaseInfo>>({});
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<{ id: number; base: string } | null>(null);
+  const [historyBase, setHistoryBase] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -52,7 +52,7 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
       .finally(() => setLoading(false));
   }, []);
 
-  if (session != null) return <FitSessionDetail sessionId={session.id} focusBase={session.base} onBack={() => setSession(null)} />;
+  if (historyBase != null) return <FitExerciseHistory base={historyBase} onBack={() => setHistoryBase(null)} />;
 
   const groups = MUSCLE_ORDER
     .map(m => {
@@ -108,7 +108,7 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
                     <button
                       key={entry.name}
                       type="button"
-                      onClick={() => setSession({ id: info.sessionId, base: entry.name })}
+                      onClick={() => setHistoryBase(entry.name)}
                       className={`${cls} w-full transition-colors active:bg-slate-800`}
                     >
                       {inner}

@@ -454,6 +454,37 @@ def last_done():
     ]})
 
 
+@fit_bp.route('/api/fit/exercise-history', methods=['GET'])
+@fit_login_required
+def exercise_history():
+    """Every session in which the given base exercise was logged, newest first,
+    each with its sets. Matched by base (the part before ' — '), so all variant
+    leaves of the exercise are included."""
+    base = request.args.get('base', '').strip()
+    if not base:
+        return jsonify({'sessions': []})
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT s.id AS session_id, s.started_at, ss.weight, ss.reps, ss.warmup
+               FROM fit_sessions s
+               JOIN fit_session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id = ? AND split_part(ss.exercise, ' — ', 1) = ?
+               ORDER BY s.started_at DESC, ss.id""",
+            (request.user_id, base)
+        ).fetchall()
+    sessions, by_id = [], {}
+    for r in rows:
+        sess = by_id.get(r['session_id'])
+        if sess is None:
+            sess = {'session_id': r['session_id'],
+                    'date': r['started_at'].isoformat() if r['started_at'] else None,
+                    'sets': []}
+            by_id[r['session_id']] = sess
+            sessions.append(sess)
+        sess['sets'].append({'weight': r['weight'], 'reps': r['reps'], 'warmup': bool(r['warmup'])})
+    return jsonify({'sessions': sessions})
+
+
 @fit_bp.route('/api/fit/performances', methods=['GET'])
 @fit_login_required
 def performances():

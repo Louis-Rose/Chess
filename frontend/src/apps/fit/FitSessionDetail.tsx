@@ -3,7 +3,8 @@ import axios from 'axios';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { leafLabel, muscleContribution, MUSCLE_ORDER } from './programData';
-import { formatSessionDate, formatSet } from './format';
+import { formatSessionDate } from './format';
+import { FitSetList } from './FitSetList';
 
 // Read-only view of a past session (reached from the Calendrier history):
 // its date and the logged sets, grouped by exercise in workout order.
@@ -110,22 +111,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase }: { sessionId: 
                 }`}
               >
                 <p className="font-medium text-slate-100">{leafLabel(g.exercise)}</p>
-                <ul className="mt-2 flex w-44 flex-col gap-1.5">
-                  {g.sets.map(s => (
-                    <li key={s.id} className={`text-sm ${s.warmup ? 'text-slate-400' : 'text-slate-200'}`}>
-                      {s.weight != null ? (
-                        // 3-column grid keeps the "×" on the card's centerline
-                        <span className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-x-1.5">
-                          <span className="text-right">{s.warmup ? '(' : ''}{s.reps}</span>
-                          <span>×</span>
-                          <span className="text-left">{s.weight} kg{s.warmup ? ')' : ''}</span>
-                        </span>
-                      ) : (
-                        formatSet(s.weight, s.reps, s.warmup)
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <FitSetList sets={g.sets} />
               </div>
             ))}
           </div>
