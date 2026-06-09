@@ -10,7 +10,7 @@ const PRINCIPES: Principe[] = [
   {
     titre: "Travailler à l'échec",
     corps:
-      "Pour déclencher la croissance musculaire, chaque série doit être poussée jusqu'à l'échec ou s'en arrêter à seulement 1 ou 2 répétitions. C'est uniquement lors de ces dernières répétitions très difficiles que le corps recrute les fibres musculaires les plus puissantes (de type II) et leur impose la tension nécessaire pour se développer.",
+      "Pour déclencher la croissance musculaire, chaque série doit être poussée jusqu'à l'échec ou s'en arrêter à seulement 1 ou 2 répétitions. C'est uniquement lors de ces dernières répétitions très difficiles que le corps recrute les fibres musculaires les plus puissantes (de type II).",
   },
   {
     titre: 'La surcharge progressive',
