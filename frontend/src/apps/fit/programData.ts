@@ -22,7 +22,7 @@ const SPLITS_RAW: Split[] = [
   { key: 'full_body', label: 'Full Body' },
   { key: 'upper_lower', label: 'Upper / Lower' },
   { key: 'push_pull_legs', label: 'Push / Pull / Legs' },
-  { key: 'body_part', label: 'Body Part Split' },
+  { key: 'body_part', label: 'Body part' },
   { key: 'no_split', label: 'Pas de split', negative: true },
 ];
 
