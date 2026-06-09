@@ -2,12 +2,22 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
-import { leafLabel, muscleOf, MUSCLE_ORDER, sortLabels } from './programData';
+import { groupExercises, MUSCLE_LEAVES, MUSCLE_ORDER, sortLabels } from './programData';
 
 // Days-since-last-done for each exercise currently in the program, grouped by
 // muscle. Opened from the "Jours depuis la dernière séance" card on Accueil.
+//
+// Matching is by *base* exercise, not by exact leaf: an exercise like
+// "Développé épaules" has independent variant rows (equipment + grip) stored
+// as separate leaves, and a logged set only carries one of them — so we
+// aggregate across all leaves sharing a base (most recent wins).
 
-const label = (d: number | undefined) => {
+const baseOf = (leaf: string) => {
+  const i = leaf.indexOf(' — ');
+  return i === -1 ? leaf : leaf.slice(0, i);
+};
+
+const sinceLabel = (d: number | undefined) => {
   if (d == null) return 'Jamais';
   if (d === 0) return "Aujourd'hui";
   if (d === 1) return 'Hier';
@@ -15,8 +25,8 @@ const label = (d: number | undefined) => {
 };
 
 export function FitLastDone({ onBack }: { onBack: () => void }) {
-  const [days, setDays] = useState<Record<string, number>>({});
-  const [programLeaves, setProgramLeaves] = useState<string[]>([]);
+  const [baseDays, setBaseDays] = useState<Record<string, number>>({});
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,27 +35,25 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
     ])
       .then(([ld, ex]) => {
-        const map: Record<string, number> = {};
-        for (const e of ld.data.exercises ?? []) map[e.exercise] = e.days;
-        setDays(map);
-        const leaves: string[] = [];
-        for (const arr of Object.values(ex.data.selections ?? {})) leaves.push(...arr);
-        setProgramLeaves(leaves);
+        // Days per base exercise = most recent across all its logged leaves.
+        const bd: Record<string, number> = {};
+        for (const e of ld.data.exercises ?? []) {
+          const b = baseOf(e.exercise);
+          bd[b] = bd[b] == null ? e.days : Math.min(bd[b], e.days);
+        }
+        setBaseDays(bd);
+        setSelections(ex.data.selections ?? {});
       })
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
   }, []);
 
-  const byMuscle = new Map<string, string[]>();
-  for (const leaf of programLeaves) {
-    const m = muscleOf(leaf);
-    if (!m) continue;
-    if (!byMuscle.has(m)) byMuscle.set(m, []);
-    byMuscle.get(m)!.push(leaf);
-  }
   const groups = MUSCLE_ORDER
-    .filter(m => byMuscle.has(m))
-    .map(m => ({ name: m, leaves: sortLabels(byMuscle.get(m)!) }));
+    .map(m => {
+      const valid = (selections[m] ?? []).filter(l => MUSCLE_LEAVES[m]?.has(l));
+      return { name: m, entries: groupExercises(sortLabels(valid)) };
+    })
+    .filter(g => g.entries.length > 0);
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -72,13 +80,18 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
             <section key={g.name}>
               <h2 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.name}</h2>
               <div className="mt-2 flex flex-col gap-2">
-                {g.leaves.map(leaf => (
+                {g.entries.map(entry => (
                   <div
-                    key={leaf}
+                    key={entry.name}
                     className="flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3"
                   >
-                    <span className="min-w-0 text-slate-100">{leafLabel(leaf)}</span>
-                    <span className="shrink-0 text-sm tabular-nums text-slate-300">{label(days[leaf])}</span>
+                    <span className="min-w-0 text-slate-100">
+                      {entry.name}
+                      {entry.variants.length > 0 && (
+                        <span className="text-slate-400"> ({entry.variants.join(', ')})</span>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-sm tabular-nums text-slate-300">{sinceLabel(baseDays[entry.name])}</span>
                   </div>
                 ))}
               </div>
