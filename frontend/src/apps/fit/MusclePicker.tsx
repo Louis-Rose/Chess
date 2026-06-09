@@ -42,7 +42,8 @@ export function MusclePicker({ muscle, selected, onToggle }: {
 
         // Group with variants — expands to reveal its sub-options (rows).
         const anySelected = ex.variants.flat().some(v => selected.includes(variantId(ex.name, v)));
-        const expanded = open[ex.name] ?? anySelected;
+        // Collapsed by default; the user taps to reveal the variants.
+        const expanded = open[ex.name] ?? false;
         return (
           <div key={ex.name} className="flex flex-col gap-3">
             <button
