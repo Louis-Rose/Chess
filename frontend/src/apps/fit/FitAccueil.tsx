@@ -27,9 +27,9 @@ export function FitAccueil() {
   const year = new Date().getFullYear();
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col items-center justify-center gap-10 px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center">
+    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col items-center px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center">
       {stats && (
-        <div className="flex w-full max-w-[20rem] gap-3">
+        <div className="mt-6 flex w-full max-w-[24rem] gap-4">
           <Stat value={stats.sessions_this_year} label={`séance${stats.sessions_this_year > 1 ? 's' : ''} en ${year}`} />
           <Stat value={stats.work_sets_this_year} label={`série${stats.work_sets_this_year > 1 ? 's' : ''} de travail`} />
         </div>
@@ -38,7 +38,7 @@ export function FitAccueil() {
       <button
         type="button"
         onClick={() => setInSession(true)}
-        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-4 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
+        className="my-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-4 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
       >
         <Plus className="h-5 w-5" />
         Nouvelle séance
@@ -49,9 +49,9 @@ export function FitAccueil() {
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-4">
-      <span className="text-3xl font-semibold text-emerald-400 tabular-nums">{value}</span>
-      <span className="mt-1 text-xs text-slate-400">{label}</span>
+    <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5">
+      <span className="text-sm font-medium text-slate-400">{label}</span>
+      <span className="mt-1 text-4xl font-semibold text-emerald-400 tabular-nums">{value}</span>
     </div>
   );
 }
