@@ -17,6 +17,11 @@ const PRINCIPES: Principe[] = [
     corps:
       "La gestion de la fatigue exige de laisser au moins 48 heures de repos à un muscle avant de le solliciter à nouveau, car c'est pendant la récupération qu'il se reconstruit plus fort. Pour éviter le surentraînement, il faut également intégrer une semaine de \"décharge\" (allègement des poids et du volume) toutes les 6 à 8 semaines.",
   },
+  {
+    titre: "Travailler à l'échec",
+    corps:
+      "Pour déclencher la croissance musculaire, chaque série doit être poussée jusqu'à l'échec ou s'en arrêter à seulement 1 ou 2 répétitions. C'est uniquement lors de ces dernières répétitions très difficiles que le corps recrute les fibres musculaires les plus puissantes (de type II) et leur impose la tension nécessaire pour se développer.",
+  },
 ];
 
 export function FitPrincipes() {
