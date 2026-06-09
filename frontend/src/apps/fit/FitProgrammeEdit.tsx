@@ -91,30 +91,30 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
           ))}
         </nav>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-center">
-          {loading ? (
-            <div className="flex justify-center pt-6">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
-            </div>
-          ) : active === 'split' ? (
-            <Section title="Training split">
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Heading pinned at the top; the body fills and centers below it. */}
+          <h2 className="text-center text-lg font-semibold text-slate-100">
+            {active === 'split' ? 'Training split' : active === 'sets' ? 'Séries de travail' : active}
+          </h2>
+          <div className="flex flex-1 flex-col justify-center pt-2">
+            {loading ? (
+              <div className="flex justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+              </div>
+            ) : active === 'split' ? (
               <div className="flex flex-col gap-2.5">
                 {SPLITS.map(({ key, label }) => (
                   <Choice key={key} active={key === split} onClick={() => chooseSplit(key)}>{label}</Choice>
                 ))}
               </div>
-            </Section>
-          ) : active === 'sets' ? (
-            <Section title="Séries de travail">
+            ) : active === 'sets' ? (
               <div className="grid grid-cols-5 gap-2">
                 {WORK_SETS_OPTIONS.map(n => (
                   <Choice key={n} active={n === workSets} onClick={() => chooseSets(n)}>{n}</Choice>
                 ))}
               </div>
-            </Section>
-          ) : (
-            <Section title={active}>
-              {(() => {
+            ) : (
+              (() => {
                 const muscle = MUSCLES.find(m => m.name === active)!;
                 return (
                   <MusclePicker
@@ -124,23 +124,11 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
                     onToggle={id => toggleExercise(muscle.name, id)}
                   />
                 );
-              })()}
-            </Section>
-          )}
+              })()
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// The content column centers this block vertically. Only the children are
-// centered; the title floats 2rem above them (absolute, out of flow) so it
-// stays attached to the content rather than shifting the whole block down.
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="relative">
-      <h2 className="absolute inset-x-0 bottom-full mb-8 text-center text-lg font-semibold text-slate-100">{title}</h2>
-      {children}
     </div>
   );
 }
