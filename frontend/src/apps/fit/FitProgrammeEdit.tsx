@@ -97,7 +97,7 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
               <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
             </div>
           ) : active === 'split' ? (
-            <Section title="Split">
+            <Section title="Training split">
               <div className="flex flex-col gap-2.5">
                 {SPLITS.map(({ key, label }) => (
                   <Choice key={key} active={key === split} onClick={() => chooseSplit(key)}>{label}</Choice>
