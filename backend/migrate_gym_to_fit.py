@@ -49,6 +49,12 @@ MAPPING = {
     'Seated Triceps Press': None,
 }
 
+# The "Overhead Bar → Bar Pressdown" superset only splits reliably on lines
+# that used the comma (e.g. "12,7 x 24.8,18" → 12@24.8 overhead, 7@18
+# pressdown). Non-comma days can't be attributed to one movement or the other,
+# so for these two we import only comma-derived rows and drop the rest.
+COMMA_ONLY = {'Overhead Bar', 'Bar Pressdown'}
+
 
 def main(commit: bool):
     owner_email = (os.environ.get('GYM_OWNER_EMAIL') or '').strip().lower()
@@ -69,7 +75,8 @@ def main(commit: bool):
             sys.exit('Unmapped exercises in gym_sets (run resync_gym.py first?):\n  ' + '\n  '.join(unknown))
 
         rows = conn.execute(
-            'SELECT session_date, exercise, reps, weight_kg, is_warmup FROM gym_sets ORDER BY session_date, id'
+            'SELECT session_date, exercise, reps, weight_kg, is_warmup, raw_line '
+            'FROM gym_sets ORDER BY session_date, id'
         ).fetchall()
 
         by_date = {}
@@ -91,6 +98,10 @@ def main(commit: bool):
             for r in by_date[d]:
                 leaf = MAPPING[r['exercise']]
                 if leaf is None:
+                    skipped_sets += 1
+                    continue
+                # Split-pair exercises: keep only reliably-attributed comma rows.
+                if r['exercise'] in COMMA_ONLY and ',' not in (r['raw_line'] or ''):
                     skipped_sets += 1
                     continue
                 weight = None if not r['weight_kg'] else float(r['weight_kg'])
