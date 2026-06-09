@@ -133,11 +133,14 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
   );
 }
 
+// The content column centers this block vertically. Only the children are
+// centered; the title floats 2rem above them (absolute, out of flow) so it
+// stays attached to the content rather than shifting the whole block down.
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div>
-      <h2 className="text-center text-lg font-semibold text-slate-100">{title}</h2>
-      <div className="mt-8">{children}</div>
+    <div className="relative">
+      <h2 className="absolute inset-x-0 bottom-full mb-8 text-center text-lg font-semibold text-slate-100">{title}</h2>
+      {children}
     </div>
   );
 }
