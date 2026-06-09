@@ -30,8 +30,8 @@ export function FitAccueil() {
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col items-center px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center">
       {stats && (
         <div className="mt-6 flex w-full max-w-[24rem] gap-4">
-          <Stat value={stats.sessions_this_year} label={`séance${stats.sessions_this_year > 1 ? 's' : ''} en ${year}`} />
-          <Stat value={stats.work_sets_this_year} label={`série${stats.work_sets_this_year > 1 ? 's' : ''} de travail`} />
+          <Stat value={stats.sessions_this_year} label={`Séances en ${year}`} />
+          <Stat value={stats.work_sets_this_year} label="Séries de travail" />
         </div>
       )}
 
@@ -50,7 +50,7 @@ export function FitAccueil() {
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5">
-      <span className="text-sm font-medium text-slate-400">{label}</span>
+      <span className="text-base font-medium text-white">{label}</span>
       <span className="mt-1 text-4xl font-semibold text-emerald-400 tabular-nums">{value}</span>
     </div>
   );
