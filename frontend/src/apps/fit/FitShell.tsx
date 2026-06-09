@@ -24,9 +24,9 @@ export function FitShell({ title, question, counter, onBack, footer, children }:
         <button
           type="button"
           onClick={onBack}
-          className="self-start inline-flex items-center gap-2 py-1 text-slate-300 transition-colors hover:text-white"
+          className="self-start inline-flex items-center gap-1.5 py-1 text-xs text-slate-300 transition-colors hover:text-white"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-4 w-4" />
           <span>Précédent</span>
         </button>
       )}
