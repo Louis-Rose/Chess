@@ -19,7 +19,7 @@ const TABS: FitTab[] = [
   { key: 'principes', label: 'Principes', Icon: BookOpen },
   { key: 'programme', label: 'Programme', Icon: Dumbbell },
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
-  { key: 'performances', label: 'Performances', Icon: TrendingUp },
+  { key: 'performances', label: 'Suivi', Icon: TrendingUp },
 ];
 
 export function FitApp() {

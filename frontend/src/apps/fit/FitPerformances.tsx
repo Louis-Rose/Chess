@@ -41,7 +41,7 @@ export function FitPerformances() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <h1 className="text-center text-2xl font-semibold">Performances</h1>
+      <h1 className="text-center text-2xl font-semibold">Suivi</h1>
 
       {loading ? (
         <div className="mt-10 flex justify-center">
