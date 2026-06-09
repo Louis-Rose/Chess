@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, Dumbbell, Home, TrendingUp } from 'lucide-react';
+import { BookOpen, CalendarDays, Dumbbell, Home, TrendingUp } from 'lucide-react';
 import { FitAccueil } from './FitAccueil';
 import { FitCalendrier } from './FitCalendrier';
 import { FitPerformances } from './FitPerformances';
+import { FitPrincipes } from './FitPrincipes';
 import { FitBottomNav, type FitTab } from './FitBottomNav';
 import { FitHeader } from './FitHeader';
 import { FitProgramme } from './FitProgramme';
@@ -18,6 +19,7 @@ const TABS: FitTab[] = [
   { key: 'programme', label: 'Programme', Icon: Dumbbell },
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
   { key: 'performances', label: 'Performances', Icon: TrendingUp },
+  { key: 'principes', label: 'Principes', Icon: BookOpen },
 ];
 
 export function FitApp() {
@@ -53,6 +55,8 @@ function FitAppInner() {
           <FitCalendrier />
         ) : active === 'performances' ? (
           <FitPerformances />
+        ) : active === 'principes' ? (
+          <FitPrincipes />
         ) : (
           <div className="flex min-h-[calc(100dvh-3.5rem-1px)] flex-col items-center justify-center px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-center">
             <h1 className="text-2xl font-semibold">{current.label}</h1>
