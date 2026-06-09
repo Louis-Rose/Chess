@@ -56,16 +56,19 @@ export function FitAccueil() {
             </div>
           </div>
           {stats.days_since_last_session != null && (
-            <button
-              type="button"
-              onClick={() => setLastDone(true)}
-              className="relative mt-4 block w-full rounded-2xl border border-slate-700 p-4 transition-colors active:bg-slate-800/40"
-            >
-              <div className="mx-auto w-1/2">
-                <Stat value={stats.days_since_last_session} label="Jours depuis la dernière séance" />
-              </div>
-              <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-            </button>
+            <div className="mt-4 rounded-2xl border border-slate-700 p-4">
+              <button
+                type="button"
+                onClick={() => setLastDone(true)}
+                className="relative block w-1/2 rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
+              >
+                <span className="block text-base font-medium text-white">Jours depuis la dernière séance</span>
+                <span className="mt-1 block text-4xl font-semibold tabular-nums text-emerald-400">
+                  {stats.days_since_last_session}
+                </span>
+                <ChevronRight className="absolute bottom-2 right-2 h-5 w-5 text-slate-500" />
+              </button>
+            </div>
           )}
         </div>
       )}
