@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, LineChart } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -22,10 +22,10 @@ export function StocksSidebar({ tab, onTab }: { tab: StocksTab; onTab: (t: Stock
   return (
     <div className="flex w-56 2xl:w-64 bg-slate-900 h-screen flex-col flex-shrink-0 border-r border-slate-800 sticky top-0">
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-0.5">
-        <div className="flex items-center gap-2 px-3 py-2 mb-1">
+        <Link to="/" className="flex items-center gap-2 px-3 py-2 mb-1 rounded-lg hover:bg-slate-800 transition-colors">
           <LineChart className="w-6 h-6 text-emerald-400" />
           <span className="text-lg font-semibold text-white">Stocks</span>
-        </div>
+        </Link>
 
         <div className="h-px bg-slate-700 my-1.5" />
 

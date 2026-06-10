@@ -30,7 +30,7 @@ function ResponsiveTitle() {
 
 export function LumnaBrand({ hideSubtitle }: { hideSubtitle?: boolean } = {}) {
   return (
-    <Link to="/chess/app" className="flex flex-col items-center hover:opacity-80 transition-opacity">
+    <Link to="/" className="flex flex-col items-center hover:opacity-80 transition-opacity">
       <div className="relative flex items-center">
         <LumnaLogo className="w-9 h-9 absolute -left-11" />
         <span className="text-2xl font-bold text-white tracking-wide">LUMNA</span>
