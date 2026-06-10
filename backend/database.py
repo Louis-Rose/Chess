@@ -455,3 +455,56 @@ def init_db():
             """)
             conn.execute("CREATE INDEX idx_messages_receiver_student ON messages(receiver_student_id)")
             logger.info("Added receiver_student_id column to messages")
+
+        # Migration: Music memory-trace tables, written by the standalone
+        # "my-music" Spotify tracker daemon and read by the public /music page.
+        # Media metadata (artists/albums/tracks) is separated from the
+        # append-only interaction log (music_plays). This is the single source
+        # of truth for the schema; the daemon only writes rows, never DDL.
+        if not _table_exists(conn, 'music_plays'):
+            conn.execute("""
+                CREATE TABLE music_artists (
+                    id          TEXT PRIMARY KEY,
+                    name        TEXT NOT NULL,
+                    first_seen  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE music_albums (
+                    id            TEXT PRIMARY KEY,
+                    name          TEXT NOT NULL,
+                    release_date  TEXT,
+                    image_url     TEXT,
+                    first_seen    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE music_tracks (
+                    id           TEXT PRIMARY KEY,
+                    name         TEXT NOT NULL,
+                    album_id     TEXT REFERENCES music_albums(id),
+                    duration_ms  INTEGER NOT NULL,
+                    first_seen   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE music_track_artists (
+                    track_id   TEXT NOT NULL REFERENCES music_tracks(id),
+                    artist_id  TEXT NOT NULL REFERENCES music_artists(id),
+                    PRIMARY KEY (track_id, artist_id)
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE music_plays (
+                    id                SERIAL PRIMARY KEY,
+                    track_id          TEXT NOT NULL REFERENCES music_tracks(id),
+                    played_at         TIMESTAMP NOT NULL,
+                    ended_at          TIMESTAMP NOT NULL,
+                    ms_played         INTEGER NOT NULL,
+                    completion_pct    REAL NOT NULL,
+                    committed_reason  TEXT NOT NULL
+                )
+            """)
+            conn.execute("CREATE INDEX idx_music_plays_played_at ON music_plays(played_at)")
+            conn.execute("CREATE INDEX idx_music_plays_track ON music_plays(track_id)")
+            logger.info("Created music_* tables")

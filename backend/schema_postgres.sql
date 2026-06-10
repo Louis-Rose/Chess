@@ -275,7 +275,49 @@ CREATE TABLE IF NOT EXISTS api_usage (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Music memory trace (written by the my-music Spotify tracker daemon, read by
+-- the public /music page). Media metadata is separated from the play log.
+CREATE TABLE IF NOT EXISTS music_artists (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    first_seen  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS music_albums (
+    id            TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    release_date  TEXT,
+    image_url     TEXT,
+    first_seen    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS music_tracks (
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    album_id     TEXT REFERENCES music_albums(id),
+    duration_ms  INTEGER NOT NULL,
+    first_seen   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS music_track_artists (
+    track_id   TEXT NOT NULL REFERENCES music_tracks(id),
+    artist_id  TEXT NOT NULL REFERENCES music_artists(id),
+    PRIMARY KEY (track_id, artist_id)
+);
+
+CREATE TABLE IF NOT EXISTS music_plays (
+    id                SERIAL PRIMARY KEY,
+    track_id          TEXT NOT NULL REFERENCES music_tracks(id),
+    played_at         TIMESTAMP NOT NULL,
+    ended_at          TIMESTAMP NOT NULL,
+    ms_played         INTEGER NOT NULL,
+    completion_pct    REAL NOT NULL,
+    committed_reason  TEXT NOT NULL
+);
+
 -- Indexes
+CREATE INDEX IF NOT EXISTS idx_music_plays_played_at ON music_plays(played_at);
+CREATE INDEX IF NOT EXISTS idx_music_plays_track ON music_plays(track_id);
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);

@@ -1,0 +1,6 @@
+# My Music — Spotify playback tracker daemon
+# Minimal dependency footprint so it runs comfortably on a small Azure VM.
+
+requests==2.32.3          # HTTP client for the Spotify Web API
+python-dotenv==1.0.1      # Loads configuration / secrets from a .env file
+psycopg2-binary==2.9.10   # PostgreSQL driver (writes into LUMNA's shared DB)

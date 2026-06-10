@@ -1,0 +1,42 @@
+# systemd unit for the My Music tracker daemon.
+#
+# Install on the Azure VM:
+#   sudo cp my-music.service /etc/systemd/system/my-music.service
+#   # edit the User= and paths below to match your VM, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now my-music.service
+#
+# Inspect:
+#   systemctl status my-music
+#   journalctl -u my-music -f          # live logs
+
+[Unit]
+Description=My Music — Spotify playback tracker daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# --- EDIT THESE to match your VM ---------------------------------------------
+User=azureuser
+WorkingDirectory=/home/azureuser/my-music
+ExecStart=/home/azureuser/my-music/.venv/bin/python /home/azureuser/my-music/tracker.py
+# -----------------------------------------------------------------------------
+
+# Restart automatically if the process ever exits unexpectedly.
+Restart=always
+RestartSec=10
+
+# Send a clean SIGTERM on stop so the daemon can finalize the current track.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# Modest hardening — this daemon needs almost no system access.
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/azureuser/my-music
+
+[Install]
+WantedBy=multi-user.target

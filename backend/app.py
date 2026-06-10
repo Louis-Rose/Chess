@@ -38,6 +38,7 @@ from blueprints.stocks import stocks_bp
 from blueprints.chess import chess_bp
 from blueprints.contact import contact_bp
 from blueprints.demo_gate import demo_gate_bp
+from blueprints.music import music_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(coaches_bp)
 app.register_blueprint(admin_bp)
@@ -48,6 +49,7 @@ app.register_blueprint(stocks_bp)
 app.register_blueprint(chess_bp)
 app.register_blueprint(contact_bp)
 app.register_blueprint(demo_gate_bp)
+app.register_blueprint(music_bp)
 
 migrate_upload_filenames()
 
