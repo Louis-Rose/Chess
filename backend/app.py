@@ -34,7 +34,6 @@ from blueprints.admin import admin_bp
 from blueprints.knowledge import knowledge_bp
 from blueprints.gym import gym_bp
 from blueprints.fit import fit_bp
-from blueprints.stocks import stocks_bp
 from blueprints.chess import chess_bp
 from blueprints.contact import contact_bp
 from blueprints.demo_gate import demo_gate_bp
@@ -45,7 +44,6 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(knowledge_bp)
 app.register_blueprint(gym_bp)
 app.register_blueprint(fit_bp)
-app.register_blueprint(stocks_bp)
 app.register_blueprint(chess_bp)
 app.register_blueprint(contact_bp)
 app.register_blueprint(demo_gate_bp)

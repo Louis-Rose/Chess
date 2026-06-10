@@ -12,7 +12,6 @@ import { DemoGate } from './components/DemoGate';
 
 const ChessCoachesApp = lazy(() => import('./apps/chesscoaches/ChessCoachesApp').then(m => ({ default: m.ChessCoachesApp })));
 const FitApp = lazy(() => import('./apps/fit/FitApp').then(m => ({ default: m.FitApp })));
-const StocksApp = lazy(() => import('./apps/stocks/StocksApp').then(m => ({ default: m.StocksApp })));
 const MusicApp = lazy(() => import('./apps/music/MusicApp').then(m => ({ default: m.MusicApp })));
 const ChessApp = lazy(() => import('./apps/chess/ChessApp').then(m => ({ default: m.ChessApp })));
 const FideApp = lazy(() => import('./apps/fide/FideApp').then(m => ({ default: m.FideApp })));
@@ -46,7 +45,6 @@ function App() {
         <Route path="/invite/*" element={<InvitePage />} />
         <Route path="/waitlist" element={<WaitlistPage />} />
         <Route path="/fit/*" element={<FitApp />} />
-        <Route path="/stocks/*" element={<StocksApp />} />
         <Route path="/music/*" element={<MusicApp />} />
         <Route path="/chess/stats/*" element={<ChessApp />} />
         <Route path="/blitzcrewrankings/*" element={<FideApp />} />
