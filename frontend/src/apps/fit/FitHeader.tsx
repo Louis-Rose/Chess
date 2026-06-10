@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Dumbbell, LogOut } from 'lucide-react';
 import { useFitAuth } from './fitAuth';
 
@@ -63,13 +64,18 @@ export function FitHeader() {
           )}
         </div>
 
-        {/* App name centered; dumbbell sits just to its left without affecting centering */}
-        <div className="pointer-events-none absolute left-1/2 -translate-x-1/2">
+        {/* App name centered; dumbbell sits just to its left without affecting centering.
+            Clicking it returns to the LUMNA app chooser. */}
+        <Link
+          to="/"
+          aria-label="LUMNA home"
+          className="absolute left-1/2 -translate-x-1/2"
+        >
           <span className="relative text-lg font-bold tracking-wide">
             <Dumbbell className="absolute right-full top-1/2 mr-2 h-6 w-6 -translate-y-1/2 text-emerald-400" strokeWidth={2} />
             LUMNA
           </span>
-        </div>
+        </Link>
       </div>
     </header>
   );
