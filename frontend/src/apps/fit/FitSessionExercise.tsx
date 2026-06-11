@@ -30,12 +30,26 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   const [warmup, setWarmup] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);  // set being edited, else adding a new one
+  const [adding, setAdding] = useState(false);                      // add form opened via "Ajouter une série"
+
+  // The input form is only shown on demand: tapping "Ajouter une série" (add)
+  // or tapping a logged set (edit). Otherwise just the button is visible.
+  const formVisible = adding || editingId != null;
 
   const repsNum = parseInt(reps, 10);
   const weightNum = weight.trim() === '' ? null : parseFloat(weight.replace(',', '.'));
   const valid = Number.isFinite(repsNum) && repsNum > 0 && (weightNum === null || Number.isFinite(weightNum));
 
+  function openAdd() {
+    setEditingId(null);
+    setWeight('');
+    setReps('');
+    setWarmup(false);
+    setAdding(true);
+  }
+
   function startEdit(s: LoggedSet) {
+    setAdding(false);
     setEditingId(s.id);
     setReps(String(s.reps));
     setWeight(s.weight == null ? '' : String(s.weight));
@@ -44,6 +58,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   function reset() {
     setEditingId(null);
+    setAdding(false);
     setWeight('');
     setReps('');
   }
@@ -101,60 +116,73 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         </ul>
       )}
 
-      <div className="mx-auto mt-3 grid w-64 grid-cols-2 rounded-lg border border-slate-700 p-0.5 text-sm">
-        {([[true, 'Échauffement'], [false, 'Travail']] as const).map(([w, label]) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => setWarmup(w)}
-            className={`rounded-md py-1.5 font-medium transition-colors ${
-              warmup === w ? 'bg-emerald-600 text-white' : 'text-slate-400 active:text-slate-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {formVisible ? (
+        <>
+          <div className="mx-auto mt-3 grid w-64 grid-cols-2 rounded-lg border border-slate-700 p-0.5 text-sm">
+            {([[true, 'Échauffement'], [false, 'Travail']] as const).map(([w, label]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setWarmup(w)}
+                className={`rounded-md py-1.5 font-medium transition-colors ${
+                  warmup === w ? 'bg-emerald-600 text-white' : 'text-slate-400 active:text-slate-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-      <div className="mt-3 flex items-end gap-2">
-        <label className="flex-1 text-center text-xs text-slate-100">
-          Répétitions
-          <input
-            value={reps}
-            onChange={e => setReps(e.target.value)}
-            inputMode="numeric"
-            className={`mt-1 ${inputClass}`}
-          />
-        </label>
-        <label className="flex-1 text-center text-xs text-slate-100">
-          Poids (kg)
-          <input
-            value={weight}
-            onChange={e => setWeight(e.target.value)}
-            inputMode="decimal"
-            className={`mt-1 ${inputClass}`}
-          />
-        </label>
-        {editingId != null && (
+          <div className="mt-3 flex items-end gap-2">
+            <label className="flex-1 text-center text-xs text-slate-100">
+              Répétitions
+              <input
+                value={reps}
+                onChange={e => setReps(e.target.value)}
+                inputMode="numeric"
+                className={`mt-1 ${inputClass}`}
+              />
+            </label>
+            <label className="flex-1 text-center text-xs text-slate-100">
+              Poids (kg)
+              <input
+                value={weight}
+                onChange={e => setWeight(e.target.value)}
+                inputMode="decimal"
+                className={`mt-1 ${inputClass}`}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={reset}
+              aria-label="Annuler"
+              className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-700 text-slate-300 transition-colors active:bg-slate-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!valid || saving}
+              aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
+              className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
+            >
+              {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="mt-3 flex justify-center">
           <button
             type="button"
-            onClick={reset}
-            aria-label="Annuler la modification"
-            className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-700 text-slate-300 transition-colors active:bg-slate-800"
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
           >
-            <X className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
+            Ajouter une série
           </button>
-        )}
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!valid || saving}
-          aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
-          className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
-        >
-          {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
