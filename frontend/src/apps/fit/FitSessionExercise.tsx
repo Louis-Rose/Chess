@@ -152,6 +152,15 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                 className={`mt-1 ${inputClass}`}
               />
             </label>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!valid || saving}
+              aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
+              className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
+            >
+              {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+            </button>
             {editingId != null && (
               <button
                 type="button"
@@ -162,15 +171,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                 <X className="h-5 w-5" />
               </button>
             )}
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!valid || saving}
-              aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
-              className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
-            >
-              {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-            </button>
           </div>
         </>
       ) : (
