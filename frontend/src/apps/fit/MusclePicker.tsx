@@ -1,29 +1,29 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { MUSCLES, variantId } from './programData';
+import { variantId, type Exercise } from './programData';
 
-// The exercise multi-select for a single muscle group: leaf exercises plus
-// expandable variant groups. Pure UI — the parent owns the selection list and
-// reacts to onToggle. Shared by the create wizard (FitExercises) and the
-// tabbed program editor (FitProgrammeEdit). Key it by muscle name so its
-// expand state resets when the muscle changes.
-
-type Muscle = (typeof MUSCLES)[number];
+// The exercise multi-select for one list of exercises: leaf exercises plus
+// expandable variant groups, with a green halo on the selected ones. Pure UI —
+// the parent owns the selection list and reacts to onToggle. Shared by the
+// program create wizard (FitExercises), the tabbed program editor
+// (FitProgrammeEdit) and the in-session "Ajouter un exercice" picker
+// (FitExercisePicker). Key it so its expand state resets when the list changes.
 
 const cardBase = 'flex items-center justify-center rounded-xl border px-4 py-3.5 text-center transition-colors';
 const cardOn = 'border-emerald-500 bg-emerald-500/10';
 const cardOff = 'border-slate-700 bg-slate-800/50 active:bg-slate-800';
 
-export function MusclePicker({ muscle, selected, onToggle }: {
-  muscle: Muscle;
+export function MusclePicker({ exercises, selected, onToggle, ariaLabel }: {
+  exercises: Exercise[];
   selected: string[];
   onToggle: (id: string) => void;
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   return (
-    <div className="mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={`Exercices ${muscle.name}`}>
-      {muscle.exercises.map(ex => {
+    <div className="mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={ariaLabel}>
+      {exercises.map(ex => {
         // Leaf exercise.
         if (typeof ex === 'string') {
           const isActive = selected.includes(ex);

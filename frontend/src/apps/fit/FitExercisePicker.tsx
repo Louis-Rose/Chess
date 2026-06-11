@@ -1,9 +1,12 @@
 import { X } from 'lucide-react';
-import { MUSCLE_ORDER, MUSCLE_LEAVES, leafLabel, sortLabels } from './programData';
+import { MUSCLE_ORDER, MUSCLE_LEAVES, groupExercises, sortLabels, type Exercise } from './programData';
+import { MusclePicker } from './MusclePicker';
 
 // Full-screen "Ajouter un exercice" picker, shared by the new-session flow
-// (FitSession) and the session editor (FitSessionDetail). Lists the program's
-// still-valid leaves, grouped by muscle, minus the ones already added.
+// (FitSession) and the session editor (FitSessionDetail). Same UI as the
+// Programme exercise step: per-muscle cards with expandable variants and a
+// green halo on the exercises already in the session. Tapping a leaf/variant
+// adds it (onPick); it only lists the program's still-valid exercises.
 
 export function FitExercisePicker({ program, added, onPick, onClose }: {
   program: Record<string, string[]>;
@@ -11,12 +14,15 @@ export function FitExercisePicker({ program, added, onPick, onClose }: {
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
+  const selected = [...added];
   const groups = MUSCLE_ORDER
-    .map(name => ({
-      name,
-      leaves: sortLabels((program[name] ?? []).filter(ex => MUSCLE_LEAVES[name]?.has(ex) && !added.has(ex))),
-    }))
-    .filter(g => g.leaves.length > 0);
+    .map(name => {
+      const leaves = sortLabels((program[name] ?? []).filter(ex => MUSCLE_LEAVES[name]?.has(ex)));
+      const exercises: Exercise[] = groupExercises(leaves).map(g =>
+        g.variants.length === 0 ? g.name : { name: g.name, variants: [g.variants] });
+      return { name, exercises };
+    })
+    .filter(g => g.exercises.length > 0);
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col bg-slate-900 text-slate-100">
@@ -37,17 +43,13 @@ export function FitExercisePicker({ program, added, onPick, onClose }: {
             {groups.map(g => (
               <section key={g.name}>
                 <h3 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.name}</h3>
-                <div className="mt-2 flex flex-col gap-2">
-                  {g.leaves.map(leaf => (
-                    <button
-                      key={leaf}
-                      type="button"
-                      onClick={() => onPick(leaf)}
-                      className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-center font-medium text-slate-100 transition-colors active:bg-slate-800"
-                    >
-                      {leafLabel(leaf)}
-                    </button>
-                  ))}
+                <div className="mt-2">
+                  <MusclePicker
+                    exercises={g.exercises}
+                    ariaLabel={`Exercices ${g.name}`}
+                    selected={selected}
+                    onToggle={onPick}
+                  />
                 </div>
               </section>
             ))}

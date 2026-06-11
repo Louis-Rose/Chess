@@ -119,7 +119,8 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
                 return (
                   <MusclePicker
                     key={muscle.name}
-                    muscle={muscle}
+                    exercises={muscle.exercises}
+                    ariaLabel={`Exercices ${muscle.name}`}
                     selected={selections[muscle.name] ?? []}
                     onToggle={id => toggleExercise(muscle.name, id)}
                   />

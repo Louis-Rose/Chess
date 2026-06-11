@@ -64,7 +64,7 @@ export function FitExercises({ onDone, onBack }: { onDone: () => void; onBack: (
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>
       ) : (
-        <MusclePicker key={muscle.name} muscle={muscle} selected={selected} onToggle={toggle} />
+        <MusclePicker key={muscle.name} exercises={muscle.exercises} ariaLabel={`Exercices ${muscle.name}`} selected={selected} onToggle={toggle} />
       )}
     </FitShell>
   );
