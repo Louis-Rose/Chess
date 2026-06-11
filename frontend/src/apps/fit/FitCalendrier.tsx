@@ -115,7 +115,7 @@ export function FitCalendrier() {
     fitRequest(() => axios.delete(`/api/fit/sessions/${id}`)).catch(() => { /* best effort */ });
   };
 
-  if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} />;
+  if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
