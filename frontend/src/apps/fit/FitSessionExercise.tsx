@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Check, Plus, X } from 'lucide-react';
 import { leafLabel } from './programData';
 import { formatSet } from './format';
 
-// One exercise card inside a session: its logged sets plus an inline form to
-// add the next set (poids + répétitions). Weight is optional (bodyweight).
-// Each set is either a warmup (échauffement) or a working set (travail);
-// warmup sets are shown in parentheses and don't count in the set numbering.
+// One exercise card inside a session: its logged sets plus a form to add the
+// next set (poids + répétitions). Weight is optional (bodyweight). Each set is
+// either a warmup (échauffement) or a working set (travail); warmup sets are
+// shown in parentheses and don't count in the set numbering.
+// Tapping a logged set loads it into the same form to edit it in place.
 
 export interface LoggedSet {
   id: number;
@@ -19,26 +20,41 @@ interface Props {
   exercise: string;                                       // stored leaf
   sets: LoggedSet[];
   onAddSet: (weight: number | null, reps: number, warmup: boolean) => Promise<void>;
+  onUpdateSet: (setId: number, weight: number | null, reps: number, warmup: boolean) => Promise<void>;
   onDeleteSet: (setId: number) => void;
 }
 
-export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [warmup, setWarmup] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);  // set being edited, else adding a new one
 
   const repsNum = parseInt(reps, 10);
   const weightNum = weight.trim() === '' ? null : parseFloat(weight.replace(',', '.'));
   const valid = Number.isFinite(repsNum) && repsNum > 0 && (weightNum === null || Number.isFinite(weightNum));
 
-  async function add() {
+  function startEdit(s: LoggedSet) {
+    setEditingId(s.id);
+    setReps(String(s.reps));
+    setWeight(s.weight == null ? '' : String(s.weight));
+    setWarmup(s.warmup);
+  }
+
+  function reset() {
+    setEditingId(null);
+    setWeight('');
+    setReps('');
+  }
+
+  async function submit() {
     if (!valid || saving) return;
     setSaving(true);
     try {
-      await onAddSet(weightNum, repsNum, warmup);
-      setWeight('');
-      setReps('');
+      if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, warmup);
+      else await onAddSet(weightNum, repsNum, warmup);
+      reset();
     } finally {
       setSaving(false);
     }
@@ -58,15 +74,20 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
         <ul className="mt-3 flex flex-col gap-1.5">
           {sets.map(s => {
             const num = s.warmup ? null : ++workIdx;
+            const isEditing = editingId === s.id;
             return (
-              <li key={s.id} className="flex items-center justify-between text-sm text-slate-200">
-                <span className={s.warmup ? 'text-slate-400' : undefined}>
-                  <span className="text-slate-500">{num != null ? `${num}.` : '·'}</span>{' '}
-                  {formatSet(s.weight, s.reps, s.warmup)}
-                </span>
+              <li key={s.id} className="flex items-center justify-between gap-2 text-sm text-slate-200">
                 <button
                   type="button"
-                  onClick={() => onDeleteSet(s.id)}
+                  onClick={() => startEdit(s)}
+                  className={`flex-1 text-left transition-colors ${isEditing ? 'text-emerald-400' : s.warmup ? 'text-slate-400' : ''}`}
+                >
+                  <span className="text-slate-500">{num != null ? `${num}.` : '·'}</span>{' '}
+                  {formatSet(s.weight, s.reps, s.warmup)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (editingId === s.id) reset(); onDeleteSet(s.id); }}
                   aria-label="Supprimer la série"
                   className="rounded p-1 text-slate-500 transition-colors active:text-red-400"
                 >
@@ -112,14 +133,24 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onDeleteSet }: Pr
             className={`mt-1 ${inputClass}`}
           />
         </label>
+        {editingId != null && (
+          <button
+            type="button"
+            onClick={reset}
+            aria-label="Annuler la modification"
+            className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-700 text-slate-300 transition-colors active:bg-slate-800"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
         <button
           type="button"
-          onClick={add}
+          onClick={submit}
           disabled={!valid || saving}
-          aria-label="Ajouter la série"
+          aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
           className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
         >
-          <Plus className="h-5 w-5" />
+          {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
         </button>
       </div>
     </div>

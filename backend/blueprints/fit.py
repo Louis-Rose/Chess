@@ -347,6 +347,17 @@ def delete_session(session_id):
     return jsonify({'ok': True})
 
 
+def _validate_set_values(reps, weight):
+    """Shared reps/weight validation for logging and editing a set. Returns an
+    error message, or None when the values are valid."""
+    if not isinstance(reps, int) or isinstance(reps, bool) or not 1 <= reps <= 1000:
+        return 'Invalid reps'
+    if weight is not None:
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not 0 <= weight <= 1000:
+            return 'Invalid weight'
+    return None
+
+
 @fit_bp.route('/api/fit/sessions/<int:session_id>/sets', methods=['POST'])
 @fit_login_required
 def add_session_set(session_id):
@@ -358,11 +369,9 @@ def add_session_set(session_id):
     warmup = bool(data.get('warmup'))
     if exercise not in ALL_EXERCISES:
         return jsonify({'error': 'Invalid exercise'}), 400
-    if not isinstance(reps, int) or isinstance(reps, bool) or not 1 <= reps <= 1000:
-        return jsonify({'error': 'Invalid reps'}), 400
-    if weight is not None:
-        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not 0 <= weight <= 1000:
-            return jsonify({'error': 'Invalid weight'}), 400
+    err = _validate_set_values(reps, weight)
+    if err:
+        return jsonify({'error': err}), 400
 
     with get_db() as conn:
         if not _owned_session(conn, session_id):
@@ -372,6 +381,30 @@ def add_session_set(session_id):
             (session_id, exercise, weight, reps, warmup)
         ).fetchone()
     return jsonify({'id': row['id'], 'exercise': exercise, 'weight': weight, 'reps': reps, 'warmup': warmup})
+
+
+@fit_bp.route('/api/fit/sessions/<int:session_id>/sets/<int:set_id>', methods=['PATCH'])
+@fit_login_required
+def update_session_set(session_id, set_id):
+    """Edit an existing set's weight, reps and warmup flag in place."""
+    data = request.get_json(silent=True) or {}
+    weight = data.get('weight')
+    reps = data.get('reps')
+    warmup = bool(data.get('warmup'))
+    err = _validate_set_values(reps, weight)
+    if err:
+        return jsonify({'error': err}), 400
+
+    with get_db() as conn:
+        if not _owned_session(conn, session_id):
+            return jsonify({'error': 'Not found'}), 404
+        row = conn.execute(
+            'UPDATE fit_session_sets SET weight = ?, reps = ?, warmup = ? WHERE id = ? AND session_id = ? RETURNING id',
+            (weight, reps, warmup, set_id, session_id)
+        ).fetchone()
+        if not row:
+            return jsonify({'error': 'Not found'}), 404
+    return jsonify({'id': set_id, 'weight': weight, 'reps': reps, 'warmup': warmup})
 
 
 @fit_bp.route('/api/fit/sessions/<int:session_id>/sets/<int:set_id>', methods=['DELETE'])

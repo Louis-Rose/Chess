@@ -82,6 +82,12 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
     setSession(prev => prev && { ...prev, sets: [...prev.sets, res.data] });
   }
 
+  async function updateSet(setId: number, weight: number | null, reps: number, warmup: boolean) {
+    await fitRequest(() =>
+      axios.patch(`/api/fit/sessions/${sessionId}/sets/${setId}`, { weight, reps, warmup }));
+    setSession(prev => prev && { ...prev, sets: prev.sets.map(s => s.id === setId ? { ...s, weight, reps, warmup } : s) });
+  }
+
   function deleteSet(setId: number) {
     fitRequest(() => axios.delete(`/api/fit/sessions/${sessionId}/sets/${setId}`)).catch(() => {});
     setSession(prev => prev && { ...prev, sets: prev.sets.filter(s => s.id !== setId) });
@@ -127,6 +133,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
             exercise={editing}
             sets={sets}
             onAddSet={(w, r, warmup) => addSet(editing, w, r, warmup)}
+            onUpdateSet={updateSet}
             onDeleteSet={deleteSet}
           />
         </div>
