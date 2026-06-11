@@ -56,6 +56,11 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
 
   if (historyBase != null) return <FitExerciseHistory base={historyBase} onBack={() => setHistoryBase(null)} />;
 
+  // The most recent execution across all exercises = the last session date.
+  const minDays = Object.values(baseInfo).reduce<number | undefined>(
+    (m, i) => (m == null || i.days < m ? i.days : m), undefined);
+  const title = minDays != null ? lastDoneLabel(minDays) : 'Dernière fois';
+
   const groups = MUSCLE_ORDER
     .map(m => {
       const valid = (selections[m] ?? []).filter(l => MUSCLE_LEAVES[m]?.has(l));
@@ -74,7 +79,7 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
         <span>Précédent</span>
       </button>
 
-      <h1 className="mt-4 text-center text-2xl font-semibold">Dernière fois</h1>
+      <h1 className="mt-4 text-center text-2xl font-semibold capitalize">{title}</h1>
 
       {loading ? (
         <div className="mt-10 flex justify-center">
