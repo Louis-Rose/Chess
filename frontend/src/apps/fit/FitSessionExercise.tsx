@@ -117,8 +117,8 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       )}
 
       {formVisible ? (
-        <>
-          <div className="mx-auto mt-3 grid w-64 grid-cols-2 rounded-lg border border-slate-700 p-0.5 text-sm">
+        <div className="mt-3 rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-3">
+          <div className="mx-auto grid w-64 grid-cols-2 rounded-lg border border-slate-700 p-0.5 text-sm">
             {([[true, 'Échauffement'], [false, 'Travail']] as const).map(([w, label]) => (
               <button
                 key={label}
@@ -172,7 +172,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               </button>
             )}
           </div>
-        </>
+        </div>
       ) : (
         <div className="mt-3 flex justify-center">
           <button
