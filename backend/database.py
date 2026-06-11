@@ -432,6 +432,38 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('finalize_legacy_sessions',))
             logger.info("Finalized legacy in-progress fit sessions that had sets")
 
+        # One-off seed: give each exercise its first working weight from the most
+        # recent finished session where every working set was at the same weight.
+        # Runs once (guarded); afterwards the persisted value is the only source.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('seed_work_weights',)).fetchone():
+            conn.execute("""
+                WITH last_session AS (
+                    SELECT DISTINCT ON (s.user_id, ss.exercise)
+                           s.user_id, ss.exercise, ss.session_id
+                    FROM fit_session_sets ss
+                    JOIN fit_sessions s ON s.id = ss.session_id
+                    WHERE s.ended_at IS NOT NULL
+                    ORDER BY s.user_id, ss.exercise, s.started_at DESC
+                ),
+                agg AS (
+                    SELECT ls.user_id, ls.exercise,
+                           COUNT(*) FILTER (WHERE ss.warmup = FALSE) AS work_count,
+                           COUNT(*) FILTER (WHERE ss.warmup = FALSE AND ss.weight IS NOT NULL) AS weighted_count,
+                           COUNT(DISTINCT ss.weight) FILTER (WHERE ss.warmup = FALSE) AS distinct_weights,
+                           MAX(ss.weight) FILTER (WHERE ss.warmup = FALSE) AS weight
+                    FROM last_session ls
+                    JOIN fit_session_sets ss
+                      ON ss.session_id = ls.session_id AND ss.exercise = ls.exercise
+                    GROUP BY ls.user_id, ls.exercise
+                )
+                INSERT INTO fit_work_weights (user_id, exercise, weight)
+                SELECT user_id, exercise, weight FROM agg
+                WHERE work_count >= 1 AND weighted_count = work_count AND distinct_weights = 1
+                ON CONFLICT (user_id, exercise) DO NOTHING
+            """)
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('seed_work_weights',))
+            logger.info("Seeded initial fit working weights from uniform-weight history")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
