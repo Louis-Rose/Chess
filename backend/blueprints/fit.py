@@ -304,7 +304,19 @@ def create_session():
     the page never loses or validates it."""
     with get_db() as conn:
         row = _active_session(conn)
-        if not row:
+        if row:
+            # An active session with no sets is just an empty shell from an
+            # earlier start (e.g. started a few days ago and left). Treat it as a
+            # fresh session today rather than inheriting its old date.
+            has_sets = conn.execute(
+                'SELECT 1 FROM fit_session_sets WHERE session_id = ? LIMIT 1', (row['id'],)
+            ).fetchone()
+            if not has_sets:
+                conn.execute(
+                    'UPDATE fit_sessions SET started_at = CURRENT_TIMESTAMP WHERE id = ?', (row['id'],)
+                )
+                row = _owned_session(conn, row['id'])
+        else:
             row = conn.execute(
                 'INSERT INTO fit_sessions (user_id) VALUES (?) RETURNING id, started_at, ended_at',
                 (request.user_id,)
