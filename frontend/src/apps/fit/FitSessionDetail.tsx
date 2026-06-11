@@ -8,6 +8,7 @@ import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
 import { FitConfirm } from './FitConfirm';
+import { useWorkWeights } from './useWorkWeights';
 
 interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
 
@@ -64,6 +65,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
   const [picking, setPicking] = useState(false);
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const focusRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -182,6 +184,8 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
             onAddSet={(w, r, warmup) => askChange(() => addSet(editing, w, r, warmup))}
             onUpdateSet={(id, w, r, warmup) => askChange(() => updateSet(id, w, r, warmup))}
             onDeleteSet={confirmDeleteSet}
+            workWeight={workWeights[editing] ?? null}
+            onWorkWeightChange={w => saveWorkWeight(editing, w)}
           />
         </div>
         {sets.length > 0 && (

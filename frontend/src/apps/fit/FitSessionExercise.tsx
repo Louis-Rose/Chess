@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 import { leafLabel } from './programData';
 import { formatSet } from './format';
@@ -22,26 +22,28 @@ interface Props {
   onAddSet: (weight: number | null, reps: number, warmup: boolean) => Promise<void>;
   onUpdateSet: (setId: number, weight: number | null, reps: number, warmup: boolean) => Promise<void>;
   onDeleteSet: (setId: number) => void;
+  workWeight?: number | null;                             // persisted working weight, pre-fills new working sets
+  onWorkWeightChange?: (weight: number | null) => void;   // persist an edit to it
 }
 
-// The working weight to seed the editable field with: the last working set
-// already logged for this exercise in the current session (not from previous
-// sessions). Empty when there is none yet.
-function initialWorkWeight(sets: LoggedSet[]): string {
-  for (let i = sets.length - 1; i >= 0; i--) {
-    if (!sets[i].warmup && sets[i].weight != null) return String(sets[i].weight);
-  }
-  return '';
-}
-
-export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [warmup, setWarmup] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);  // set being edited, else adding a new one
   const [adding, setAdding] = useState(false);                      // add form opened via "Ajouter une série"
-  const [workWeight, setWorkWeight] = useState(() => initialWorkWeight(sets));  // editable, pre-fills new working sets
+  const [workWeightStr, setWorkWeightStr] = useState(workWeight != null ? String(workWeight) : '');
+
+  // Reflect the persisted value once it loads / changes (it's the source of truth).
+  useEffect(() => {
+    setWorkWeightStr(workWeight != null ? String(workWeight) : '');
+  }, [workWeight, exercise]);
+
+  function persistWorkWeight() {
+    const v = workWeightStr.trim() === '' ? null : parseFloat(workWeightStr);
+    onWorkWeightChange?.(v != null && Number.isFinite(v) ? v : null);
+  }
 
   // The input form is only shown on demand: tapping "Ajouter une série" (add)
   // or tapping a logged set (edit). Otherwise just the button is visible.
@@ -54,7 +56,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   function openAdd() {
     setEditingId(null);
     // Pre-fill a new working set with the editable working weight.
-    setWeight(workWeight);
+    setWeight(workWeightStr);
     setReps('');
     setWarmup(false);
     setAdding(true);
@@ -103,8 +105,9 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         <label htmlFor={`ww-${exercise}`} className="text-slate-400">Poids de travail</label>
         <input
           id={`ww-${exercise}`}
-          value={workWeight}
-          onChange={e => setWorkWeight(e.target.value.replace(',', '.'))}
+          value={workWeightStr}
+          onChange={e => setWorkWeightStr(e.target.value.replace(',', '.'))}
+          onBlur={persistWorkWeight}
           inputMode="decimal"
           placeholder="—"
           className="w-16 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1 text-center text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"

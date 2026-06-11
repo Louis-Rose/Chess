@@ -4,6 +4,7 @@ import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
+import { useWorkWeights } from './useWorkWeights';
 import { leafLabel } from './programData';
 import { formatShortDate } from './format';
 
@@ -42,6 +43,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [picking, setPicking] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);   // exercise being edited, else overview
+  const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
 
   useEffect(() => {
     // POST resumes the in-progress session if there is one (with its logged
@@ -124,6 +126,8 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               onAddSet={(w, r, warmup) => addSet(editingEntry.exercise, w, r, warmup)}
               onUpdateSet={(id, w, r, warmup) => updateSet(editingEntry.exercise, id, w, r, warmup)}
               onDeleteSet={id => deleteSet(editingEntry.exercise, id)}
+              workWeight={workWeights[editingEntry.exercise] ?? null}
+              onWorkWeightChange={w => saveWorkWeight(editingEntry.exercise, w)}
             />
           </div>
 

@@ -263,6 +263,43 @@ def update_exercises():
     return jsonify({'ok': True})
 
 
+@fit_bp.route('/api/fit/work-weights', methods=['GET'])
+@fit_login_required
+def get_work_weights():
+    """The user's persisted working weight per exercise ({exercise: weight})."""
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT exercise, weight FROM fit_work_weights WHERE user_id = ?', (request.user_id,)
+        ).fetchall()
+    return jsonify({'weights': {r['exercise']: r['weight'] for r in rows}})
+
+
+@fit_bp.route('/api/fit/work-weights', methods=['PUT'])
+@fit_login_required
+def set_work_weight():
+    """Upsert (or clear, when weight is null) the working weight of one exercise."""
+    data = request.get_json(silent=True) or {}
+    exercise = data.get('exercise')
+    weight = data.get('weight')
+    if exercise not in ALL_EXERCISES:
+        return jsonify({'error': 'Invalid exercise'}), 400
+    with get_db() as conn:
+        if weight is None:
+            conn.execute(
+                'DELETE FROM fit_work_weights WHERE user_id = ? AND exercise = ?',
+                (request.user_id, exercise)
+            )
+        else:
+            if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not 0 <= weight <= 1000:
+                return jsonify({'error': 'Invalid weight'}), 400
+            conn.execute(
+                """INSERT INTO fit_work_weights (user_id, exercise, weight) VALUES (?, ?, ?)
+                   ON CONFLICT (user_id, exercise) DO UPDATE SET weight = EXCLUDED.weight""",
+                (request.user_id, exercise, weight)
+            )
+    return jsonify({'ok': True})
+
+
 # ── Sessions (workout logging) ───────────────────────────────────────────────
 
 def _owned_session(conn, session_id):

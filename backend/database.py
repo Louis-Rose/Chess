@@ -402,6 +402,19 @@ def init_db():
             conn.execute("ALTER TABLE fit_session_sets ADD COLUMN warmup BOOLEAN NOT NULL DEFAULT FALSE")
             logger.info("Added fit_session_sets.warmup column")
 
+        # Migration: per-user working weight per exercise, persisted across
+        # sessions (pre-fills new working sets, stays editable).
+        if not _table_exists(conn, 'fit_work_weights'):
+            conn.execute("""
+                CREATE TABLE fit_work_weights (
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    exercise TEXT NOT NULL,
+                    weight REAL NOT NULL,
+                    PRIMARY KEY (user_id, exercise)
+                )
+            """)
+            logger.info("Created fit_work_weights table")
+
         # One-off backfill: an in-progress session is now one with ended_at IS NULL
         # (the Calendrier and stats only count finished sessions). Existing
         # sessions that already have logged sets predate that rule and were
