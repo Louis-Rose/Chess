@@ -124,7 +124,7 @@ export function FitCalendrier() {
   const [selected, setSelected] = useState<number | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
-  const [period, setPeriod] = useState<Period>('tout');
+  const [period, setPeriod] = useState<Period>('mois');
 
   useEffect(() => {
     fitRequest(() => axios.get<{ sessions: SessionSummary[] }>('/api/fit/sessions'))
