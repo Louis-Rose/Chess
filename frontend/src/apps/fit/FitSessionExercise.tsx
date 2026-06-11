@@ -152,14 +152,16 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                 className={`mt-1 ${inputClass}`}
               />
             </label>
-            <button
-              type="button"
-              onClick={reset}
-              aria-label="Annuler"
-              className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-700 text-slate-300 transition-colors active:bg-slate-800"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            {editingId != null && (
+              <button
+                type="button"
+                onClick={reset}
+                aria-label="Annuler la modification"
+                className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-700 text-slate-300 transition-colors active:bg-slate-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
             <button
               type="button"
               onClick={submit}
