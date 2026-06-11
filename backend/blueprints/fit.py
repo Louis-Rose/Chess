@@ -336,6 +336,17 @@ def get_session(session_id):
         return jsonify(_session_payload(conn, row))
 
 
+@fit_bp.route('/api/fit/sessions/<int:session_id>', methods=['DELETE'])
+@fit_login_required
+def delete_session(session_id):
+    """Delete a whole session and its sets (cascade)."""
+    with get_db() as conn:
+        if not _owned_session(conn, session_id):
+            return jsonify({'error': 'Not found'}), 404
+        conn.execute('DELETE FROM fit_sessions WHERE id = ? AND user_id = ?', (session_id, request.user_id))
+    return jsonify({'ok': True})
+
+
 @fit_bp.route('/api/fit/sessions/<int:session_id>/sets', methods=['POST'])
 @fit_login_required
 def add_session_set(session_id):
