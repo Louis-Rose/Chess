@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ChevronRight, Loader2, Plus } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
@@ -68,6 +68,19 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     setEditing(leaf);
   }
 
+  // Leave an exercise's editor. If nothing was logged (a mis-pick), drop it and
+  // reopen the picker so another exercise can be chosen; otherwise go to the overview.
+  function leaveEditing() {
+    const entry = entries.find(e => e.exercise === editing);
+    if (entry && entry.sets.length === 0) {
+      setEntries(prev => prev.filter(e => e.exercise !== editing));
+      setEditing(null);
+      setPicking(true);
+    } else {
+      setEditing(null);
+    }
+  }
+
   async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean) {
     if (sessionId == null) return;
     const res = await fitRequest(() =>
@@ -117,9 +130,18 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>
       ) : editingEntry ? (
-        // Editing one exercise: just its card + "Valider l'exercice".
+        // Editing one exercise: its card + "Valider l'exercice", with a back
+        // button to return (and pick another exercise if nothing was logged).
         <>
-          <div className="mt-8">
+          <button
+            type="button"
+            onClick={leaveEditing}
+            className="mt-4 self-start inline-flex items-center gap-2 py-1 text-slate-300 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span>Précédent</span>
+          </button>
+          <div className="mt-4">
             <FitSessionExercise
               exercise={editingEntry.exercise}
               sets={editingEntry.sets}
