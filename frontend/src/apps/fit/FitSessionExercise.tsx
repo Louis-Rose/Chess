@@ -147,7 +147,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               Poids (kg)
               <input
                 value={weight}
-                onChange={e => setWeight(e.target.value)}
+                onChange={e => setWeight(e.target.value.replace(',', '.'))}
                 inputMode="decimal"
                 className={`mt-1 ${inputClass}`}
               />
