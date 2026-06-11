@@ -43,7 +43,7 @@ const daysLabel = (d: number | null) => {
   if (d == null) return 'Jamais';
   if (d === 0) return "Aujourd'hui";
   if (d === 1) return 'Hier';
-  return `${d} j`;
+  return `${d} jours`;
 };
 
 export function FitExerciseRecency({ groups, onBack }: { groups: RecencyGroup[]; onBack: () => void }) {
