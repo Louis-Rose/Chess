@@ -105,7 +105,7 @@ export function FitAccueil() {
                   onClick={() => setViewingRecency(true)}
                   className="relative block rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
                 >
-                  <span className="block text-base font-medium text-white">Jours moyens depuis un exercice</span>
+                  <span className="block text-base font-medium text-white">Jours moyens depuis chaque exercice</span>
                   <span className="mt-1 block text-4xl font-semibold tabular-nums text-emerald-400">
                     {avgDays}
                   </span>
