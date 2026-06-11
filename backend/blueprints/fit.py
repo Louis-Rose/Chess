@@ -288,22 +288,44 @@ def _session_payload(conn, row):
     }
 
 
+def _active_session(conn):
+    """The user's current in-progress session (not yet finished), if any."""
+    return conn.execute(
+        'SELECT id, started_at, ended_at FROM fit_sessions WHERE user_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1',
+        (request.user_id,)
+    ).fetchone()
+
+
 @fit_bp.route('/api/fit/sessions', methods=['POST'])
 @fit_login_required
 def create_session():
-    """Start a new (empty) workout session."""
+    """Resume the in-progress session if there is one, otherwise start a new
+    (empty) one. A session stays in progress until it is finished, so leaving
+    the page never loses or validates it."""
     with get_db() as conn:
-        row = conn.execute(
-            'INSERT INTO fit_sessions (user_id) VALUES (?) RETURNING id, started_at, ended_at',
-            (request.user_id,)
-        ).fetchone()
+        row = _active_session(conn)
+        if not row:
+            row = conn.execute(
+                'INSERT INTO fit_sessions (user_id) VALUES (?) RETURNING id, started_at, ended_at',
+                (request.user_id,)
+            ).fetchone()
         return jsonify(_session_payload(conn, row))
+
+
+@fit_bp.route('/api/fit/sessions/active', methods=['GET'])
+@fit_login_required
+def active_session():
+    """Return the in-progress session (with its sets) or {active: null}."""
+    with get_db() as conn:
+        row = _active_session(conn)
+        return jsonify({'active': _session_payload(conn, row) if row else None})
 
 
 @fit_bp.route('/api/fit/sessions', methods=['GET'])
 @fit_login_required
 def list_sessions():
-    """History: the user's sessions that have at least one logged set, newest first."""
+    """History: the user's finished sessions that have at least one logged set,
+    newest first. In-progress sessions are excluded."""
     with get_db() as conn:
         rows = conn.execute(
             """SELECT s.id, s.started_at, s.ended_at,
@@ -311,7 +333,7 @@ def list_sessions():
                       COUNT(DISTINCT ss.exercise) AS exercise_count
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
-               WHERE s.user_id = ?
+               WHERE s.user_id = ? AND s.ended_at IS NOT NULL
                GROUP BY s.id, s.started_at, s.ended_at
                ORDER BY s.started_at DESC""",
             (request.user_id,)
@@ -433,7 +455,7 @@ def stats():
                    SELECT s.id
                    FROM fit_sessions s
                    JOIN fit_session_sets ss ON ss.session_id = s.id
-                   WHERE s.user_id = ?
+                   WHERE s.user_id = ? AND s.ended_at IS NOT NULL
                      AND EXTRACT(YEAR FROM s.started_at) = EXTRACT(YEAR FROM CURRENT_DATE)
                    GROUP BY s.id
                ) t""",
@@ -443,19 +465,19 @@ def stats():
             """SELECT COUNT(*) AS n
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
-               WHERE s.user_id = ?
+               WHERE s.user_id = ? AND s.ended_at IS NOT NULL
                  AND ss.warmup = FALSE
                  AND EXTRACT(YEAR FROM s.started_at) = EXTRACT(YEAR FROM CURRENT_DATE)""",
             (request.user_id,)
         ).fetchone()
-        # Calendar days since the most recent session (one with at least one
-        # set). Date difference, so it increments at midnight rather than on a
-        # rolling 24-hour basis.
+        # Calendar days since the most recent finished session (one with at least
+        # one set). Date difference, so it increments at midnight rather than on
+        # a rolling 24-hour basis.
         last_row = conn.execute(
             """SELECT (CURRENT_DATE - MAX(s.started_at)::date) AS days
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
-               WHERE s.user_id = ?""",
+               WHERE s.user_id = ? AND s.ended_at IS NOT NULL""",
             (request.user_id,)
         ).fetchone()
         # Weeks elapsed since Jan 1 (DB-side), for the per-week average.

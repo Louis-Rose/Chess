@@ -28,12 +28,17 @@ export function FitAccueil() {
   const [inSession, setInSession] = useState(false);
   const [lastDone, setLastDone] = useState(false);
   const [stats, setStats] = useState<YearStats | null>(null);
+  const [hasActive, setHasActive] = useState(false);
 
   useEffect(() => {
     if (inSession) return;
     fitRequest(() => axios.get<YearStats>('/api/fit/stats'))
       .then(res => setStats(res.data))
       .catch(() => { /* hide stats */ });
+    // An in-progress session persists until finished; offer to resume it.
+    fitRequest(() => axios.get<{ active: unknown | null }>('/api/fit/sessions/active'))
+      .then(res => setHasActive(res.data.active != null))
+      .catch(() => setHasActive(false));
   }, [inSession]);
 
   if (lastDone) return <FitLastDone onBack={() => setLastDone(false)} />;
@@ -79,7 +84,7 @@ export function FitAccueil() {
         className="my-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-4 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
       >
         <Plus className="h-5 w-5" />
-        Nouvelle séance
+        {hasActive ? 'Reprendre la séance' : 'Nouvelle séance'}
       </button>
     </div>
   );

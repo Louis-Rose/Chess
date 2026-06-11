@@ -16,6 +16,23 @@ interface Entry {
   sets: LoggedSet[];
 }
 
+interface SessionPayload {
+  id: number;
+  started_at: string | null;
+  sets: { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean }[];
+}
+
+// Group a session's flat set list into per-exercise entries, in logged order.
+function groupSets(sets: SessionPayload['sets']): Entry[] {
+  const groups: Entry[] = [];
+  const idx = new Map<string, number>();
+  for (const s of sets) {
+    if (!idx.has(s.exercise)) { idx.set(s.exercise, groups.length); groups.push({ exercise: s.exercise, sets: [] }); }
+    groups[idx.get(s.exercise)!].sets.push({ id: s.id, weight: s.weight, reps: s.reps, warmup: s.warmup });
+  }
+  return groups;
+}
+
 export function FitSession({ onDone }: { onDone: () => void }) {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<string | null>(null);
@@ -27,13 +44,16 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);   // exercise being edited, else overview
 
   useEffect(() => {
+    // POST resumes the in-progress session if there is one (with its logged
+    // sets), otherwise starts a fresh empty one.
     Promise.all([
-      fitRequest(() => axios.post<{ id: number; started_at: string | null }>('/api/fit/sessions')),
+      fitRequest(() => axios.post<SessionPayload>('/api/fit/sessions')),
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
     ])
       .then(([sessionRes, exRes]) => {
         setSessionId(sessionRes.data.id);
         setStartedAt(sessionRes.data.started_at);
+        setEntries(groupSets(sessionRes.data.sets ?? []));
         setProgram(exRes.data.selections ?? {});
       })
       .catch(() => { /* leave empty; user can retry by closing */ })

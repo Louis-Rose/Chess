@@ -402,6 +402,23 @@ def init_db():
             conn.execute("ALTER TABLE fit_session_sets ADD COLUMN warmup BOOLEAN NOT NULL DEFAULT FALSE")
             logger.info("Added fit_session_sets.warmup column")
 
+        # One-off backfill: an in-progress session is now one with ended_at IS NULL
+        # (the Calendrier and stats only count finished sessions). Existing
+        # sessions that already have logged sets predate that rule and were
+        # effectively "saved", so finalize them once. Guarded by fit_migrations
+        # so it never re-fires and finalizes a genuinely in-progress session.
+        if not _table_exists(conn, 'fit_migrations'):
+            conn.execute("CREATE TABLE fit_migrations (name TEXT PRIMARY KEY)")
+            logger.info("Created fit_migrations table")
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('finalize_legacy_sessions',)).fetchone():
+            conn.execute(
+                """UPDATE fit_sessions SET ended_at = started_at
+                   WHERE ended_at IS NULL
+                     AND EXISTS (SELECT 1 FROM fit_session_sets ss WHERE ss.session_id = fit_sessions.id)"""
+            )
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('finalize_legacy_sessions',))
+            logger.info("Finalized legacy in-progress fit sessions that had sets")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
