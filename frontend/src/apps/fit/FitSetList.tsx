@@ -2,7 +2,7 @@ import { formatSet } from './format';
 
 // The set list shown inside an exercise card: one line per set, "reps × weight"
 // with the "×" kept on the card centerline; warmups dimmed and parenthesized.
-// Shared by FitSessionDetail and FitExerciseHistory.
+// Shared by FitSessionDetail and FitExerciseRecent.
 
 export interface DisplaySet { reps: number; weight: number | null; warmup: boolean; }
 

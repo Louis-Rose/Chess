@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ChevronRight, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSession } from './FitSession';
-import { FitLastDone } from './FitLastDone';
+import { FitSessionDetail } from './FitSessionDetail';
 
 // Accueil tab: start a new workout, with year-to-date totals above the button.
 
@@ -26,9 +26,10 @@ const fr1 = (n: number | string | null) => {
 
 export function FitAccueil() {
   const [inSession, setInSession] = useState(false);
-  const [lastDone, setLastDone] = useState(false);
+  const [viewingLast, setViewingLast] = useState(false);
   const [stats, setStats] = useState<YearStats | null>(null);
   const [hasActive, setHasActive] = useState(false);
+  const [lastSessionId, setLastSessionId] = useState<number | null>(null);
 
   useEffect(() => {
     if (inSession) return;
@@ -39,9 +40,15 @@ export function FitAccueil() {
     fitRequest(() => axios.get<{ active: unknown | null }>('/api/fit/sessions/active'))
       .then(res => setHasActive(res.data.active != null))
       .catch(() => setHasActive(false));
+    // Most recent finished session, to open from the "days since" card.
+    fitRequest(() => axios.get<{ sessions: { id: number }[] }>('/api/fit/sessions'))
+      .then(res => setLastSessionId(res.data.sessions?.[0]?.id ?? null))
+      .catch(() => setLastSessionId(null));
   }, [inSession]);
 
-  if (lastDone) return <FitLastDone onBack={() => setLastDone(false)} />;
+  if (viewingLast && lastSessionId != null) {
+    return <FitSessionDetail sessionId={lastSessionId} onBack={() => setViewingLast(false)} />;
+  }
 
   if (inSession) return <FitSession onDone={() => setInSession(false)} />;
 
@@ -64,7 +71,7 @@ export function FitAccueil() {
             <div className="mt-4 rounded-2xl border border-slate-700 p-4">
               <button
                 type="button"
-                onClick={() => setLastDone(true)}
+                onClick={() => setViewingLast(true)}
                 className="relative block w-1/2 rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
               >
                 <span className="block text-base font-medium text-white">Jours depuis la dernière séance</span>
