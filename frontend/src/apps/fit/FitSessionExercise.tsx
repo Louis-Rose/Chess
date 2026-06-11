@@ -22,9 +22,10 @@ interface Props {
   onAddSet: (weight: number | null, reps: number, warmup: boolean) => Promise<void>;
   onUpdateSet: (setId: number, weight: number | null, reps: number, warmup: boolean) => Promise<void>;
   onDeleteSet: (setId: number) => void;
+  suggestedWeight?: number | null;                        // pre-fill for a new working set
 }
 
-export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, suggestedWeight }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [warmup, setWarmup] = useState(false);
@@ -42,7 +43,8 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   function openAdd() {
     setEditingId(null);
-    setWeight('');
+    // Pre-fill the working weight from the last execution (working sets default).
+    setWeight(suggestedWeight != null ? String(suggestedWeight) : '');
     setReps('');
     setWarmup(false);
     setAdding(true);

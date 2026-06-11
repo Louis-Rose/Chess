@@ -38,6 +38,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [suggested, setSuggested] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState(false);
   const [finishing, setFinishing] = useState(false);
@@ -49,12 +50,14 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     Promise.all([
       fitRequest(() => axios.post<SessionPayload>('/api/fit/sessions')),
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
+      fitRequest(() => axios.get<{ weights: Record<string, number> }>('/api/fit/working-weights')),
     ])
-      .then(([sessionRes, exRes]) => {
+      .then(([sessionRes, exRes, wRes]) => {
         setSessionId(sessionRes.data.id);
         setStartedAt(sessionRes.data.started_at);
         setEntries(groupSets(sessionRes.data.sets ?? []));
         setProgram(exRes.data.selections ?? {});
+        setSuggested(wRes.data.weights ?? {});
       })
       .catch(() => { /* leave empty; user can retry by closing */ })
       .finally(() => setLoading(false));
@@ -124,6 +127,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               onAddSet={(w, r, warmup) => addSet(editingEntry.exercise, w, r, warmup)}
               onUpdateSet={(id, w, r, warmup) => updateSet(editingEntry.exercise, id, w, r, warmup)}
               onDeleteSet={id => deleteSet(editingEntry.exercise, id)}
+              suggestedWeight={suggested[editingEntry.exercise] ?? null}
             />
           </div>
 

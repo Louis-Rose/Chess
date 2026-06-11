@@ -526,6 +526,41 @@ def last_done():
     ]})
 
 
+@fit_bp.route('/api/fit/working-weights', methods=['GET'])
+@fit_login_required
+def working_weights():
+    """Per exercise, the working weight to pre-fill a new working set with: the
+    weight of the most recent finished execution, but only when every working
+    (non-warmup) set of that execution used the same non-null weight. Otherwise
+    the exercise is omitted (ambiguous)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """WITH last_session AS (
+                   SELECT DISTINCT ON (ss.exercise) ss.exercise, ss.session_id
+                   FROM fit_session_sets ss
+                   JOIN fit_sessions s ON s.id = ss.session_id
+                   WHERE s.user_id = ? AND s.ended_at IS NOT NULL
+                   ORDER BY ss.exercise, s.started_at DESC
+               )
+               SELECT ls.exercise,
+                      COUNT(*) FILTER (WHERE ss.warmup = FALSE) AS work_count,
+                      COUNT(*) FILTER (WHERE ss.warmup = FALSE AND ss.weight IS NOT NULL) AS weighted_count,
+                      COUNT(DISTINCT ss.weight) FILTER (WHERE ss.warmup = FALSE) AS distinct_weights,
+                      MAX(ss.weight) FILTER (WHERE ss.warmup = FALSE) AS weight
+               FROM last_session ls
+               JOIN fit_session_sets ss
+                 ON ss.session_id = ls.session_id AND ss.exercise = ls.exercise
+               GROUP BY ls.exercise""",
+            (request.user_id,)
+        ).fetchall()
+    weights = {
+        r['exercise']: r['weight']
+        for r in rows
+        if r['work_count'] and r['weighted_count'] == r['work_count'] and r['distinct_weights'] == 1
+    }
+    return jsonify({'weights': weights})
+
+
 @fit_bp.route('/api/fit/exercise-history', methods=['GET'])
 @fit_login_required
 def exercise_history():
