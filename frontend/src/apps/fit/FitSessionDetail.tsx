@@ -9,6 +9,7 @@ import { FitSessionExercise } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
 import { FitConfirm } from './FitConfirm';
 import { FitExerciseRecent } from './FitExerciseRecent';
+import { FitSessionComment } from './FitSessionComment';
 import { useWorkWeights } from './useWorkWeights';
 
 interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
@@ -19,7 +20,7 @@ interface Confirm { title: string; message?: string; confirmLabel?: string; dang
 // only when opened as the last session from Accueil.
 
 interface SetRow { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean; }
-interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; sets: SetRow[]; }
+interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; comment: string | null; sets: SetRow[]; }
 
 function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[] {
   const groups: { exercise: string; sets: SetRow[] }[] = [];
@@ -90,6 +91,11 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   function deleteSet(setId: number) {
     fitRequest(() => axios.delete(`/api/fit/sessions/${sessionId}/sets/${setId}`)).catch(() => {});
     setSession(prev => prev && { ...prev, sets: prev.sets.filter(s => s.id !== setId) });
+  }
+
+  function saveComment(c: string | null) {
+    setSession(prev => prev && { ...prev, comment: c });
+    fitRequest(() => axios.put(`/api/fit/sessions/${sessionId}/comment`, { comment: c })).catch(() => {});
   }
 
   async function deleteExercise(leaf: string) {
@@ -271,6 +277,17 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
               Ajouter un exercice
             </button>
           )}
+
+          {editable ? (
+            <div className="mt-8">
+              <FitSessionComment comment={session?.comment ?? null} onSave={saveComment} />
+            </div>
+          ) : session?.comment ? (
+            <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-3">
+              <p className="text-center text-xs uppercase tracking-wide text-slate-500">Commentaire</p>
+              <p className="mt-1 whitespace-pre-wrap text-center text-sm text-slate-200">{session.comment}</p>
+            </div>
+          ) : null}
         </>
       )}
 

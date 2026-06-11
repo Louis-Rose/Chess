@@ -5,6 +5,7 @@ import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
 import { FitExerciseRecent } from './FitExerciseRecent';
+import { FitSessionComment } from './FitSessionComment';
 import { useWorkWeights } from './useWorkWeights';
 import { leafLabel } from './programData';
 import { sessionTitle } from './format';
@@ -22,6 +23,7 @@ interface SessionPayload {
   id: number;
   number: number | null;
   started_at: string | null;
+  comment: string | null;
   sets: { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean }[];
 }
 
@@ -40,6 +42,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [number, setNumber] = useState<number | null>(null);
+  const [comment, setComment] = useState<string | null>(null);
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +62,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         setSessionId(sessionRes.data.id);
         setStartedAt(sessionRes.data.started_at);
         setNumber(sessionRes.data.number);
+        setComment(sessionRes.data.comment);
         setEntries(groupSets(sessionRes.data.sets ?? []));
         setProgram(exRes.data.selections ?? {});
       })
@@ -83,6 +87,12 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     } else {
       setEditing(null);
     }
+  }
+
+  function saveComment(c: string | null) {
+    if (sessionId == null) return;
+    setComment(c);
+    fitRequest(() => axios.put(`/api/fit/sessions/${sessionId}/comment`, { comment: c })).catch(() => {});
   }
 
   async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean) {
@@ -199,7 +209,8 @@ export function FitSession({ onDone }: { onDone: () => void }) {
             Ajouter un exercice
           </button>
 
-          <div className="mt-auto flex justify-center pt-8">
+          <div className="mt-auto flex flex-col items-center gap-6 pt-8">
+            <FitSessionComment comment={comment} onSave={saveComment} />
             <button
               type="button"
               onClick={finish}

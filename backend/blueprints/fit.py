@@ -305,7 +305,7 @@ def set_work_weight():
 def _owned_session(conn, session_id):
     """Return the session row if it belongs to the current user, else None."""
     return conn.execute(
-        'SELECT id, started_at, ended_at FROM fit_sessions WHERE id = ? AND user_id = ?',
+        'SELECT id, started_at, ended_at, comment FROM fit_sessions WHERE id = ? AND user_id = ?',
         (session_id, request.user_id)
     ).fetchone()
 
@@ -336,6 +336,7 @@ def _session_payload(conn, row):
         'number': _session_number(conn, row),
         'started_at': row['started_at'].isoformat() if row['started_at'] else None,
         'ended_at': row['ended_at'].isoformat() if row['ended_at'] else None,
+        'comment': row['comment'],
         'sets': [{'id': s['id'], 'exercise': s['exercise'], 'weight': s['weight'],
                   'reps': s['reps'], 'warmup': bool(s['warmup'])} for s in sets],
     }
@@ -344,7 +345,7 @@ def _session_payload(conn, row):
 def _active_session(conn):
     """The user's current in-progress session (not yet finished), if any."""
     return conn.execute(
-        'SELECT id, started_at, ended_at FROM fit_sessions WHERE user_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1',
+        'SELECT id, started_at, ended_at, comment FROM fit_sessions WHERE user_id = ? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1',
         (request.user_id,)
     ).fetchone()
 
@@ -371,7 +372,7 @@ def create_session():
                 row = _owned_session(conn, row['id'])
         else:
             row = conn.execute(
-                'INSERT INTO fit_sessions (user_id) VALUES (?) RETURNING id, started_at, ended_at',
+                'INSERT INTO fit_sessions (user_id) VALUES (?) RETURNING id, started_at, ended_at, comment',
                 (request.user_id,)
             ).fetchone()
         return jsonify(_session_payload(conn, row))
@@ -440,6 +441,25 @@ def delete_session(session_id):
             return jsonify({'error': 'Not found'}), 404
         conn.execute('DELETE FROM fit_sessions WHERE id = ? AND user_id = ?', (session_id, request.user_id))
     return jsonify({'ok': True})
+
+
+@fit_bp.route('/api/fit/sessions/<int:session_id>/comment', methods=['PUT'])
+@fit_login_required
+def set_session_comment(session_id):
+    """Set (or clear, when empty) an optional free-text comment on a session."""
+    data = request.get_json(silent=True) or {}
+    comment = data.get('comment')
+    if comment is not None and not isinstance(comment, str):
+        return jsonify({'error': 'Invalid comment'}), 400
+    comment = (comment or '').strip()[:2000] or None
+    with get_db() as conn:
+        if not _owned_session(conn, session_id):
+            return jsonify({'error': 'Not found'}), 404
+        conn.execute(
+            'UPDATE fit_sessions SET comment = ? WHERE id = ? AND user_id = ?',
+            (comment, session_id, request.user_id)
+        )
+    return jsonify({'ok': True, 'comment': comment})
 
 
 def _validate_set_values(reps, weight):

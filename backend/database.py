@@ -402,6 +402,11 @@ def init_db():
             conn.execute("ALTER TABLE fit_session_sets ADD COLUMN warmup BOOLEAN NOT NULL DEFAULT FALSE")
             logger.info("Added fit_session_sets.warmup column")
 
+        # Migration: fit_sessions — optional free-text comment on a session
+        if not _column_exists(conn, 'fit_sessions', 'comment'):
+            conn.execute("ALTER TABLE fit_sessions ADD COLUMN comment TEXT")
+            logger.info("Added fit_sessions.comment column")
+
         # Migration: per-user working weight per exercise, persisted across
         # sessions (pre-fills new working sets, stays editable).
         if not _table_exists(conn, 'fit_work_weights'):
