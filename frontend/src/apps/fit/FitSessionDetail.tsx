@@ -9,7 +9,7 @@ import { FitSessionExercise } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
 import { FitConfirm } from './FitConfirm';
 
-interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; }
+interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
 
 // Detail of a past session (reached from the Calendrier history): its date and
 // the logged sets, grouped by exercise in workout order. When `editable`, each
@@ -63,7 +63,6 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
   const [editing, setEditing] = useState<string | null>(null);   // exercise leaf being edited, else overview
   const [picking, setPicking] = useState(false);
   const [program, setProgram] = useState<Record<string, string[]>>({});
-  const [unlocked, setUnlocked] = useState(false);               // edits to this saved session confirmed once
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const focusRef = useRef<HTMLDivElement | null>(null);
 
@@ -106,15 +105,18 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
     setEditing(null);
   }
 
-  // Editing a saved session is gated: confirm once, then edit freely. Deletions
-  // each ask separately since they are irreversible.
-  function withUnlock(run: () => void) {
-    if (unlocked) { run(); return; }
-    setConfirm({
-      title: 'Modifier la séance',
-      message: 'Cette séance est enregistrée. Confirmer les modifications ?',
-      confirmLabel: 'Modifier',
-      onConfirm: () => { setUnlocked(true); setConfirm(null); run(); },
+  // Every change to a saved session is confirmed at commit time. askChange wraps
+  // a save (new or edited set) so the editor only clears its inputs once the
+  // user confirms; cancelling rejects so the typed values are kept.
+  function askChange(action: () => Promise<void>): Promise<void> {
+    return new Promise((resolve, reject) => {
+      setConfirm({
+        title: 'Modifier la séance',
+        message: 'Confirmer cette modification de la séance enregistrée ?',
+        confirmLabel: 'Confirmer',
+        onConfirm: () => { setConfirm(null); action().then(resolve, reject); },
+        onCancel: () => { setConfirm(null); reject(new Error('cancelled')); },
+      });
     });
   }
 
@@ -177,8 +179,8 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
           <FitSessionExercise
             exercise={editing}
             sets={sets}
-            onAddSet={(w, r, warmup) => addSet(editing, w, r, warmup)}
-            onUpdateSet={updateSet}
+            onAddSet={(w, r, warmup) => askChange(() => addSet(editing, w, r, warmup))}
+            onUpdateSet={(id, w, r, warmup) => askChange(() => updateSet(id, w, r, warmup))}
             onDeleteSet={confirmDeleteSet}
           />
         </div>
@@ -208,7 +210,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
             confirmLabel={confirm.confirmLabel}
             danger={confirm.danger}
             onConfirm={confirm.onConfirm}
-            onCancel={() => setConfirm(null)}
+            onCancel={confirm.onCancel ?? (() => setConfirm(null))}
           />
         )}
       </div>
@@ -252,7 +254,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
                 <button
                   key={g.exercise}
                   type="button"
-                  onClick={() => withUnlock(() => setEditing(g.exercise))}
+                  onClick={() => setEditing(g.exercise)}
                   className="relative flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center transition-colors active:bg-slate-800/60"
                 >
                   {inner}
@@ -275,7 +277,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
           {editable && (
             <button
               type="button"
-              onClick={() => withUnlock(() => setPicking(true))}
+              onClick={() => setPicking(true)}
               className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 py-3 font-medium text-slate-100 transition-colors active:bg-slate-800"
             >
               <Plus className="h-4 w-4" />

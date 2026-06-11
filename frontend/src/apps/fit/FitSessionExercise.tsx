@@ -55,6 +55,8 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, warmup);
       else await onAddSet(weightNum, repsNum, warmup);
       reset();
+    } catch {
+      /* cancelled (or failed): keep the entered values so the user can retry */
     } finally {
       setSaving(false);
     }
