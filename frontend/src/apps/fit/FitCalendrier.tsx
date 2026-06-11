@@ -97,12 +97,34 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
   );
 }
 
+type Period = 'semaine' | 'mois' | 'annee' | 'tout';
+
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'semaine', label: 'Semaine' },
+  { key: 'mois', label: 'Mois' },
+  { key: 'annee', label: 'Année' },
+  { key: 'tout', label: 'Tout' },
+];
+
+// Start of the selected period (calendar week starting Monday, month, or year),
+// or null for "tout" (no filter).
+function periodStart(period: Period): Date | null {
+  if (period === 'tout') return null;
+  const now = new Date();
+  if (period === 'annee') return new Date(now.getFullYear(), 0, 1);
+  if (period === 'mois') return new Date(now.getFullYear(), now.getMonth(), 1);
+  const day = now.getDay();                      // 0=dimanche … 6=samedi
+  const sinceMonday = day === 0 ? 6 : day - 1;
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - sinceMonday);
+}
+
 export function FitCalendrier() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [period, setPeriod] = useState<Period>('tout');
 
   useEffect(() => {
     fitRequest(() => axios.get<{ sessions: SessionSummary[] }>('/api/fit/sessions'))
@@ -122,6 +144,11 @@ export function FitCalendrier() {
 
   if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
 
+  const start = periodStart(period);
+  const visible = start
+    ? sessions.filter(s => s.started_at && new Date(s.started_at) >= start)
+    : sessions;
+
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-center text-2xl font-semibold">Calendrier</h1>
@@ -133,18 +160,39 @@ export function FitCalendrier() {
       ) : sessions.length === 0 ? (
         <p className="mt-10 text-center text-sm text-slate-400">Aucune séance enregistrée pour le moment.</p>
       ) : (
-        <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-3">
-          {sessions.map(s => (
-            <SwipeableSession
-              key={s.id}
-              session={s}
-              isOpen={openId === s.id}
-              setOpenId={setOpenId}
-              onSelect={setSelected}
-              onDelete={setConfirmId}
-            />
-          ))}
-        </div>
+        <>
+          <div className="mx-auto mt-6 grid w-full max-w-[22rem] grid-cols-4 rounded-lg border border-slate-700 p-0.5 text-sm">
+            {PERIODS.map(p => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setPeriod(p.key)}
+                className={`rounded-md py-1.5 font-medium transition-colors ${
+                  period === p.key ? 'bg-emerald-600 text-white' : 'text-slate-400 active:text-slate-200'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {visible.length === 0 ? (
+            <p className="mt-10 text-center text-sm text-slate-400">Aucune séance sur cette période.</p>
+          ) : (
+            <div className="mx-auto mt-6 flex w-full max-w-[22rem] flex-col gap-3">
+              {visible.map(s => (
+                <SwipeableSession
+                  key={s.id}
+                  session={s}
+                  isOpen={openId === s.id}
+                  setOpenId={setOpenId}
+                  onSelect={setSelected}
+                  onDelete={setConfirmId}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {confirmId != null && (
