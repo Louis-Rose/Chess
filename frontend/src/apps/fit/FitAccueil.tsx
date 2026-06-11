@@ -12,7 +12,7 @@ interface YearStats {
   sessions_this_year: number;
   work_sets_this_year: number;
   avg_sessions_per_week: number | null;
-  avg_work_sets_per_session: number | null;
+  avg_exercises_per_session: number | null;
   days_since_last_session: number | null;
 }
 
@@ -83,7 +83,7 @@ export function FitAccueil() {
               <Stat value={stats.sessions_this_year} label="Séances" />
               <Stat value={stats.work_sets_this_year} label="Séries de travail" />
               <Stat value={fr1(stats.avg_sessions_per_week)} label="Séances / semaine" />
-              <Stat value={fr1(stats.avg_work_sets_per_session)} label="Séries / séance" />
+              <Stat value={fr1(stats.avg_exercises_per_session)} label="Exercices / séance" />
             </div>
           </div>
           {stats.days_since_last_session != null && (

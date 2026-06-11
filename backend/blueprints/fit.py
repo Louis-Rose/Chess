@@ -639,6 +639,19 @@ def stats():
                  AND EXTRACT(YEAR FROM s.started_at) = EXTRACT(YEAR FROM CURRENT_DATE)""",
             (request.user_id,)
         ).fetchone()
+        # Total distinct exercises across this year's finished sessions, for the
+        # average exercises-per-session.
+        exercises_row = conn.execute(
+            """SELECT COUNT(*) AS n FROM (
+                   SELECT s.id, ss.exercise
+                   FROM fit_sessions s
+                   JOIN fit_session_sets ss ON ss.session_id = s.id
+                   WHERE s.user_id = ? AND s.ended_at IS NOT NULL
+                     AND EXTRACT(YEAR FROM s.started_at) = EXTRACT(YEAR FROM CURRENT_DATE)
+                   GROUP BY s.id, ss.exercise
+               ) t""",
+            (request.user_id,)
+        ).fetchone()
         # Calendar days since the most recent finished session (one with at least
         # one set). Date difference, so it increments at midnight rather than on
         # a rolling 24-hour basis.
@@ -655,13 +668,14 @@ def stats():
         ).fetchone()
     sessions = sessions_row['n']
     work_sets = sets_row['n']
+    exercises = exercises_row['n']
     weeks = weeks_row['weeks'] or 0
     days = last_row['days']
     return jsonify({
         'sessions_this_year': sessions,
         'work_sets_this_year': work_sets,
         'avg_sessions_per_week': round(sessions / float(weeks), 1) if weeks else None,
-        'avg_work_sets_per_session': round(work_sets / sessions, 1) if sessions else None,
+        'avg_exercises_per_session': round(exercises / sessions, 1) if sessions else None,
         'days_since_last_session': int(days) if days is not None else None,
     })
 
