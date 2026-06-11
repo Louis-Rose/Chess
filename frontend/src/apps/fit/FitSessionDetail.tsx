@@ -8,6 +8,7 @@ import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
 import { FitConfirm } from './FitConfirm';
+import { FitExerciseRecent } from './FitExerciseRecent';
 import { useWorkWeights } from './useWorkWeights';
 
 interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
@@ -187,6 +188,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
             workWeight={workWeights[editing] ?? null}
             onWorkWeightChange={w => saveWorkWeight(editing, w)}
           />
+          <FitExerciseRecent exercise={editing} excludeSessionId={sessionId} />
         </div>
         {sets.length > 0 && (
           <button

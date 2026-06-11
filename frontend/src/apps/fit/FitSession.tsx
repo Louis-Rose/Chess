@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
+import { FitExerciseRecent } from './FitExerciseRecent';
 import { useWorkWeights } from './useWorkWeights';
 import { leafLabel } from './programData';
 import { formatShortDate } from './format';
@@ -151,6 +152,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               workWeight={workWeights[editingEntry.exercise] ?? null}
               onWorkWeightChange={w => saveWorkWeight(editingEntry.exercise, w)}
             />
+            <FitExerciseRecent exercise={editingEntry.exercise} excludeSessionId={sessionId} />
           </div>
 
           <div className="mt-auto flex justify-center pt-8">
