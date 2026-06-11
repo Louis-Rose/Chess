@@ -64,6 +64,72 @@ export const MUSCLES = MUSCLES_RAW.map(m => ({
     .sort((a, b) => collator.compare(exLabel(a), exLabel(b))),
 }));
 
+// Per (base) exercise metadata: its English name and, for machines, the gym
+// machine setting(s). Keyed by the catalogue base name. Shown in the program
+// picker and the in-session add-exercise picker.
+export interface ExerciseMeta { en: string; settings?: string }
+
+export const EXERCISE_META: Record<string, ExerciseMeta> = {
+  // Épaules
+  'Développé épaules': { en: 'Shoulder Press', settings: '7' },
+  'Développé militaire': { en: 'Military Press' },
+  'Élévations latérales': { en: 'Lateral Raises', settings: '6' },
+  // Pectoraux
+  'Développé couché': { en: 'Bench Press' },
+  'Développé incliné': { en: 'Incline Bench Press' },
+  'Dips': { en: 'Dips' },
+  'Pec Deck': { en: 'Pec Deck', settings: '3, 2' },
+  // Dos
+  'Tractions': { en: 'Pull-ups' },
+  'Tirage vertical (poulie haute)': { en: 'Lat Pulldown' },
+  'Rowing assis': { en: 'Seated Row', settings: '4, 7' },
+  // Biceps
+  'Curl incliné': { en: 'Incline Curl' },
+  'Curl pupitre': { en: 'Preacher Curl', settings: '3' },
+  // Triceps
+  'Extension poulie haute': { en: 'Bar Pressdown', settings: '18' },
+  'Extension poulie basse (overhead)': { en: 'Overhead Bar', settings: '12' },
+  // Avant-bras
+  'Curl marteau': { en: 'Hammer Curl' },
+  'Flexions de poignets': { en: 'Wrist Curls' },
+  'Extensions de poignets': { en: 'Reverse Wrist Curls' },
+  // Abdos
+  'Crunch': { en: 'Crunch' },
+  'Enroulements de bassin': { en: 'Reverse Crunch' },
+  'Gainage planche': { en: 'Plank' },
+  'Relevés de jambes': { en: 'Leg Raises' },
+  // Fessiers
+  'Hip thrust': { en: 'Hip Thrust' },
+  'Squat gobelet': { en: 'Goblet Squat' },
+  'Soulevé de terre sumo': { en: 'Sumo Deadlift' },
+  // Quadriceps
+  'Soulevé de terre barre hex': { en: 'Trap Bar Deadlift' },
+  'Hack squat': { en: 'Hack Squat' },
+  'Leg extension': { en: 'Leg Extension' },
+  'Presse à cuisses': { en: 'Leg Press' },
+  'Presse à cuisses incliné': { en: 'Incline Leg Press' },
+  'Presse à cuisses horizontale': { en: 'Horizontal Leg Press' },
+  // Ischio-jambiers
+  'Soulevé de terre jambes tendues': { en: 'Stiff-Leg Deadlift' },
+  'Leg curl allongé': { en: 'Lying Leg Curl' },
+  'Leg curl assis': { en: 'Seated Leg Curl' },
+  // Mollets
+  'Extensions de mollets debout': { en: 'Standing Calf Raise' },
+  'Extensions de mollets assis': { en: 'Seated Calf Raise' },
+  'Extensions à la presse à cuisses': { en: 'Calf Press' },
+};
+
+// The subtitle to show under an exercise card: its English name (when it differs
+// from the French one) and machine setting(s). Empty string when nothing to add.
+export const exerciseSubtitle = (name: string): string => {
+  const meta = EXERCISE_META[name];
+  if (!meta) return '';
+  const parts: string[] = [];
+  if (meta.en && meta.en.toLowerCase() !== name.toLowerCase()) parts.push(meta.en);
+  if (meta.settings) parts.push(`réglage${meta.settings.includes(',') ? 's' : ''} ${meta.settings}`);
+  return parts.join(' · ');
+};
+
 export const variantId = (name: string, variant: string) => `${name} — ${variant}`;
 
 // Display a single stored leaf: "Rowing assis — Machine" -> "Rowing assis (Machine)".

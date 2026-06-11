@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { variantId, type Exercise } from './programData';
+import { variantId, exerciseSubtitle, type Exercise } from './programData';
+
+// Exercise name plus its optional subtitle (English name / machine setting).
+function ExLabel({ name }: { name: string }) {
+  const subtitle = exerciseSubtitle(name);
+  return (
+    <span className="flex flex-col items-center">
+      <span className="font-medium text-slate-100">{name}</span>
+      {subtitle && <span className="mt-0.5 text-xs text-slate-400">{subtitle}</span>}
+    </span>
+  );
+}
 
 // The exercise multi-select for one list of exercises: leaf exercises plus
 // expandable variant groups, with a green halo on the selected ones. Pure UI —
@@ -35,7 +46,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel }: {
               onClick={() => onToggle(ex)}
               className={`${cardBase} ${isActive ? cardOn : cardOff}`}
             >
-              <span className="font-medium text-slate-100">{ex}</span>
+              <ExLabel name={ex} />
             </button>
           );
         }
@@ -52,7 +63,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel }: {
               onClick={() => setOpen(prev => ({ ...prev, [ex.name]: !expanded }))}
               className={`relative ${cardBase} ${anySelected ? cardOn : cardOff}`}
             >
-              <span className="font-medium text-slate-100">{ex.name}</span>
+              <ExLabel name={ex.name} />
               {expanded
                 ? <ChevronUp className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 : <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />}
