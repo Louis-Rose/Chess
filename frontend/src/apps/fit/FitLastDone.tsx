@@ -18,11 +18,13 @@ const baseOf = (leaf: string) => {
   return i === -1 ? leaf : leaf.slice(0, i);
 };
 
-const sinceLabel = (d: number | undefined) => {
-  if (d == null) return 'Jamais';
-  if (d === 0) return "Aujourd'hui";
-  if (d === 1) return 'Hier';
-  return `${d} j`;
+// The calendar date the exercise was last done, from its days-ago count, as a
+// French long date ("mardi 3 juin"; capitalized in the UI via CSS).
+const lastDoneLabel = (days: number | undefined) => {
+  if (days == null) return 'Jamais';
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 };
 
 interface BaseInfo { days: number; sessionId: number; }
@@ -91,13 +93,13 @@ export function FitLastDone({ onBack }: { onBack: () => void }) {
                   const inner = (
                     <>
                       <div className="min-w-0 flex-1 text-center">
-                        <div className="text-slate-100">{entry.name}</div>
+                        <div className="truncate text-slate-100">{entry.name}</div>
                         {entry.variants.length > 0 && (
-                          <div className="text-sm text-slate-400">({entry.variants.join(', ')})</div>
+                          <div className="truncate text-sm text-slate-400">({entry.variants.join(', ')})</div>
                         )}
                       </div>
-                      <span className="flex shrink-0 items-center gap-1 text-sm tabular-nums text-slate-300">
-                        {sinceLabel(info?.days)}
+                      <span className="flex shrink-0 items-center gap-1 whitespace-nowrap text-sm capitalize text-slate-300">
+                        {lastDoneLabel(info?.days)}
                         {info && <ChevronRight className="h-4 w-4 text-slate-500" />}
                       </span>
                     </>
