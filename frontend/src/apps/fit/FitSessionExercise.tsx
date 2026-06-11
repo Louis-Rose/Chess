@@ -96,7 +96,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               <li key={s.id} className="flex items-center justify-between gap-2 text-sm text-slate-200">
                 <button
                   type="button"
-                  onClick={() => startEdit(s)}
+                  onClick={() => isEditing ? reset() : startEdit(s)}
                   className={`flex-1 text-left transition-colors ${isEditing ? 'text-emerald-400' : s.warmup ? 'text-slate-400' : ''}`}
                 >
                   <span className="text-slate-500">{num != null ? `${num}.` : '·'}</span>{' '}
