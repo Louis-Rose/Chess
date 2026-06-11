@@ -4,13 +4,14 @@ import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitConfirm } from './FitConfirm';
-import { formatSessionDate } from './format';
+import { sessionTitle } from './format';
 
 // Calendrier tab: the history of past sessions, newest first. Tap one to see
 // its detail, or swipe left to reveal a Supprimer button.
 
 interface SessionSummary {
   id: number;
+  number: number | null;
   started_at: string | null;
   ended_at: string | null;
   set_count: number;
@@ -87,7 +88,7 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
         style={{ transform: `translateX(${dx}px)`, touchAction: 'pan-y' }}
         className={`relative flex w-full flex-col items-center rounded-2xl border border-slate-800 bg-[#141c2f] px-4 py-4 text-center active:bg-[#182234] ${dragging ? '' : 'transition-transform duration-200'}`}
       >
-        <span className="font-medium capitalize text-slate-100">{formatSessionDate(session.started_at)}</span>
+        <span className="font-medium text-slate-100">{sessionTitle(session.number, session.started_at)}</span>
         <span className="mt-0.5 text-sm text-slate-400">
           {plural(session.exercise_count, 'exercice')} - {plural(session.set_count, 'série')}
         </span>

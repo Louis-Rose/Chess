@@ -7,7 +7,7 @@ import { FitExercisePicker } from './FitExercisePicker';
 import { FitExerciseRecent } from './FitExerciseRecent';
 import { useWorkWeights } from './useWorkWeights';
 import { leafLabel } from './programData';
-import { formatShortDate } from './format';
+import { sessionTitle } from './format';
 
 // A workout session. Starts empty; the user adds exercises from their program
 // "à la volée" and logs sets (poids + reps) on each. Everything persists as it
@@ -20,6 +20,7 @@ interface Entry {
 
 interface SessionPayload {
   id: number;
+  number: number | null;
   started_at: string | null;
   sets: { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean }[];
 }
@@ -38,6 +39,7 @@ function groupSets(sets: SessionPayload['sets']): Entry[] {
 export function FitSession({ onDone }: { onDone: () => void }) {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [number, setNumber] = useState<number | null>(null);
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +58,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       .then(([sessionRes, exRes]) => {
         setSessionId(sessionRes.data.id);
         setStartedAt(sessionRes.data.started_at);
+        setNumber(sessionRes.data.number);
         setEntries(groupSets(sessionRes.data.sets ?? []));
         setProgram(exRes.data.selections ?? {});
       })
@@ -123,7 +126,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-center text-2xl font-semibold">
-        Séance{startedAt ? ` du ${formatShortDate(startedAt)}` : ''}
+        {sessionTitle(number, startedAt)}
       </h1>
 
       {loading ? (

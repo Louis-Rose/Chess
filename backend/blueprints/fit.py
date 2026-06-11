@@ -310,6 +310,21 @@ def _owned_session(conn, session_id):
     ).fetchone()
 
 
+def _session_number(conn, row):
+    """The session's 1-based chronological number: its rank by start date among
+    the user's finished sessions that have logged sets. An in-progress session
+    (latest start) gets the next number it will keep once finished."""
+    if not row['started_at']:
+        return None
+    n = conn.execute(
+        """SELECT COUNT(*) AS c FROM fit_sessions s
+           WHERE s.user_id = ? AND s.ended_at IS NOT NULL AND s.started_at < ?
+             AND EXISTS (SELECT 1 FROM fit_session_sets ss WHERE ss.session_id = s.id)""",
+        (request.user_id, row['started_at'])
+    ).fetchone()['c']
+    return n + 1
+
+
 def _session_payload(conn, row):
     """Serialize a session row together with its logged sets (in order)."""
     sets = conn.execute(
@@ -318,6 +333,7 @@ def _session_payload(conn, row):
     ).fetchall()
     return {
         'id': row['id'],
+        'number': _session_number(conn, row),
         'started_at': row['started_at'].isoformat() if row['started_at'] else None,
         'ended_at': row['ended_at'].isoformat() if row['ended_at'] else None,
         'sets': [{'id': s['id'], 'exercise': s['exercise'], 'weight': s['weight'],
@@ -385,7 +401,8 @@ def list_sessions():
         rows = conn.execute(
             """SELECT s.id, s.started_at, s.ended_at,
                       COUNT(ss.id) AS set_count,
-                      COUNT(DISTINCT ss.exercise) AS exercise_count
+                      COUNT(DISTINCT ss.exercise) AS exercise_count,
+                      ROW_NUMBER() OVER (ORDER BY s.started_at ASC) AS number
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
                WHERE s.user_id = ? AND s.ended_at IS NOT NULL
@@ -395,6 +412,7 @@ def list_sessions():
         ).fetchall()
     return jsonify({'sessions': [{
         'id': r['id'],
+        'number': r['number'],
         'started_at': r['started_at'].isoformat() if r['started_at'] else None,
         'ended_at': r['ended_at'].isoformat() if r['ended_at'] else None,
         'set_count': r['set_count'],

@@ -21,3 +21,10 @@ export const formatShortDate = (iso: string | null) => {
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 };
+
+// "Séance 34 (11 juin)" — session title from its number + start date.
+export const sessionTitle = (number: number | null | undefined, iso: string | null) => {
+  const date = formatShortDate(iso);
+  const head = number != null ? `Séance ${number}` : 'Séance';
+  return date ? `${head} (${date})` : head;
+};

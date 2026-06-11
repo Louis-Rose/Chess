@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ArrowLeft, ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { leafLabel, muscleContribution, MUSCLE_ORDER } from './programData';
-import { formatSessionDate } from './format';
+import { sessionTitle } from './format';
 import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
@@ -19,7 +19,7 @@ interface Confirm { title: string; message?: string; confirmLabel?: string; dang
 // only when opened as the last session from Accueil.
 
 interface SetRow { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean; }
-interface Session { id: number; started_at: string | null; ended_at: string | null; sets: SetRow[]; }
+interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; sets: SetRow[]; }
 
 function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[] {
   const groups: { exercise: string; sets: SetRow[] }[] = [];
@@ -217,8 +217,8 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
         </div>
       ) : (
         <>
-          <h1 className="mt-4 text-center text-2xl font-semibold capitalize">
-            {formatSessionDate(session?.started_at ?? null)}
+          <h1 className="mt-4 text-center text-2xl font-semibold">
+            {sessionTitle(session?.number, session?.started_at ?? null)}
           </h1>
 
           {volume.length > 0 && (
