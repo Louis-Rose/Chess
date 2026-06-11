@@ -7,6 +7,9 @@ import { formatSessionDate } from './format';
 import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
+import { FitConfirm } from './FitConfirm';
+
+interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; }
 
 // Detail of a past session (reached from the Calendrier history): its date and
 // the logged sets, grouped by exercise in workout order. When `editable`, each
@@ -60,6 +63,8 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
   const [editing, setEditing] = useState<string | null>(null);   // exercise leaf being edited, else overview
   const [picking, setPicking] = useState(false);
   const [program, setProgram] = useState<Record<string, string[]>>({});
+  const [unlocked, setUnlocked] = useState(false);               // edits to this saved session confirmed once
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
   const focusRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -91,6 +96,46 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
   function deleteSet(setId: number) {
     fitRequest(() => axios.delete(`/api/fit/sessions/${sessionId}/sets/${setId}`)).catch(() => {});
     setSession(prev => prev && { ...prev, sets: prev.sets.filter(s => s.id !== setId) });
+  }
+
+  async function deleteExercise(leaf: string) {
+    const ids = (session?.sets ?? []).filter(s => s.exercise === leaf).map(s => s.id);
+    await Promise.all(ids.map(id =>
+      fitRequest(() => axios.delete(`/api/fit/sessions/${sessionId}/sets/${id}`)).catch(() => {})));
+    setSession(prev => prev && { ...prev, sets: prev.sets.filter(s => s.exercise !== leaf) });
+    setEditing(null);
+  }
+
+  // Editing a saved session is gated: confirm once, then edit freely. Deletions
+  // each ask separately since they are irreversible.
+  function withUnlock(run: () => void) {
+    if (unlocked) { run(); return; }
+    setConfirm({
+      title: 'Modifier la séance',
+      message: 'Cette séance est enregistrée. Confirmer les modifications ?',
+      confirmLabel: 'Modifier',
+      onConfirm: () => { setUnlocked(true); setConfirm(null); run(); },
+    });
+  }
+
+  function confirmDeleteSet(setId: number) {
+    setConfirm({
+      title: 'Supprimer la série',
+      message: 'Cette série sera définitivement supprimée.',
+      confirmLabel: 'Supprimer',
+      danger: true,
+      onConfirm: () => { setConfirm(null); deleteSet(setId); },
+    });
+  }
+
+  function confirmDeleteExercise(leaf: string) {
+    setConfirm({
+      title: "Supprimer l'exercice",
+      message: 'Toutes les séries de cet exercice seront supprimées.',
+      confirmLabel: 'Supprimer',
+      danger: true,
+      onConfirm: () => { setConfirm(null); deleteExercise(leaf); },
+    });
   }
 
   const groups = session ? groupByExercise(session.sets) : [];
@@ -134,9 +179,18 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
             sets={sets}
             onAddSet={(w, r, warmup) => addSet(editing, w, r, warmup)}
             onUpdateSet={updateSet}
-            onDeleteSet={deleteSet}
+            onDeleteSet={confirmDeleteSet}
           />
         </div>
+        {sets.length > 0 && (
+          <button
+            type="button"
+            onClick={() => confirmDeleteExercise(editing)}
+            className="mx-auto mt-4 text-sm font-medium text-red-400 transition-colors active:text-red-300"
+          >
+            Supprimer l'exercice
+          </button>
+        )}
         <div className="mt-auto flex justify-center pt-8">
           <button
             type="button"
@@ -146,6 +200,17 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
             Valider l'exercice
           </button>
         </div>
+
+        {confirm && (
+          <FitConfirm
+            title={confirm.title}
+            message={confirm.message}
+            confirmLabel={confirm.confirmLabel}
+            danger={confirm.danger}
+            onConfirm={confirm.onConfirm}
+            onCancel={() => setConfirm(null)}
+          />
+        )}
       </div>
     );
   }
@@ -187,7 +252,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
                 <button
                   key={g.exercise}
                   type="button"
-                  onClick={() => setEditing(g.exercise)}
+                  onClick={() => withUnlock(() => setEditing(g.exercise))}
                   className="relative flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center transition-colors active:bg-slate-800/60"
                 >
                   {inner}
@@ -210,7 +275,7 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
           {editable && (
             <button
               type="button"
-              onClick={() => setPicking(true)}
+              onClick={() => withUnlock(() => setPicking(true))}
               className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 py-3 font-medium text-slate-100 transition-colors active:bg-slate-800"
             >
               <Plus className="h-4 w-4" />
@@ -226,6 +291,17 @@ export function FitSessionDetail({ sessionId, onBack, focusBase, editable }: {
           added={new Set(groups.map(g => g.exercise))}
           onPick={leaf => { setPicking(false); setEditing(leaf); }}
           onClose={() => setPicking(false)}
+        />
+      )}
+
+      {confirm && (
+        <FitConfirm
+          title={confirm.title}
+          message={confirm.message}
+          confirmLabel={confirm.confirmLabel}
+          danger={confirm.danger}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
         />
       )}
     </div>

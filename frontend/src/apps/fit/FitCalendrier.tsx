@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionDetail } from './FitSessionDetail';
+import { FitConfirm } from './FitConfirm';
 import { formatSessionDate } from './format';
 
 // Calendrier tab: the history of past sessions, newest first. Tap one to see
@@ -101,6 +102,7 @@ export function FitCalendrier() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
     fitRequest(() => axios.get<{ sessions: SessionSummary[] }>('/api/fit/sessions'))
@@ -109,7 +111,10 @@ export function FitCalendrier() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDelete = (id: number) => {
+  const confirmDelete = () => {
+    const id = confirmId;
+    setConfirmId(null);
+    if (id == null) return;
     setOpenId(null);
     setSessions(prev => prev.filter(s => s.id !== id));
     fitRequest(() => axios.delete(`/api/fit/sessions/${id}`)).catch(() => { /* best effort */ });
@@ -136,10 +141,21 @@ export function FitCalendrier() {
               isOpen={openId === s.id}
               setOpenId={setOpenId}
               onSelect={setSelected}
-              onDelete={handleDelete}
+              onDelete={setConfirmId}
             />
           ))}
         </div>
+      )}
+
+      {confirmId != null && (
+        <FitConfirm
+          title="Supprimer la séance"
+          message="Cette séance et toutes ses séries seront définitivement supprimées."
+          confirmLabel="Supprimer"
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmId(null)}
+        />
       )}
     </div>
   );
