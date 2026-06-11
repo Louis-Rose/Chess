@@ -4,6 +4,7 @@ import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitConfirm } from './FitConfirm';
+import { PerfCounts } from './FitPerf';
 import { sessionTitle } from './format';
 
 // Calendrier tab: the history of past sessions, newest first. Tap one to see
@@ -16,6 +17,9 @@ interface SessionSummary {
   ended_at: string | null;
   set_count: number;
   exercise_count: number;
+  plus: number;
+  equal: number;
+  minus: number;
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
@@ -92,6 +96,7 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
         <span className="mt-0.5 text-sm text-slate-400">
           {plural(session.exercise_count, 'exercice')} - {plural(session.set_count, 'série')}
         </span>
+        <PerfCounts plus={session.plus} equal={session.equal} minus={session.minus} className="mt-1 text-sm" />
         <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
       </button>
     </div>

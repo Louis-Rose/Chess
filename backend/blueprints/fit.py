@@ -7,6 +7,7 @@ Per-user data lives in fit_profile.
 """
 
 import logging
+from collections import OrderedDict
 from functools import wraps
 
 from flask import Blueprint, jsonify, make_response, request
@@ -325,6 +326,74 @@ def _session_number(conn, row):
     return n + 1
 
 
+def _perf_by_session(conn):
+    """For every finished session, the performance status of each exercise vs the
+    running personal record (highest working weight, and total working reps at
+    that weight), warmups excluded. Replays the whole history chronologically.
+
+    Per exercise, the record is (W, R). A session's (w = max working weight,
+    r = total working reps) compares as:
+      w > W  -> '+' if r >= R else '='      (new top weight)
+      w == W -> '+' if r > R, '=' if r == R, else '-'
+      w < W  -> '-'                          (lighter than the record)
+    The first time an exercise appears sets the record (no status).
+
+    Returns {session_id: {'plus','equal','minus', 'exercises': {exercise: status|None}}}.
+    """
+    rows = conn.execute(
+        """SELECT s.id AS session_id, ss.exercise, ss.weight, ss.reps
+           FROM fit_sessions s
+           JOIN fit_session_sets ss ON ss.session_id = s.id
+           WHERE s.user_id = ? AND s.ended_at IS NOT NULL AND ss.warmup = FALSE
+           ORDER BY s.started_at ASC, s.id ASC, ss.id ASC""",
+        (request.user_id,)
+    ).fetchall()
+
+    # Aggregate per (session, exercise) in chronological order: top weight + total reps.
+    agg = OrderedDict()          # (session_id, exercise) -> [max_weight, total_reps]
+    session_order = []
+    seen = set()
+    for r in rows:
+        sid, ex = r['session_id'], r['exercise']
+        w = r['weight'] if r['weight'] is not None else 0
+        key = (sid, ex)
+        if key not in agg:
+            agg[key] = [w, r['reps']]
+        else:
+            agg[key][0] = max(agg[key][0], w)
+            agg[key][1] += r['reps']
+        if sid not in seen:
+            seen.add(sid)
+            session_order.append(sid)
+
+    records = {}                 # exercise -> (W, R)
+    per_session = {sid: {'plus': 0, 'equal': 0, 'minus': 0, 'exercises': {}} for sid in session_order}
+    for (sid, ex), (w, r) in agg.items():
+        rec = records.get(ex)
+        if rec is None:
+            status = None
+            records[ex] = (w, r)
+        else:
+            W, R = rec
+            if w > W:
+                status = '+' if r >= R else '='
+                records[ex] = (w, r)
+            elif w == W:
+                status = '+' if r > R else ('=' if r == R else '-')
+                if r > R:
+                    records[ex] = (w, r)
+            else:
+                status = '-'
+        per_session[sid]['exercises'][ex] = status
+        if status == '+':
+            per_session[sid]['plus'] += 1
+        elif status == '=':
+            per_session[sid]['equal'] += 1
+        elif status == '-':
+            per_session[sid]['minus'] += 1
+    return per_session
+
+
 def _session_payload(conn, row):
     """Serialize a session row together with its logged sets (in order)."""
     sets = conn.execute(
@@ -411,6 +480,7 @@ def list_sessions():
                ORDER BY s.started_at DESC""",
             (request.user_id,)
         ).fetchall()
+        perf = _perf_by_session(conn)
     return jsonify({'sessions': [{
         'id': r['id'],
         'number': r['number'],
@@ -418,18 +488,24 @@ def list_sessions():
         'ended_at': r['ended_at'].isoformat() if r['ended_at'] else None,
         'set_count': r['set_count'],
         'exercise_count': r['exercise_count'],
+        'plus': perf.get(r['id'], {}).get('plus', 0),
+        'equal': perf.get(r['id'], {}).get('equal', 0),
+        'minus': perf.get(r['id'], {}).get('minus', 0),
     } for r in rows]})
 
 
 @fit_bp.route('/api/fit/sessions/<int:session_id>', methods=['GET'])
 @fit_login_required
 def get_session(session_id):
-    """Return a session and its logged sets."""
+    """Return a session and its logged sets, plus the per-exercise performance
+    status (+/=/-) vs the running personal record."""
     with get_db() as conn:
         row = _owned_session(conn, session_id)
         if not row:
             return jsonify({'error': 'Not found'}), 404
-        return jsonify(_session_payload(conn, row))
+        payload = _session_payload(conn, row)
+        payload['perf'] = _perf_by_session(conn).get(session_id, {}).get('exercises', {})
+        return jsonify(payload)
 
 
 @fit_bp.route('/api/fit/sessions/<int:session_id>', methods=['DELETE'])

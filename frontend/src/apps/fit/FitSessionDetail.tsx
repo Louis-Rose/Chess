@@ -10,6 +10,7 @@ import { FitExercisePicker } from './FitExercisePicker';
 import { FitConfirm } from './FitConfirm';
 import { FitExerciseRecent } from './FitExerciseRecent';
 import { FitSessionComment } from './FitSessionComment';
+import { PerfBadge, type PerfStatus } from './FitPerf';
 import { useWorkWeights } from './useWorkWeights';
 
 interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
@@ -20,7 +21,7 @@ interface Confirm { title: string; message?: string; confirmLabel?: string; dang
 // only when opened as the last session from Accueil.
 
 interface SetRow { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean; }
-interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; comment: string | null; sets: SetRow[]; }
+interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; comment: string | null; sets: SetRow[]; perf?: Record<string, PerfStatus | null>; }
 
 function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[] {
   const groups: { exercise: string; sets: SetRow[] }[] = [];
@@ -240,9 +241,13 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
 
           <div className="mx-auto mt-4 flex w-full max-w-[22rem] flex-col gap-4">
             {groups.map(g => {
+              const status = session?.perf?.[g.exercise] ?? null;
               const inner = (
                 <>
-                  <p className="font-medium text-slate-100">{leafLabel(g.exercise)}</p>
+                  <p className="flex items-center justify-center gap-2 font-medium text-slate-100">
+                    {status && <PerfBadge status={status} />}
+                    {leafLabel(g.exercise)}
+                  </p>
                   <FitSetList sets={g.sets} />
                 </>
               );
