@@ -666,6 +666,24 @@ def stats():
     })
 
 
+@fit_bp.route('/api/fit/last-done', methods=['GET'])
+@fit_login_required
+def last_done():
+    """Per exercise (leaf), the calendar days since it was last logged in a
+    finished session. Used for the per-exercise recency view and its average."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT DISTINCT ON (ss.exercise) ss.exercise,
+                      (CURRENT_DATE - s.started_at::date) AS days
+               FROM fit_sessions s
+               JOIN fit_session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id = ? AND s.ended_at IS NOT NULL
+               ORDER BY ss.exercise, s.started_at DESC""",
+            (request.user_id,)
+        ).fetchall()
+    return jsonify({'exercises': [{'exercise': r['exercise'], 'days': int(r['days'])} for r in rows]})
+
+
 @fit_bp.route('/api/fit/exercise-history', methods=['GET'])
 @fit_login_required
 def exercise_history():

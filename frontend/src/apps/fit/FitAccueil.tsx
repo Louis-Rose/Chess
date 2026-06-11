@@ -4,6 +4,7 @@ import { ChevronRight, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSession } from './FitSession';
 import { FitSessionDetail } from './FitSessionDetail';
+import { FitExerciseRecency, buildRecency, type RecencyGroup } from './FitExerciseRecency';
 
 // Accueil tab: start a new workout, with year-to-date totals above the button.
 
@@ -27,9 +28,12 @@ const fr1 = (n: number | string | null) => {
 export function FitAccueil() {
   const [inSession, setInSession] = useState(false);
   const [viewingLast, setViewingLast] = useState(false);
+  const [viewingRecency, setViewingRecency] = useState(false);
   const [stats, setStats] = useState<YearStats | null>(null);
   const [hasActive, setHasActive] = useState(false);
   const [lastSessionId, setLastSessionId] = useState<number | null>(null);
+  const [avgDays, setAvgDays] = useState<number | null>(null);
+  const [recencyGroups, setRecencyGroups] = useState<RecencyGroup[]>([]);
 
   useEffect(() => {
     if (inSession) return;
@@ -44,10 +48,25 @@ export function FitAccueil() {
     fitRequest(() => axios.get<{ sessions: { id: number }[] }>('/api/fit/sessions'))
       .then(res => setLastSessionId(res.data.sessions?.[0]?.id ?? null))
       .catch(() => setLastSessionId(null));
+    // Per-exercise recency: average days since each exercise, and the breakdown.
+    Promise.all([
+      fitRequest(() => axios.get<{ exercises: { exercise: string; days: number }[] }>('/api/fit/last-done')),
+      fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
+    ])
+      .then(([ld, ex]) => {
+        const { avgDays: avg, groups } = buildRecency(ld.data.exercises ?? [], ex.data.selections ?? {});
+        setAvgDays(avg);
+        setRecencyGroups(groups);
+      })
+      .catch(() => { setAvgDays(null); setRecencyGroups([]); });
   }, [inSession]);
 
   if (viewingLast && lastSessionId != null) {
     return <FitSessionDetail sessionId={lastSessionId} onBack={() => setViewingLast(false)} />;
+  }
+
+  if (viewingRecency) {
+    return <FitExerciseRecency groups={recencyGroups} onBack={() => setViewingRecency(false)} />;
   }
 
   if (inSession) return <FitSession onDone={() => setInSession(false)} />;
@@ -68,11 +87,11 @@ export function FitAccueil() {
             </div>
           </div>
           {stats.days_since_last_session != null && (
-            <div className="mt-4 rounded-2xl border border-slate-700 p-4">
+            <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-slate-700 p-4">
               <button
                 type="button"
                 onClick={() => setViewingLast(true)}
-                className="relative block w-1/2 rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
+                className="relative block rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
               >
                 <span className="block text-base font-medium text-white">Jours depuis la dernière séance</span>
                 <span className="mt-1 block text-4xl font-semibold tabular-nums text-emerald-400">
@@ -80,6 +99,19 @@ export function FitAccueil() {
                 </span>
                 <ChevronRight className="absolute bottom-2 right-2 h-5 w-5 text-slate-500" />
               </button>
+              {avgDays != null && (
+                <button
+                  type="button"
+                  onClick={() => setViewingRecency(true)}
+                  className="relative block rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
+                >
+                  <span className="block text-base font-medium text-white">Jours moyens depuis un exercice</span>
+                  <span className="mt-1 block text-4xl font-semibold tabular-nums text-emerald-400">
+                    {avgDays}
+                  </span>
+                  <ChevronRight className="absolute bottom-2 right-2 h-5 w-5 text-slate-500" />
+                </button>
+              )}
             </div>
           )}
         </div>
