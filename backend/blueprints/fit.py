@@ -315,10 +315,16 @@ def create_session():
 @fit_bp.route('/api/fit/sessions/active', methods=['GET'])
 @fit_login_required
 def active_session():
-    """Return the in-progress session (with its sets) or {active: null}."""
+    """Return the in-progress session if it has at least one logged set (worth
+    resuming), else {active: null}. An empty started-but-untouched session does
+    not count as something to resume."""
     with get_db() as conn:
         row = _active_session(conn)
-        return jsonify({'active': _session_payload(conn, row) if row else None})
+        if row and conn.execute(
+            'SELECT 1 FROM fit_session_sets WHERE session_id = ? LIMIT 1', (row['id'],)
+        ).fetchone():
+            return jsonify({'active': _session_payload(conn, row)})
+        return jsonify({'active': None})
 
 
 @fit_bp.route('/api/fit/sessions', methods=['GET'])
