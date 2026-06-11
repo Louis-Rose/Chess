@@ -45,7 +45,7 @@ const exLabel = (ex: Exercise) => (typeof ex === 'string' ? ex : ex.name);
 // order itself is anatomical, left as-is.
 const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
   { name: 'Épaules', exercises: [{ name: 'Développé épaules', variants: [['Machine', 'Haltères'], ['Pronation', 'Prise neutre']] }, 'Développé militaire', { name: 'Élévations latérales', variants: [['Poulie basse', 'Haltères']] }] },
-  { name: 'Pectoraux', exercises: ['Développé couché barre', 'Développé couché haltères', 'Développé incliné barre', 'Développé incliné haltères', 'Dips', { name: 'Pec Deck', variants: [['Poignées', 'Boudins']] }] },
+  { name: 'Pectoraux', exercises: [{ name: 'Développé couché', variants: [['Barre', 'Haltères']] }, { name: 'Développé incliné', variants: [['Barre', 'Haltères']] }, 'Dips', { name: 'Pec Deck', variants: [['Poignées', 'Boudins']] }] },
   { name: 'Dos', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
   { name: 'Biceps', exercises: [{ name: 'Curl incliné', variants: [['Supination', 'Rotation']] }, { name: 'Curl pupitre', variants: [['Machine', 'Haltères', 'Barre EZ']] }] },
   { name: 'Triceps', exercises: [{ name: 'Extension poulie haute', variants: [['Barre', 'Corde']] }, { name: 'Extension poulie basse (overhead)', variants: [['Barre', 'Corde']] }] },
@@ -128,10 +128,8 @@ const CONTRIB: Record<string, Contribution> = {
   'Développé militaire': { primary: [Ep], secondary: [Tri, Pec, Abdo, Fes] },
   'Élévations latérales': { primary: [Ep], secondary: [Dos] },
   // Pectoraux
-  'Développé couché barre': { primary: [Pec], secondary: [Tri, Ep] },
-  'Développé couché haltères': { primary: [Pec], secondary: [Ep, Tri] },
-  'Développé incliné barre': { primary: [Pec], secondary: [Ep, Tri] },
-  'Développé incliné haltères': { primary: [Pec], secondary: [Ep, Tri] },
+  'Développé couché': { primary: [Pec], secondary: [Tri, Ep] },
+  'Développé incliné': { primary: [Pec], secondary: [Ep, Tri] },
   'Dips': { primary: [Pec], secondary: [Tri, Ep] },
   'Pec Deck — Poignées': { primary: [Pec], secondary: [Ep, Bi, AB] },
   'Pec Deck — Boudins': { primary: [Pec], secondary: [Ep] },

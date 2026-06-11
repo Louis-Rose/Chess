@@ -464,6 +464,23 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('seed_work_weights',))
             logger.info("Seeded initial fit working weights from uniform-weight history")
 
+        # One-off: "Développé couché/incliné barre|haltères" became a single
+        # exercise with a Barre/Haltères variant. Rename existing data to the new
+        # variant leaves so history, selections and working weights carry over.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('rename_dc_di_variants',)).fetchone():
+            renames = [
+                ('Développé couché barre', 'Développé couché — Barre'),
+                ('Développé couché haltères', 'Développé couché — Haltères'),
+                ('Développé incliné barre', 'Développé incliné — Barre'),
+                ('Développé incliné haltères', 'Développé incliné — Haltères'),
+            ]
+            for old, new in renames:
+                conn.execute('UPDATE fit_session_sets SET exercise = ? WHERE exercise = ?', (new, old))
+                conn.execute('UPDATE fit_exercises SET exercise = ? WHERE exercise = ?', (new, old))
+                conn.execute('UPDATE fit_work_weights SET exercise = ? WHERE exercise = ?', (new, old))
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('rename_dc_di_variants',))
+            logger.info("Renamed Développé couché/incliné to Barre/Haltères variants")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
