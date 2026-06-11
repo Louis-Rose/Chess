@@ -1,5 +1,7 @@
-import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { groupExercises, MUSCLE_LEAVES, MUSCLE_ORDER, sortLabels } from './programData';
+import { FitExerciseRecent } from './FitExerciseRecent';
 
 // Per-exercise recency: for each program exercise (grouped by muscle, by base),
 // the calendar days since it was last done. Reached from the "Jours moyens
@@ -45,6 +47,7 @@ const daysLabel = (d: number | null) => {
 };
 
 export function FitExerciseRecency({ groups, onBack }: { groups: RecencyGroup[]; onBack: () => void }) {
+  const [open, setOpen] = useState<string | null>(null);   // expanded exercise (base name)
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <button
@@ -66,19 +69,40 @@ export function FitExerciseRecency({ groups, onBack }: { groups: RecencyGroup[];
             <section key={g.name}>
               <h2 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.name}</h2>
               <div className="mt-2 flex flex-col gap-2">
-                {g.entries.map(entry => (
-                  <div key={entry.name} className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3">
-                    <div className="min-w-0 flex-1 text-center">
-                      <div className="truncate text-slate-100">{entry.name}</div>
-                      {entry.variants.length > 0 && (
-                        <div className="truncate text-sm text-slate-400">({entry.variants.join(', ')})</div>
-                      )}
+                {g.entries.map(entry => {
+                  const label = (
+                    <>
+                      <div className="min-w-0 flex-1 text-center">
+                        <div className="truncate text-slate-100">{entry.name}</div>
+                        {entry.variants.length > 0 && (
+                          <div className="truncate text-sm text-slate-400">({entry.variants.join(', ')})</div>
+                        )}
+                      </div>
+                      <span className="shrink-0 whitespace-nowrap text-sm tabular-nums text-slate-300">
+                        {daysLabel(entry.days)}
+                      </span>
+                    </>
+                  );
+                  const cls = 'flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3';
+                  // Done exercises expand to their past sessions; never-done are inert.
+                  if (entry.days == null) return <div key={entry.name} className={cls}>{label}</div>;
+                  const isOpen = open === entry.name;
+                  return (
+                    <div key={entry.name} className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpen(isOpen ? null : entry.name)}
+                        className={`${cls} w-full transition-colors active:bg-slate-800`}
+                      >
+                        {label}
+                        {isOpen
+                          ? <ChevronUp className="h-4 w-4 shrink-0 text-slate-500" />
+                          : <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />}
+                      </button>
+                      {isOpen && <FitExerciseRecent exercise={entry.name} />}
                     </div>
-                    <span className="shrink-0 whitespace-nowrap text-sm tabular-nums text-slate-300">
-                      {daysLabel(entry.days)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           ))}
