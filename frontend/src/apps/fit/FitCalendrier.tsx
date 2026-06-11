@@ -84,7 +84,7 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         style={{ transform: `translateX(${dx}px)`, touchAction: 'pan-y' }}
-        className={`relative flex w-full flex-col items-center rounded-2xl border border-slate-800 bg-[#141c2f] px-4 py-4 text-center active:bg-slate-800/60 ${dragging ? '' : 'transition-transform duration-200'}`}
+        className={`relative flex w-full flex-col items-center rounded-2xl border border-slate-800 bg-[#141c2f] px-4 py-4 text-center active:bg-[#182234] ${dragging ? '' : 'transition-transform duration-200'}`}
       >
         <span className="font-medium capitalize text-slate-100">{formatSessionDate(session.started_at)}</span>
         <span className="mt-0.5 text-sm text-slate-400">
