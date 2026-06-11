@@ -38,21 +38,23 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
   // Snap shut when another row opens.
   useEffect(() => { if (!isOpen) setDx(0); }, [isOpen]);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
+  const onPointerDown = (e: React.PointerEvent) => {
+    startX.current = e.clientX;
     startDx.current = isOpen ? -REVEAL : 0;
     moved.current = false;
     setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
+  const onPointerMove = (e: React.PointerEvent) => {
     if (startX.current == null) return;
-    const delta = e.touches[0].clientX - startX.current;
+    const delta = e.clientX - startX.current;
     if (Math.abs(delta) > 6) moved.current = true;
     setDx(Math.max(-REVEAL, Math.min(0, startDx.current + delta)));
   };
 
-  const onTouchEnd = () => {
+  const onPointerUp = () => {
+    if (startX.current == null) return;
     startX.current = null;
     setDragging(false);
     if (dx < -REVEAL / 2) { setOpenId(session.id); setDx(-REVEAL); }
@@ -77,9 +79,10 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
       <button
         type="button"
         onClick={handleClick}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
         style={{ transform: `translateX(${dx}px)`, touchAction: 'pan-y' }}
         className={`relative flex w-full flex-col items-center rounded-2xl border border-slate-800 bg-[#141c2f] px-4 py-4 text-center active:bg-slate-800/60 ${dragging ? '' : 'transition-transform duration-200'}`}
       >
