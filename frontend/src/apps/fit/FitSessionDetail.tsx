@@ -13,6 +13,7 @@ import { FitExerciseRecent } from './FitExerciseRecent';
 import { FitSessionComment } from './FitSessionComment';
 import { PerfBadge, type PerfStatus } from './FitPerf';
 import { useWorkWeights } from './useWorkWeights';
+import { useExerciseSettings } from './useExerciseSettings';
 
 interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
 
@@ -63,6 +64,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
+  const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
 
   useEffect(() => {
     const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]> } }>?] = [
@@ -163,6 +165,8 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
             onDeleteSet={confirmDeleteSet}
             workWeight={workWeights[editing] ?? null}
             onWorkWeightChange={w => saveWorkWeight(editing, w)}
+            setting={exerciseSettings[editing.split(' — ')[0]] ?? null}
+            onSettingChange={s => saveSetting(editing.split(' — ')[0], s)}
           />
           <FitExerciseRecent exercise={editing} excludeSessionId={sessionId} />
         </div>

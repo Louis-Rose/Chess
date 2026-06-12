@@ -125,12 +125,11 @@ export const exerciseEnglish = (name: string): string => {
   return en && en.toLowerCase() !== name.toLowerCase() ? en : '';
 };
 
-// An exercise's machine setting(s) line, e.g. "Réglages: 4 et 7" (else '').
-export const exerciseSettings = (name: string): string => {
+// An exercise's default machine-setting value, e.g. "4 et 7" (else ''). The
+// catalogue default; the user can override and persist it per exercise.
+export const exerciseSettingsValue = (name: string): string => {
   const s = EXERCISE_META[name]?.settings;
-  if (!s) return '';
-  const parts = s.split(',').map(p => p.trim());
-  return `${parts.length > 1 ? 'Réglages' : 'Réglage'}: ${parts.join(' et ')}`;
+  return s ? s.split(',').map(p => p.trim()).join(' et ') : '';
 };
 
 export const variantId = (name: string, variant: string) => `${name} — ${variant}`;

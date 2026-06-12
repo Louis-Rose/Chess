@@ -55,6 +55,9 @@ MUSCLE_EXERCISES = {
 VALID_MUSCLES = set(MUSCLE_EXERCISES)
 # Every valid exercise leaf, across all muscles — used to validate logged sets.
 ALL_EXERCISES = {ex for exercises in MUSCLE_EXERCISES.values() for ex in exercises}
+# Base exercise names (leaf without its " — variant" suffix) — machine settings
+# are keyed by base, since a setting belongs to the machine, not the grip.
+ALL_EXERCISE_BASES = {ex.split(' — ')[0] for ex in ALL_EXERCISES}
 
 
 def _set_fit_cookies(response, access_token, refresh_token):
@@ -297,6 +300,43 @@ def set_work_weight():
                 """INSERT INTO fit_work_weights (user_id, exercise, weight) VALUES (?, ?, ?)
                    ON CONFLICT (user_id, exercise) DO UPDATE SET weight = EXCLUDED.weight""",
                 (request.user_id, exercise, weight)
+            )
+    return jsonify({'ok': True})
+
+
+@fit_bp.route('/api/fit/exercise-settings', methods=['GET'])
+@fit_login_required
+def get_exercise_settings():
+    """The user's machine-setting override per exercise base ({base: setting})."""
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT exercise, setting FROM fit_exercise_settings WHERE user_id = ?', (request.user_id,)
+        ).fetchall()
+    return jsonify({'settings': {r['exercise']: r['setting'] for r in rows}})
+
+
+@fit_bp.route('/api/fit/exercise-settings', methods=['PUT'])
+@fit_login_required
+def set_exercise_setting():
+    """Upsert (or clear, when empty/null) the machine setting of one exercise base."""
+    data = request.get_json(silent=True) or {}
+    exercise = data.get('exercise')
+    setting = data.get('setting')
+    if exercise not in ALL_EXERCISE_BASES:
+        return jsonify({'error': 'Invalid exercise'}), 400
+    with get_db() as conn:
+        if setting is None or not str(setting).strip():
+            conn.execute(
+                'DELETE FROM fit_exercise_settings WHERE user_id = ? AND exercise = ?',
+                (request.user_id, exercise)
+            )
+        else:
+            if not isinstance(setting, str) or len(setting) > 100:
+                return jsonify({'error': 'Invalid setting'}), 400
+            conn.execute(
+                """INSERT INTO fit_exercise_settings (user_id, exercise, setting) VALUES (?, ?, ?)
+                   ON CONFLICT (user_id, exercise) DO UPDATE SET setting = EXCLUDED.setting""",
+                (request.user_id, exercise, setting.strip())
             )
     return jsonify({'ok': True})
 

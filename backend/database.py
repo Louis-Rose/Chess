@@ -420,6 +420,19 @@ def init_db():
             """)
             logger.info("Created fit_work_weights table")
 
+        # Migration: per-user machine setting per exercise (base name), an
+        # editable free-text override of the catalogue default.
+        if not _table_exists(conn, 'fit_exercise_settings'):
+            conn.execute("""
+                CREATE TABLE fit_exercise_settings (
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    exercise TEXT NOT NULL,
+                    setting TEXT NOT NULL,
+                    PRIMARY KEY (user_id, exercise)
+                )
+            """)
+            logger.info("Created fit_exercise_settings table")
+
         # One-off backfill: an in-progress session is now one with ended_at IS NULL
         # (the Calendrier and stats only count finished sessions). Existing
         # sessions that already have logged sets predate that rule and were

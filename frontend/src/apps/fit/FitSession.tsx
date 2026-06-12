@@ -10,6 +10,7 @@ import { FitSwipeRow } from './FitSwipeRow';
 import { FitConfirm } from './FitConfirm';
 import { FitBackButton } from './FitBackButton';
 import { useWorkWeights } from './useWorkWeights';
+import { useExerciseSettings } from './useExerciseSettings';
 import { leafLabel } from './programData';
 import { sessionTitle } from './format';
 import { loadSessionNav, saveSessionNav, clearSessionNav } from './fitSessionNav';
@@ -58,6 +59,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [openLeaf, setOpenLeaf] = useState<string | null>(null); // exercise row swiped open in the overview
   const [confirmLeaf, setConfirmLeaf] = useState<string | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
+  const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
 
   useEffect(() => {
     // POST resumes the in-progress session if there is one (with its logged
@@ -212,6 +214,8 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               onDeleteSet={id => deleteSet(editingEntry.exercise, id)}
               workWeight={workWeights[editingEntry.exercise] ?? null}
               onWorkWeightChange={w => saveWorkWeight(editingEntry.exercise, w)}
+              setting={exerciseSettings[editingEntry.exercise.split(' — ')[0]] ?? null}
+              onSettingChange={s => saveSetting(editingEntry.exercise.split(' — ')[0], s)}
               onValidate={finishEditing}
             />
             <FitExerciseRecent exercise={editingEntry.exercise} excludeSessionId={sessionId} />

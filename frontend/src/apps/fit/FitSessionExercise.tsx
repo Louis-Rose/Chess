@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Plus, X } from 'lucide-react';
-import { leafLabel, exerciseEnglish, exerciseSettings } from './programData';
+import { leafLabel, exerciseEnglish, exerciseSettingsValue } from './programData';
 import { formatSet } from './format';
 
 // One exercise card inside a session: its logged sets plus a form to add the
@@ -24,10 +24,12 @@ interface Props {
   onDeleteSet: (setId: number) => void;
   workWeight?: number | null;                             // persisted working weight, pre-fills new working sets
   onWorkWeightChange?: (weight: number | null) => void;   // persist an edit to it
+  setting?: string | null;                                // persisted machine-setting override (per base)
+  onSettingChange?: (setting: string | null) => void;     // persist an edit to it
   onValidate?: () => void;                                // shows a "Valider l'exercice" button inside the card
 }
 
-export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, onValidate }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, onValidate }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [warmup, setWarmup] = useState(false);
@@ -36,14 +38,29 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   const [adding, setAdding] = useState(false);                      // add form opened via "Ajouter une série"
   const [workWeightStr, setWorkWeightStr] = useState(workWeight != null ? String(workWeight) : '');
 
-  // Reflect the persisted value once it loads / changes (it's the source of truth).
+  const baseName = exercise.split(' — ')[0];
+  const defaultSetting = exerciseSettingsValue(baseName);
+  const showSettings = defaultSetting !== '' || (setting != null && setting !== '');
+  const [settingStr, setSettingStr] = useState(setting ?? defaultSetting);
+
+  // Reflect the persisted values once they load / change (they're the source of truth).
   useEffect(() => {
     setWorkWeightStr(workWeight != null ? String(workWeight) : '');
   }, [workWeight, exercise]);
+  useEffect(() => {
+    setSettingStr(setting ?? defaultSetting);
+  }, [setting, defaultSetting, exercise]);
 
   function persistWorkWeight() {
     const v = workWeightStr.trim() === '' ? null : parseFloat(workWeightStr);
     onWorkWeightChange?.(v != null && Number.isFinite(v) ? v : null);
+  }
+
+  // Store the setting only when it differs from the catalogue default; clearing
+  // (or matching the default) falls back to the default.
+  function persistSetting() {
+    const v = settingStr.trim();
+    onSettingChange?.(v === '' || v === defaultSetting ? null : v);
   }
 
   // The input form is only shown on demand: tapping "Ajouter une série" (add)
@@ -109,28 +126,42 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   let workIdx = 0;
 
-  const baseName = exercise.split(' — ')[0];
   const english = exerciseEnglish(baseName);
-  const settings = exerciseSettings(baseName);
+  // Smaller boxes than the set-entry inputs; the value text matches the label size.
+  const fieldInput = 'rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1 text-center text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none';
 
   return (
     <div className="rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4">
       <p className="text-center font-medium text-slate-100">{leafLabel(exercise)}</p>
       {english && <p className="text-center text-xs text-slate-400">{english}</p>}
-      {settings && <p className="mt-0.5 text-center text-sm text-white">{settings}</p>}
 
-      <div className="mt-2 flex items-center justify-center gap-2 text-sm">
-        <label htmlFor={`ww-${exercise}`} className="text-white">Poids de travail</label>
-        <input
-          id={`ww-${exercise}`}
-          value={workWeightStr}
-          onChange={e => setWorkWeightStr(e.target.value.replace(',', '.'))}
-          onBlur={persistWorkWeight}
-          inputMode="decimal"
-          placeholder="—"
-          className="w-16 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1 text-center text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-        />
-        <span className="text-white">kg</span>
+      <div className="mt-4 flex flex-col items-center gap-2 text-sm">
+        {showSettings && (
+          <div className="flex items-center justify-center gap-2">
+            <label htmlFor={`set-${exercise}`} className="text-white">Réglages</label>
+            <input
+              id={`set-${exercise}`}
+              value={settingStr}
+              onChange={e => setSettingStr(e.target.value)}
+              onBlur={persistSetting}
+              placeholder="—"
+              className={`w-16 ${fieldInput}`}
+            />
+          </div>
+        )}
+        <div className="flex items-center justify-center gap-2">
+          <label htmlFor={`ww-${exercise}`} className="text-white">Poids de travail</label>
+          <input
+            id={`ww-${exercise}`}
+            value={workWeightStr}
+            onChange={e => setWorkWeightStr(e.target.value.replace(',', '.'))}
+            onBlur={persistWorkWeight}
+            inputMode="decimal"
+            placeholder="—"
+            className={`w-14 ${fieldInput}`}
+          />
+          <span className="text-white">kg</span>
+        </div>
       </div>
 
       {sets.length > 0 && (
