@@ -151,7 +151,15 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       )}
 
       {formVisible ? (
-        <div className="mt-3 rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-3">
+        <div className="relative mt-3 rounded-xl border border-slate-700 bg-slate-900/40 px-3 pb-3 pt-7">
+          <button
+            type="button"
+            onClick={reset}
+            aria-label={editingId != null ? 'Annuler la modification' : 'Annuler'}
+            className="absolute right-2 top-2 text-slate-500 transition-colors active:text-slate-200"
+          >
+            <X className="h-4 w-4" />
+          </button>
           <div className="mx-auto grid w-64 grid-cols-2 rounded-lg border border-slate-700 p-0.5 text-sm">
             {([[true, 'Échauffement'], [false, 'Travail']] as const).map(([w, label]) => (
               <button
@@ -194,14 +202,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
             >
               {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-            </button>
-            <button
-              type="button"
-              onClick={reset}
-              aria-label={editingId != null ? 'Annuler la modification' : 'Annuler'}
-              className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-700 text-slate-300 transition-colors active:bg-slate-800"
-            >
-              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
