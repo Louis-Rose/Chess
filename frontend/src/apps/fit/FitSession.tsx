@@ -56,7 +56,17 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);   // exercise being edited, else overview
   const [openLeaf, setOpenLeaf] = useState<string | null>(null); // exercise row swiped open in the overview
   const [confirmLeaf, setConfirmLeaf] = useState<string | null>(null);
+  const [restStart, setRestStart] = useState<number | null>(null);  // ms when the last set was logged (rest timer)
+  const [nowMs, setNowMs] = useState(0);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
+
+  // Tick the rest timer once a second while it runs.
+  useEffect(() => {
+    if (restStart == null) return;
+    setNowMs(Date.now());
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [restStart]);
 
   useEffect(() => {
     // POST resumes the in-progress session if there is one (with its logged
@@ -130,6 +140,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       axios.post<LoggedSet>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup }));
     setEntries(prev => prev.map(e =>
       e.exercise === exercise ? { ...e, sets: [...e.sets, res.data] } : e));
+    setRestStart(Date.now());   // (re)start the rest timer
   }
 
   async function updateSet(exercise: string, setId: number, weight: number | null, reps: number, warmup: boolean) {
@@ -176,8 +187,20 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const added = new Set(entries.map(e => e.exercise));
   const editingEntry = editing ? entries.find(e => e.exercise === editing) ?? null : null;
 
+  const restSecs = restStart != null ? Math.max(0, Math.floor((nowMs - restStart) / 1000)) : 0;
+  const restLabel = `${Math.floor(restSecs / 60)}:${String(restSecs % 60).padStart(2, '0')}`;
+
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+    <div className={`mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] ${restStart != null ? 'pt-14' : 'pt-6'}`}>
+      {restStart != null && (
+        // Rest timer since the last logged set: a small fixed pill under the header.
+        <div className="pointer-events-none fixed inset-x-0 top-[calc(3.5rem+1px)] z-10 flex justify-center">
+          <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/95 px-4 py-1 text-sm tabular-nums shadow backdrop-blur">
+            <span className="text-slate-400">Repos</span>
+            <span className="font-semibold text-emerald-400">{restLabel}</span>
+          </div>
+        </div>
+      )}
       <h1 className="text-center text-2xl font-semibold">
         {sessionTitle(number, startedAt)}
       </h1>
