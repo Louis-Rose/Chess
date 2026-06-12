@@ -195,16 +195,14 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
             >
               {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
             </button>
-            {editingId != null && (
-              <button
-                type="button"
-                onClick={reset}
-                aria-label="Annuler la modification"
-                className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-700 text-slate-300 transition-colors active:bg-slate-800"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={reset}
+              aria-label={editingId != null ? 'Annuler la modification' : 'Annuler'}
+              className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg border border-slate-700 text-slate-300 transition-colors active:bg-slate-800"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </div>
       ) : (
