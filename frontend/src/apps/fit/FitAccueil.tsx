@@ -5,6 +5,7 @@ import { fitRequest } from './fitAuth';
 import { FitSession } from './FitSession';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitExerciseRecency, buildRecency, type RecencyGroup } from './FitExerciseRecency';
+import { hasResumableNav } from './fitSessionNav';
 
 // Accueil tab: start a new workout, with year-to-date totals above the button.
 
@@ -40,10 +41,12 @@ export function FitAccueil() {
     fitRequest(() => axios.get<YearStats>('/api/fit/stats'))
       .then(res => setStats(res.data))
       .catch(() => { /* hide stats */ });
-    // An in-progress session persists until finished; offer to resume it.
+    // An in-progress session persists until finished; offer to resume it. It's
+    // resumable either when sets are logged (backend) or when the user left
+    // mid-exercise before logging any (persisted client-side nav spot).
     fitRequest(() => axios.get<{ active: unknown | null }>('/api/fit/sessions/active'))
-      .then(res => setHasActive(res.data.active != null))
-      .catch(() => setHasActive(false));
+      .then(res => setHasActive(res.data.active != null || hasResumableNav()))
+      .catch(() => setHasActive(hasResumableNav()));
     // Most recent finished session, to open from the "days since" card.
     fitRequest(() => axios.get<{ sessions: { id: number }[] }>('/api/fit/sessions'))
       .then(res => setLastSessionId(res.data.sessions?.[0]?.id ?? null))

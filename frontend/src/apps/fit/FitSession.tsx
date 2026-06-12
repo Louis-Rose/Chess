@@ -9,6 +9,7 @@ import { FitSessionComment } from './FitSessionComment';
 import { useWorkWeights } from './useWorkWeights';
 import { leafLabel } from './programData';
 import { sessionTitle } from './format';
+import { loadSessionNav, saveSessionNav, clearSessionNav } from './fitSessionNav';
 
 // A workout session. Starts empty; the user adds exercises from their program
 // "à la volée" and logs sets (poids + reps) on each. Everything persists as it
@@ -59,16 +60,38 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
     ])
       .then(([sessionRes, exRes]) => {
-        setSessionId(sessionRes.data.id);
+        const sid = sessionRes.data.id;
+        setSessionId(sid);
         setStartedAt(sessionRes.data.started_at);
         setNumber(sessionRes.data.number);
         setComment(sessionRes.data.comment);
-        setEntries(groupSets(sessionRes.data.sets ?? []));
         setProgram(exRes.data.selections ?? {});
+
+        const grouped = groupSets(sessionRes.data.sets ?? []);
+        // Restore the exact sub-view the user left from (open exercise / picker).
+        // An open exercise with no sets yet won't be in `grouped`, so re-add it.
+        const nav = loadSessionNav();
+        if (nav && nav.sessionId === sid) {
+          if (nav.editing) {
+            if (!grouped.some(e => e.exercise === nav.editing)) {
+              grouped.push({ exercise: nav.editing, sets: [] });
+            }
+            setEditing(nav.editing);
+          } else if (nav.picking) {
+            setPicking(true);
+          }
+        }
+        setEntries(grouped);
       })
       .catch(() => { /* leave empty; user can retry by closing */ })
       .finally(() => setLoading(false));
   }, []);
+
+  // Persist where we are so leaving and tapping "Reprendre" comes back here.
+  useEffect(() => {
+    if (sessionId == null) return;
+    saveSessionNav({ sessionId, editing, picking });
+  }, [sessionId, editing, picking]);
 
   function addExercise(leaf: string) {
     setPicking(false);
@@ -119,13 +142,14 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   }
 
   async function finish() {
-    if (sessionId == null || finishing) { onDone(); return; }
+    if (sessionId == null || finishing) { clearSessionNav(); onDone(); return; }
     setFinishing(true);
     try {
       await fitRequest(() => axios.post(`/api/fit/sessions/${sessionId}/finish`));
     } catch {
       /* still leave the screen */
     } finally {
+      clearSessionNav();
       onDone();
     }
   }
