@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dumbbell, LogOut } from 'lucide-react';
 import { useFitAuth } from './fitAuth';
+import { useRestStart } from './restTimer';
 
 // Top bar for the gym app:
 //  - left: Google profile picture, click for a dropdown (Se déconnecter)
@@ -22,6 +23,7 @@ export function FitHeader() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
+      <FitRestPill />
       <div className="relative mx-auto flex h-14 max-w-md items-center px-5">
         {/* Profile picture + dropdown (left) */}
         <div ref={menuRef} className="relative">
@@ -78,5 +80,34 @@ export function FitHeader() {
         </Link>
       </div>
     </header>
+  );
+}
+
+// Rest timer since the last logged set: a small pill anchored just below the
+// sticky header (so it tracks the header reliably during iOS keyboard scroll,
+// unlike a viewport-fixed element). Shown on every tab; ticks once a second.
+function FitRestPill() {
+  const restStart = useRestStart();
+  const [nowMs, setNowMs] = useState(0);
+
+  useEffect(() => {
+    if (restStart == null) return;
+    setNowMs(Date.now());
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [restStart]);
+
+  if (restStart == null) return null;
+
+  const secs = Math.max(0, Math.floor((nowMs - restStart) / 1000));
+  const label = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2">
+      <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/95 px-4 py-1 text-sm tabular-nums shadow backdrop-blur">
+        <span className="text-slate-400">Repos</span>
+        <span className="font-semibold text-emerald-400">{label}</span>
+      </div>
+    </div>
   );
 }
