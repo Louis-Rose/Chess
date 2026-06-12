@@ -65,6 +65,14 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setAdding(true);
   }
 
+  // Pick the set type. On a new set, switching to Travail pre-fills the working
+  // weight and switching to Échauffement clears it; on an edit, keep the entered
+  // weight untouched.
+  function pickSetType(isWarmup: boolean) {
+    setWarmup(isWarmup);
+    if (editingId == null) setWeight(isWarmup ? '' : workWeightStr);
+  }
+
   function startEdit(s: LoggedSet) {
     setAdding(false);
     setEditingId(s.id);
@@ -165,7 +173,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               <button
                 key={label}
                 type="button"
-                onClick={() => setWarmup(w)}
+                onClick={() => pickSetType(w)}
                 className={`rounded-md py-1.5 font-medium transition-colors ${
                   warmup === w ? 'bg-emerald-600 text-white' : 'text-slate-400 active:text-slate-200'
                 }`}
