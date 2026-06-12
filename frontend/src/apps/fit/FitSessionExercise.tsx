@@ -116,7 +116,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       )}
 
       <div className="mt-2 flex items-center justify-center gap-2 text-sm">
-        <label htmlFor={`ww-${exercise}`} className="text-slate-400">Poids de travail</label>
+        <label htmlFor={`ww-${exercise}`} className="text-white">Poids de travail</label>
         <input
           id={`ww-${exercise}`}
           value={workWeightStr}
@@ -126,7 +126,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           placeholder="—"
           className="w-16 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1 text-center text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
         />
-        <span className="text-slate-400">kg</span>
+        <span className="text-white">kg</span>
       </div>
 
       {sets.length > 0 && (
