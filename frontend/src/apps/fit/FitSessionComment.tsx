@@ -20,7 +20,7 @@ export function FitSessionComment({ comment, onSave }: {
   return (
     <div className="mx-auto w-full max-w-[22rem]">
       <label htmlFor="session-comment" className="mb-1 block text-center text-xs uppercase tracking-wide text-slate-500">
-        Commentaire (optionnel)
+        Commentaire
       </label>
       <textarea
         id="session-comment"

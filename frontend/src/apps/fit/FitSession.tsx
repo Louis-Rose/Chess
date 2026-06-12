@@ -51,6 +51,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [confirmingFinish, setConfirmingFinish] = useState(false); // finishing dialog (asks for a comment)
   const [editing, setEditing] = useState<string | null>(null);   // exercise being edited, else overview
   const [openLeaf, setOpenLeaf] = useState<string | null>(null); // exercise row swiped open in the overview
   const [confirmLeaf, setConfirmLeaf] = useState<string | null>(null);
@@ -253,13 +254,11 @@ export function FitSession({ onDone }: { onDone: () => void }) {
             Ajouter un exercice
           </button>
 
-          <div className="mt-auto flex flex-col items-center gap-6 pt-8">
-            <FitSessionComment comment={comment} onSave={saveComment} />
+          <div className="mt-auto flex flex-col items-center pt-8">
             <button
               type="button"
-              onClick={finish}
-              disabled={finishing}
-              className="mb-8 w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-60"
+              onClick={() => setConfirmingFinish(true)}
+              className="mb-8 w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
             >
               Terminer la séance
             </button>
@@ -285,6 +284,41 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           onConfirm={() => deleteExercise(confirmLeaf)}
           onCancel={() => setConfirmLeaf(null)}
         />
+      )}
+
+      {confirmingFinish && (
+        // Ask for an optional comment only when wrapping up the session.
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 px-6"
+          onClick={() => { if (!finishing) setConfirmingFinish(false); }}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-slate-100">Terminer la séance</h2>
+            <div className="mt-4">
+              <FitSessionComment comment={comment} onSave={saveComment} />
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmingFinish(false)}
+                className="flex-1 rounded-xl border border-slate-700 px-4 py-2.5 font-medium text-slate-200 transition-colors active:bg-slate-800"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={finish}
+                disabled={finishing}
+                className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-60"
+              >
+                Terminer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
