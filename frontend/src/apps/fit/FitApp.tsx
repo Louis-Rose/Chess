@@ -79,8 +79,9 @@ function FitAppInner() {
   );
 }
 
-// Rest timer since the last logged set. In normal flow (scrolls with the page,
-// so the iOS keyboard can't displace it) just under the header; shown on every
+// Rest timer since the last logged set. `sticky` just under the header: it stays
+// visible while scrolling, yet (unlike `fixed`) is part of the scroll flow, so
+// the iOS keyboard auto-scroll on input focus can't displace it. Shown on every
 // tab so it persists while navigating. Ticks once a second; X clears it.
 function FitRestBar() {
   const restStart = useRestStart();
@@ -99,8 +100,8 @@ function FitRestBar() {
   const label = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
 
   return (
-    <div className="flex justify-center px-5 pt-2">
-      <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-4 py-1 text-sm tabular-nums">
+    <div className="pointer-events-none sticky top-[calc(3.5rem+1px)] z-10 flex justify-center px-5 pt-2 pb-1">
+      <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-4 py-1 text-sm tabular-nums shadow">
         <span className="text-slate-400">Repos</span>
         <span className="font-semibold text-emerald-400">{label}</span>
         <button
