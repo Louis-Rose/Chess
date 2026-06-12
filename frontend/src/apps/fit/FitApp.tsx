@@ -37,6 +37,14 @@ export function FitApp() {
 function FitAppInner() {
   const { isLoading, isAuthenticated } = useFitAuth();
   const [active, setActive] = useState('accueil');
+  // Bumped whenever a tab is re-tapped while already active, so the content
+  // remounts and resets to its root view (e.g. exits "Nouvelle séance").
+  const [navNonce, setNavNonce] = useState(0);
+
+  const select = (key: string) => {
+    if (key === active) setNavNonce(n => n + 1);
+    setActive(key);
+  };
 
   if (isLoading) return <div className="min-h-dvh bg-slate-900" />;
   if (!isAuthenticated) return <FitLogin />;
@@ -46,7 +54,7 @@ function FitAppInner() {
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100">
       <FitHeader />
-      <main>
+      <main key={`${active}-${navNonce}`}>
         {active === 'programme' ? (
           <FitProgramme />
         ) : active === 'accueil' ? (
@@ -64,7 +72,7 @@ function FitAppInner() {
           </div>
         )}
       </main>
-      <FitBottomNav tabs={TABS} active={active} onSelect={setActive} />
+      <FitBottomNav tabs={TABS} active={active} onSelect={select} />
     </div>
   );
 }
