@@ -228,15 +228,19 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       )}
 
       {onValidate && (
-        <div className="mt-3 flex justify-center">
-          <button
-            type="button"
-            onClick={onValidate}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors active:bg-emerald-500"
-          >
-            Valider l'exercice
-          </button>
-        </div>
+        <>
+          {/* Separator so the validate button isn't tapped by accident. */}
+          <div className="-mx-4 mt-5 border-t border-slate-700" />
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={onValidate}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors active:bg-emerald-500"
+            >
+              Valider l'exercice
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
