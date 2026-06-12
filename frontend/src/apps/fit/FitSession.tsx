@@ -119,6 +119,16 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     }
   }
 
+  // "Terminer l'exercice": go to the overview, but don't keep an exercise with
+  // no logged set — nothing to save.
+  function finishEditing() {
+    const entry = entries.find(e => e.exercise === editing);
+    if (entry && entry.sets.length === 0) {
+      setEntries(prev => prev.filter(e => e.exercise !== editing));
+    }
+    setEditing(null);
+  }
+
   function saveComment(c: string | null) {
     if (sessionId == null) return;
     setComment(c);
@@ -202,7 +212,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               onDeleteSet={id => deleteSet(editingEntry.exercise, id)}
               workWeight={workWeights[editingEntry.exercise] ?? null}
               onWorkWeightChange={w => saveWorkWeight(editingEntry.exercise, w)}
-              onValidate={() => setEditing(null)}
+              onValidate={finishEditing}
             />
             <FitExerciseRecent exercise={editingEntry.exercise} excludeSessionId={sessionId} />
           </div>
