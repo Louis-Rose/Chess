@@ -9,15 +9,16 @@ import { MusclePicker } from './MusclePicker';
 // green halo on the exercises already in the session. Tapping a leaf/variant
 // adds it (onPick); it only lists the program's still-valid exercises.
 
-export function FitExercisePicker({ program, added, onPick, onClose }: {
+export function FitExercisePicker({ program, onPick, onClose }: {
   program: Record<string, string[]>;
-  added: Set<string>;
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
   // One expanded variant group at a time across the whole picker (accordion).
   const [openName, setOpenName] = useState<string | null>(null);
-  const selected = [...added];
+  // Nothing is pre-highlighted: the picker only adds exercises, so showing the
+  // ones already in the session as "selected" was misleading.
+  const selected: string[] = [];
   const groups = MUSCLE_ORDER
     .map(name => {
       const leaves = sortLabels((program[name] ?? []).filter(ex => MUSCLE_LEAVES[name]?.has(ex)));

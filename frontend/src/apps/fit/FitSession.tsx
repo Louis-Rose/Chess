@@ -176,7 +176,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     }
   }
 
-  const added = new Set(entries.map(e => e.exercise));
   const editingEntry = editing ? entries.find(e => e.exercise === editing) ?? null : null;
 
   return (
@@ -257,7 +256,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       {picking && (
         <FitExercisePicker
           program={program}
-          added={added}
           onPick={addExercise}
           onClose={() => setPicking(false)}
         />

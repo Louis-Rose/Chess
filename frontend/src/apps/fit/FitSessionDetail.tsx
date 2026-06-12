@@ -284,7 +284,6 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
       {picking && (
         <FitExercisePicker
           program={program}
-          added={new Set(groups.map(g => g.exercise))}
           onPick={leaf => { setPicking(false); setEditing(leaf); }}
           onClose={() => setPicking(false)}
         />
