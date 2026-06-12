@@ -94,7 +94,7 @@ export function FitAccueil() {
               <button
                 type="button"
                 onClick={() => setViewingLast(true)}
-                className="relative block rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
+                className="relative block rounded-2xl border border-slate-700 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
               >
                 <span className="block text-base font-medium text-white">Jours depuis la dernière séance</span>
                 <span className="mt-1 block text-4xl font-semibold tabular-nums text-emerald-400">
@@ -106,7 +106,7 @@ export function FitAccueil() {
                 <button
                   type="button"
                   onClick={() => setViewingRecency(true)}
-                  className="relative block rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
+                  className="relative block rounded-2xl border border-slate-700 bg-slate-800/30 px-3 py-5 text-center transition-colors active:bg-slate-800/60"
                 >
                   <span className="block text-base font-medium text-white">Jours moyens depuis chaque exercice</span>
                   <span className="mt-1 block text-4xl font-semibold tabular-nums text-emerald-400">
@@ -134,7 +134,7 @@ export function FitAccueil() {
 
 function Stat({ value, label }: { value: number | string; label: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-3 py-5">
+    <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-700 bg-slate-800/30 px-3 py-5">
       <span className="text-base font-medium text-white">{label}</span>
       <span className="mt-1 text-4xl font-semibold text-emerald-400 tabular-nums">{value}</span>
     </div>

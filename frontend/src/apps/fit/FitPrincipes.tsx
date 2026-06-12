@@ -36,7 +36,7 @@ export function FitPrincipes() {
 
       <div className="mt-8 flex flex-col gap-4">
         {PRINCIPES.map((p, i) => (
-          <article key={i} className="rounded-2xl border border-slate-800 bg-slate-800/30 px-5 py-5">
+          <article key={i} className="rounded-2xl border border-slate-700 bg-slate-800/30 px-5 py-5">
             <h2 className="text-lg font-semibold text-emerald-400">
               Principe {i + 1} : {p.titre}
             </h2>

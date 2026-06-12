@@ -214,7 +214,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
           </h1>
 
           {volume.length > 0 && (
-            <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center">
+            <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col items-center rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4 text-center">
               <p className="text-xs uppercase tracking-wide text-slate-500">Volume de travail</p>
               <ul className="mt-2 flex flex-col gap-1 text-sm text-slate-200">
                 {volume.map(v => (
@@ -241,7 +241,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
                   key={g.exercise}
                   type="button"
                   onClick={() => setEditing(g.exercise)}
-                  className="relative flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center transition-colors active:bg-slate-800/60"
+                  className="relative flex flex-col items-center rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4 text-center transition-colors active:bg-slate-800/60"
                 >
                   {inner}
                   <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
@@ -249,7 +249,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
               ) : (
                 <div
                   key={g.exercise}
-                  className="flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center"
+                  className="flex flex-col items-center rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4 text-center"
                 >
                   {inner}
                 </div>
@@ -273,7 +273,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
               <FitSessionComment comment={session?.comment ?? null} onSave={saveComment} />
             </div>
           ) : session?.comment ? (
-            <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-3">
+            <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-3">
               <p className="text-center text-xs uppercase tracking-wide text-slate-500">Commentaire</p>
               <p className="mt-1 whitespace-pre-wrap text-center text-sm text-slate-200">{session.comment}</p>
             </div>

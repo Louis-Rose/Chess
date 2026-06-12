@@ -110,7 +110,7 @@ function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () =>
 
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
 
-      <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-5">
+      <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-5">
         <FitProgressChart points={chartPoints} unit="reps" />
         <p className="mt-3 text-center text-xs text-slate-500">
           Répétitions totales de travail par séance. Le poids est indiqué à chaque point.

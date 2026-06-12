@@ -221,7 +221,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
                   onClose={() => setOpenLeaf(null)}
                   onDelete={() => setConfirmLeaf(e.exercise)}
                   onTap={() => setEditing(e.exercise)}
-                  className="flex flex-col items-center rounded-2xl border border-slate-800 bg-[#141c2f] px-4 py-4 text-center active:bg-[#182234]"
+                  className="flex flex-col items-center rounded-2xl border border-slate-700 bg-[#141c2f] px-4 py-4 text-center active:bg-[#182234]"
                 >
                   <span className="font-medium text-slate-100">{leafLabel(e.exercise)}</span>
                   <span className="mt-0.5 text-sm text-slate-400">

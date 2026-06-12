@@ -71,7 +71,7 @@ export function FitProgrammeWelcome({ split, workSets, deleting, onEdit, onCreat
             tabIndex={0}
             onClick={onEdit}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEdit(); } }}
-            className="cursor-pointer rounded-2xl border border-slate-800 bg-slate-800/30 px-5 py-7 text-center transition-colors hover:border-slate-700 active:bg-slate-800/60"
+            className="cursor-pointer rounded-2xl border border-slate-700 bg-slate-800/30 px-5 py-7 text-center transition-colors hover:border-slate-700 active:bg-slate-800/60"
           >
             <h1 className="text-2xl font-semibold text-slate-100">Mon programme</h1>
             <div className="mx-auto mt-4 h-px w-24 bg-slate-700" />

@@ -65,7 +65,7 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
       <FitBackButton onClick={onBack} />
 
       <div className="mt-4 flex gap-2">
-        <nav className="flex w-24 shrink-0 flex-col gap-1 self-start rounded-xl border border-slate-800 bg-slate-800/20 p-1.5" aria-label="Sections du programme">
+        <nav className="flex w-24 shrink-0 flex-col gap-1 self-start rounded-xl border border-slate-700 bg-slate-800/20 p-1.5" aria-label="Sections du programme">
           {sections.map((s, i) => (
             <Fragment key={s.key}>
               {i > 0 && <div className="my-1 h-px bg-slate-800" />}

@@ -33,7 +33,7 @@ export function FitExerciseRecent({ exercise, excludeSessionId }: { exercise: st
   const past = sessions.filter(s => s.session_id !== excludeSessionId);
 
   return (
-    <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-800/20 px-4 py-3">
+    <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-800/20 px-4 py-3">
       <p className="text-center text-xs uppercase tracking-wide text-slate-500">Dernières séances</p>
 
       {loading ? (
@@ -47,7 +47,7 @@ export function FitExerciseRecent({ exercise, excludeSessionId }: { exercise: st
           {past.map(s => (
             <div
               key={s.session_id}
-              className="flex flex-col items-center rounded-xl border border-slate-800 bg-slate-800/30 px-3 py-2 text-center"
+              className="flex flex-col items-center rounded-xl border border-slate-700 bg-slate-800/30 px-3 py-2 text-center"
             >
               <p className="text-sm font-medium capitalize text-slate-200">{formatSessionDate(s.date)}</p>
               <FitSetList sets={s.sets} />
