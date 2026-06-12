@@ -235,7 +235,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
             <button
               type="button"
               onClick={onValidate}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors active:bg-emerald-500"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
             >
               Terminer l'exercice
             </button>
