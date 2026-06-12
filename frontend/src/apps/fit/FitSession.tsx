@@ -6,6 +6,8 @@ import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
 import { FitExerciseRecent } from './FitExerciseRecent';
 import { FitSessionComment } from './FitSessionComment';
+import { FitSwipeRow } from './FitSwipeRow';
+import { FitConfirm } from './FitConfirm';
 import { useWorkWeights } from './useWorkWeights';
 import { leafLabel } from './programData';
 import { sessionTitle } from './format';
@@ -50,6 +52,8 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [picking, setPicking] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);   // exercise being edited, else overview
+  const [openLeaf, setOpenLeaf] = useState<string | null>(null); // exercise row swiped open in the overview
+  const [confirmLeaf, setConfirmLeaf] = useState<string | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
 
   useEffect(() => {
@@ -141,6 +145,19 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       e.exercise === exercise ? { ...e, sets: e.sets.filter(s => s.id !== setId) } : e));
   }
 
+  // Remove a whole exercise from the session: drop all its logged sets, then the entry.
+  function deleteExercise(exercise: string) {
+    setConfirmLeaf(null);
+    setOpenLeaf(null);
+    const entry = entries.find(e => e.exercise === exercise);
+    if (sessionId != null && entry) {
+      for (const s of entry.sets) {
+        fitRequest(() => axios.delete(`/api/fit/sessions/${sessionId}/sets/${s.id}`)).catch(() => {});
+      }
+    }
+    setEntries(prev => prev.filter(e => e.exercise !== exercise));
+  }
+
   async function finish() {
     if (sessionId == null || finishing) { clearSessionNav(); onDone(); return; }
     setFinishing(true);
@@ -208,18 +225,21 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           {entries.length > 0 && (
             <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-3">
               {entries.map(e => (
-                <button
+                <FitSwipeRow
                   key={e.exercise}
-                  type="button"
-                  onClick={() => setEditing(e.exercise)}
-                  className="relative flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center transition-colors active:bg-slate-800/60"
+                  isOpen={openLeaf === e.exercise}
+                  onOpen={() => setOpenLeaf(e.exercise)}
+                  onClose={() => setOpenLeaf(null)}
+                  onDelete={() => setConfirmLeaf(e.exercise)}
+                  onTap={() => setEditing(e.exercise)}
+                  className="flex flex-col items-center rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4 text-center active:bg-slate-800/60"
                 >
                   <span className="font-medium text-slate-100">{leafLabel(e.exercise)}</span>
                   <span className="mt-0.5 text-sm text-slate-400">
                     {e.sets.length} série{e.sets.length > 1 ? 's' : ''}
                   </span>
                   <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-                </button>
+                </FitSwipeRow>
               ))}
             </div>
           )}
@@ -253,6 +273,17 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           added={added}
           onPick={addExercise}
           onClose={() => setPicking(false)}
+        />
+      )}
+
+      {confirmLeaf != null && (
+        <FitConfirm
+          title="Supprimer l'exercice"
+          message={`${leafLabel(confirmLeaf)} et toutes ses séries seront retirés de la séance.`}
+          confirmLabel="Supprimer"
+          danger
+          onConfirm={() => deleteExercise(confirmLeaf)}
+          onCancel={() => setConfirmLeaf(null)}
         />
       )}
     </div>

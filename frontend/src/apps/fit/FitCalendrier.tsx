@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitConfirm } from './FitConfirm';
+import { FitSwipeRow } from './FitSwipeRow';
 import { PerfCounts } from './FitPerf';
 import { sessionTitle } from './format';
 
@@ -24,8 +25,6 @@ interface SessionSummary {
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
-const REVEAL = 88; // px the card slides left to expose the delete button
-
 interface RowProps {
   session: SessionSummary;
   isOpen: boolean;
@@ -35,71 +34,22 @@ interface RowProps {
 }
 
 function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: RowProps) {
-  const [dx, setDx] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const startX = useRef<number | null>(null);
-  const startDx = useRef(0);
-  const moved = useRef(false);
-
-  // Snap shut when another row opens.
-  useEffect(() => { if (!isOpen) setDx(0); }, [isOpen]);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    startX.current = e.clientX;
-    startDx.current = isOpen ? -REVEAL : 0;
-    moved.current = false;
-    setDragging(true);
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (startX.current == null) return;
-    const delta = e.clientX - startX.current;
-    if (Math.abs(delta) > 6) moved.current = true;
-    setDx(Math.max(-REVEAL, Math.min(0, startDx.current + delta)));
-  };
-
-  const onPointerUp = () => {
-    if (startX.current == null) return;
-    startX.current = null;
-    setDragging(false);
-    if (dx < -REVEAL / 2) { setOpenId(session.id); setDx(-REVEAL); }
-    else { if (isOpen) setOpenId(null); setDx(0); }
-  };
-
-  const handleClick = () => {
-    if (moved.current) return;        // it was a swipe, not a tap
-    if (isOpen) { setOpenId(null); return; } // tap an open row to close it
-    onSelect(session.id);
-  };
-
   return (
-    <div className="relative overflow-hidden rounded-2xl">
-      <button
-        type="button"
-        onClick={() => onDelete(session.id)}
-        className="absolute inset-y-0 right-0 flex w-[5.5rem] items-center justify-center bg-red-600 text-sm font-medium text-white active:bg-red-700"
-      >
-        Supprimer
-      </button>
-      <button
-        type="button"
-        onClick={handleClick}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        style={{ transform: `translateX(${dx}px)`, touchAction: 'pan-y' }}
-        className={`relative flex w-full flex-col items-center rounded-2xl border border-slate-800 bg-[#141c2f] px-4 py-4 text-center active:bg-[#182234] ${dragging ? '' : 'transition-transform duration-200'}`}
-      >
-        <span className="font-medium text-slate-100">{sessionTitle(session.number, session.started_at)}</span>
-        <span className="mt-0.5 text-sm text-slate-400">
-          {plural(session.exercise_count, 'exercice')} - {plural(session.set_count, 'série')}
-        </span>
-        <PerfCounts plus={session.plus} equal={session.equal} minus={session.minus} className="mt-1 text-sm" />
-        <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-      </button>
-    </div>
+    <FitSwipeRow
+      isOpen={isOpen}
+      onOpen={() => setOpenId(session.id)}
+      onClose={() => setOpenId(null)}
+      onDelete={() => onDelete(session.id)}
+      onTap={() => onSelect(session.id)}
+      className="flex flex-col items-center rounded-2xl border border-slate-800 bg-[#141c2f] px-4 py-4 text-center active:bg-[#182234]"
+    >
+      <span className="font-medium text-slate-100">{sessionTitle(session.number, session.started_at)}</span>
+      <span className="mt-0.5 text-sm text-slate-400">
+        {plural(session.exercise_count, 'exercice')} - {plural(session.set_count, 'série')}
+      </span>
+      <PerfCounts plus={session.plus} equal={session.equal} minus={session.minus} className="mt-1 text-sm" />
+      <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+    </FitSwipeRow>
   );
 }
 
