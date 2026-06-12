@@ -24,9 +24,10 @@ interface Props {
   onDeleteSet: (setId: number) => void;
   workWeight?: number | null;                             // persisted working weight, pre-fills new working sets
   onWorkWeightChange?: (weight: number | null) => void;   // persist an edit to it
+  onValidate?: () => void;                                // shows a "Valider l'exercice" button inside the card
 }
 
-export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, onValidate }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [warmup, setWarmup] = useState(false);
@@ -222,6 +223,18 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           >
             <Plus className="h-4 w-4" />
             Ajouter une série
+          </button>
+        </div>
+      )}
+
+      {onValidate && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={onValidate}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors active:bg-emerald-500"
+          >
+            Valider l'exercice
           </button>
         </div>
       )}
