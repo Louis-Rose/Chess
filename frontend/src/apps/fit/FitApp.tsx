@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, CalendarDays, Dumbbell, Home, TrendingUp } from 'lucide-react';
+import { BookOpen, CalendarDays, Dumbbell, Home, TrendingUp, X } from 'lucide-react';
 import { FitAccueil } from './FitAccueil';
 import { FitCalendrier } from './FitCalendrier';
 import { FitPerformances } from './FitPerformances';
@@ -9,7 +9,7 @@ import { FitHeader } from './FitHeader';
 import { FitProgramme } from './FitProgramme';
 import { FitLogin } from './FitLogin';
 import { FitAuthProvider, useFitAuth } from './fitAuth';
-import { useRestStart } from './restTimer';
+import { useRestStart, clearRest } from './restTimer';
 
 // New native fitness app (replaces the old Notion-synced Gym page).
 // French only, designed primarily for phone. Per-user, with its own
@@ -47,8 +47,6 @@ function FitAppInner() {
     setActive(key);
   };
 
-  const restStart = useRestStart();
-
   if (isLoading) return <div className="min-h-dvh bg-slate-900" />;
   if (!isAuthenticated) return <FitLogin />;
 
@@ -57,7 +55,8 @@ function FitAppInner() {
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100">
       <FitHeader />
-      <main key={`${active}-${navNonce}`} className={restStart != null ? 'pt-10' : undefined}>
+      <FitRestBar />
+      <main key={`${active}-${navNonce}`}>
         {active === 'programme' ? (
           <FitProgramme />
         ) : active === 'accueil' ? (
@@ -76,6 +75,43 @@ function FitAppInner() {
         )}
       </main>
       <FitBottomNav tabs={TABS} active={active} onSelect={select} />
+    </div>
+  );
+}
+
+// Rest timer since the last logged set. In normal flow (scrolls with the page,
+// so the iOS keyboard can't displace it) just under the header; shown on every
+// tab so it persists while navigating. Ticks once a second; X clears it.
+function FitRestBar() {
+  const restStart = useRestStart();
+  const [nowMs, setNowMs] = useState(0);
+
+  useEffect(() => {
+    if (restStart == null) return;
+    setNowMs(Date.now());
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [restStart]);
+
+  if (restStart == null) return null;
+
+  const secs = Math.max(0, Math.floor((nowMs - restStart) / 1000));
+  const label = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+
+  return (
+    <div className="flex justify-center px-5 pt-2">
+      <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/60 px-4 py-1 text-sm tabular-nums">
+        <span className="text-slate-400">Repos</span>
+        <span className="font-semibold text-emerald-400">{label}</span>
+        <button
+          type="button"
+          onClick={clearRest}
+          aria-label="Fermer le chrono"
+          className="-mr-1.5 ml-0.5 p-1 text-slate-500 transition-colors active:text-slate-200"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
