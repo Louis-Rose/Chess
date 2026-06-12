@@ -110,7 +110,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   let workIdx = 0;
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-800/30 px-4 py-4">
+    <div className="rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4">
       <p className="text-center font-medium text-slate-100">{leafLabel(exercise)}</p>
       {exerciseSubtitle(exercise.split(' — ')[0]) && (
         <p className="text-center text-xs text-slate-400">{exerciseSubtitle(exercise.split(' — ')[0])}</p>
