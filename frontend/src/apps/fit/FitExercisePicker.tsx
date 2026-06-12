@@ -46,7 +46,7 @@ export function FitExercisePicker({ program, onPick, onClose }: {
           <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-6">
             {groups.map(g => (
               <section key={g.name}>
-                <h3 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.name}</h3>
+                <h3 className="text-center text-xs uppercase tracking-wide text-white">{g.name}</h3>
                 <div className="mt-2">
                   <MusclePicker
                     exercises={g.exercises}
