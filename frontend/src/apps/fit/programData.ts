@@ -44,7 +44,7 @@ const exLabel = (ex: Exercise) => (typeof ex === 'string' ? ex : ex.name);
 // within each row) alphabetically. Row order is preserved as written. Muscle
 // order itself is anatomical, left as-is.
 const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
-  { name: 'Épaules', exercises: [{ name: 'Développé épaules', variants: [['Machine', 'Haltères'], ['Pronation', 'Prise neutre']] }, 'Développé militaire', { name: 'Élévations latérales', variants: [['Poulie basse', 'Haltères']] }] },
+  { name: 'Épaules', exercises: [{ name: 'Développé épaules', variants: [['Machine', 'Haltères']] }, 'Développé militaire', { name: 'Élévations latérales', variants: [['Poulie basse', 'Haltères']] }] },
   { name: 'Pectoraux', exercises: [{ name: 'Développé couché', variants: [['Barre', 'Haltères']] }, { name: 'Développé incliné', variants: [['Barre', 'Haltères']] }, 'Dips', { name: 'Pec Deck', variants: [['Poignées', 'Boudins']] }] },
   { name: 'Dos', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
   { name: 'Biceps', exercises: [{ name: 'Curl incliné', variants: [['Supination', 'Rotation']] }, { name: 'Curl pupitre', variants: [['Machine', 'Haltères', 'Barre EZ']] }] },
