@@ -9,6 +9,7 @@ import { FitHeader } from './FitHeader';
 import { FitProgramme } from './FitProgramme';
 import { FitLogin } from './FitLogin';
 import { FitAuthProvider, useFitAuth } from './fitAuth';
+import { useRestStart } from './restTimer';
 
 // New native fitness app (replaces the old Notion-synced Gym page).
 // French only, designed primarily for phone. Per-user, with its own
@@ -46,6 +47,8 @@ function FitAppInner() {
     setActive(key);
   };
 
+  const restStart = useRestStart();
+
   if (isLoading) return <div className="min-h-dvh bg-slate-900" />;
   if (!isAuthenticated) return <FitLogin />;
 
@@ -54,7 +57,8 @@ function FitAppInner() {
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100">
       <FitHeader />
-      <main key={`${active}-${navNonce}`}>
+      <FitRestPill restStart={restStart} />
+      <main key={`${active}-${navNonce}`} className={restStart != null ? 'pt-10' : undefined}>
         {active === 'programme' ? (
           <FitProgramme />
         ) : active === 'accueil' ? (
@@ -73,6 +77,33 @@ function FitAppInner() {
         )}
       </main>
       <FitBottomNav tabs={TABS} active={active} onSelect={select} />
+    </div>
+  );
+}
+
+// Rest timer since the last logged set: a small fixed pill under the header,
+// shown on every tab so it persists while navigating. Ticks once a second.
+function FitRestPill({ restStart }: { restStart: number | null }) {
+  const [nowMs, setNowMs] = useState(0);
+
+  useEffect(() => {
+    if (restStart == null) return;
+    setNowMs(Date.now());
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [restStart]);
+
+  if (restStart == null) return null;
+
+  const secs = Math.max(0, Math.floor((nowMs - restStart) / 1000));
+  const label = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(3.5rem+1px)] z-10 flex justify-center">
+      <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/95 px-4 py-1 text-sm tabular-nums shadow backdrop-blur">
+        <span className="text-slate-400">Repos</span>
+        <span className="font-semibold text-emerald-400">{label}</span>
+      </div>
     </div>
   );
 }
