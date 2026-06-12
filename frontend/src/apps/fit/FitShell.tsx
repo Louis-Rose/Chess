@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { FitBackButton } from './FitBackButton';
 
 // Shared shell for the Programme step pages (split, exercises, and future ones).
 // Owns the layout so every step is spaced identically by construction:
@@ -20,16 +20,7 @@ interface FitShellProps {
 export function FitShell({ title, question, counter, onBack, footer, children }: FitShellProps) {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      {onBack && (
-        <button
-          type="button"
-          onClick={onBack}
-          className="self-start inline-flex items-center gap-1.5 py-1 text-xs text-slate-300 transition-colors hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Précédent</span>
-        </button>
-      )}
+      {onBack && <FitBackButton onClick={onBack} />}
 
       {title && <h1 className={`text-center text-2xl font-semibold ${onBack ? 'mt-4' : ''}`}>{title}</h1>}
       {counter && <p className="mt-1 text-center text-xs text-slate-500">{counter}</p>}

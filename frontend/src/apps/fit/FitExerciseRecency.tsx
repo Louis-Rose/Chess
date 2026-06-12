@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { groupExercises, MUSCLE_LEAVES, MUSCLE_ORDER, sortLabels } from './programData';
 import { FitExerciseRecent } from './FitExerciseRecent';
+import { FitBackButton } from './FitBackButton';
 
 // Per-exercise recency: for each program exercise (grouped by muscle, by base),
 // the calendar days since it was last done. Reached from the "Jours moyens
@@ -50,14 +51,7 @@ export function FitExerciseRecency({ groups, onBack }: { groups: RecencyGroup[];
   const [open, setOpen] = useState<string | null>(null);   // expanded exercise (base name)
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <button
-        type="button"
-        onClick={onBack}
-        className="self-start inline-flex items-center gap-1.5 py-1 text-xs text-slate-300 transition-colors hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span>Précédent</span>
-      </button>
+      <FitBackButton onClick={onBack} />
 
       <h1 className="mt-4 text-center text-2xl font-semibold">Jours par exercice</h1>
 

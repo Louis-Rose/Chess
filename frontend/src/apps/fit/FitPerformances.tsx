@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { leafLabel, muscleOf, MUSCLE_ORDER, sortLabels } from './programData';
 import { formatShortDate } from './format';
 import { FitProgressChart, type ChartPoint } from './FitProgressChart';
+import { FitBackButton } from './FitBackButton';
 
 // Performances tab: one entry per exercise the user has worked. Tap an
 // exercise to see its progression graph (top working set per session).
@@ -105,14 +106,7 @@ function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () =>
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <button
-        type="button"
-        onClick={onBack}
-        className="self-start inline-flex items-center gap-2 py-1 text-slate-300 transition-colors hover:text-white"
-      >
-        <ArrowLeft className="h-5 w-5" />
-        <span>Précédent</span>
-      </button>
+      <FitBackButton onClick={onBack} />
 
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
 

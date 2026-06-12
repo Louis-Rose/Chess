@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import axios from 'axios';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { MusclePicker } from './MusclePicker';
+import { FitBackButton } from './FitBackButton';
 import { MUSCLES, SPLITS } from './programData';
 
 // Editing an existing program. Instead of a linear wizard, a left rail of
@@ -61,14 +62,7 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 py-1 text-xs text-slate-300 transition-colors hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span>Précédent</span>
-      </button>
+      <FitBackButton onClick={onBack} />
 
       <div className="mt-4 flex gap-2">
         <nav className="flex w-24 shrink-0 flex-col gap-1 self-start rounded-xl border border-slate-800 bg-slate-800/20 p-1.5" aria-label="Sections du programme">

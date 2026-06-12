@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, ChevronRight, Loader2, Plus } from 'lucide-react';
+import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
@@ -8,6 +8,7 @@ import { FitExerciseRecent } from './FitExerciseRecent';
 import { FitSessionComment } from './FitSessionComment';
 import { FitSwipeRow } from './FitSwipeRow';
 import { FitConfirm } from './FitConfirm';
+import { FitBackButton } from './FitBackButton';
 import { useWorkWeights } from './useWorkWeights';
 import { leafLabel } from './programData';
 import { sessionTitle } from './format';
@@ -189,14 +190,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         // Editing one exercise: its card + "Valider l'exercice", with a back
         // button to return (and pick another exercise if nothing was logged).
         <>
-          <button
-            type="button"
-            onClick={leaveEditing}
-            className="mt-4 self-start inline-flex items-center gap-2 py-1 text-slate-300 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span>Précédent</span>
-          </button>
+          <FitBackButton onClick={leaveEditing} className="mt-4" />
           <div className="mt-4">
             <FitSessionExercise
               exercise={editingEntry.exercise}

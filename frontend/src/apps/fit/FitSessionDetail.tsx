@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, ChevronRight, Loader2, Plus } from 'lucide-react';
+import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { leafLabel, muscleContribution, MUSCLE_ORDER } from './programData';
 import { sessionTitle } from './format';
 import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
+import { FitBackButton } from './FitBackButton';
 import { FitExercisePicker } from './FitExercisePicker';
 import { FitConfirm } from './FitConfirm';
 import { FitExerciseRecent } from './FitExerciseRecent';
@@ -145,30 +146,14 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const groups = session ? groupByExercise(session.sets) : [];
   const volume = session ? workVolume(session.sets) : [];
 
-  const back = (
-    <button
-      type="button"
-      onClick={onBack}
-      className="self-start inline-flex items-center gap-2 py-1 text-slate-300 transition-colors hover:text-white"
-    >
-      <ArrowLeft className="h-5 w-5" />
-      <span>Précédent</span>
-    </button>
-  );
+  const back = <FitBackButton onClick={onBack} />;
 
   // Editing one exercise: just its card + "Valider l'exercice".
   if (editing != null) {
     const sets = groups.find(g => g.exercise === editing)?.sets ?? [];
     return (
       <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-        <button
-          type="button"
-          onClick={() => setEditing(null)}
-          className="self-start inline-flex items-center gap-2 py-1 text-slate-300 transition-colors hover:text-white"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span>Précédent</span>
-        </button>
+        <FitBackButton onClick={() => setEditing(null)} />
         <div className="mt-6">
           <FitSessionExercise
             exercise={editing}
