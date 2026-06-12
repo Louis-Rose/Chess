@@ -119,15 +119,16 @@ export const EXERCISE_META: Record<string, ExerciseMeta> = {
   'Extensions à la presse à cuisses': { en: 'Calf Press' },
 };
 
-// The subtitle to show under an exercise card: its English name (when it differs
-// from the French one) and machine setting(s). Empty string when nothing to add.
-export const exerciseSubtitle = (name: string): string => {
-  const meta = EXERCISE_META[name];
-  if (!meta) return '';
-  const parts: string[] = [];
-  if (meta.en && meta.en.toLowerCase() !== name.toLowerCase()) parts.push(meta.en);
-  if (meta.settings) parts.push(`réglage${meta.settings.includes(',') ? 's' : ''} ${meta.settings}`);
-  return parts.join(' · ');
+// An exercise's English name, when it differs from the French one (else '').
+export const exerciseEnglish = (name: string): string => {
+  const en = EXERCISE_META[name]?.en;
+  return en && en.toLowerCase() !== name.toLowerCase() ? en : '';
+};
+
+// An exercise's machine setting(s) line, e.g. "réglages 3, 2" (else '').
+export const exerciseSettings = (name: string): string => {
+  const s = EXERCISE_META[name]?.settings;
+  return s ? `réglage${s.includes(',') ? 's' : ''} ${s}` : '';
 };
 
 export const variantId = (name: string, variant: string) => `${name} — ${variant}`;

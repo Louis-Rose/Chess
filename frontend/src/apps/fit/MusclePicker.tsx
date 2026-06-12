@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { variantId, exerciseSubtitle, type Exercise } from './programData';
+import { variantId, exerciseEnglish, type Exercise } from './programData';
 
-// Exercise name plus its optional subtitle (English name / machine setting).
+// Exercise name plus its English name (machine settings are shown only inside
+// the exercise, not in the picker).
 function ExLabel({ name }: { name: string }) {
-  const subtitle = exerciseSubtitle(name);
+  const en = exerciseEnglish(name);
   return (
     <span className="flex flex-col items-center">
       <span className="font-medium text-slate-100">{name}</span>
-      {subtitle && <span className="mt-0.5 text-xs text-slate-400">{subtitle}</span>}
+      {en && <span className="mt-0.5 text-xs text-slate-400">{en}</span>}
     </span>
   );
 }
