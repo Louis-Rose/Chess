@@ -55,10 +55,13 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   function openAdd() {
     setEditingId(null);
-    // Pre-fill a new working set with the editable working weight.
-    setWeight(workWeightStr);
+    // Default to échauffement until a working set has been logged for this
+    // exercise, then default to travail. Only pre-fill the working weight when
+    // the default is a working set.
+    const defaultWarmup = !sets.some(s => !s.warmup);
+    setWarmup(defaultWarmup);
+    setWeight(defaultWarmup ? '' : workWeightStr);
     setReps('');
-    setWarmup(false);
     setAdding(true);
   }
 
