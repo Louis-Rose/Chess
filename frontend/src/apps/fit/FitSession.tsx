@@ -204,17 +204,16 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               workWeight={workWeights[editingEntry.exercise] ?? null}
               onWorkWeightChange={w => saveWorkWeight(editingEntry.exercise, w)}
             />
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+              >
+                Valider l'exercice
+              </button>
+            </div>
             <FitExerciseRecent exercise={editingEntry.exercise} excludeSessionId={sessionId} />
-          </div>
-
-          <div className="mt-auto flex justify-center pt-8">
-            <button
-              type="button"
-              onClick={() => setEditing(null)}
-              className="mb-8 w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
-            >
-              Valider l'exercice
-            </button>
           </div>
         </>
       ) : (
