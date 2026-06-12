@@ -469,6 +469,42 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('seed_work_weights',))
             logger.info("Seeded initial fit working weights from uniform-weight history")
 
+        # Reseed: the first seed only looked at each exercise's most recent
+        # finished session. Walk back through all finished sessions instead and
+        # take the most recent one whose working sets were uniform (every set
+        # weighted and at the same weight). This both fills exercises whose last
+        # session wasn't uniform and keeps stored values aligned with history.
+        # Going forward, finish_session refreshes this on every validated session.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('reseed_work_weights_walkback',)).fetchone():
+            conn.execute("""
+                WITH per_session AS (
+                    SELECT s.user_id, ss.exercise, s.id AS session_id, s.started_at,
+                           COUNT(*) FILTER (WHERE ss.warmup = FALSE) AS work_count,
+                           COUNT(*) FILTER (WHERE ss.warmup = FALSE AND ss.weight IS NOT NULL) AS weighted_count,
+                           COUNT(DISTINCT ss.weight) FILTER (WHERE ss.warmup = FALSE) AS distinct_weights,
+                           MAX(ss.weight) FILTER (WHERE ss.warmup = FALSE) AS weight
+                    FROM fit_sessions s
+                    JOIN fit_session_sets ss ON ss.session_id = s.id
+                    WHERE s.ended_at IS NOT NULL
+                    GROUP BY s.user_id, ss.exercise, s.id, s.started_at
+                ),
+                qualifying AS (
+                    SELECT user_id, exercise, weight, started_at
+                    FROM per_session
+                    WHERE work_count >= 1 AND weighted_count = work_count AND distinct_weights = 1
+                ),
+                latest AS (
+                    SELECT DISTINCT ON (user_id, exercise) user_id, exercise, weight
+                    FROM qualifying
+                    ORDER BY user_id, exercise, started_at DESC
+                )
+                INSERT INTO fit_work_weights (user_id, exercise, weight)
+                SELECT user_id, exercise, weight FROM latest
+                ON CONFLICT (user_id, exercise) DO UPDATE SET weight = EXCLUDED.weight
+            """)
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('reseed_work_weights_walkback',))
+            logger.info("Reseeded fit working weights via walk-back over all finished sessions")
+
         # One-off: "Développé couché/incliné barre|haltères" became a single
         # exercise with a Barre/Haltères variant. Rename existing data to the new
         # variant leaves so history, selections and working weights carry over.

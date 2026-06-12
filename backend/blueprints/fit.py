@@ -301,6 +301,40 @@ def set_work_weight():
     return jsonify({'ok': True})
 
 
+def _recompute_work_weight(conn, user_id, exercise):
+    """Derive an exercise's working weight from history and persist it: the
+    uniform working weight of the most recent finished session where every
+    working set had a weight and they were all equal. Walks back session by
+    session (newest first); the first qualifying one wins. Leaves the existing
+    value untouched when no session qualifies (never clears it)."""
+    row = conn.execute(
+        """
+        WITH per_session AS (
+            SELECT s.id, s.started_at,
+                   COUNT(*) FILTER (WHERE ss.warmup = FALSE) AS work_count,
+                   COUNT(*) FILTER (WHERE ss.warmup = FALSE AND ss.weight IS NOT NULL) AS weighted_count,
+                   COUNT(DISTINCT ss.weight) FILTER (WHERE ss.warmup = FALSE) AS distinct_weights,
+                   MAX(ss.weight) FILTER (WHERE ss.warmup = FALSE) AS weight
+            FROM fit_sessions s
+            JOIN fit_session_sets ss ON ss.session_id = s.id
+            WHERE s.user_id = ? AND s.ended_at IS NOT NULL AND ss.exercise = ?
+            GROUP BY s.id, s.started_at
+        )
+        SELECT weight FROM per_session
+        WHERE work_count >= 1 AND weighted_count = work_count AND distinct_weights = 1
+        ORDER BY started_at DESC
+        LIMIT 1
+        """,
+        (user_id, exercise)
+    ).fetchone()
+    if row and row['weight'] is not None:
+        conn.execute(
+            """INSERT INTO fit_work_weights (user_id, exercise, weight) VALUES (?, ?, ?)
+               ON CONFLICT (user_id, exercise) DO UPDATE SET weight = EXCLUDED.weight""",
+            (user_id, exercise, row['weight'])
+        )
+
+
 # ── Sessions (workout logging) ───────────────────────────────────────────────
 
 def _owned_session(conn, session_id):
@@ -771,7 +805,8 @@ def performances():
 @fit_bp.route('/api/fit/sessions/<int:session_id>/finish', methods=['POST'])
 @fit_login_required
 def finish_session(session_id):
-    """Mark a session as ended."""
+    """Mark a session as ended, then refresh the working weight of each exercise
+    it contained from the (now updated) history."""
     with get_db() as conn:
         if not _owned_session(conn, session_id):
             return jsonify({'error': 'Not found'}), 404
@@ -779,4 +814,9 @@ def finish_session(session_id):
             'UPDATE fit_sessions SET ended_at = CURRENT_TIMESTAMP WHERE id = ?',
             (session_id,)
         )
+        exercises = conn.execute(
+            'SELECT DISTINCT exercise FROM fit_session_sets WHERE session_id = ?', (session_id,)
+        ).fetchall()
+        for r in exercises:
+            _recompute_work_weight(conn, request.user_id, r['exercise'])
     return jsonify({'ok': True})
