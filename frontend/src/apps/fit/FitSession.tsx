@@ -293,7 +293,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           onClick={() => { if (!finishing) setConfirmingFinish(false); }}
         >
           <div
-            className="w-full max-w-xs rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center"
+            className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center"
             onClick={e => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold text-slate-100">Terminer la séance</h2>
