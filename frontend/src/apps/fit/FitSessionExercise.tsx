@@ -117,7 +117,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     <div className="rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4">
       <p className="text-center font-medium text-slate-100">{leafLabel(exercise)}</p>
       {english && <p className="text-center text-xs text-slate-400">{english}</p>}
-      {settings && <p className="text-center text-xs text-slate-400">{settings}</p>}
+      {settings && <p className="mt-0.5 text-center text-sm text-white">{settings}</p>}
 
       <div className="mt-2 flex items-center justify-center gap-2 text-sm">
         <label htmlFor={`ww-${exercise}`} className="text-white">Poids de travail</label>
