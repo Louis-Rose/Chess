@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { MUSCLE_ORDER, MUSCLE_LEAVES, groupExercises, sortLabels, type Exercise } from './programData';
 import { MusclePicker } from './MusclePicker';
@@ -14,6 +15,8 @@ export function FitExercisePicker({ program, added, onPick, onClose }: {
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
+  // One expanded variant group at a time across the whole picker (accordion).
+  const [openName, setOpenName] = useState<string | null>(null);
   const selected = [...added];
   const groups = MUSCLE_ORDER
     .map(name => {
@@ -49,6 +52,8 @@ export function FitExercisePicker({ program, added, onPick, onClose }: {
                     ariaLabel={`Exercices ${g.name}`}
                     selected={selected}
                     onToggle={onPick}
+                    openName={openName}
+                    onOpenChange={setOpenName}
                   />
                 </div>
               </section>

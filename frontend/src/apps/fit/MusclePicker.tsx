@@ -24,13 +24,24 @@ const cardBase = 'flex items-center justify-center rounded-xl border px-4 py-3.5
 const cardOn = 'border-emerald-500 bg-emerald-500/10';
 const cardOff = 'border-slate-700 bg-slate-800/50 active:bg-slate-800';
 
-export function MusclePicker({ exercises, selected, onToggle, ariaLabel }: {
+export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange }: {
   exercises: Exercise[];
   selected: string[];
   onToggle: (id: string) => void;
   ariaLabel?: string;
+  // When provided, the open variant group is controlled by the parent so only
+  // one is open across several MusclePickers (accordion). Otherwise it's local
+  // and multiple groups can be open at once.
+  openName?: string | null;
+  onOpenChange?: (name: string | null) => void;
 }) {
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [localOpen, setLocalOpen] = useState<Record<string, boolean>>({});
+  const controlled = onOpenChange != null;
+  const isExpanded = (name: string) => controlled ? openName === name : (localOpen[name] ?? false);
+  const toggleOpen = (name: string, expanded: boolean) => {
+    if (controlled) onOpenChange!(expanded ? null : name);
+    else setLocalOpen(prev => ({ ...prev, [name]: !expanded }));
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-[18rem] flex-col gap-3" role="group" aria-label={ariaLabel}>
@@ -54,13 +65,13 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel }: {
         // Group with variants — expands to reveal its sub-options (rows).
         const anySelected = ex.variants.flat().some(v => selected.includes(variantId(ex.name, v)));
         // Collapsed by default; the user taps to reveal the variants.
-        const expanded = open[ex.name] ?? false;
+        const expanded = isExpanded(ex.name);
         return (
           <div key={ex.name} className="flex flex-col gap-3">
             <button
               type="button"
               aria-expanded={expanded}
-              onClick={() => setOpen(prev => ({ ...prev, [ex.name]: !expanded }))}
+              onClick={() => toggleOpen(ex.name, expanded)}
               className={`relative ${cardBase} ${anySelected ? cardOn : cardOff}`}
             >
               <ExLabel name={ex.name} />
