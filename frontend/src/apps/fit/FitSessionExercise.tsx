@@ -304,6 +304,9 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
             </>
           )}
 
+          {/* Always set off from the step button above. */}
+          <div className="h-px w-full bg-slate-700" />
+
           {/* Below the step button; logging only opens once the warmup starts. */}
           <button
             type="button"
