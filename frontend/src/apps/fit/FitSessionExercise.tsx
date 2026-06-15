@@ -265,32 +265,23 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           )}
 
           {/* One slot, three steps: start → end warmup → finish. Each step is
-              only offered once the previous one has been tapped. */}
-          {phase === 'work' ? (
-            onValidate && (
-              <>
-                <div className="mt-1 h-px w-full bg-slate-700" />
-                <button
-                  type="button"
-                  onClick={onValidate}
-                  className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
-                >
-                  Terminer l'exercice
-                </button>
-              </>
-            )
-          ) : (
-            <button
-              type="button"
-              onClick={advancePhase}
-              className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-                phase === 'warmup'
-                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 active:bg-emerald-500/20'
-                  : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
-              }`}
-            >
-              {phase === 'start' ? "Commencer l'échauffement" : "Fin de l'échauffement"}
-            </button>
+              only offered once the previous one has been tapped, set off by a
+              separator and sharing the same neutral style. */}
+          {(phase !== 'work' || onValidate) && (
+            <>
+              <div className="mt-1 h-px w-full bg-slate-700" />
+              <button
+                type="button"
+                onClick={phase === 'work' ? onValidate : advancePhase}
+                className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
+              >
+                {phase === 'start'
+                  ? "Commencer l'échauffement"
+                  : phase === 'warmup'
+                    ? "Fin de l'échauffement"
+                    : "Terminer l'exercice"}
+              </button>
+            </>
           )}
         </div>
       )}
