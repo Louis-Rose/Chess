@@ -164,6 +164,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     fitRequest(() => axios.delete(`/api/fit/sessions/${sessionId}/sets/${setId}`)).catch(() => {});
     setEntries(prev => prev.map(e =>
       e.exercise === exercise ? { ...e, sets: e.sets.filter(s => s.id !== setId) } : e));
+    clearRest();   // the rest timer was based on a logged set; deleting one voids it
   }
 
   // Remove a whole exercise from the session: drop all its logged sets, then the entry.
@@ -177,6 +178,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       }
     }
     setEntries(prev => prev.filter(e => e.exercise !== exercise));
+    clearRest();   // the rest timer may have been based on a set we just removed
   }
 
   async function finish() {
