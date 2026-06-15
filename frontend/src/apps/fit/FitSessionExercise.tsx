@@ -7,7 +7,11 @@ import { formatSet } from './format';
 // next set (poids + répétitions). Weight is optional (bodyweight). Each set is
 // either a warmup (échauffement) or a working set (travail); warmup sets are
 // shown in parentheses and don't count in the set numbering.
-// Tapping a logged set loads it into the same form to edit it in place.
+// Instead of choosing the type per set, the user frames a warmup phase with
+// "Commencer l'échauffement" / "Fin de l'échauffement": while it's on, added
+// sets are warmups; otherwise they're working sets.
+// Tapping a logged set loads it into the same form to edit it in place (its
+// type is kept as-is).
 
 export interface LoggedSet {
   id: number;
@@ -32,7 +36,9 @@ interface Props {
 export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, onValidate }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
-  const [warmup, setWarmup] = useState(false);
+  // Warmup phase: while on, new sets are échauffement. Defaults on until a
+  // working set has been logged for this exercise.
+  const [warmupMode, setWarmupMode] = useState(!sets.some(s => !s.warmup));
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);  // set being edited, else adding a new one
   const [adding, setAdding] = useState(false);                      // add form opened via "Ajouter une série"
@@ -73,22 +79,18 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   function openAdd() {
     setEditingId(null);
-    // Default to échauffement until a working set has been logged for this
-    // exercise, then default to travail. Only pre-fill the working weight when
-    // the default is a working set.
-    const defaultWarmup = !sets.some(s => !s.warmup);
-    setWarmup(defaultWarmup);
-    setWeight(defaultWarmup ? '' : workWeightStr);
+    // Pre-fill the working weight only for a working set (warmup starts empty).
+    setWeight(warmupMode ? '' : workWeightStr);
     setReps('');
     setAdding(true);
   }
 
-  // Pick the set type. On a new set, switching to Travail pre-fills the working
-  // weight and switching to Échauffement clears it; on an edit, keep the entered
-  // weight untouched.
-  function pickSetType(isWarmup: boolean) {
-    setWarmup(isWarmup);
-    if (editingId == null) setWeight(isWarmup ? '' : workWeightStr);
+  // Start / end the warmup phase. While adding a new set, keep its pre-filled
+  // weight in step (empty for warmup, working weight otherwise).
+  function toggleWarmupMode() {
+    const next = !warmupMode;
+    setWarmupMode(next);
+    if (adding && editingId == null) setWeight(next ? '' : workWeightStr);
   }
 
   function startEdit(s: LoggedSet) {
@@ -96,7 +98,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setEditingId(s.id);
     setReps(String(s.reps));
     setWeight(s.weight == null ? '' : String(s.weight));
-    setWarmup(s.warmup);
   }
 
   function reset() {
@@ -108,10 +109,14 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   async function submit() {
     if (!valid || saving) return;
+    // Editing keeps the set's own type; a new set inherits the warmup phase.
+    const isWarmup = editingId != null
+      ? (sets.find(s => s.id === editingId)?.warmup ?? false)
+      : warmupMode;
     setSaving(true);
     try {
-      if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, warmup);
-      else await onAddSet(weightNum, repsNum, warmup);
+      if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, isWarmup);
+      else await onAddSet(weightNum, repsNum, isWarmup);
       reset();
     } catch {
       /* cancelled (or failed): keep the entered values so the user can retry */
@@ -203,20 +208,10 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           >
             <X className="h-4 w-4" />
           </button>
-          <div className="mx-auto grid w-64 grid-cols-2 rounded-lg border border-slate-700 p-0.5 text-sm">
-            {([[true, 'Échauffement'], [false, 'Travail']] as const).map(([w, label]) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => pickSetType(w)}
-                className={`rounded-md py-1.5 font-medium transition-colors ${
-                  warmup === w ? 'bg-emerald-600 text-white' : 'text-slate-400 active:text-slate-200'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <p className="text-center text-xs font-medium text-slate-400">
+            {(editingId != null ? (sets.find(s => s.id === editingId)?.warmup ?? false) : warmupMode)
+              ? 'Échauffement' : 'Série de travail'}
+          </p>
 
           <div className="mt-3 flex items-end gap-2">
             <label className="flex-1 text-center text-xs text-slate-100">
@@ -249,7 +244,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           </div>
         </div>
       ) : (
-        <div className="mt-3 flex justify-center">
+        <div className="mt-3 flex flex-col items-center gap-2">
           <button
             type="button"
             onClick={openAdd}
@@ -257,6 +252,17 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           >
             <Plus className="h-4 w-4" />
             Ajouter une série
+          </button>
+          <button
+            type="button"
+            onClick={toggleWarmupMode}
+            className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+              warmupMode
+                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 active:bg-emerald-500/20'
+                : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
+            }`}
+          >
+            {warmupMode ? "Fin de l'échauffement" : "Commencer l'échauffement"}
           </button>
         </div>
       )}

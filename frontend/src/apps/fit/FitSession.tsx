@@ -207,6 +207,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           <FitBackButton onClick={leaveEditing} className="mt-4" />
           <div className="mt-4">
             <FitSessionExercise
+              key={editingEntry.exercise}
               exercise={editingEntry.exercise}
               sets={editingEntry.sets}
               onAddSet={(w, r, warmup) => addSet(editingEntry.exercise, w, r, warmup)}

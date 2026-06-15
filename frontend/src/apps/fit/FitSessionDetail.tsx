@@ -158,6 +158,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
         <FitBackButton onClick={() => setEditing(null)} />
         <div className="mt-6">
           <FitSessionExercise
+            key={editing}
             exercise={editing}
             sets={sets}
             onAddSet={(w, r, warmup) => askChange(() => addSet(editing, w, r, warmup))}
