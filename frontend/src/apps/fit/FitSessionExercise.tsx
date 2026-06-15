@@ -7,9 +7,10 @@ import { formatSet } from './format';
 // next set (poids + répétitions). Weight is optional (bodyweight). Each set is
 // either a warmup (échauffement) or a working set (travail); warmup sets are
 // shown in parentheses and don't count in the set numbering.
-// Instead of choosing the type per set, the user frames a warmup phase with
-// "Commencer l'échauffement" / "Fin de l'échauffement": while it's on, added
-// sets are warmups; otherwise they're working sets.
+// Instead of choosing the type per set, the user walks a guided sequence at one
+// spot — "Commencer l'échauffement" → "Fin de l'échauffement" → "Terminer
+// l'exercice" — each step unlocked by the previous. Sets logged before the
+// warmup ends are warmups; after, they're working sets.
 // Tapping a logged set loads it into the same form to edit it in place (its
 // type is kept as-is).
 
@@ -36,9 +37,13 @@ interface Props {
 export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, onValidate }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
-  // Warmup phase: while on, new sets are échauffement. Defaults on until a
-  // working set has been logged for this exercise.
-  const [warmupMode, setWarmupMode] = useState(!sets.some(s => !s.warmup));
+  // Guided sequence. Resume at the right step: working sets → warmup done;
+  // warmup sets only → warming up; nothing logged → not started.
+  type Phase = 'start' | 'warmup' | 'work';
+  const [phase, setPhase] = useState<Phase>(
+    sets.some(s => !s.warmup) ? 'work' : sets.some(s => s.warmup) ? 'warmup' : 'start',
+  );
+  const warmupMode = phase !== 'work';   // sets are warmups until the warmup ends
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);  // set being edited, else adding a new one
   const [adding, setAdding] = useState(false);                      // add form opened via "Ajouter une série"
@@ -85,12 +90,14 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setAdding(true);
   }
 
-  // Start / end the warmup phase. While adding a new set, keep its pre-filled
-  // weight in step (empty for warmup, working weight otherwise).
-  function toggleWarmupMode() {
-    const next = !warmupMode;
-    setWarmupMode(next);
-    if (adding && editingId == null) setWeight(next ? '' : workWeightStr);
+  // Walk the sequence forward: start → warmup → work. Ending the warmup flips a
+  // new set's pre-filled weight to the working weight.
+  function advancePhase() {
+    if (phase === 'start') setPhase('warmup');
+    else if (phase === 'warmup') {
+      setPhase('work');
+      if (adding && editingId == null) setWeight(workWeightStr);
+    }
   }
 
   function startEdit(s: LoggedSet) {
@@ -244,7 +251,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           </div>
         </div>
       ) : (
-        <div className="mt-3 flex flex-col items-center gap-2">
+        <div className="mt-3 flex flex-col items-center gap-3">
           <button
             type="button"
             onClick={openAdd}
@@ -253,34 +260,36 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
             <Plus className="h-4 w-4" />
             Ajouter une série
           </button>
-          <button
-            type="button"
-            onClick={toggleWarmupMode}
-            className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
-              warmupMode
-                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 active:bg-emerald-500/20'
-                : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
-            }`}
-          >
-            {warmupMode ? "Fin de l'échauffement" : "Commencer l'échauffement"}
-          </button>
-        </div>
-      )}
 
-      {onValidate && (
-        <>
-          {/* Separator so the validate button isn't tapped by accident. */}
-          <div className="-mx-4 mt-5 border-t border-slate-700" />
-          <div className="mt-5 flex justify-center">
+          {/* One slot, three steps: start → end warmup → finish. Each step is
+              only offered once the previous one has been tapped. */}
+          {phase === 'work' ? (
+            onValidate && (
+              <>
+                <div className="mt-1 h-px w-full bg-slate-700" />
+                <button
+                  type="button"
+                  onClick={onValidate}
+                  className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
+                >
+                  Terminer l'exercice
+                </button>
+              </>
+            )
+          ) : (
             <button
               type="button"
-              onClick={onValidate}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
+              onClick={advancePhase}
+              className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                phase === 'warmup'
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300 active:bg-emerald-500/20'
+                  : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
+              }`}
             >
-              Terminer l'exercice
+              {phase === 'start' ? "Commencer l'échauffement" : "Fin de l'échauffement"}
             </button>
-          </div>
-        </>
+          )}
+        </div>
       )}
     </div>
   );
