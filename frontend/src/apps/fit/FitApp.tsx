@@ -10,6 +10,7 @@ import { FitProgramme } from './FitProgramme';
 import { FitLogin } from './FitLogin';
 import { FitAuthProvider, useFitAuth } from './fitAuth';
 import { useRestStart, clearRest } from './restTimer';
+import { useSession } from './sessionTimer';
 
 // New native fitness app (replaces the old Notion-synced Gym page).
 // French only, designed primarily for phone. Per-user, with its own
@@ -79,39 +80,59 @@ function FitAppInner() {
   );
 }
 
-// Rest timer since the last logged set. `sticky` just under the header: it stays
+// "M:SS" (or "H:MM:SS" past an hour) elapsed since a start timestamp.
+function clockLabel(startMs: number, nowMs: number) {
+  const secs = Math.max(0, Math.floor((nowMs - startMs) / 1000));
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = String(secs % 60).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}
+
+// The workout chronos, in one bubble `sticky` just under the header: it stays
 // visible while scrolling, yet (unlike `fixed`) is part of the scroll flow, so
 // the iOS keyboard auto-scroll on input focus can't displace it. Shown on every
-// tab so it persists while navigating. Ticks once a second; X clears it.
+// tab so it persists while navigating. The "Séance" line runs the whole session
+// (ends only via "Terminer la séance"); the "Repos" line counts since the last
+// logged set and its X clears it. Ticks once a second.
 function FitRestBar() {
+  const session = useSession();
   const restStart = useRestStart();
-  const [nowMs, setNowMs] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const active = session != null || restStart != null;
 
   useEffect(() => {
-    if (restStart == null) return;
+    if (!active) return;
     setNowMs(Date.now());
     const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [restStart]);
+  }, [active]);
 
-  if (restStart == null) return null;
-
-  const secs = Math.max(0, Math.floor((nowMs - restStart) / 1000));
-  const label = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  if (!active) return null;
 
   return (
     <div className="pointer-events-none sticky top-[calc(3.5rem+1px)] z-10 flex justify-center px-5 pt-2 pb-1">
-      <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800 px-4 py-1 text-sm tabular-nums shadow">
-        <span className="text-slate-400">Repos</span>
-        <span className="font-semibold text-emerald-400">{label}</span>
-        <button
-          type="button"
-          onClick={clearRest}
-          aria-label="Fermer le chrono"
-          className="-mr-1.5 ml-0.5 p-1 text-slate-500 transition-colors active:text-slate-200"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+      <div className="pointer-events-auto inline-flex flex-col items-center gap-0.5 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-1.5 text-sm tabular-nums shadow">
+        {session != null && (
+          <span className="flex items-center gap-2">
+            <span className="text-slate-400">Séance</span>
+            <span className="font-semibold text-emerald-400">{clockLabel(session.start, nowMs)}</span>
+          </span>
+        )}
+        {restStart != null && (
+          <span className="flex items-center gap-2">
+            <span className="text-slate-400">Repos</span>
+            <span className="font-semibold text-emerald-400">{clockLabel(restStart, nowMs)}</span>
+            <button
+              type="button"
+              onClick={clearRest}
+              aria-label="Fermer le chrono de repos"
+              className="-mr-1.5 ml-0.5 p-1 text-slate-500 transition-colors active:text-slate-200"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </span>
+        )}
       </div>
     </div>
   );

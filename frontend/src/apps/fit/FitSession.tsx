@@ -15,6 +15,7 @@ import { leafLabel } from './programData';
 import { sessionTitle } from './format';
 import { loadSessionNav, saveSessionNav, clearSessionNav } from './fitSessionNav';
 import { startRest, clearRest } from './restTimer';
+import { getSession, startSession, clearSession } from './sessionTimer';
 
 // A workout session. Starts empty; the user adds exercises from their program
 // "à la volée" and logs sets (poids + reps) on each. Everything persists as it
@@ -72,6 +73,10 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         const sid = sessionRes.data.id;
         setSessionId(sid);
         setStartedAt(sessionRes.data.started_at);
+        // Start the session stopwatch, or keep it running when resuming the
+        // same in-progress session.
+        const existing = getSession();
+        if (!existing || existing.sessionId !== sid) startSession(sid, Date.now());
         setNumber(sessionRes.data.number);
         setComment(sessionRes.data.comment);
         setProgram(exRes.data.selections ?? {});
@@ -176,6 +181,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
 
   async function finish() {
     clearRest();
+    clearSession();
     if (sessionId == null || finishing) { clearSessionNav(); onDone(); return; }
     setFinishing(true);
     try {

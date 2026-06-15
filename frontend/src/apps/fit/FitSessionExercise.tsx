@@ -44,6 +44,11 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     sets.some(s => !s.warmup) ? 'work' : sets.some(s => s.warmup) ? 'warmup' : 'start',
   );
   const warmupMode = phase !== 'work';   // sets are warmups until the warmup ends
+  const hasWarmup = sets.some(s => s.warmup);
+  const hasWork = sets.some(s => !s.warmup);
+  // Can't end the warmup before a warmup set is in, nor finish before a working
+  // set is in. Starting the warmup has no such gate.
+  const stepDisabled = (phase === 'warmup' && !hasWarmup) || (phase === 'work' && !hasWork);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);  // set being edited, else adding a new one
   const [adding, setAdding] = useState(false);                      // add form opened via "Ajouter une série"
@@ -255,28 +260,16 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         </div>
       ) : (
         <div className="mt-4 flex flex-col items-center gap-4">
-          {/* Visible from the start, but logging only opens once the warmup has
-              been started. Equal gaps keep it centered between the separators. */}
-          <button
-            type="button"
-            onClick={openAdd}
-            disabled={phase === 'start'}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800 disabled:opacity-40 disabled:active:bg-slate-800/50"
-          >
-            <Plus className="h-4 w-4" />
-            Ajouter une série
-          </button>
-
-          {/* One slot, three steps: start → end warmup → finish. Each step is
-              only offered once the previous one has been tapped, set off by a
-              separator and sharing the same neutral (smaller) style. */}
+          {/* One slot, three steps: start → end warmup → finish. Ending the
+              warmup / finishing is gated on having logged a set of that type. */}
           {(phase !== 'work' || onValidate) && (
             <>
-              <div className="h-px w-full bg-slate-700" />
+              {sets.length > 0 && <div className="h-px w-full bg-slate-700" />}
               <button
                 type="button"
                 onClick={phase === 'work' ? onValidate : advancePhase}
-                className="rounded-xl border border-slate-700 bg-slate-800/50 px-3.5 py-1.5 text-xs font-medium text-slate-100 transition-colors active:bg-slate-800"
+                disabled={stepDisabled}
+                className="rounded-xl border border-slate-700 bg-slate-800/50 px-3.5 py-1.5 text-xs font-medium text-slate-100 transition-colors active:bg-slate-800 disabled:opacity-40 disabled:active:bg-slate-800/50"
               >
                 {phase === 'start'
                   ? "Commencer l'échauffement"
@@ -286,6 +279,17 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               </button>
             </>
           )}
+
+          {/* Below the step button; logging only opens once the warmup starts. */}
+          <button
+            type="button"
+            onClick={openAdd}
+            disabled={phase === 'start'}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800 disabled:opacity-40 disabled:active:bg-slate-800/50"
+          >
+            <Plus className="h-4 w-4" />
+            Ajouter une série
+          </button>
         </div>
       )}
     </div>
