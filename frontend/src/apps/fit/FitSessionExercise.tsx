@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, Trash2, X } from 'lucide-react';
 import { leafLabel, exerciseEnglish, exerciseSettingsValue } from './programData';
 import { formatSet } from './format';
 
@@ -141,11 +141,37 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   // focused input whose font-size is under 16px.
   const inputClass = 'w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-center text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none';
 
-  let workIdx = 0;
+  // The logged sets, split into the two table columns; at least 3 rows so
+  // there's always room to fill in (extends past 3 as needed). Same bordered
+  // table as the past-session view (FitSetList), but each cell is tappable to
+  // edit that set.
+  const warmupSets = sets.filter(s => s.warmup);
+  const workSets = sets.filter(s => !s.warmup);
+  const setRows = Math.max(3, warmupSets.length, workSets.length);
+  const cell = 'border border-slate-700 text-center';
 
   const english = exerciseEnglish(baseName);
   // Smaller boxes than the set-entry inputs; the value text matches the label size.
   const fieldInput = 'rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1 text-center text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none';
+
+  // One table cell: a tappable set, or an empty "—" placeholder.
+  function SetCell({ s, dim }: { s: LoggedSet | undefined; dim?: boolean }) {
+    if (!s) return <td className={`${cell} px-2 py-1 text-slate-600`}>—</td>;
+    const isEditing = editingId === s.id;
+    return (
+      <td className={cell}>
+        <button
+          type="button"
+          onClick={() => (isEditing ? reset() : startEdit(s))}
+          className={`w-full px-2 py-1 transition-colors active:bg-slate-800 ${
+            isEditing ? 'text-emerald-400' : dim ? 'text-slate-400' : 'font-medium text-slate-100'
+          }`}
+        >
+          {formatSet(s.weight, s.reps, false)}
+        </button>
+      </td>
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4">
@@ -184,34 +210,22 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       {/* Separates the exercise's settings from its sets and logging actions. */}
       <div className="mt-4 h-px w-full bg-slate-700" />
 
-      {sets.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-1.5">
-          {sets.map(s => {
-            const num = s.warmup ? null : ++workIdx;
-            const isEditing = editingId === s.id;
-            return (
-              <li key={s.id} className="flex items-center justify-between gap-2 text-sm text-slate-200">
-                <button
-                  type="button"
-                  onClick={() => isEditing ? reset() : startEdit(s)}
-                  className={`flex-1 text-left transition-colors ${isEditing ? 'text-emerald-400' : s.warmup ? 'text-slate-400' : ''}`}
-                >
-                  <span className="text-slate-500">{num != null ? `${num}.` : '·'}</span>{' '}
-                  {formatSet(s.weight, s.reps, s.warmup)}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { if (editingId === s.id) reset(); onDeleteSet(s.id); }}
-                  aria-label="Supprimer la série"
-                  className="rounded p-1 text-slate-500 transition-colors active:text-red-400"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <table className="mt-3 w-full table-fixed border-collapse text-sm">
+        <thead>
+          <tr>
+            <th className={`${cell} w-1/2 px-2 py-1 text-xs font-normal uppercase tracking-wide text-slate-500`}>Échauffement</th>
+            <th className={`${cell} w-1/2 px-2 py-1 text-xs font-normal uppercase tracking-wide text-white`}>Travail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: setRows }, (_, i) => (
+            <tr key={i}>
+              <SetCell s={warmupSets[i]} dim />
+              <SetCell s={workSets[i]} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       {formVisible ? (
         <div className="relative mt-3 rounded-xl border border-slate-700 bg-slate-900/40 px-3 pb-3 pt-7">
@@ -223,6 +237,16 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           >
             <X className="h-4 w-4" />
           </button>
+          {editingId != null && (
+            <button
+              type="button"
+              onClick={() => { const id = editingId; reset(); onDeleteSet(id); }}
+              aria-label="Supprimer la série"
+              className="absolute left-2 top-2 text-slate-500 transition-colors active:text-red-400"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
           <p className="text-center text-xs font-medium text-slate-400">
             {(editingId != null ? (sets.find(s => s.id === editingId)?.warmup ?? false) : warmupMode)
               ? 'Échauffement' : 'Série de travail'}
@@ -264,7 +288,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               warmup / finishing is gated on having logged a set of that type. */}
           {(phase !== 'work' || onValidate) && (
             <>
-              {sets.length > 0 && <div className="h-px w-full bg-slate-700" />}
+              <div className="h-px w-full bg-slate-700" />
               <button
                 type="button"
                 onClick={phase === 'work' ? onValidate : advancePhase}

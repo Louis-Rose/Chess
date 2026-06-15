@@ -3,6 +3,7 @@ import axios from 'axios';
 import { X } from 'lucide-react';
 import { MUSCLE_ORDER, MUSCLE_LEAVES, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
+import { FitChrono } from './FitChrono';
 import { fitRequest } from './fitAuth';
 
 // Full-screen "Ajouter un exercice" picker, shared by the new-session flow
@@ -47,6 +48,9 @@ export function FitExercisePicker({ program, onPick, onClose }: {
           <X className="h-6 w-6" />
         </button>
       </header>
+
+      {/* The picker covers the app's sticky chrono, so show it here too. */}
+      <FitChrono />
 
       <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         {groups.length === 0 ? (
