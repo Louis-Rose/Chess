@@ -1,41 +1,29 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { X } from 'lucide-react';
-import { MUSCLE_ORDER, MUSCLE_LEAVES, groupExercises, sortLabels, type Exercise } from './programData';
+import { MUSCLE_ORDER, MUSCLE_LEAVES, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { fitRequest } from './fitAuth';
 
-// Days since the exercise was last done, keyed by base name (min across its
-// variants) — mirrors buildRecency's baseOf grouping. Drives the recency line.
-const baseOf = (leaf: string) => {
-  const i = leaf.indexOf(' — ');
-  return i === -1 ? leaf : leaf.slice(0, i);
-};
-
 // Full-screen "Ajouter un exercice" picker, shared by the new-session flow
-// (FitSession) and the session editor (FitSessionDetail). Same UI as the
-// Programme exercise step: per-muscle cards with expandable variants and a
-// green halo on the exercises already in the session. Tapping a leaf/variant
-// adds it (onPick); it only lists the program's still-valid exercises.
+// (FitSession) and the session editor (FitSessionDetail). Unlike the Programme
+// exercise step, there's no variant chooser: each program variant is offered as
+// its own card (the variant shown under the base name), so a single tap adds it
+// (onPick). It only lists the program's still-valid exercises.
 
 export function FitExercisePicker({ program, onPick, onClose }: {
   program: Record<string, string[]>;
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
-  // One expanded variant group at a time across the whole picker (accordion).
-  const [openName, setOpenName] = useState<string | null>(null);
-  // Days since each base exercise was last done, shown under the English name.
+  // Days since each exercise (per stored leaf) was last done, shown on its card.
   const [recency, setRecency] = useState<Record<string, number>>({});
   useEffect(() => {
     fitRequest(() => axios.get<{ exercises: { exercise: string; days: number }[] }>('/api/fit/last-done'))
       .then(res => {
-        const byBase: Record<string, number> = {};
-        for (const e of res.data.exercises ?? []) {
-          const b = baseOf(e.exercise);
-          if (byBase[b] == null || e.days < byBase[b]) byBase[b] = e.days;
-        }
-        setRecency(byBase);
+        const byLeaf: Record<string, number> = {};
+        for (const e of res.data.exercises ?? []) byLeaf[e.exercise] = e.days;
+        setRecency(byLeaf);
       })
       .catch(() => { /* no recency line */ });
   }, []);
@@ -43,12 +31,12 @@ export function FitExercisePicker({ program, onPick, onClose }: {
   // ones already in the session as "selected" was misleading.
   const selected: string[] = [];
   const groups = MUSCLE_ORDER
-    .map(name => {
-      const leaves = sortLabels((program[name] ?? []).filter(ex => MUSCLE_LEAVES[name]?.has(ex)));
-      const exercises: Exercise[] = groupExercises(leaves).map(g =>
-        g.variants.length === 0 ? g.name : { name: g.name, variants: [g.variants] });
-      return { name, exercises };
-    })
+    .map(name => ({
+      name,
+      // Each valid program leaf is its own card (variants included), sorted so
+      // variants of the same exercise sit next to each other.
+      exercises: sortLabels((program[name] ?? []).filter(ex => MUSCLE_LEAVES[name]?.has(ex))),
+    }))
     .filter(g => g.exercises.length > 0);
 
   return (
@@ -76,8 +64,6 @@ export function FitExercisePicker({ program, onPick, onClose }: {
                     ariaLabel={`Exercices ${g.name}`}
                     selected={selected}
                     onToggle={onPick}
-                    openName={openName}
-                    onOpenChange={setOpenName}
                     recency={recency}
                   />
                 </div>

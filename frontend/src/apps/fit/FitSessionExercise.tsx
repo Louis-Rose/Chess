@@ -252,14 +252,17 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         </div>
       ) : (
         <div className="mt-3 flex flex-col items-center gap-3">
-          <button
-            type="button"
-            onClick={openAdd}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            Ajouter une série
-          </button>
+          {/* Logging sets only opens once the warmup has been started. */}
+          {phase !== 'start' && (
+            <button
+              type="button"
+              onClick={openAdd}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              Ajouter une série
+            </button>
+          )}
 
           {/* One slot, three steps: start → end warmup → finish. Each step is
               only offered once the previous one has been tapped. */}

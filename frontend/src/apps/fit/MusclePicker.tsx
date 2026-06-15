@@ -8,12 +8,19 @@ const recencyLabel = (d: number) =>
 
 // Exercise name plus its English name (machine settings are shown only inside
 // the exercise, not in the picker). When `days` is provided, an extra line
-// shows how long since the exercise was last done.
+// shows how long since the exercise was last done. A stored leaf
+// "<base> — <variant>" shows the variant on its own line under the base name
+// (same size, white, in parentheses) — used by the in-session picker, which
+// offers each program variant as its own card instead of an expandable group.
 function ExLabel({ name, days }: { name: string; days?: number | null }) {
-  const en = exerciseEnglish(name);
+  const i = name.indexOf(' — ');
+  const base = i === -1 ? name : name.slice(0, i);
+  const variant = i === -1 ? '' : name.slice(i + 3);
+  const en = exerciseEnglish(base);
   return (
     <span className="flex flex-col items-center">
-      <span className="font-medium text-slate-100">{name}</span>
+      <span className="font-medium text-slate-100">{base}</span>
+      {variant && <span className="font-medium text-slate-100">({variant})</span>}
       {en && <span className="mt-0.5 text-xs text-slate-400">{en}</span>}
       {days != null && <span className="mt-0.5 text-xs text-emerald-400/80">{recencyLabel(days)}</span>}
     </span>
