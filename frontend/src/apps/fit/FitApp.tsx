@@ -17,10 +17,10 @@ import { FitChrono } from './FitChrono';
 
 const TABS: FitTab[] = [
   { key: 'accueil', label: 'Accueil', Icon: Home },
-  { key: 'principes', label: 'Principes', Icon: BookOpen },
-  { key: 'programme', label: 'Programme', Icon: Dumbbell },
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
   { key: 'performances', label: 'Suivi', Icon: TrendingUp },
+  { key: 'programme', label: 'Programme', Icon: Dumbbell },
+  { key: 'principes', label: 'Principes', Icon: BookOpen },
 ];
 
 export function FitApp() {
