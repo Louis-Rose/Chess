@@ -2,14 +2,20 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { variantId, exerciseEnglish, type Exercise } from './programData';
 
+// "il y a 3 jours" style label for the days since an exercise was last done.
+const recencyLabel = (d: number) =>
+  d === 0 ? "aujourd'hui" : d === 1 ? 'hier' : `il y a ${d} jours`;
+
 // Exercise name plus its English name (machine settings are shown only inside
-// the exercise, not in the picker).
-function ExLabel({ name }: { name: string }) {
+// the exercise, not in the picker). When `days` is provided, an extra line
+// shows how long since the exercise was last done.
+function ExLabel({ name, days }: { name: string; days?: number | null }) {
   const en = exerciseEnglish(name);
   return (
     <span className="flex flex-col items-center">
       <span className="font-medium text-slate-100">{name}</span>
       {en && <span className="mt-0.5 text-xs text-slate-400">{en}</span>}
+      {days != null && <span className="mt-0.5 text-xs text-emerald-400/80">{recencyLabel(days)}</span>}
     </span>
   );
 }
@@ -25,7 +31,7 @@ const cardBase = 'flex items-center justify-center rounded-xl border px-4 py-3.5
 const cardOn = 'border-emerald-500 bg-emerald-500/10';
 const cardOff = 'border-slate-700 bg-slate-800/50 active:bg-slate-800';
 
-export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange }: {
+export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency }: {
   exercises: Exercise[];
   selected: string[];
   onToggle: (id: string) => void;
@@ -35,6 +41,9 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
   // and multiple groups can be open at once.
   openName?: string | null;
   onOpenChange?: (name: string | null) => void;
+  // Optional days-since-last-done per base exercise name; shows a recency line
+  // under the English name (used by the in-session "Ajouter un exercice" picker).
+  recency?: Record<string, number>;
 }) {
   const [localOpen, setLocalOpen] = useState<Record<string, boolean>>({});
   const controlled = onOpenChange != null;
@@ -58,7 +67,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               onClick={() => onToggle(ex)}
               className={`${cardBase} ${isActive ? cardOn : cardOff}`}
             >
-              <ExLabel name={ex} />
+              <ExLabel name={ex} days={recency?.[ex]} />
             </button>
           );
         }
@@ -75,7 +84,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               onClick={() => toggleOpen(ex.name, expanded)}
               className={`relative ${cardBase} ${anySelected ? cardOn : cardOff}`}
             >
-              <ExLabel name={ex.name} />
+              <ExLabel name={ex.name} days={recency?.[ex.name]} />
               {expanded
                 ? <ChevronUp className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 : <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />}

@@ -1,7 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { X } from 'lucide-react';
 import { MUSCLE_ORDER, MUSCLE_LEAVES, groupExercises, sortLabels, type Exercise } from './programData';
 import { MusclePicker } from './MusclePicker';
+import { fitRequest } from './fitAuth';
+
+// Days since the exercise was last done, keyed by base name (min across its
+// variants) — mirrors buildRecency's baseOf grouping. Drives the recency line.
+const baseOf = (leaf: string) => {
+  const i = leaf.indexOf(' — ');
+  return i === -1 ? leaf : leaf.slice(0, i);
+};
 
 // Full-screen "Ajouter un exercice" picker, shared by the new-session flow
 // (FitSession) and the session editor (FitSessionDetail). Same UI as the
@@ -16,6 +25,20 @@ export function FitExercisePicker({ program, onPick, onClose }: {
 }) {
   // One expanded variant group at a time across the whole picker (accordion).
   const [openName, setOpenName] = useState<string | null>(null);
+  // Days since each base exercise was last done, shown under the English name.
+  const [recency, setRecency] = useState<Record<string, number>>({});
+  useEffect(() => {
+    fitRequest(() => axios.get<{ exercises: { exercise: string; days: number }[] }>('/api/fit/last-done'))
+      .then(res => {
+        const byBase: Record<string, number> = {};
+        for (const e of res.data.exercises ?? []) {
+          const b = baseOf(e.exercise);
+          if (byBase[b] == null || e.days < byBase[b]) byBase[b] = e.days;
+        }
+        setRecency(byBase);
+      })
+      .catch(() => { /* no recency line */ });
+  }, []);
   // Nothing is pre-highlighted: the picker only adds exercises, so showing the
   // ones already in the session as "selected" was misleading.
   const selected: string[] = [];
@@ -55,6 +78,7 @@ export function FitExercisePicker({ program, onPick, onClose }: {
                     onToggle={onPick}
                     openName={openName}
                     onOpenChange={setOpenName}
+                    recency={recency}
                   />
                 </div>
               </section>
