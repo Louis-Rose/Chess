@@ -115,7 +115,7 @@ export function FitCalendrier() {
     if (!victim) return;
     commitPending();   // flush any earlier pending delete first
     setSessions(prev => prev.filter(s => s.id !== id));
-    const timer = setTimeout(commitPending, 6000);
+    const timer = setTimeout(commitPending, 10000);
     pendingRef.current = { id, session: victim, timer };
     setPendingUndo(victim);
   };
