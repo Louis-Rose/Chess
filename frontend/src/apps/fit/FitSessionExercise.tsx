@@ -254,9 +254,9 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           </div>
         </div>
       ) : (
-        <div className="mt-3 flex flex-col items-center gap-3">
+        <div className="mt-4 flex flex-col items-center gap-4">
           {/* Visible from the start, but logging only opens once the warmup has
-              been started. */}
+              been started. Equal gaps keep it centered between the separators. */}
           <button
             type="button"
             onClick={openAdd}
@@ -269,14 +269,14 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
           {/* One slot, three steps: start → end warmup → finish. Each step is
               only offered once the previous one has been tapped, set off by a
-              separator and sharing the same neutral style. */}
+              separator and sharing the same neutral (smaller) style. */}
           {(phase !== 'work' || onValidate) && (
             <>
-              <div className="mt-1 h-px w-full bg-slate-700" />
+              <div className="h-px w-full bg-slate-700" />
               <button
                 type="button"
                 onClick={phase === 'work' ? onValidate : advancePhase}
-                className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800"
+                className="rounded-xl border border-slate-700 bg-slate-800/50 px-3.5 py-1.5 text-xs font-medium text-slate-100 transition-colors active:bg-slate-800"
               >
                 {phase === 'start'
                   ? "Commencer l'échauffement"
