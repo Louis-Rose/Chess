@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
@@ -81,6 +81,10 @@ export function FitCalendrier() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [period, setPeriod] = useState<Period>('mois');
+  // A just-deleted session, kept around so it can be undone. The backend DELETE
+  // is deferred until the undo window elapses (or the tab unmounts).
+  const [pendingUndo, setPendingUndo] = useState<SessionSummary | null>(null);
+  const pendingRef = useRef<{ id: number; session: SessionSummary; timer: ReturnType<typeof setTimeout> } | null>(null);
 
   useEffect(() => {
     fitRequest(() => axios.get<{ sessions: SessionSummary[] }>('/api/fit/sessions'))
@@ -89,13 +93,44 @@ export function FitCalendrier() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Commit the deferred delete now (timer fired, a new delete arrived, or the
+  // tab is unmounting): actually hit the backend and drop the undo banner.
+  const commitPending = () => {
+    const p = pendingRef.current;
+    if (!p) return;
+    clearTimeout(p.timer);
+    pendingRef.current = null;
+    setPendingUndo(null);
+    fitRequest(() => axios.delete(`/api/fit/sessions/${p.id}`)).catch(() => { /* best effort */ });
+  };
+  // Make sure a pending delete isn't silently dropped when leaving the tab.
+  useEffect(() => () => commitPending(), []);
+
   const confirmDelete = () => {
     const id = confirmId;
     setConfirmId(null);
     if (id == null) return;
     setOpenId(null);
+    const victim = sessions.find(s => s.id === id);
+    if (!victim) return;
+    commitPending();   // flush any earlier pending delete first
     setSessions(prev => prev.filter(s => s.id !== id));
-    fitRequest(() => axios.delete(`/api/fit/sessions/${id}`)).catch(() => { /* best effort */ });
+    const timer = setTimeout(commitPending, 6000);
+    pendingRef.current = { id, session: victim, timer };
+    setPendingUndo(victim);
+  };
+
+  const undoDelete = () => {
+    const p = pendingRef.current;
+    if (!p) return;
+    clearTimeout(p.timer);
+    pendingRef.current = null;
+    setPendingUndo(null);
+    setSessions(prev => [...prev, p.session].sort((a, b) => {
+      const ta = a.started_at ? new Date(a.started_at).getTime() : 0;
+      const tb = b.started_at ? new Date(b.started_at).getTime() : 0;
+      return tb - ta;
+    }));
   };
 
   if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
@@ -160,6 +195,17 @@ export function FitCalendrier() {
           onConfirm={confirmDelete}
           onCancel={() => setConfirmId(null)}
         />
+      )}
+
+      {pendingUndo != null && (
+        <div className="fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-20 flex justify-center px-5">
+          <div className="flex items-center gap-4 rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-sm shadow-lg">
+            <span className="text-slate-300">Séance supprimée</span>
+            <button type="button" onClick={undoDelete} className="font-semibold text-emerald-400 active:text-emerald-300">
+              Annuler
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
