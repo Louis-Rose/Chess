@@ -14,11 +14,11 @@ export function FitSetList({ sets }: { sets: DisplaySet[] }) {
   const work = sets.filter(s => !s.warmup);
   const rows = Math.max(warmups.length, work.length);
   return (
-    <table className="mt-2 w-full border-collapse text-sm">
+    <table className="mt-2 w-full table-fixed border-collapse text-sm">
       <thead>
         <tr>
-          <th className={`${cell} text-xs font-normal uppercase tracking-wide text-slate-500`}>Échauffement</th>
-          <th className={`${cell} text-xs font-normal uppercase tracking-wide text-slate-500`}>Travail</th>
+          <th className={`${cell} w-1/2 text-xs font-normal uppercase tracking-wide text-slate-500`}>Échauffement</th>
+          <th className={`${cell} w-1/2 text-xs font-normal uppercase tracking-wide text-white`}>Travail</th>
         </tr>
       </thead>
       <tbody>
