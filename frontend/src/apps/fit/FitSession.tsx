@@ -8,7 +8,7 @@ import { FitExerciseRecent } from './FitExerciseRecent';
 import { FitSessionComment } from './FitSessionComment';
 import { FitSwipeRow } from './FitSwipeRow';
 import { FitConfirm } from './FitConfirm';
-import { FitBackButton } from './FitBackButton';
+import { FitScreenHeader } from './FitScreenHeader';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
 import { leafLabel } from './programData';
@@ -246,21 +246,23 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const editingEntry = editing ? entries.find(e => e.exercise === editing) ?? null : null;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <h1 className="text-center text-2xl font-semibold">
-        {sessionTitle(number, startedAt)}
-      </h1>
+    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+      {/* Précédent returns to the exercise overview while editing one, else home
+          (the session stays live and resumable). */}
+      <FitScreenHeader
+        title={sessionTitle(number, startedAt)}
+        onBack={editingEntry ? leaveEditing : onDone}
+      />
 
+      <div className="flex flex-1 flex-col px-5">
       {loading ? (
         <div className="mt-10 flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>
       ) : editingEntry ? (
-        // Editing one exercise: its card + "Valider l'exercice", with a back
-        // button to return (and pick another exercise if nothing was logged).
+        // Editing one exercise: its card + "Valider l'exercice".
         <>
-          <FitBackButton onClick={leaveEditing} className="mt-4" />
-          <div className="mt-4">
+          <div className="mt-2">
             <FitSessionExercise
               key={editingEntry.exercise}
               exercise={editingEntry.exercise}
@@ -322,6 +324,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           </div>
         </>
       )}
+      </div>
 
       {picking && (
         <FitExercisePicker

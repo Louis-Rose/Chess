@@ -4,7 +4,7 @@ import { MUSCLE_ORDER, MUSCLE_LEAVES, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
 import { FitHeader } from './FitHeader';
-import { FitBackButton } from './FitBackButton';
+import { FitScreenHeader } from './FitScreenHeader';
 import { fitRequest } from './fitAuth';
 import { validatedLeaves } from './validatedExercises';
 
@@ -50,13 +50,9 @@ export function FitExercisePicker({ program, onPick, onClose }: {
           too, then lay out the back button and title below them. */}
       <FitHeader />
       <FitChrono />
+      <FitScreenHeader title="Ajouter un exercice" onBack={onClose} />
 
-      <header className="border-b border-slate-800 px-5 py-4">
-        <h2 className="text-center text-lg font-semibold">Ajouter un exercice</h2>
-      </header>
-
-      <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-        <FitBackButton onClick={onClose} className="mb-4" />
+      <div className="flex-1 overflow-y-auto px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-5">
         {groups.length === 0 ? (
           <p className="mt-8 text-center text-sm text-slate-400">
             Aucun exercice disponible. Ajoute-en dans ton programme.

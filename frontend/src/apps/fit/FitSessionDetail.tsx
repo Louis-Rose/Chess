@@ -6,7 +6,7 @@ import { leafLabel, muscleContribution, MUSCLE_ORDER } from './programData';
 import { sessionTitle } from './format';
 import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
-import { FitBackButton } from './FitBackButton';
+import { FitScreenHeader } from './FitScreenHeader';
 import { FitExercisePicker } from './FitExercisePicker';
 import { FitConfirm } from './FitConfirm';
 import { FitExerciseRecent } from './FitExerciseRecent';
@@ -148,15 +148,15 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const groups = session ? groupByExercise(session.sets) : [];
   const volume = session ? workVolume(session.sets) : [];
 
-  const back = <FitBackButton onClick={onBack} />;
+  const sessionName = sessionTitle(session?.number, session?.started_at ?? null);
 
   // Editing one exercise: just its card + "Valider l'exercice".
   if (editing != null) {
     const sets = groups.find(g => g.exercise === editing)?.sets ?? [];
     return (
-      <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-        <FitBackButton onClick={() => setEditing(null)} />
-        <div className="mt-6">
+      <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+        <FitScreenHeader title={sessionName} onBack={() => setEditing(null)} />
+        <div className="px-5 pt-2">
           <FitSessionExercise
             key={editing}
             exercise={editing}
@@ -205,19 +205,16 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      {back}
+    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+      <FitScreenHeader title={sessionName} onBack={onBack} />
 
+      <div className="px-5">
       {loading ? (
         <div className="mt-10 flex justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
         </div>
       ) : (
         <>
-          <h1 className="mt-4 text-center text-2xl font-semibold">
-            {sessionTitle(session?.number, session?.started_at ?? null)}
-          </h1>
-
           {volume.length > 0 && (
             <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col items-center rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4 text-center">
               <p className="text-xs uppercase tracking-wide text-slate-500">Volume de travail</p>
@@ -285,6 +282,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
           ) : null}
         </>
       )}
+      </div>
 
       {picking && (
         <FitExercisePicker
