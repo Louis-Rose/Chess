@@ -3,6 +3,7 @@ import axios from 'axios';
 import { MUSCLE_ORDER, MUSCLE_LEAVES, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
+import { FitHeader } from './FitHeader';
 import { FitBackButton } from './FitBackButton';
 import { fitRequest } from './fitAuth';
 import { validatedLeaves } from './validatedExercises';
@@ -45,13 +46,15 @@ export function FitExercisePicker({ program, onPick, onClose }: {
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col bg-slate-900 text-slate-100">
+      {/* The picker covers the app's header + sticky chrono, so show them here
+          too, then lay out the back button and title below them. */}
+      <FitHeader />
+      <FitChrono />
+
       <header className="border-b border-slate-800 px-5 py-4">
         <FitBackButton onClick={onClose} />
         <h2 className="mt-1 text-center text-lg font-semibold">Ajouter un exercice</h2>
       </header>
-
-      {/* The picker covers the app's sticky chrono, so show it here too. */}
-      <FitChrono />
 
       <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         {groups.length === 0 ? (
