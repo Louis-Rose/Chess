@@ -15,7 +15,7 @@ function StatBlock({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-1 flex-col gap-3 border-t border-slate-700 pt-6 first:border-t-0 first:pt-0 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0 sm:first:border-l-0 sm:first:pl-0">
+    <div className="flex flex-1 flex-col items-center gap-3 border-t border-slate-700 pt-6 text-center first:border-t-0 first:pt-0 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0 sm:first:border-l-0 sm:first:pl-0">
       <div className="flex items-baseline justify-center gap-2">
         <span className="text-sm font-semibold text-slate-300">{label}</span>
         {symbol && <span className="text-slate-400">({symbol})</span>}
@@ -33,13 +33,13 @@ const VOL_BLUE = 'rgb(56, 189, 248)'; // sky-400
 // Row 1: each selected stock's annualised volatility, then the portfolio average.
 function VolatilityRow({ data }: { data: CorrelationResponse }) {
   return (
-    <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+    <div className="flex w-full flex-col items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 text-center">
       <div className="flex items-baseline justify-center gap-2">
         <span className="text-sm font-semibold text-slate-300">Volatilité annualisée</span>
         <span className="text-slate-400">(σ̄)</span>
       </div>
 
-      <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+      <div className="flex flex-wrap items-end justify-center gap-x-8 gap-y-4">
         {data.tickers.map((t) => (
           <div key={t} className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t}</span>
@@ -73,7 +73,7 @@ function RiskFloor({ rho, volatility }: { rho: number; volatility: number }) {
   const floor = volatility * sqrtRho;
   const savings = volatility - floor;
   return (
-    <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+    <div className="flex w-full flex-col items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 text-center">
       <span className="text-center text-sm font-semibold text-slate-300">
         Volatilité minimale absolue (plancher de risque)
       </span>
@@ -114,14 +114,14 @@ function DeviationScenarios({ data, rho }: { data: CorrelationResponse; rho: num
   ];
 
   return (
-    <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+    <div className="flex w-full flex-col items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 text-center">
       <span className="text-center text-sm font-semibold text-slate-300">
         Scénarios de déviation (VaR simplifiée)
       </span>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-center sm:gap-8">
         {bands.map(({ label, conf, mult }) => (
-          <div key={mult} className="flex flex-1 flex-col gap-1">
+          <div key={mult} className="flex flex-1 flex-col items-center gap-1">
             <span className="text-sm font-semibold text-slate-200">{label}</span>
             <span className="text-xs text-slate-400">{conf}</span>
             <span className="mt-1 text-4xl font-bold" style={{ color: 'rgb(248, 113, 113)' }}>
@@ -161,7 +161,7 @@ function WeightOptimization({ data }: { data: CorrelationResponse }) {
   const maxTicker = tickers.reduce((a, b) => (volatilities[b] > volatilities[a] ? b : a));
 
   return (
-    <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+    <div className="flex w-full flex-col items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 text-center">
       <span className="text-center text-sm font-semibold text-slate-300">
         Optimisation des poids (volatilité inverse · risk parity)
       </span>
@@ -176,7 +176,7 @@ function WeightOptimization({ data }: { data: CorrelationResponse }) {
       <div className="text-sm text-slate-300">wᵢ = (1/σᵢ²) / Σ(1/σⱼ²)</div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[28rem] border-separate border-spacing-y-1 text-sm">
+        <table className="w-full min-w-[28rem] border-separate border-spacing-y-1 text-left text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
               <th className="py-1 pr-4 font-semibold">Action</th>
@@ -198,11 +198,11 @@ function WeightOptimization({ data }: { data: CorrelationResponse }) {
         </table>
       </div>
 
-      <div className="flex flex-col gap-1 border-t border-slate-700 pt-4">
+      <div className="flex w-full flex-col items-center gap-1 border-t border-slate-700 pt-4">
         <span className="text-sm font-semibold text-slate-300">
           Volatilité moyenne pondérée (risk parity)
         </span>
-        <div className="flex items-baseline gap-3">
+        <div className="flex items-baseline justify-center gap-3">
           <span className="text-4xl font-bold" style={{ color: 'rgb(52, 211, 153)' }}>
             {pct(weightedVol)}
           </span>
