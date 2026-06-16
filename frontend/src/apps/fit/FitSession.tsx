@@ -16,6 +16,7 @@ import { sessionTitle } from './format';
 import { loadSessionNav, saveSessionNav, clearSessionNav } from './fitSessionNav';
 import { startRest, clearRest } from './restTimer';
 import { getSession, startSession, clearSession } from './sessionTimer';
+import { markValidated, unmarkValidated, clearValidated } from './validatedExercises';
 
 // A workout session. Starts empty; the user adds exercises from their program
 // "à la volée" and logs sets (poids + reps) on each. Everything persists as it
@@ -126,12 +127,15 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     }
   }
 
-  // "Terminer l'exercice": go to the overview, but don't keep an exercise with
-  // no logged set — nothing to save.
+  // "Valider l'exercice": go to the overview, but don't keep an exercise with
+  // no logged set — nothing to save. Validating an exercise with logged sets
+  // marks it done today in the recency views, mid-session.
   function finishEditing() {
     const entry = entries.find(e => e.exercise === editing);
     if (entry && entry.sets.length === 0) {
       setEntries(prev => prev.filter(e => e.exercise !== editing));
+    } else if (entry && sessionId != null && editing) {
+      markValidated(sessionId, editing);
     }
     setEditing(null);
   }
@@ -168,6 +172,10 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     const next = entries.map(e =>
       e.exercise === exercise ? { ...e, sets: e.sets.filter(s => s.id !== setId) } : e);
     setEntries(next);
+    // An exercise with no set left is no longer "done today".
+    if (sessionId != null && !next.find(e => e.exercise === exercise)?.sets.length) {
+      unmarkValidated(sessionId, exercise);
+    }
     endSessionIfEmpty(next);
     clearRest();   // the rest timer was based on a logged set; deleting one voids it
   }
@@ -184,12 +192,14 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     }
     const next = entries.filter(e => e.exercise !== exercise);
     setEntries(next);
+    if (sessionId != null) unmarkValidated(sessionId, exercise);   // no longer in the session
     clearRest();   // the rest timer may have been based on a set we just removed
     // Removing the last exercise leaves an empty session, which no longer
     // exists in any meaningful sense — end it and go back to the home screen
     // rather than sit on a blank session view.
     if (next.length === 0) {
       clearSession();
+      clearValidated();
       clearSessionNav();
       onDone();
       return;
@@ -201,12 +211,13 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   // backend's /sessions/active already treats it as gone, so end the live
   // session here too (stops the chrono, unblocks editing the program).
   function endSessionIfEmpty(next: Entry[]) {
-    if (!next.some(e => e.sets.length > 0)) clearSession();
+    if (!next.some(e => e.sets.length > 0)) { clearSession(); clearValidated(); }
   }
 
   async function finish() {
     clearRest();
     clearSession();
+    clearValidated();
     if (sessionId == null || finishing) { clearSessionNav(); onDone(); return; }
     setFinishing(true);
     try {

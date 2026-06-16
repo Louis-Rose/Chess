@@ -5,6 +5,7 @@ import { MUSCLE_ORDER, MUSCLE_LEAVES, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
 import { fitRequest } from './fitAuth';
+import { validatedLeaves } from './validatedExercises';
 
 // Full-screen "Ajouter un exercice" picker, shared by the new-session flow
 // (FitSession) and the session editor (FitSessionDetail). Unlike the Programme
@@ -24,6 +25,8 @@ export function FitExercisePicker({ program, onPick, onClose }: {
       .then(res => {
         const byLeaf: Record<string, number> = {};
         for (const e of res.data.exercises ?? []) byLeaf[e.exercise] = e.days;
+        // Exercises validated in the ongoing session show as done today (0).
+        for (const leaf of validatedLeaves()) byLeaf[leaf] = 0;
         setRecency(byLeaf);
       })
       .catch(() => { /* no recency line */ });

@@ -6,6 +6,7 @@ import { FitSession } from './FitSession';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitExerciseRecency, buildRecency, type RecencyGroup } from './FitExerciseRecency';
 import { hasResumableNav } from './fitSessionNav';
+import { validatedLeaves } from './validatedExercises';
 
 // Accueil tab: start a new workout, with year-to-date totals above the button.
 
@@ -57,7 +58,10 @@ export function FitAccueil() {
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
     ])
       .then(([ld, ex]) => {
-        const { avgDays: avg, groups } = buildRecency(ld.data.exercises ?? [], ex.data.selections ?? {});
+        // Exercises validated in the ongoing session count as done today (0
+        // days), before the session is finished and reaches /last-done.
+        const today = validatedLeaves().map(exercise => ({ exercise, days: 0 }));
+        const { avgDays: avg, groups } = buildRecency([...(ld.data.exercises ?? []), ...today], ex.data.selections ?? {});
         setAvgDays(avg);
         setRecencyGroups(groups);
       })
