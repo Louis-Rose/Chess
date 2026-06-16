@@ -18,7 +18,7 @@ const UNIVERSE: { ticker: string; name: string }[] = [
   { ticker: 'LLY', name: 'Eli Lilly' },
 ];
 
-const DEFAULT_SELECTED = ['AAPL', 'MSFT', 'NVDA', 'AMZN'];
+const DEFAULT_SELECTED = ['NVDA', 'GOOGL', 'META', 'AMZN', 'MSFT'];
 
 interface CorrelationResponse {
   tickers: string[];
