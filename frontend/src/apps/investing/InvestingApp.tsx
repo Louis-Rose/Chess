@@ -133,6 +133,39 @@ function VolatilityRow({ data }: { data: CorrelationResponse }) {
   );
 }
 
+// Row 3: the irreducible volatility floor. Pure diversification within a single
+// universe can never push volatility below avg_volatility * sqrt(rho-bar).
+function RiskFloor({ rho, volatility }: { rho: number; volatility: number }) {
+  if (rho <= 0) return null; // floor only meaningful for a positive average correlation
+  const sqrtRho = Math.sqrt(rho);
+  const floor = volatility * sqrtRho;
+  const savings = volatility - floor;
+  const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+  return (
+    <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+      <span className="text-sm font-semibold text-slate-300">
+        Volatilité minimale absolue (plancher de risque)
+      </span>
+
+      <span className="text-5xl font-bold" style={{ color: 'rgb(251, 191, 36)' }}>
+        {pct(floor)}
+      </span>
+
+      <div className="text-sm text-slate-300">
+        Plancher = σ̄ × √ρ̄ = {pct(volatility)} × √{rho.toFixed(3)} = {pct(volatility)} ×{' '}
+        {sqrtRho.toFixed(3)}
+      </div>
+
+      <p className="text-sm leading-relaxed text-slate-400">
+        La diversification pure au sein de cet univers ne peut faire économiser au maximum que{' '}
+        {pct(savings)} de volatilité (passer de {pct(volatility)} à {pct(floor)}). Ce plancher reste
+        incompressible tant que la corrélation moyenne ρ̄ ne baisse pas, par exemple en intégrant des
+        actifs d'autres secteurs.
+      </p>
+    </div>
+  );
+}
+
 function PortfolioStats({ data, rho }: { data: CorrelationResponse; rho: number }) {
   const n = data.tickers.length;
   const effective = effectiveNumber(rho, n);
@@ -161,6 +194,8 @@ function PortfolioStats({ data, rho }: { data: CorrelationResponse; rho: number 
           panier de {n}. Plus il est bas, moins la diversification est efficace.
         </StatBlock>
       </div>
+
+      <RiskFloor rho={rho} volatility={data.avg_volatility} />
     </div>
   );
 }
