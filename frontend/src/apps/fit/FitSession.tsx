@@ -184,8 +184,17 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     }
     const next = entries.filter(e => e.exercise !== exercise);
     setEntries(next);
-    endSessionIfEmpty(next);
     clearRest();   // the rest timer may have been based on a set we just removed
+    // Removing the last exercise leaves an empty session, which no longer
+    // exists in any meaningful sense — end it and go back to the home screen
+    // rather than sit on a blank session view.
+    if (next.length === 0) {
+      clearSession();
+      clearSessionNav();
+      onDone();
+      return;
+    }
+    endSessionIfEmpty(next);
   }
 
   // Once a session has no logged set left, it stops being "in progress" — the
