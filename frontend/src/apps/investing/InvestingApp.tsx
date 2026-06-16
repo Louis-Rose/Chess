@@ -68,8 +68,8 @@ function effectiveNumber(rho: number, n: number): number | null {
 function AverageCorrelation({ value, n }: { value: number; n: number }) {
   const effective = effectiveNumber(value, n);
   return (
-    <div className="flex w-full max-w-xs flex-col gap-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-      <div className="flex flex-col gap-3">
+    <div className="flex w-full flex-col gap-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 sm:flex-row sm:gap-8">
+      <div className="flex flex-1 flex-col gap-3">
         <div className="flex items-baseline gap-2">
           <span className="text-sm font-semibold text-slate-300">Corrélation moyenne</span>
           <span className="text-slate-400">(ρ̄)</span>
@@ -84,7 +84,7 @@ function AverageCorrelation({ value, n }: { value: number; n: number }) {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-700 pt-6">
+      <div className="flex flex-1 flex-col gap-3 border-t border-slate-700 pt-6 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
         <span className="text-sm font-semibold text-slate-300">Nombre effectif d'actions</span>
         <span className="text-5xl font-bold text-emerald-400">
           {effective !== null ? effective.toFixed(2) : '—'}
@@ -295,11 +295,9 @@ export function InvestingApp() {
         {error && !loading && <p className="text-rose-400">{error}</p>}
 
         {data && !loading && (
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-center">
-              <CorrelationMatrix data={data} />
-              {avg !== null && <AverageCorrelation value={avg} n={data.tickers.length} />}
-            </div>
+          <div className="flex w-full flex-col items-center gap-6">
+            <CorrelationMatrix data={data} />
+            {avg !== null && <AverageCorrelation value={avg} n={data.tickers.length} />}
             <p className="text-sm text-slate-500">
               Pearson correlation of daily returns since {data.start} · {data.observations} trading
               days
