@@ -16,7 +16,7 @@ function StatBlock({
 }) {
   return (
     <div className="flex flex-1 flex-col gap-3 border-t border-slate-700 pt-6 first:border-t-0 first:pt-0 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0 sm:first:border-l-0 sm:first:pl-0">
-      <div className="flex items-baseline gap-2">
+      <div className="flex items-baseline justify-center gap-2">
         <span className="text-sm font-semibold text-slate-300">{label}</span>
         {symbol && <span className="text-slate-400">({symbol})</span>}
       </div>
@@ -34,7 +34,7 @@ const VOL_BLUE = 'rgb(56, 189, 248)'; // sky-400
 function VolatilityRow({ data }: { data: CorrelationResponse }) {
   return (
     <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-      <div className="flex items-baseline gap-2">
+      <div className="flex items-baseline justify-center gap-2">
         <span className="text-sm font-semibold text-slate-300">Volatilité annualisée</span>
         <span className="text-slate-400">(σ̄)</span>
       </div>
@@ -74,7 +74,7 @@ function RiskFloor({ rho, volatility }: { rho: number; volatility: number }) {
   const savings = volatility - floor;
   return (
     <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-      <span className="text-sm font-semibold text-slate-300">
+      <span className="text-center text-sm font-semibold text-slate-300">
         Volatilité minimale absolue (plancher de risque)
       </span>
 
@@ -115,7 +115,7 @@ function DeviationScenarios({ data, rho }: { data: CorrelationResponse; rho: num
 
   return (
     <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-      <span className="text-sm font-semibold text-slate-300">
+      <span className="text-center text-sm font-semibold text-slate-300">
         Scénarios de déviation (VaR simplifiée)
       </span>
 
@@ -162,7 +162,7 @@ function WeightOptimization({ data }: { data: CorrelationResponse }) {
 
   return (
     <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-      <span className="text-sm font-semibold text-slate-300">
+      <span className="text-center text-sm font-semibold text-slate-300">
         Optimisation des poids (volatilité inverse · risk parity)
       </span>
 
