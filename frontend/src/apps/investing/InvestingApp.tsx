@@ -94,8 +94,6 @@ const UNIVERSE: { ticker: string; name: string }[] = [
   { ticker: 'PANW', name: 'Palo Alto Networks' },
   { ticker: 'CB', name: 'Chubb' },
   { ticker: 'ADI', name: 'Analog Devices' },
-  { ticker: 'FI', name: 'Fiserv' },
-  { ticker: 'MMC', name: 'Marsh & McLennan' },
   { ticker: 'AMAT', name: 'Applied Materials' },
   { ticker: 'KLAC', name: 'KLA' },
   { ticker: 'LRCX', name: 'Lam Research' },

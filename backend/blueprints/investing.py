@@ -109,8 +109,6 @@ UNIVERSE = {
     'PANW': 'Palo Alto Networks',
     'CB': 'Chubb',
     'ADI': 'Analog Devices',
-    'FI': 'Fiserv',
-    'MMC': 'Marsh & McLennan',
     'AMAT': 'Applied Materials',
     'KLAC': 'KLA',
     'LRCX': 'Lam Research',
