@@ -57,7 +57,9 @@ def _load_returns():
     # field (the modern equivalent of the old 'Adj Close').
     raw = yf.download(list(UNIVERSE), start=_START, end=end,
                       auto_adjust=True, progress=False)['Close']
-    returns = raw.pct_change().dropna(how='all')
+    # fill_method=None: don't forward-fill missing prices before differencing
+    # (pandas' deprecated default), so gaps stay NA instead of faking 0% returns.
+    returns = raw.pct_change(fill_method=None).dropna(how='all')
     _returns_cache['data'] = returns
     _returns_cache['ts'] = now
     return returns
