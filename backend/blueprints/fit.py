@@ -343,29 +343,27 @@ def set_exercise_setting():
 
 def _recompute_work_weight(conn, user_id, exercise):
     """Derive an exercise's working weight from history and persist it: the
-    uniform working weight of the most recent finished session where every
-    working set had a weight and they were all equal. Walks back session by
-    session (newest first); the first qualifying one wins. Leaves the existing
-    value untouched when no session qualifies (never clears it)."""
+    heaviest weight used on a working set across the three most recent finished
+    sessions in which the exercise was worked (warmups excluded). Leaves the
+    existing value untouched when no session qualifies (never clears it)."""
     row = conn.execute(
         """
-        WITH per_session AS (
-            SELECT s.id, s.started_at,
-                   COUNT(*) FILTER (WHERE ss.warmup = FALSE) AS work_count,
-                   COUNT(*) FILTER (WHERE ss.warmup = FALSE AND ss.weight IS NOT NULL) AS weighted_count,
-                   COUNT(DISTINCT ss.weight) FILTER (WHERE ss.warmup = FALSE) AS distinct_weights,
-                   MAX(ss.weight) FILTER (WHERE ss.warmup = FALSE) AS weight
+        WITH recent AS (
+            SELECT s.id
             FROM fit_sessions s
             JOIN fit_session_sets ss ON ss.session_id = s.id
             WHERE s.user_id = ? AND s.ended_at IS NOT NULL AND ss.exercise = ?
+                  AND ss.warmup = FALSE AND ss.weight IS NOT NULL
             GROUP BY s.id, s.started_at
+            ORDER BY s.started_at DESC
+            LIMIT 3
         )
-        SELECT weight FROM per_session
-        WHERE work_count >= 1 AND weighted_count = work_count AND distinct_weights = 1
-        ORDER BY started_at DESC
-        LIMIT 1
+        SELECT MAX(ss.weight) AS weight
+        FROM fit_session_sets ss
+        JOIN recent r ON r.id = ss.session_id
+        WHERE ss.exercise = ? AND ss.warmup = FALSE AND ss.weight IS NOT NULL
         """,
-        (user_id, exercise)
+        (user_id, exercise, exercise)
     ).fetchone()
     if row and row['weight'] is not None:
         conn.execute(
