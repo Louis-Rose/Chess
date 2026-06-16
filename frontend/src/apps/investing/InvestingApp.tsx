@@ -24,6 +24,7 @@ interface CorrelationResponse {
   tickers: string[];
   names: Record<string, string>;
   matrix: number[][];
+  volatilities: Record<string, number>;
   avg_volatility: number;
   start: string;
   observations: number;
@@ -93,34 +94,73 @@ function StatBlock({
   );
 }
 
-function PortfolioStats({ rho, n, volatility }: { rho: number; n: number; volatility: number }) {
+const VOL_BLUE = 'rgb(56, 189, 248)'; // sky-400
+
+// Row 1: each selected stock's annualised volatility, then the portfolio average.
+function VolatilityRow({ data }: { data: CorrelationResponse }) {
+  return (
+    <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-semibold text-slate-300">Volatilité annualisée</span>
+        <span className="text-slate-400">(σ̄)</span>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+        {data.tickers.map((t) => (
+          <div key={t} className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t}</span>
+            <span className="text-2xl font-bold text-sky-300">
+              {(data.volatilities[t] * 100).toFixed(1)}%
+            </span>
+          </div>
+        ))}
+
+        <div className="h-12 w-px self-center bg-slate-700" />
+
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-300">Moyenne</span>
+          <span className="text-4xl font-bold" style={{ color: VOL_BLUE }}>
+            {(data.avg_volatility * 100).toFixed(1)}%
+          </span>
+        </div>
+      </div>
+
+      <p className="text-sm leading-relaxed text-slate-400">
+        Écart-type annualisé des rendements quotidiens de chaque action, et leur moyenne. C'est
+        l'amplitude typique des variations sur un an.
+      </p>
+    </div>
+  );
+}
+
+function PortfolioStats({ data, rho }: { data: CorrelationResponse; rho: number }) {
+  const n = data.tickers.length;
   const effective = effectiveNumber(rho, n);
   return (
-    <div className="flex w-full flex-col gap-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 sm:flex-row sm:gap-8">
-      <StatBlock label="Corrélation moyenne" symbol="ρ̄" value={rho.toFixed(3)} color={solidColor(rho)}>
-        Moyenne des corrélations entre toutes les paires d'actions sélectionnées. Elle fixe le
-        plancher de risque du portefeuille : la volatilité ne peut pas descendre sous la volatilité
-        moyenne des actions multipliée par √ρ̄.
-      </StatBlock>
+    <div className="flex w-full flex-col gap-6">
+      <VolatilityRow data={data} />
 
-      <StatBlock
-        label="Volatilité moyenne"
-        symbol="σ̄"
-        value={`${(volatility * 100).toFixed(1)}%`}
-        color="rgb(56, 189, 248)"
-      >
-        Écart-type annualisé des rendements quotidiens, moyenné sur les actions sélectionnées. C'est
-        l'amplitude typique des variations sur un an.
-      </StatBlock>
+      <div className="flex w-full flex-col gap-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 sm:flex-row sm:gap-8">
+        <StatBlock
+          label="Corrélation moyenne"
+          symbol="ρ̄"
+          value={rho.toFixed(3)}
+          color={solidColor(rho)}
+        >
+          Moyenne des corrélations entre toutes les paires d'actions sélectionnées. Elle fixe le
+          plancher de risque du portefeuille : la volatilité ne peut pas descendre sous la volatilité
+          moyenne des actions multipliée par √ρ̄.
+        </StatBlock>
 
-      <StatBlock
-        label="Nombre effectif d'actions"
-        value={effective !== null ? effective.toFixed(2) : '—'}
-        color="rgb(52, 211, 153)"
-      >
-        N / (1 + ρ̄(N−1)) : le nombre d'actions totalement décorrélées auquel équivaut réellement ce
-        panier de {n}. Plus il est bas, moins la diversification est efficace.
-      </StatBlock>
+        <StatBlock
+          label="Nombre effectif d'actions"
+          value={effective !== null ? effective.toFixed(2) : '—'}
+          color="rgb(52, 211, 153)"
+        >
+          N / (1 + ρ̄(N−1)) : le nombre d'actions totalement décorrélées auquel équivaut réellement ce
+          panier de {n}. Plus il est bas, moins la diversification est efficace.
+        </StatBlock>
+      </div>
     </div>
   );
 }
@@ -324,9 +364,7 @@ export function InvestingApp() {
         {data && !loading && (
           <div className="flex w-full flex-col items-center gap-6">
             <CorrelationMatrix data={data} />
-            {avg !== null && (
-              <PortfolioStats rho={avg} n={data.tickers.length} volatility={data.avg_volatility} />
-            )}
+            {avg !== null && <PortfolioStats data={data} rho={avg} />}
             <p className="text-sm text-slate-500">
               Pearson correlation of daily returns since {data.start} · {data.observations} trading
               days
