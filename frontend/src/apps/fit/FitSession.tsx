@@ -148,6 +148,9 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       axios.post<LoggedSet>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup }));
     setEntries(prev => prev.map(e =>
       e.exercise === exercise ? { ...e, sets: [...e.sets, res.data] } : e));
+    // A logged set makes the session "live" again — it may have been cleared by
+    // deleting every set earlier (see deleteSet/deleteExercise).
+    if (getSession()?.sessionId !== sessionId) startSession(sessionId, Date.now());
     startRest(Date.now());   // (re)start the shared rest timer
   }
 
@@ -162,8 +165,10 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   function deleteSet(exercise: string, setId: number) {
     if (sessionId == null) return;
     fitRequest(() => axios.delete(`/api/fit/sessions/${sessionId}/sets/${setId}`)).catch(() => {});
-    setEntries(prev => prev.map(e =>
-      e.exercise === exercise ? { ...e, sets: e.sets.filter(s => s.id !== setId) } : e));
+    const next = entries.map(e =>
+      e.exercise === exercise ? { ...e, sets: e.sets.filter(s => s.id !== setId) } : e);
+    setEntries(next);
+    endSessionIfEmpty(next);
     clearRest();   // the rest timer was based on a logged set; deleting one voids it
   }
 
@@ -177,8 +182,17 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         fitRequest(() => axios.delete(`/api/fit/sessions/${sessionId}/sets/${s.id}`)).catch(() => {});
       }
     }
-    setEntries(prev => prev.filter(e => e.exercise !== exercise));
+    const next = entries.filter(e => e.exercise !== exercise);
+    setEntries(next);
+    endSessionIfEmpty(next);
     clearRest();   // the rest timer may have been based on a set we just removed
+  }
+
+  // Once a session has no logged set left, it stops being "in progress" — the
+  // backend's /sessions/active already treats it as gone, so end the live
+  // session here too (stops the chrono, unblocks editing the program).
+  function endSessionIfEmpty(next: Entry[]) {
+    if (!next.some(e => e.sets.length > 0)) clearSession();
   }
 
   async function finish() {
