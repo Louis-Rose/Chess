@@ -111,7 +111,6 @@ function DeviationScenarios({ data, rho }: { data: CorrelationResponse; rho: num
 
   const bands = [
     { label: 'Zone de fluctuation normale', conf: '2 écarts-types · confiance 95 %', mult: 2 },
-    { label: 'Zone de fluctuation extrême', conf: '3 écarts-types · confiance 99,7 %', mult: 3 },
   ];
 
   return (
