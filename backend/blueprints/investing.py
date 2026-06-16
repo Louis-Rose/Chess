@@ -1,0 +1,98 @@
+"""Investing sub-app — public.
+
+Computes a Pearson correlation matrix of daily returns for a chosen subset of
+the largest US-listed companies, using adjusted close prices from Yahoo Finance.
+
+We correlate daily returns (pct change), never raw prices: price levels trend
+together over time and would show spurious correlation. Tickers are restricted
+to a fixed allowlist (UNIVERSE) so the public endpoint can't be used to hammer
+Yahoo with arbitrary symbols. The whole universe's returns are downloaded once
+and cached for an hour; each request just slices the columns it needs.
+"""
+
+import logging
+import time
+from datetime import datetime, timezone
+
+from flask import Blueprint, jsonify, request
+
+logger = logging.getLogger(__name__)
+
+investing_bp = Blueprint('investing', __name__)
+
+# The 10 largest US-listed companies by market cap. Keep in sync with the
+# frontend dropdown (UNIVERSE in InvestingApp.tsx).
+UNIVERSE = {
+    'AAPL': 'Apple',
+    'MSFT': 'Microsoft',
+    'NVDA': 'Nvidia',
+    'GOOGL': 'Alphabet',
+    'AMZN': 'Amazon',
+    'META': 'Meta',
+    'AVGO': 'Broadcom',
+    'BRK-B': 'Berkshire Hathaway',
+    'TSLA': 'Tesla',
+    'LLY': 'Eli Lilly',
+}
+
+_START = '2023-01-01'
+_CACHE_TTL = 3600  # 1h — daily prices only change once a day anyway
+_returns_cache = {'data': None, 'ts': 0.0}
+
+
+def _load_returns():
+    """Daily-return DataFrame for the whole universe, cached for an hour.
+
+    Columns are tickers, rows are dates. yfinance is imported lazily so a slow
+    or broken import never blocks app startup."""
+    now = time.time()
+    cached = _returns_cache['data']
+    if cached is not None and now - _returns_cache['ts'] < _CACHE_TTL:
+        return cached
+
+    import yfinance as yf  # lazy: heavy import, only needed here
+
+    end = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    # auto_adjust=True returns split/dividend-adjusted prices in the 'Close'
+    # field (the modern equivalent of the old 'Adj Close').
+    raw = yf.download(list(UNIVERSE), start=_START, end=end,
+                      auto_adjust=True, progress=False)['Close']
+    returns = raw.pct_change().dropna(how='all')
+    _returns_cache['data'] = returns
+    _returns_cache['ts'] = now
+    return returns
+
+
+@investing_bp.route('/api/investing/correlation', methods=['GET'])
+def correlation():
+    """Pearson correlation matrix of daily returns for the requested tickers
+    (comma-separated `tickers`, restricted to UNIVERSE). Needs at least two."""
+    raw = request.args.get('tickers', '')
+    requested = [t.strip().upper() for t in raw.split(',') if t.strip()]
+    # Keep only known tickers, de-duplicated, preserving the requested order.
+    seen = set()
+    tickers = [t for t in requested
+               if t in UNIVERSE and not (t in seen or seen.add(t))]
+    if len(tickers) < 2:
+        return jsonify({'error': 'Select at least two companies.'}), 400
+
+    try:
+        returns = _load_returns()
+    except Exception as e:
+        logger.warning('yfinance download failed: %s', e)
+        return jsonify({'error': 'Could not fetch market data.'}), 502
+
+    sub = returns[tickers].dropna()
+    if len(sub) < 2:
+        return jsonify({'error': 'Not enough overlapping price history.'}), 502
+
+    corr = sub.corr()
+    matrix = [[round(float(corr.loc[r, c]), 3) for c in tickers] for r in tickers]
+
+    return jsonify({
+        'tickers': tickers,
+        'names': {t: UNIVERSE[t] for t in tickers},
+        'matrix': matrix,
+        'start': _START,
+        'observations': int(len(sub)),
+    })
