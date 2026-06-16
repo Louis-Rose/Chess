@@ -433,6 +433,19 @@ def init_db():
             """)
             logger.info("Created fit_exercise_settings table")
 
+        # Migration: per-exercise free-text note within a session, captured when
+        # the exercise is validated (one note per exercise per session).
+        if not _table_exists(conn, 'fit_session_exercise_notes'):
+            conn.execute("""
+                CREATE TABLE fit_session_exercise_notes (
+                    session_id INTEGER NOT NULL REFERENCES fit_sessions(id) ON DELETE CASCADE,
+                    exercise TEXT NOT NULL,
+                    note TEXT NOT NULL,
+                    PRIMARY KEY (session_id, exercise)
+                )
+            """)
+            logger.info("Created fit_session_exercise_notes table")
+
         # One-off backfill: an in-progress session is now one with ended_at IS NULL
         # (the Calendrier and stats only count finished sessions). Existing
         # sessions that already have logged sets predate that rule and were

@@ -33,6 +33,7 @@ interface SessionPayload {
   started_at: string | null;
   comment: string | null;
   sets: { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean }[];
+  notes?: Record<string, string>;
 }
 
 // Group a session's flat set list into per-exercise entries, in logged order.
@@ -51,12 +52,14 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [number, setNumber] = useState<number | null>(null);
   const [comment, setComment] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});   // per-exercise notes
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [confirmingFinish, setConfirmingFinish] = useState(false); // finishing dialog (asks for a comment)
+  const [validating, setValidating] = useState<string | null>(null); // exercise whose note modal is open
   const [editing, setEditing] = useState<string | null>(null);   // exercise being edited, else overview
   const [openLeaf, setOpenLeaf] = useState<string | null>(null); // exercise row swiped open in the overview
   const [confirmLeaf, setConfirmLeaf] = useState<string | null>(null);
@@ -80,6 +83,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         if (!existing || existing.sessionId !== sid) startSession(sid, Date.now());
         setNumber(sessionRes.data.number);
         setComment(sessionRes.data.comment);
+        setNotes(sessionRes.data.notes ?? {});
         setProgram(exRes.data.selections ?? {});
 
         const grouped = groupSets(sessionRes.data.sets ?? []);
@@ -151,6 +155,29 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       markValidated(sessionId, editing);
     }
     setEditing(null);
+  }
+
+  // "Valider l'exercice" → open the note modal (skip it for an empty mis-pick),
+  // then finishEditing on confirm.
+  function requestValidate() {
+    const entry = entries.find(e => e.exercise === editing);
+    if (!entry || entry.sets.length === 0) { finishEditing(); return; }
+    setValidating(editing);
+  }
+
+  function confirmValidate() {
+    finishEditing();
+    setValidating(null);
+  }
+
+  function saveExerciseNote(exercise: string, note: string | null) {
+    if (sessionId == null) return;
+    setNotes(prev => {
+      const next = { ...prev };
+      if (note) next[exercise] = note; else delete next[exercise];
+      return next;
+    });
+    fitRequest(() => axios.put(`/api/fit/sessions/${sessionId}/exercise-notes`, { exercise, note })).catch(() => {});
   }
 
   function saveComment(c: string | null) {
@@ -274,7 +301,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               onWorkWeightChange={w => saveWorkWeight(editingEntry.exercise, w)}
               setting={exerciseSettings[editingEntry.exercise.split(' — ')[0]] ?? null}
               onSettingChange={s => saveSetting(editingEntry.exercise.split(' — ')[0], s)}
-              onValidate={finishEditing}
+              onValidate={requestValidate}
             />
             <FitExerciseRecent exercise={editingEntry.exercise} excludeSessionId={sessionId} />
           </div>
@@ -298,6 +325,9 @@ export function FitSession({ onDone }: { onDone: () => void }) {
                   <span className="mt-0.5 text-sm text-slate-400">
                     {e.sets.length} série{e.sets.length > 1 ? 's' : ''}
                   </span>
+                  {notes[e.exercise] && (
+                    <span className="mt-1 whitespace-pre-wrap text-xs italic text-slate-500">{notes[e.exercise]}</span>
+                  )}
                   <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
                 </FitSwipeRow>
               ))}
@@ -374,6 +404,46 @@ export function FitSession({ onDone }: { onDone: () => void }) {
                 className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-60"
               >
                 Terminer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {validating != null && (
+        // A note for the exercise being validated (optional), like the session
+        // comment when finishing.
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 px-6"
+          onClick={() => setValidating(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-slate-100">{leafLabel(validating)}</h2>
+            <div className="mt-4">
+              <FitSessionComment
+                comment={notes[validating] ?? null}
+                onSave={n => saveExerciseNote(validating, n)}
+                id="exercise-note"
+                placeholder="Une note sur cet exercice ?"
+              />
+            </div>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setValidating(null)}
+                className="flex-1 rounded-xl border border-slate-700 px-4 py-2.5 font-medium text-slate-200 transition-colors active:bg-slate-800"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={confirmValidate}
+                className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+              >
+                Valider
               </button>
             </div>
           </div>

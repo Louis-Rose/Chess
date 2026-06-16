@@ -23,7 +23,7 @@ interface Confirm { title: string; message?: string; confirmLabel?: string; dang
 // only when opened as the last session from Accueil.
 
 interface SetRow { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean; }
-interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; comment: string | null; sets: SetRow[]; perf?: Record<string, PerfStatus | null>; }
+interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; comment: string | null; sets: SetRow[]; perf?: Record<string, PerfStatus | null>; notes?: Record<string, string>; }
 
 function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[] {
   const groups: { exercise: string; sets: SetRow[] }[] = [];
@@ -60,6 +60,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);   // exercise leaf being edited, else overview
+  const [validating, setValidating] = useState<string | null>(null); // exercise whose note modal is open
   const [picking, setPicking] = useState(false);
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [confirm, setConfirm] = useState<Confirm | null>(null);
@@ -100,6 +101,16 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   function saveComment(c: string | null) {
     setSession(prev => prev && { ...prev, comment: c });
     fitRequest(() => axios.put(`/api/fit/sessions/${sessionId}/comment`, { comment: c })).catch(() => {});
+  }
+
+  function saveExerciseNote(exercise: string, note: string | null) {
+    setSession(prev => {
+      if (!prev) return prev;
+      const notes = { ...(prev.notes ?? {}) };
+      if (note) notes[exercise] = note; else delete notes[exercise];
+      return { ...prev, notes };
+    });
+    fitRequest(() => axios.put(`/api/fit/sessions/${sessionId}/exercise-notes`, { exercise, note })).catch(() => {});
   }
 
   async function deleteExercise(leaf: string) {
@@ -183,12 +194,50 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
         <div className="mt-auto flex justify-center pt-8">
           <button
             type="button"
-            onClick={() => setEditing(null)}
+            onClick={() => { if (sets.length > 0) setValidating(editing); else setEditing(null); }}
             className="mb-8 w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
           >
             Valider l'exercice
           </button>
         </div>
+
+        {validating != null && (
+          <div
+            className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 px-6"
+            onClick={() => setValidating(null)}
+          >
+            <div
+              className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 text-center"
+              onClick={e => e.stopPropagation()}
+            >
+              <h2 className="text-lg font-semibold text-slate-100">{leafLabel(validating)}</h2>
+              <div className="mt-4">
+                <FitSessionComment
+                  comment={session?.notes?.[validating] ?? null}
+                  onSave={n => saveExerciseNote(validating, n)}
+                  id="exercise-note"
+                  placeholder="Une note sur cet exercice ?"
+                />
+              </div>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setValidating(null)}
+                  className="flex-1 rounded-xl border border-slate-700 px-4 py-2.5 font-medium text-slate-200 transition-colors active:bg-slate-800"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setValidating(null); setEditing(null); }}
+                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+                >
+                  Valider
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {confirm && (
           <FitConfirm
@@ -236,6 +285,9 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
                     {leafLabel(g.exercise)}
                   </p>
                   <FitSetList sets={g.sets} />
+                  {session?.notes?.[g.exercise] && (
+                    <p className="mt-2 whitespace-pre-wrap text-xs italic text-slate-400">{session.notes[g.exercise]}</p>
+                  )}
                 </>
               );
               return editable ? (

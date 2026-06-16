@@ -472,6 +472,10 @@ def _session_payload(conn, row):
         'SELECT id, exercise, weight, reps, warmup FROM fit_session_sets WHERE session_id = ? ORDER BY id',
         (row['id'],)
     ).fetchall()
+    notes = conn.execute(
+        'SELECT exercise, note FROM fit_session_exercise_notes WHERE session_id = ?',
+        (row['id'],)
+    ).fetchall()
     return {
         'id': row['id'],
         'number': _session_number(conn, row),
@@ -480,6 +484,7 @@ def _session_payload(conn, row):
         'comment': row['comment'],
         'sets': [{'id': s['id'], 'exercise': s['exercise'], 'weight': s['weight'],
                   'reps': s['reps'], 'warmup': bool(s['warmup'])} for s in sets],
+        'notes': {n['exercise']: n['note'] for n in notes},
     }
 
 
@@ -608,6 +613,38 @@ def set_session_comment(session_id):
             (comment, session_id, request.user_id)
         )
     return jsonify({'ok': True, 'comment': comment})
+
+
+@fit_bp.route('/api/fit/sessions/<int:session_id>/exercise-notes', methods=['PUT'])
+@fit_login_required
+def set_exercise_note(session_id):
+    """Set (or clear, when empty) a free-text note for one exercise within a
+    session — captured when the exercise is validated."""
+    data = request.get_json(silent=True) or {}
+    exercise = data.get('exercise')
+    note = data.get('note')
+    if not isinstance(exercise, str) or not exercise.strip():
+        return jsonify({'error': 'Invalid exercise'}), 400
+    if note is not None and not isinstance(note, str):
+        return jsonify({'error': 'Invalid note'}), 400
+    exercise = exercise.strip()
+    note = (note or '').strip()[:2000] or None
+    with get_db() as conn:
+        if not _owned_session(conn, session_id):
+            return jsonify({'error': 'Not found'}), 404
+        if note is None:
+            conn.execute(
+                'DELETE FROM fit_session_exercise_notes WHERE session_id = ? AND exercise = ?',
+                (session_id, exercise)
+            )
+        else:
+            conn.execute(
+                """INSERT INTO fit_session_exercise_notes (session_id, exercise, note)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT (session_id, exercise) DO UPDATE SET note = EXCLUDED.note""",
+                (session_id, exercise, note)
+            )
+    return jsonify({'ok': True, 'note': note})
 
 
 def _validate_set_values(reps, weight):
