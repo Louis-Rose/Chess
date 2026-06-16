@@ -58,21 +58,42 @@ function averageCorrelation(matrix: number[][]): number | null {
   return count ? sum / count : null;
 }
 
-function AverageCorrelation({ value }: { value: number }) {
+// Effective Number of Constituents: how many fully uncorrelated stocks the
+// portfolio behaves like. N / (1 + rho-bar * (N - 1)).
+function effectiveNumber(rho: number, n: number): number | null {
+  const denom = 1 + rho * (n - 1);
+  return denom > 0 ? n / denom : null;
+}
+
+function AverageCorrelation({ value, n }: { value: number; n: number }) {
+  const effective = effectiveNumber(value, n);
   return (
-    <div className="flex w-full max-w-xs flex-col gap-3 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
-      <div className="flex items-baseline gap-2">
-        <span className="text-sm font-semibold text-slate-300">Corrélation moyenne</span>
-        <span className="text-slate-400">(ρ̄)</span>
+    <div className="flex w-full max-w-xs flex-col gap-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className="text-sm font-semibold text-slate-300">Corrélation moyenne</span>
+          <span className="text-slate-400">(ρ̄)</span>
+        </div>
+        <span className="text-5xl font-bold" style={{ color: solidColor(value) }}>
+          {value.toFixed(3)}
+        </span>
+        <p className="text-sm leading-relaxed text-slate-400">
+          Moyenne des corrélations entre toutes les paires d'actions sélectionnées. Elle fixe le
+          plancher de risque du portefeuille : la volatilité ne peut pas descendre sous la volatilité
+          moyenne des actions multipliée par √ρ̄.
+        </p>
       </div>
-      <span className="text-5xl font-bold" style={{ color: solidColor(value) }}>
-        {value.toFixed(3)}
-      </span>
-      <p className="text-sm leading-relaxed text-slate-400">
-        Moyenne des corrélations entre toutes les paires d'actions sélectionnées. Elle fixe le
-        plancher de risque du portefeuille : la volatilité ne peut pas descendre sous la volatilité
-        moyenne des actions multipliée par √ρ̄.
-      </p>
+
+      <div className="flex flex-col gap-3 border-t border-slate-700 pt-6">
+        <span className="text-sm font-semibold text-slate-300">Nombre effectif d'actions</span>
+        <span className="text-5xl font-bold text-emerald-400">
+          {effective !== null ? effective.toFixed(2) : '—'}
+        </span>
+        <p className="text-sm leading-relaxed text-slate-400">
+          N / (1 + ρ̄(N−1)) : le nombre d'actions totalement décorrélées auquel équivaut réellement ce
+          panier de {n}. Plus il est bas, moins la diversification est efficace.
+        </p>
+      </div>
     </div>
   );
 }
@@ -277,7 +298,7 @@ export function InvestingApp() {
           <div className="flex flex-col items-center gap-4">
             <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-center">
               <CorrelationMatrix data={data} />
-              {avg !== null && <AverageCorrelation value={avg} />}
+              {avg !== null && <AverageCorrelation value={avg} n={data.tickers.length} />}
             </div>
             <p className="text-sm text-slate-500">
               Pearson correlation of daily returns since {data.start} · {data.observations} trading
