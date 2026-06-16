@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
@@ -107,6 +107,19 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     if (sessionId == null) return;
     saveSessionNav({ sessionId, editing, picking });
   }, [sessionId, editing, picking]);
+
+  // Whether this session is worth keeping if we leave: it has a logged set, or
+  // the user is mid-pick / mid-exercise (resumable).
+  const liveRef = useRef(false);
+  useEffect(() => {
+    liveRef.current = entries.some(e => e.sets.length > 0) || editing != null || picking;
+  });
+  // Leaving an empty, non-resumable session abandons it: end the live session
+  // so the chrono doesn't keep running for a séance Accueil already shows as
+  // gone ("Nouvelle séance").
+  useEffect(() => () => {
+    if (!liveRef.current) { clearSession(); clearValidated(); clearSessionNav(); }
+  }, []);
 
   function addExercise(leaf: string) {
     setPicking(false);

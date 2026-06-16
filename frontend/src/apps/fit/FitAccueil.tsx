@@ -7,6 +7,7 @@ import { FitSessionDetail } from './FitSessionDetail';
 import { FitExerciseRecency, buildRecency, type RecencyGroup } from './FitExerciseRecency';
 import { hasResumableNav } from './fitSessionNav';
 import { validatedLeaves } from './validatedExercises';
+import { getSession, clearSession } from './sessionTimer';
 
 // Accueil tab: start a new workout, with year-to-date totals above the button.
 
@@ -46,7 +47,13 @@ export function FitAccueil() {
     // resumable either when sets are logged (backend) or when the user left
     // mid-exercise before logging any (persisted client-side nav spot).
     fitRequest(() => axios.get<{ active: unknown | null }>('/api/fit/sessions/active'))
-      .then(res => setHasActive(res.data.active != null || hasResumableNav()))
+      .then(res => {
+        const resumable = res.data.active != null || hasResumableNav();
+        setHasActive(resumable);
+        // A live chrono with nothing to resume is an abandoned empty session
+        // (e.g. started, then the app was closed) — end it so the chrono stops.
+        if (!resumable && getSession() != null) clearSession();
+      })
       .catch(() => setHasActive(hasResumableNav()));
     // Most recent finished session, to open from the "days since" card.
     fitRequest(() => axios.get<{ sessions: { id: number }[] }>('/api/fit/sessions'))
