@@ -91,10 +91,16 @@ def correlation():
     corr = sub.corr()
     matrix = [[round(float(corr.loc[r, c]), 3) for c in tickers] for r in tickers]
 
+    # Average annualised volatility: per-stock daily-return std scaled by
+    # sqrt(252) trading days, then averaged across the selected stocks.
+    annual_vol = sub.std() * (252 ** 0.5)
+    avg_volatility = round(float(annual_vol.mean()), 4)
+
     return jsonify({
         'tickers': tickers,
         'names': {t: UNIVERSE[t] for t in tickers},
         'matrix': matrix,
+        'avg_volatility': avg_volatility,
         'start': _START,
         'observations': int(len(sub)),
     })

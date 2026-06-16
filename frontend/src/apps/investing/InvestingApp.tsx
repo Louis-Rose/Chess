@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import axios from 'axios';
 import { ChevronDown, TrendingUp } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
@@ -24,6 +24,7 @@ interface CorrelationResponse {
   tickers: string[];
   names: Record<string, string>;
   matrix: number[][];
+  avg_volatility: number;
   start: string;
   observations: number;
 }
@@ -65,35 +66,61 @@ function effectiveNumber(rho: number, n: number): number | null {
   return denom > 0 ? n / denom : null;
 }
 
-function AverageCorrelation({ value, n }: { value: number; n: number }) {
-  const effective = effectiveNumber(value, n);
+function StatBlock({
+  label,
+  symbol,
+  value,
+  color,
+  children,
+}: {
+  label: string;
+  symbol?: string;
+  value: string;
+  color: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-1 flex-col gap-3 border-t border-slate-700 pt-6 first:border-t-0 first:pt-0 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0 sm:first:border-l-0 sm:first:pl-0">
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-semibold text-slate-300">{label}</span>
+        {symbol && <span className="text-slate-400">({symbol})</span>}
+      </div>
+      <span className="text-5xl font-bold" style={{ color }}>
+        {value}
+      </span>
+      <p className="text-sm leading-relaxed text-slate-400">{children}</p>
+    </div>
+  );
+}
+
+function PortfolioStats({ rho, n, volatility }: { rho: number; n: number; volatility: number }) {
+  const effective = effectiveNumber(rho, n);
   return (
     <div className="flex w-full flex-col gap-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 sm:flex-row sm:gap-8">
-      <div className="flex flex-1 flex-col gap-3">
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-slate-300">Corrélation moyenne</span>
-          <span className="text-slate-400">(ρ̄)</span>
-        </div>
-        <span className="text-5xl font-bold" style={{ color: solidColor(value) }}>
-          {value.toFixed(3)}
-        </span>
-        <p className="text-sm leading-relaxed text-slate-400">
-          Moyenne des corrélations entre toutes les paires d'actions sélectionnées. Elle fixe le
-          plancher de risque du portefeuille : la volatilité ne peut pas descendre sous la volatilité
-          moyenne des actions multipliée par √ρ̄.
-        </p>
-      </div>
+      <StatBlock label="Corrélation moyenne" symbol="ρ̄" value={rho.toFixed(3)} color={solidColor(rho)}>
+        Moyenne des corrélations entre toutes les paires d'actions sélectionnées. Elle fixe le
+        plancher de risque du portefeuille : la volatilité ne peut pas descendre sous la volatilité
+        moyenne des actions multipliée par √ρ̄.
+      </StatBlock>
 
-      <div className="flex flex-1 flex-col gap-3 border-t border-slate-700 pt-6 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
-        <span className="text-sm font-semibold text-slate-300">Nombre effectif d'actions</span>
-        <span className="text-5xl font-bold text-emerald-400">
-          {effective !== null ? effective.toFixed(2) : '—'}
-        </span>
-        <p className="text-sm leading-relaxed text-slate-400">
-          N / (1 + ρ̄(N−1)) : le nombre d'actions totalement décorrélées auquel équivaut réellement ce
-          panier de {n}. Plus il est bas, moins la diversification est efficace.
-        </p>
-      </div>
+      <StatBlock
+        label="Volatilité moyenne"
+        symbol="σ̄"
+        value={`${(volatility * 100).toFixed(1)}%`}
+        color="rgb(56, 189, 248)"
+      >
+        Écart-type annualisé des rendements quotidiens, moyenné sur les actions sélectionnées. C'est
+        l'amplitude typique des variations sur un an.
+      </StatBlock>
+
+      <StatBlock
+        label="Nombre effectif d'actions"
+        value={effective !== null ? effective.toFixed(2) : '—'}
+        color="rgb(52, 211, 153)"
+      >
+        N / (1 + ρ̄(N−1)) : le nombre d'actions totalement décorrélées auquel équivaut réellement ce
+        panier de {n}. Plus il est bas, moins la diversification est efficace.
+      </StatBlock>
     </div>
   );
 }
@@ -297,7 +324,9 @@ export function InvestingApp() {
         {data && !loading && (
           <div className="flex w-full flex-col items-center gap-6">
             <CorrelationMatrix data={data} />
-            {avg !== null && <AverageCorrelation value={avg} n={data.tickers.length} />}
+            {avg !== null && (
+              <PortfolioStats rho={avg} n={data.tickers.length} volatility={data.avg_volatility} />
+            )}
             <p className="text-sm text-slate-500">
               Pearson correlation of daily returns since {data.start} · {data.observations} trading
               days
