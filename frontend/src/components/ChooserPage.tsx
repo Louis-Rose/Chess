@@ -16,7 +16,7 @@ export function ChooserPage() {
         <span className="text-2xl font-bold tracking-wide">LUMNA</span>
       </div>
 
-      <div className="grid w-full max-w-md grid-cols-1 gap-4 sm:max-w-3xl sm:grid-cols-2 lg:max-w-5xl lg:grid-cols-4">
+      <div className="grid w-full max-w-md grid-cols-1 gap-4 sm:grid-cols-2">
         <Link
           to="/chess"
           className="group flex flex-col items-center justify-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 px-6 py-12 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10"
