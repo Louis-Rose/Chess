@@ -28,16 +28,53 @@ interface CorrelationResponse {
   observations: number;
 }
 
-// Background colour for a correlation cell: red (negative) → slate (zero) →
-// emerald (positive). The diagonal is always 1.
+// Emerald for positive correlation, rose for negative. The diagonal is always 1.
+const POS_RGB = '16, 185, 129'; // emerald-500
+const NEG_RGB = '244, 63, 94'; // rose-500
+
+// Translucent fill for a matrix cell, opacity scaled by correlation strength.
 function cellColor(v: number): string {
   const t = Math.max(-1, Math.min(1, v));
-  if (t >= 0) {
-    const a = (0.12 + 0.55 * t).toFixed(2);
-    return `rgba(16, 185, 129, ${a})`; // emerald-500
+  const a = (0.12 + 0.55 * Math.abs(t)).toFixed(2);
+  return `rgba(${t >= 0 ? POS_RGB : NEG_RGB}, ${a})`;
+}
+
+// Solid version of the same hue, for text.
+function solidColor(v: number): string {
+  return `rgb(${v >= 0 ? POS_RGB : NEG_RGB})`;
+}
+
+// Average correlation (rho-bar): the arithmetic mean of every unique pairwise
+// coefficient, i.e. the upper triangle of the matrix, diagonal excluded.
+function averageCorrelation(matrix: number[][]): number | null {
+  let sum = 0;
+  let count = 0;
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = i + 1; j < matrix.length; j++) {
+      sum += matrix[i][j];
+      count += 1;
+    }
   }
-  const a = (0.12 + 0.55 * -t).toFixed(2);
-  return `rgba(244, 63, 94, ${a})`; // rose-500
+  return count ? sum / count : null;
+}
+
+function AverageCorrelation({ value }: { value: number }) {
+  return (
+    <div className="flex w-full max-w-xs flex-col gap-3 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+      <div className="flex items-baseline gap-2">
+        <span className="text-sm font-semibold text-slate-300">Corrélation moyenne</span>
+        <span className="text-slate-400">(ρ̄)</span>
+      </div>
+      <span className="text-5xl font-bold" style={{ color: solidColor(value) }}>
+        {value.toFixed(3)}
+      </span>
+      <p className="text-sm leading-relaxed text-slate-400">
+        Moyenne des corrélations entre toutes les paires d'actions sélectionnées. Elle fixe le
+        plancher de risque du portefeuille : la volatilité ne peut pas descendre sous la volatilité
+        moyenne des actions multipliée par √ρ̄.
+      </p>
+    </div>
+  );
 }
 
 function CompanyDropdown({
@@ -208,9 +245,11 @@ export function InvestingApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickerKey]);
 
+  const avg = useMemo(() => (data ? averageCorrelation(data.matrix) : null), [data]);
+
   return (
     <div className="min-h-dvh bg-slate-900 px-6 py-12 text-slate-100">
-      <div className="mx-auto flex max-w-3xl flex-col items-center">
+      <div className="mx-auto flex max-w-5xl flex-col items-center">
         <div className="mb-2 flex items-center gap-3">
           <LumnaLogo className="h-8 w-8" />
           <span className="text-2xl font-bold tracking-wide">Investing</span>
@@ -236,7 +275,10 @@ export function InvestingApp() {
 
         {data && !loading && (
           <div className="flex flex-col items-center gap-4">
-            <CorrelationMatrix data={data} />
+            <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-center">
+              <CorrelationMatrix data={data} />
+              {avg !== null && <AverageCorrelation value={avg} />}
+            </div>
             <p className="text-sm text-slate-500">
               Pearson correlation of daily returns since {data.start} · {data.observations} trading
               days
