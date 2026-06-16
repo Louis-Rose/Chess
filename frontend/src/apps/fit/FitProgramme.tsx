@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
+import { FitConfirm } from './FitConfirm';
 import { FitExercises } from './FitExercises';
 import { FitProgrammeEdit } from './FitProgrammeEdit';
 import { FitProgrammeWelcome } from './FitProgrammeWelcome';
 import { FitShell } from './FitShell';
 import { FitSplit } from './FitSplit';
 import { FitWorkSets } from './FitWorkSets';
+import { useSession } from './sessionTimer';
 
 // The Programme tab. Lands on the user's single program (shown directly, with
 // Modifier / Supprimer) or an invite to create one. Creating walks a guided
@@ -22,6 +24,15 @@ export function FitProgramme() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [step, setStep] = useState<Step>('welcome');
+  const [blocked, setBlocked] = useState(false);
+
+  // The program defines what a session logs, so it can't be changed mid-session.
+  // Any attempt (edit, create, delete) is blocked with an explanatory notice.
+  const session = useSession();
+  const guard = (fn: () => void) => () => {
+    if (session) { setBlocked(true); return; }
+    fn();
+  };
 
   useEffect(() => {
     fitRequest(() => axios.get<{ split: string | null; work_sets: number | null }>('/api/fit/profile'))
@@ -58,14 +69,26 @@ export function FitProgramme() {
 
   if (step === 'welcome')
     return (
-      <FitProgrammeWelcome
-        split={selected}
-        workSets={workSets}
-        deleting={deleting}
-        onEdit={() => setStep('edit')}
-        onCreate={() => setStep('split')}
-        onDelete={remove}
-      />
+      <>
+        <FitProgrammeWelcome
+          split={selected}
+          workSets={workSets}
+          deleting={deleting}
+          onEdit={guard(() => setStep('edit'))}
+          onCreate={guard(() => setStep('split'))}
+          onDelete={guard(remove)}
+        />
+        {blocked && (
+          <FitConfirm
+            title="Séance en cours"
+            message="Termine ta séance avant de modifier ton programme."
+            confirmLabel="J'ai compris"
+            hideCancel
+            onConfirm={() => setBlocked(false)}
+            onCancel={() => setBlocked(false)}
+          />
+        )}
+      </>
     );
 
   if (step === 'edit')

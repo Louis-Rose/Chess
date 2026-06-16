@@ -1,12 +1,13 @@
 // A small centered confirmation modal, used to guard changes to an already
 // saved session (deleting a session, set or exercise, or editing one).
 
-export function FitConfirm({ title, message, confirmLabel = 'Confirmer', cancelLabel = 'Annuler', danger, onConfirm, onCancel }: {
+export function FitConfirm({ title, message, confirmLabel = 'Confirmer', cancelLabel = 'Annuler', danger, hideCancel, onConfirm, onCancel }: {
   title: string;
   message?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
+  hideCancel?: boolean;   // single-button notice (no cancel) — just acknowledge
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -22,13 +23,15 @@ export function FitConfirm({ title, message, confirmLabel = 'Confirmer', cancelL
         <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
         {message && <p className="mt-2 text-sm text-slate-400">{message}</p>}
         <div className="mt-5 flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 rounded-xl border border-slate-700 px-4 py-2.5 font-medium text-slate-200 transition-colors active:bg-slate-800"
-          >
-            {cancelLabel}
-          </button>
+          {!hideCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 rounded-xl border border-slate-700 px-4 py-2.5 font-medium text-slate-200 transition-colors active:bg-slate-800"
+            >
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             onClick={onConfirm}
