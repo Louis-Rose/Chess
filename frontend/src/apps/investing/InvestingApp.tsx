@@ -166,6 +166,55 @@ function RiskFloor({ rho, volatility }: { rho: number; volatility: number }) {
   );
 }
 
+// Row 4: simplified VaR. Under a normal distribution, ~95% of yearly outcomes
+// fall within +/-2 sigma and ~99.7% within +/-3 sigma of the mean.
+function DeviationScenarios({ data, rho }: { data: CorrelationResponse; rho: number }) {
+  const sigma = data.avg_volatility;
+  const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+  const n = data.tickers.length;
+  const effective = effectiveNumber(rho, n);
+
+  // The single most volatile name drives much of the portfolio's tail risk.
+  const topTicker = data.tickers.reduce((a, b) =>
+    data.volatilities[b] > data.volatilities[a] ? b : a,
+  );
+
+  const bands = [
+    { label: 'Zone de fluctuation normale', conf: '2 écarts-types · confiance 95 %', mult: 2 },
+    { label: 'Zone de fluctuation extrême', conf: '3 écarts-types · confiance 99,7 %', mult: 3 },
+  ];
+
+  return (
+    <div className="flex w-full flex-col gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+      <span className="text-sm font-semibold text-slate-300">
+        Scénarios de déviation (VaR simplifiée)
+      </span>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
+        {bands.map(({ label, conf, mult }) => (
+          <div key={mult} className="flex flex-1 flex-col gap-1">
+            <span className="text-sm font-semibold text-slate-200">{label}</span>
+            <span className="text-xs text-slate-400">{conf}</span>
+            <span className="mt-1 text-4xl font-bold" style={{ color: 'rgb(248, 113, 113)' }}>
+              ±{pct(mult * sigma)}
+            </span>
+            <span className="text-xs text-slate-500">
+              ±{mult} × {pct(sigma)}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-sm leading-relaxed text-slate-400">
+        La forte volatilité moyenne (portée par {topTicker} à {pct(data.volatilities[topTicker])})
+        combinée au faible nombre effectif d'actions ({effective !== null ? effective.toFixed(2) : '—'})
+        expose le portefeuille à des déviations annuelles massives : à 95 % de confiance, les
+        rendements s'étirent sur ±{pct(2 * sigma)} autour de la tendance moyenne.
+      </p>
+    </div>
+  );
+}
+
 function PortfolioStats({ data, rho }: { data: CorrelationResponse; rho: number }) {
   const n = data.tickers.length;
   const effective = effectiveNumber(rho, n);
@@ -196,6 +245,8 @@ function PortfolioStats({ data, rho }: { data: CorrelationResponse; rho: number 
       </div>
 
       <RiskFloor rho={rho} volatility={data.avg_volatility} />
+
+      <DeviationScenarios data={data} rho={rho} />
     </div>
   );
 }
