@@ -52,11 +52,11 @@ export function FitExercisePicker({ program, onPick, onClose }: {
       <FitChrono />
 
       <header className="border-b border-slate-800 px-5 py-4">
-        <FitBackButton onClick={onClose} />
-        <h2 className="mt-1 text-center text-lg font-semibold">Ajouter un exercice</h2>
+        <h2 className="text-center text-lg font-semibold">Ajouter un exercice</h2>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+        <FitBackButton onClick={onClose} className="mb-4" />
         {groups.length === 0 ? (
           <p className="mt-8 text-center text-sm text-slate-400">
             Aucun exercice disponible. Ajoute-en dans ton programme.
