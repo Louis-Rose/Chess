@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Check, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Check, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitConfirm } from './FitConfirm';
 import { FitShell } from './FitShell';
@@ -24,8 +24,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
   const [programs, setPrograms] = useState<ProgramRow[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);          // a create/activate/delete is in flight
-  const [confirmingId, setConfirmingId] = useState<number | null>(null);  // delete confirm
+  const [busy, setBusy] = useState(false);          // a create/activate is in flight
   const [blocked, setBlocked] = useState(false);
 
   const session = useSession();
@@ -64,20 +63,6 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
       setActiveId(id);
     } catch {
       /* keep the current active */
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove(id: number) {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await fitRequest(() => axios.delete(`/api/fit/programs/${id}`));
-      setConfirmingId(null);
-      load();
-    } catch {
-      /* keep the program shown */
     } finally {
       setBusy(false);
     }
@@ -167,39 +152,6 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
                   </button>
                 )}
               </div>
-
-              {confirmingId === p.id ? (
-                <div className="mt-4 flex items-center justify-end gap-3" onClick={e => e.stopPropagation()}>
-                  <span className="mr-auto text-sm text-slate-300">Supprimer ce programme ?</span>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingId(null)}
-                    disabled={busy}
-                    className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-xs font-medium text-slate-100 transition-colors active:bg-slate-800"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(p.id)}
-                    disabled={busy}
-                    className="rounded-lg bg-red-600/90 px-3 py-1.5 text-xs font-semibold text-white transition-colors active:bg-red-600 disabled:opacity-60"
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-3 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); guard(() => setConfirmingId(p.id))(); }}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition-colors active:text-red-300"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Supprimer
-                  </button>
-                </div>
-              )}
             </div>
           );
         })}
