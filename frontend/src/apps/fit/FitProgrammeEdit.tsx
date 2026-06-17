@@ -4,61 +4,72 @@ import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { MusclePicker } from './MusclePicker';
 import { FitBackButton } from './FitBackButton';
-import { MUSCLES, SPLITS } from './programData';
+import { MUSCLES, SPLITS, type FitProgram } from './programData';
 
-// Editing an existing program. Instead of a linear wizard, a left rail of
-// sections (Split, Séries de travail, then one per muscle) lets the user jump
-// to and edit any part at will. Every change saves immediately.
-// Keep the working-sets range in sync with WORK_SETS_MIN/MAX in fit.py.
+// Editing one program. A left rail of sections (Nom, Split, Séries, then one per
+// muscle) lets the user jump to and edit any part at will — this is also how a
+// freshly created (empty) program is filled in. Every change saves immediately
+// to the program-scoped endpoints.
+// Keep the working-sets range / name length in sync with fit.py.
 const WORK_SETS_OPTIONS = [2, 3, 4, 5, 6];
+const NAME_MAX = 60;
 
-interface Props {
-  split: string;
-  workSets: number | null;
-  onSplitChange: (s: string) => void;
-  onWorkSetsChange: (n: number) => void;
-  onBack: () => void;
-}
-
-export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsChange, onBack }: Props) {
-  const [active, setActive] = useState('split');   // 'split' | 'sets' | a muscle name
+export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onBack: () => void }) {
+  const [active, setActive] = useState('name');   // 'name' | 'split' | 'sets' | a muscle name
+  const [name, setName] = useState(program.name);
+  const [split, setSplit] = useState<string | null>(program.split);
+  const [workSets, setWorkSets] = useState<number | null>(program.work_sets);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
 
+  const base = `/api/fit/programs/${program.id}`;
+
   useEffect(() => {
-    fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises'))
+    fitRequest(() => axios.get<{ selections: Record<string, string[]> }>(`${base}/exercises`))
       .then(res => setSelections(res.data.selections ?? {}))
       .catch(() => { /* start empty */ })
       .finally(() => setLoading(false));
-  }, []);
+  }, [base]);
+
+  function saveName() {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === program.name) return;
+    fitRequest(() => axios.put(base, { name: trimmed })).catch(() => {});
+  }
 
   function chooseSplit(s: string) {
-    onSplitChange(s);
-    fitRequest(() => axios.put('/api/fit/profile', { split: s })).catch(() => {});
+    setSplit(s);
+    fitRequest(() => axios.put(base, { split: s })).catch(() => {});
   }
 
   function chooseSets(n: number) {
-    onWorkSetsChange(n);
-    fitRequest(() => axios.put('/api/fit/profile', { work_sets: n })).catch(() => {});
+    setWorkSets(n);
+    fitRequest(() => axios.put(base, { work_sets: n })).catch(() => {});
   }
 
   function toggleExercise(muscle: string, id: string) {
     setSelections(prev => {
       const cur = prev[muscle] ?? [];
       const next = cur.includes(id) ? cur.filter(e => e !== id) : [...cur, id];
-      fitRequest(() => axios.put('/api/fit/exercises', { muscle, exercises: next })).catch(() => {});
+      fitRequest(() => axios.put(`${base}/exercises`, { muscle, exercises: next })).catch(() => {});
       return { ...prev, [muscle]: next };
     });
   }
 
-  // Split + working sets first, then one entry per muscle. Rail labels are
+  // Name + split + working sets first, then one entry per muscle. Rail labels are
   // shortened to keep it narrow; the full name still shows as the section
   // heading. A thin separator is drawn between every entry.
   const sections = [
+    { key: 'name', label: 'Nom' },
     { key: 'split', label: 'Split' },
     { key: 'sets', label: 'Séries' },
     ...MUSCLES.map(m => ({ key: m.name, label: m.name === 'Ischio-jambiers' ? 'Ischios' : m.name })),
   ];
+
+  const heading = active === 'name' ? 'Nom du programme'
+    : active === 'split' ? 'Training split'
+    : active === 'sets' ? 'Séries de travail'
+    : active;
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -87,11 +98,20 @@ export function FitProgrammeEdit({ split, workSets, onSplitChange, onWorkSetsCha
 
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Heading pinned at the top; the body fills and centers below it. */}
-          <h2 className="mt-12 text-center text-lg font-semibold text-slate-100">
-            {active === 'split' ? 'Training split' : active === 'sets' ? 'Séries de travail' : active}
-          </h2>
+          <h2 className="mt-12 text-center text-lg font-semibold text-slate-100">{heading}</h2>
           <div className="flex flex-1 flex-col justify-center pt-2">
-            {loading ? (
+            {active === 'name' ? (
+              <input
+                type="text"
+                value={name}
+                maxLength={NAME_MAX}
+                onChange={e => setName(e.target.value)}
+                onBlur={saveName}
+                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                aria-label="Nom du programme"
+                className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-3 text-center text-slate-100 outline-none transition-colors focus:border-emerald-500"
+              />
+            ) : loading ? (
               <div className="flex justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
               </div>

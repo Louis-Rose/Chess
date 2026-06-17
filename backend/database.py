@@ -548,6 +548,67 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('rename_dc_di_variants',))
             logger.info("Renamed Développé couché/incliné to Barre/Haltères variants")
 
+        # Migration: multiple programs per user. A "program" now owns the split,
+        # working-sets count and exercise selection; fit_profile keeps only a
+        # pointer to the active one (the program used everywhere in the app).
+        # Working weights and machine settings stay global (per user/exercise).
+        if not _table_exists(conn, 'fit_programs'):
+            conn.execute("""
+                CREATE TABLE fit_programs (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL,
+                    split TEXT,
+                    work_sets INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            logger.info("Created fit_programs table")
+        if not _column_exists(conn, 'fit_profile', 'active_program_id'):
+            conn.execute("ALTER TABLE fit_profile ADD COLUMN active_program_id INTEGER REFERENCES fit_programs(id) ON DELETE SET NULL")
+            logger.info("Added fit_profile.active_program_id column")
+        if not _column_exists(conn, 'fit_exercises', 'program_id'):
+            conn.execute("ALTER TABLE fit_exercises ADD COLUMN program_id INTEGER REFERENCES fit_programs(id) ON DELETE CASCADE")
+            logger.info("Added fit_exercises.program_id column")
+
+        # One-off backfill: every user with an existing profile or exercise
+        # selection gets a "Programme 1" carrying their current split/work_sets,
+        # set as active, with their exercises attached. Then the program-scoped
+        # shape is locked in (program_id NOT NULL, PK on (program_id, muscle, exercise)).
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('introduce_programs',)).fetchone():
+            user_rows = conn.execute(
+                """SELECT DISTINCT user_id FROM (
+                       SELECT user_id FROM fit_profile
+                       UNION
+                       SELECT user_id FROM fit_exercises
+                   ) u"""
+            ).fetchall()
+            for u in user_rows:
+                uid = u['user_id']
+                prof = conn.execute(
+                    'SELECT split, work_sets FROM fit_profile WHERE user_id = ?', (uid,)
+                ).fetchone()
+                pid = conn.execute(
+                    'INSERT INTO fit_programs (user_id, name, split, work_sets) VALUES (?, ?, ?, ?) RETURNING id',
+                    (uid, 'Programme 1', prof['split'] if prof else None, prof['work_sets'] if prof else None)
+                ).fetchone()['id']
+                conn.execute(
+                    'UPDATE fit_exercises SET program_id = ? WHERE user_id = ? AND program_id IS NULL',
+                    (pid, uid)
+                )
+                conn.execute(
+                    """INSERT INTO fit_profile (user_id, active_program_id) VALUES (?, ?)
+                       ON CONFLICT (user_id) DO UPDATE SET active_program_id = EXCLUDED.active_program_id""",
+                    (uid, pid)
+                )
+            # Lock in the new shape (drop any orphan exercise rows defensively).
+            conn.execute('DELETE FROM fit_exercises WHERE program_id IS NULL')
+            conn.execute('ALTER TABLE fit_exercises ALTER COLUMN program_id SET NOT NULL')
+            conn.execute('ALTER TABLE fit_exercises DROP CONSTRAINT fit_exercises_pkey')
+            conn.execute('ALTER TABLE fit_exercises ADD PRIMARY KEY (program_id, muscle, exercise)')
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('introduce_programs',))
+            logger.info("Migrated existing fit profiles into per-user programs")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

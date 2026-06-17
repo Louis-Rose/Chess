@@ -164,32 +164,155 @@ def fit_me():
     return jsonify({'user': _user_payload(user_id) if user_id else None})
 
 
-# ── Profile ──────────────────────────────────────────────────────────────────
+# ── Programs ─────────────────────────────────────────────────────────────────
+# A user can have several programs; one is active (fit_profile.active_program_id)
+# and drives the whole app. A program owns the split, the working-sets count and
+# the exercise selection. Working weights / machine settings stay global.
+
+# Allowed working-sets-per-exercise range — keep in sync with the frontend.
+WORK_SETS_MIN, WORK_SETS_MAX = 2, 6
+# Program name length cap — keep in sync with the frontend input.
+PROGRAM_NAME_MAX = 60
+
+
+def _active_program(conn):
+    """The user's active program row (id, name, split, work_sets), or None.
+    Falls back to the most recent program when no explicit active pointer is set."""
+    row = conn.execute(
+        """SELECT p.id, p.name, p.split, p.work_sets
+           FROM fit_programs p
+           JOIN fit_profile f ON f.active_program_id = p.id
+           WHERE f.user_id = ?""",
+        (request.user_id,)
+    ).fetchone()
+    if row:
+        return row
+    return conn.execute(
+        'SELECT id, name, split, work_sets FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+        (request.user_id,)
+    ).fetchone()
+
+
+def _owned_program(conn, program_id):
+    """Return the program row if it belongs to the current user, else None."""
+    return conn.execute(
+        'SELECT id, name, split, work_sets FROM fit_programs WHERE id = ? AND user_id = ?',
+        (program_id, request.user_id)
+    ).fetchone()
+
+
+def _set_active_program(conn, program_id):
+    """Point the user's active-program pointer at program_id (upsert)."""
+    conn.execute(
+        """INSERT INTO fit_profile (user_id, active_program_id) VALUES (?, ?)
+           ON CONFLICT (user_id) DO UPDATE SET active_program_id = EXCLUDED.active_program_id""",
+        (request.user_id, program_id)
+    )
+
 
 @fit_bp.route('/api/fit/profile', methods=['GET'])
 @fit_login_required
 def get_profile():
-    """Return the current user's training profile."""
+    """Return the active program's split and working-sets count (nulls if none).
+    Kept for the session / Accueil / Performances flows, which only ever read the
+    active program."""
     with get_db() as conn:
-        row = conn.execute(
-            'SELECT split, work_sets FROM fit_profile WHERE user_id = ?', (request.user_id,)
-        ).fetchone()
+        prog = _active_program(conn)
     return jsonify({
-        'split': row['split'] if row else None,
-        'work_sets': row['work_sets'] if row else None,
+        'split': prog['split'] if prog else None,
+        'work_sets': prog['work_sets'] if prog else None,
     })
 
 
-# Allowed working-sets-per-exercise range — keep in sync with the frontend.
-WORK_SETS_MIN, WORK_SETS_MAX = 2, 6
-
-
-@fit_bp.route('/api/fit/profile', methods=['PUT'])
+@fit_bp.route('/api/fit/exercises', methods=['GET'])
 @fit_login_required
-def update_profile():
-    """Upsert the chosen split and/or working-sets-per-exercise count."""
+def get_exercises():
+    """Return the active program's selected exercises grouped by muscle."""
+    selections: dict[str, list] = {}
+    with get_db() as conn:
+        prog = _active_program(conn)
+        if prog:
+            rows = conn.execute(
+                'SELECT muscle, exercise FROM fit_exercises WHERE program_id = ?', (prog['id'],)
+            ).fetchall()
+            for r in rows:
+                selections.setdefault(r['muscle'], []).append(r['exercise'])
+    return jsonify({'selections': selections})
+
+
+@fit_bp.route('/api/fit/programs', methods=['GET'])
+@fit_login_required
+def list_programs():
+    """All of the user's programs (with exercise counts) plus the active one's id."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT p.id, p.name, p.split, p.work_sets,
+                      COUNT(e.exercise) AS exercise_count
+               FROM fit_programs p
+               LEFT JOIN fit_exercises e ON e.program_id = p.id
+               WHERE p.user_id = ?
+               GROUP BY p.id
+               ORDER BY p.created_at, p.id""",
+            (request.user_id,)
+        ).fetchall()
+        active = _active_program(conn)
+    return jsonify({
+        'programs': [{'id': r['id'], 'name': r['name'], 'split': r['split'],
+                      'work_sets': r['work_sets'], 'exercise_count': r['exercise_count']} for r in rows],
+        'active_id': active['id'] if active else None,
+    })
+
+
+@fit_bp.route('/api/fit/programs', methods=['POST'])
+@fit_login_required
+def create_program():
+    """Create a new (empty) program. Names default to "Programme N". The first
+    program a user creates becomes active automatically."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    with get_db() as conn:
+        if not name:
+            n = conn.execute(
+                'SELECT COUNT(*) AS c FROM fit_programs WHERE user_id = ?', (request.user_id,)
+            ).fetchone()['c']
+            name = f'Programme {n + 1}'
+        row = conn.execute(
+            'INSERT INTO fit_programs (user_id, name) VALUES (?, ?) RETURNING id, name, split, work_sets',
+            (request.user_id, name[:PROGRAM_NAME_MAX])
+        ).fetchone()
+        # Make it active if the user has no active program yet.
+        cur = conn.execute(
+            'SELECT active_program_id FROM fit_profile WHERE user_id = ?', (request.user_id,)
+        ).fetchone()
+        if not cur or cur['active_program_id'] is None:
+            _set_active_program(conn, row['id'])
+    return jsonify({'id': row['id'], 'name': row['name'], 'split': row['split'], 'work_sets': row['work_sets']})
+
+
+@fit_bp.route('/api/fit/programs/active', methods=['PUT'])
+@fit_login_required
+def set_active_program():
+    """Set which program is active (the one used everywhere in the app)."""
+    data = request.get_json(silent=True) or {}
+    program_id = data.get('program_id')
+    with get_db() as conn:
+        if not _owned_program(conn, program_id):
+            return jsonify({'error': 'Not found'}), 404
+        _set_active_program(conn, program_id)
+    return jsonify({'ok': True, 'active_id': program_id})
+
+
+@fit_bp.route('/api/fit/programs/<int:program_id>', methods=['PUT'])
+@fit_login_required
+def update_program(program_id):
+    """Update a program's name, split and/or working-sets count."""
     data = request.get_json(silent=True) or {}
     updates = {}
+    if 'name' in data:
+        name = (data.get('name') or '').strip()
+        if not name:
+            return jsonify({'error': 'Invalid name'}), 400
+        updates['name'] = name[:PROGRAM_NAME_MAX]
     if 'split' in data:
         if data['split'] not in VALID_SPLITS:
             return jsonify({'error': 'Invalid split'}), 400
@@ -202,39 +325,50 @@ def update_profile():
     if not updates:
         return jsonify({'error': 'Nothing to update'}), 400
 
-    cols = list(updates.keys())
-    insert_cols = ', '.join(['user_id', *cols, 'updated_at'])
-    insert_vals = ', '.join(['?'] * (1 + len(cols)) + ['CURRENT_TIMESTAMP'])
-    set_clause = ', '.join([f'{c} = EXCLUDED.{c}' for c in cols] + ['updated_at = CURRENT_TIMESTAMP'])
-    params = (request.user_id, *(updates[c] for c in cols))
-
     with get_db() as conn:
+        if not _owned_program(conn, program_id):
+            return jsonify({'error': 'Not found'}), 404
+        set_clause = ', '.join(f'{c} = ?' for c in updates)
         conn.execute(
-            f"""INSERT INTO fit_profile ({insert_cols})
-                VALUES ({insert_vals})
-                ON CONFLICT (user_id) DO UPDATE SET {set_clause}""",
-            params,
+            f'UPDATE fit_programs SET {set_clause} WHERE id = ? AND user_id = ?',
+            (*updates.values(), program_id, request.user_id)
         )
     return jsonify(updates)
 
 
-@fit_bp.route('/api/fit/profile', methods=['DELETE'])
+@fit_bp.route('/api/fit/programs/<int:program_id>', methods=['DELETE'])
 @fit_login_required
-def delete_profile():
-    """Delete the user's whole program — chosen split and all selected exercises."""
+def delete_program(program_id):
+    """Delete a program and its exercises. If it was active, the most recent
+    remaining program becomes active."""
     with get_db() as conn:
-        conn.execute('DELETE FROM fit_exercises WHERE user_id = ?', (request.user_id,))
-        conn.execute('DELETE FROM fit_profile WHERE user_id = ?', (request.user_id,))
+        if not _owned_program(conn, program_id):
+            return jsonify({'error': 'Not found'}), 404
+        conn.execute('DELETE FROM fit_programs WHERE id = ? AND user_id = ?', (program_id, request.user_id))
+        # ON DELETE SET NULL clears the active pointer when the active program
+        # was the one removed — re-point it at the most recent remaining program.
+        cur = conn.execute(
+            'SELECT active_program_id FROM fit_profile WHERE user_id = ?', (request.user_id,)
+        ).fetchone()
+        if not cur or cur['active_program_id'] is None:
+            fallback = conn.execute(
+                'SELECT id FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+                (request.user_id,)
+            ).fetchone()
+            if fallback:
+                _set_active_program(conn, fallback['id'])
     return jsonify({'ok': True})
 
 
-@fit_bp.route('/api/fit/exercises', methods=['GET'])
+@fit_bp.route('/api/fit/programs/<int:program_id>/exercises', methods=['GET'])
 @fit_login_required
-def get_exercises():
-    """Return the user's selected exercises grouped by muscle."""
+def get_program_exercises(program_id):
+    """Return one program's selected exercises grouped by muscle."""
     with get_db() as conn:
+        if not _owned_program(conn, program_id):
+            return jsonify({'error': 'Not found'}), 404
         rows = conn.execute(
-            'SELECT muscle, exercise FROM fit_exercises WHERE user_id = ?', (request.user_id,)
+            'SELECT muscle, exercise FROM fit_exercises WHERE program_id = ?', (program_id,)
         ).fetchall()
     selections: dict[str, list] = {}
     for r in rows:
@@ -242,10 +376,10 @@ def get_exercises():
     return jsonify({'selections': selections})
 
 
-@fit_bp.route('/api/fit/exercises', methods=['PUT'])
+@fit_bp.route('/api/fit/programs/<int:program_id>/exercises', methods=['PUT'])
 @fit_login_required
-def update_exercises():
-    """Replace the selected exercises for one muscle group."""
+def update_program_exercises(program_id):
+    """Replace the selected exercises for one muscle group within a program."""
     data = request.get_json(silent=True) or {}
     muscle = data.get('muscle')
     exercises = data.get('exercises')
@@ -255,14 +389,16 @@ def update_exercises():
     exercises = list({e for e in exercises if e in allowed})
 
     with get_db() as conn:
+        if not _owned_program(conn, program_id):
+            return jsonify({'error': 'Not found'}), 404
         conn.execute(
-            'DELETE FROM fit_exercises WHERE user_id = ? AND muscle = ?',
-            (request.user_id, muscle)
+            'DELETE FROM fit_exercises WHERE program_id = ? AND muscle = ?',
+            (program_id, muscle)
         )
         for ex in exercises:
             conn.execute(
-                'INSERT INTO fit_exercises (user_id, muscle, exercise) VALUES (?, ?, ?)',
-                (request.user_id, muscle, ex)
+                'INSERT INTO fit_exercises (user_id, program_id, muscle, exercise) VALUES (?, ?, ?, ?)',
+                (request.user_id, program_id, muscle, ex)
             )
     return jsonify({'ok': True})
 
