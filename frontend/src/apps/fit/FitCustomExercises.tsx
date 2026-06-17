@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Trash2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { MUSCLE_ORDER, type CustomExercise } from './programData';
 
-// Create / edit / delete form for a custom exercise (free-text name, an optional
-// single row of variants, manual primary/secondary muscles). Driven by the
-// program editor: it owns the draft (new or from an existing exercise) and
-// reacts to onSaved / onDeleted. Custom exercises themselves are shown inline in
-// the picker, so there is no separate list here.
+// Create / edit form for a custom exercise (free-text name, an optional single
+// row of variants, manual primary/secondary muscles). Driven by the program
+// editor: it owns the draft (new or from an existing exercise) and reacts to
+// onSaved. Deletion is done by swiping the exercise card left in the picker, so
+// it isn't offered here. Custom exercises are shown inline in the picker too.
 
 const NAME_MAX = 60;
 
@@ -26,12 +26,11 @@ export const newCustomDraft = (muscle: string): CustomDraft =>
 export const editCustomDraft = (c: CustomExercise): CustomDraft =>
   ({ id: c.id, name: c.name, variants: [...c.variants], primary: [...c.primary], secondary: [...c.secondary] });
 
-export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved, onDeleted }: {
+export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved }: {
   muscle: string;
   draft: CustomDraft;
   onClose: () => void;
   onSaved: (saved: CustomExercise, wasNew: boolean) => void;
-  onDeleted: () => void;
 }) {
   const [name, setName] = useState(draft.name);
   const [variants, setVariants] = useState<string[]>(draft.variants);
@@ -40,7 +39,6 @@ export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved, onDelet
   const [secondary, setSecondary] = useState<string[]>(draft.secondary);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // A muscle is either primary or secondary, never both: toggling one role
   // clears the other.
@@ -75,18 +73,6 @@ export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved, onDelet
     } catch (e) {
       const status = axios.isAxiosError(e) ? e.response?.status : undefined;
       setError(status === 409 ? 'Ce nom existe déjà.' : "Échec de l'enregistrement.");
-      setSaving(false);
-    }
-  }
-
-  async function remove() {
-    if (draft.id == null || saving) return;
-    setSaving(true);
-    try {
-      await fitRequest(() => axios.delete(`/api/fit/custom-exercises/${draft.id}`));
-      onDeleted();
-    } catch {
-      setError("Échec de la suppression.");
       setSaving(false);
     }
   }
@@ -156,25 +142,6 @@ export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved, onDelet
         >
           Enregistrer
         </button>
-
-        {draft.id != null && (
-          confirmingDelete ? (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <span className="mr-auto text-sm text-slate-300">Supprimer cet exercice ?</span>
-              <button type="button" onClick={() => setConfirmingDelete(false)} disabled={saving} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-100 active:bg-slate-800">Annuler</button>
-              <button type="button" onClick={remove} disabled={saving} className="rounded-lg bg-red-600/90 px-3 py-1.5 text-xs font-semibold text-white active:bg-red-600 disabled:opacity-60">Supprimer</button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(true)}
-              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs font-medium text-red-300 transition-colors active:bg-red-950/50"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Supprimer l'exercice
-            </button>
-          )
-        )}
       </div>
     </div>
   );

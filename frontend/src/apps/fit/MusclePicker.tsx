@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { variantId, exerciseEnglish, type Exercise } from './programData';
+import { FitSwipeRow } from './FitSwipeRow';
 
 // A small "edit" pencil overlaid on a custom-exercise card (left side). A span,
 // not a button, so it can live inside the card's <button> without nesting; taps
@@ -57,15 +58,18 @@ const cardBase = 'flex items-center justify-center rounded-xl border px-4 py-3.5
 const cardOn = 'border-emerald-500 bg-emerald-500/10';
 const cardOff = 'border-slate-700 bg-slate-800/50 active:bg-slate-800';
 
-export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency, editableNames, onEdit }: {
+export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency, editableNames, onEdit, onDelete }: {
   exercises: Exercise[];
   selected: string[];
   onToggle: (id: string) => void;
   ariaLabel?: string;
   // Base names that are custom exercises: when set (with onEdit), those cards
-  // show an edit pencil. Used only in the program editor, not the session picker.
+  // show an edit pencil and, when onDelete is given, swipe left to delete.
+  // Used only in the program editor, not the session picker. Catalogue (base)
+  // exercises are never editable or deletable.
   editableNames?: Set<string>;
   onEdit?: (name: string) => void;
+  onDelete?: (name: string) => void;
   // When provided, the open variant group is controlled by the parent so only
   // one is open across several MusclePickers (accordion). Otherwise it's local
   // and multiple groups can be open at once.
@@ -76,6 +80,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
   recency?: Record<string, number>;
 }) {
   const [localOpen, setLocalOpen] = useState<Record<string, boolean>>({});
+  const [swiped, setSwiped] = useState<string | null>(null);   // custom card swiped open for delete
   const controlled = onOpenChange != null;
   const isExpanded = (name: string) => controlled ? openName === name : (localOpen[name] ?? false);
   const toggleOpen = (name: string, expanded: boolean) => {
@@ -89,7 +94,29 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
         // Leaf exercise.
         if (typeof ex === 'string') {
           const isActive = selected.includes(ex);
-          const editable = editableNames?.has(ex) && onEdit;
+          const isCustom = editableNames?.has(ex);
+          const content = (
+            <>
+              {isCustom && onEdit && <EditPencil onEdit={() => onEdit(ex)} />}
+              <ExLabel name={ex} days={recency?.[ex]} />
+            </>
+          );
+          // Custom leaves swipe left to delete; catalogue leaves are plain.
+          if (isCustom && onDelete) {
+            return (
+              <FitSwipeRow
+                key={ex}
+                isOpen={swiped === ex}
+                onOpen={() => setSwiped(ex)}
+                onClose={() => setSwiped(null)}
+                onDelete={() => onDelete(ex)}
+                onTap={() => onToggle(ex)}
+                className={`flex items-center justify-center px-4 py-3.5 text-center ${isActive ? 'border-emerald-500' : 'border-slate-700'}`}
+              >
+                {content}
+              </FitSwipeRow>
+            );
+          }
           return (
             <button
               key={ex}
@@ -98,8 +125,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               onClick={() => onToggle(ex)}
               className={`relative ${cardBase} ${isActive ? cardOn : cardOff}`}
             >
-              {editable && <EditPencil onEdit={() => onEdit!(ex)} />}
-              <ExLabel name={ex} days={recency?.[ex]} />
+              {content}
             </button>
           );
         }
@@ -108,20 +134,39 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
         const anySelected = ex.variants.flat().some(v => selected.includes(variantId(ex.name, v)));
         // Collapsed by default; the user taps to reveal the variants.
         const expanded = isExpanded(ex.name);
+        const isCustom = editableNames?.has(ex.name);
+        const header = (
+          <>
+            {isCustom && onEdit && <EditPencil onEdit={() => onEdit(ex.name)} />}
+            <ExLabel name={ex.name} days={recency?.[ex.name]} />
+            {expanded
+              ? <ChevronUp className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              : <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />}
+          </>
+        );
         return (
           <div key={ex.name} className="flex flex-col gap-3">
-            <button
-              type="button"
-              aria-expanded={expanded}
-              onClick={() => toggleOpen(ex.name, expanded)}
-              className={`relative ${cardBase} ${anySelected ? cardOn : cardOff}`}
-            >
-              {editableNames?.has(ex.name) && onEdit && <EditPencil onEdit={() => onEdit(ex.name)} />}
-              <ExLabel name={ex.name} days={recency?.[ex.name]} />
-              {expanded
-                ? <ChevronUp className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                : <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />}
-            </button>
+            {isCustom && onDelete ? (
+              <FitSwipeRow
+                isOpen={swiped === ex.name}
+                onOpen={() => setSwiped(ex.name)}
+                onClose={() => setSwiped(null)}
+                onDelete={() => onDelete(ex.name)}
+                onTap={() => toggleOpen(ex.name, expanded)}
+                className={`flex items-center justify-center px-4 py-3.5 text-center ${anySelected ? 'border-emerald-500' : 'border-slate-700'}`}
+              >
+                {header}
+              </FitSwipeRow>
+            ) : (
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => toggleOpen(ex.name, expanded)}
+                className={`relative ${cardBase} ${anySelected ? cardOn : cardOff}`}
+              >
+                {header}
+              </button>
+            )}
 
             {expanded && (
               <div className="flex flex-col gap-2">

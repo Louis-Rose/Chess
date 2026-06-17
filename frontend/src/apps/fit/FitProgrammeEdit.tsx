@@ -66,10 +66,16 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
     else loadSelections();   // a rename remaps stored leaves server-side
   }
 
-  function onCustomDeleted() {
-    setCustomDraft(null);
-    reloadCustom();
-    loadSelections();        // it was dropped from the program server-side
+  // Swipe-left delete on a custom exercise card (catalogue exercises aren't
+  // deletable, so they never get this).
+  async function deleteCustom(name: string) {
+    const c = customExercises.find(x => x.muscle === active && x.name === name);
+    if (!c) return;
+    try {
+      await fitRequest(() => axios.delete(`/api/fit/custom-exercises/${c.id}`));
+      reloadCustom();
+      loadSelections();      // it was dropped from the program server-side
+    } catch { /* keep shown */ }
   }
 
   function saveName() {
@@ -180,6 +186,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
                   onToggle={id => toggleExercise(active, id)}
                   editableNames={editableNames}
                   onEdit={openEditCustom}
+                  onDelete={deleteCustom}
                 />
                 <button
                   type="button"
@@ -201,7 +208,6 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
           draft={customDraft}
           onClose={() => setCustomDraft(null)}
           onSaved={onCustomSaved}
-          onDeleted={onCustomDeleted}
         />
       )}
     </div>
