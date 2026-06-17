@@ -1,7 +1,27 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, Pencil } from 'lucide-react';
+import { Fragment, useState } from 'react';
+import { Check, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { variantId, exerciseEnglish, type Exercise } from './programData';
 import { FitSwipeRow } from './FitSwipeRow';
+
+// A small "Unilatéral" on/off chip shown under each exercise in the program
+// editor. It marks the movement as logged per side (Gauche / Droite); the
+// session entry form then asks for left/right reps. Per base exercise.
+function UnilateralToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={onToggle}
+      className={`inline-flex items-center gap-1 self-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+        on ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200' : 'border-slate-700 text-slate-400 active:bg-slate-800'
+      }`}
+    >
+      {on && <Check className="h-3 w-3" />}
+      Unilatéral
+    </button>
+  );
+}
 
 // A small "edit" pencil overlaid on a custom-exercise card (left side). A span,
 // not a button, so it can live inside the card's <button> without nesting; taps
@@ -58,7 +78,7 @@ const cardBase = 'flex items-center justify-center rounded-xl border px-4 py-3.5
 const cardOn = 'border-emerald-500 bg-emerald-500/10';
 const cardOff = 'border-slate-700 bg-slate-800/50 active:bg-slate-800';
 
-export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency, editableNames, onEdit, onDelete }: {
+export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency, editableNames, onEdit, onDelete, unilateralNames, onToggleUnilateral }: {
   exercises: Exercise[];
   selected: string[];
   onToggle: (id: string) => void;
@@ -70,6 +90,10 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
   editableNames?: Set<string>;
   onEdit?: (name: string) => void;
   onDelete?: (name: string) => void;
+  // The bases currently marked unilateral, plus a toggle. When onToggleUnilateral
+  // is set (program editor only), each card shows an "Unilatéral" chip.
+  unilateralNames?: Set<string>;
+  onToggleUnilateral?: (name: string) => void;
   // When provided, the open variant group is controlled by the parent so only
   // one is open across several MusclePickers (accordion). Otherwise it's local
   // and multiple groups can be open at once.
@@ -102,24 +126,19 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
             </>
           );
           // Custom leaves swipe left to delete; catalogue leaves are plain.
-          if (isCustom && onDelete) {
-            return (
-              <FitSwipeRow
-                key={ex}
-                isOpen={swiped === ex}
-                onOpen={() => setSwiped(ex)}
-                onClose={() => setSwiped(null)}
-                onDelete={() => onDelete(ex)}
-                onTap={() => onToggle(ex)}
-                className={`flex items-center justify-center px-4 py-3.5 text-center ${isActive ? 'border-emerald-500' : 'border-slate-700'}`}
-              >
-                {content}
-              </FitSwipeRow>
-            );
-          }
-          return (
+          const card = isCustom && onDelete ? (
+            <FitSwipeRow
+              isOpen={swiped === ex}
+              onOpen={() => setSwiped(ex)}
+              onClose={() => setSwiped(null)}
+              onDelete={() => onDelete(ex)}
+              onTap={() => onToggle(ex)}
+              className={`flex items-center justify-center px-4 py-3.5 text-center ${isActive ? 'border-emerald-500' : 'border-slate-700'}`}
+            >
+              {content}
+            </FitSwipeRow>
+          ) : (
             <button
-              key={ex}
               type="button"
               aria-pressed={isActive}
               onClick={() => onToggle(ex)}
@@ -127,6 +146,13 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
             >
               {content}
             </button>
+          );
+          if (!onToggleUnilateral) return <Fragment key={ex}>{card}</Fragment>;
+          return (
+            <div key={ex} className="flex flex-col gap-1.5">
+              {card}
+              <UnilateralToggle on={!!unilateralNames?.has(ex)} onToggle={() => onToggleUnilateral(ex)} />
+            </div>
           );
         }
 
@@ -166,6 +192,10 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               >
                 {header}
               </button>
+            )}
+
+            {onToggleUnilateral && (
+              <UnilateralToggle on={!!unilateralNames?.has(ex.name)} onToggle={() => onToggleUnilateral(ex.name)} />
             )}
 
             {expanded && (

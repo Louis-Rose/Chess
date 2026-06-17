@@ -32,12 +32,11 @@ interface Props {
   onWorkWeightChange?: (weight: number | null) => void;   // persist an edit to it
   setting?: string | null;                                // persisted machine-setting override (per base)
   onSettingChange?: (setting: string | null) => void;     // persist an edit to it
-  unilateral?: boolean;                                   // log reps per side (Gauche / Droite), shared weight
-  onUnilateralChange?: (value: boolean) => void;          // persist the per-exercise toggle
+  unilateral?: boolean;                                   // set in the program: log reps per side (Gauche / Droite), shared weight
   onValidate?: () => void;                                // shows a "Valider l'exercice" button inside the card
 }
 
-export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, unilateral, onUnilateralChange, onValidate }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, unilateral, onValidate }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');           // left side when unilateral
   const [repsRight, setRepsRight] = useState(''); // right side, unilateral only
@@ -216,22 +215,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           />
           <span className="text-white">kg</span>
         </div>
-        {onUnilateralChange && (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={!!unilateral}
-            onClick={() => onUnilateralChange(!unilateral)}
-            className={`mt-1 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              unilateral
-                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
-                : 'border-slate-700 text-slate-300 active:bg-slate-800'
-            }`}
-          >
-            {unilateral && <Check className="h-3.5 w-3.5" />}
-            Unilatéral (saisie par côté)
-          </button>
-        )}
       </div>
 
       {/* Separates the exercise's settings from its sets and logging actions. */}

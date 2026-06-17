@@ -66,7 +66,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [confirmLeaf, setConfirmLeaf] = useState<string | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
-  const { unilateral, save: saveUnilateral } = useExerciseUnilateral();
+  const { unilateral } = useExerciseUnilateral();
 
   useEffect(() => {
     // POST resumes the in-progress session if there is one (with its logged
@@ -305,7 +305,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               setting={exerciseSettings[editingEntry.exercise.split(' — ')[0]] ?? null}
               onSettingChange={s => saveSetting(editingEntry.exercise.split(' — ')[0], s)}
               unilateral={unilateral.has(editingEntry.exercise.split(' — ')[0])}
-              onUnilateralChange={v => saveUnilateral(editingEntry.exercise.split(' — ')[0], v)}
               onValidate={requestValidate}
             />
             <FitExerciseRecent exercise={editingEntry.exercise} excludeSessionId={sessionId} />

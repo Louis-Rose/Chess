@@ -6,6 +6,7 @@ import { MusclePicker } from './MusclePicker';
 import { FitBackButton } from './FitBackButton';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft, type CustomDraft } from './FitCustomExercises';
 import { useCustomExercises } from './useCustomExercises';
+import { useExerciseUnilateral } from './useExerciseUnilateral';
 import { MUSCLES, SPLITS, exercisesForMuscle, variantId, type CustomExercise, type FitProgram } from './programData';
 
 // Editing one program. A left rail of sections (Nom, Split, Séries, then one per
@@ -24,6 +25,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const { customExercises, reloadCustom } = useCustomExercises();
+  const { unilateral, save: saveUnilateral } = useExerciseUnilateral();
   const [customDraft, setCustomDraft] = useState<CustomDraft | null>(null);
 
   const base = `/api/fit/programs/${program.id}`;
@@ -187,6 +189,8 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
                   editableNames={editableNames}
                   onEdit={openEditCustom}
                   onDelete={deleteCustom}
+                  unilateralNames={unilateral}
+                  onToggleUnilateral={base => saveUnilateral(base, !unilateral.has(base))}
                 />
                 <button
                   type="button"

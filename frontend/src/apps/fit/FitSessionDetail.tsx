@@ -69,7 +69,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
-  const { unilateral, save: saveUnilateral } = useExerciseUnilateral();
+  const { unilateral } = useExerciseUnilateral();
 
   useEffect(() => {
     const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]> } }>?] = [
@@ -184,7 +184,6 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
             setting={exerciseSettings[editing.split(' — ')[0]] ?? null}
             onSettingChange={s => saveSetting(editing.split(' — ')[0], s)}
             unilateral={unilateral.has(editing.split(' — ')[0])}
-            onUnilateralChange={v => saveUnilateral(editing.split(' — ')[0], v)}
           />
           <FitExerciseRecent exercise={editing} excludeSessionId={sessionId} />
         </div>
