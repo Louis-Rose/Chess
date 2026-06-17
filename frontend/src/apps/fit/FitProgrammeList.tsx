@@ -4,13 +4,14 @@ import { Check, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitConfirm } from './FitConfirm';
 import { FitShell } from './FitShell';
+import { FitSwipeRow } from './FitSwipeRow';
 import { splitLabel, type FitProgram } from './programData';
 import { useSession } from './sessionTimer';
 
 // Landing for the Programme tab: the list of the user's programs. The active one
 // (used everywhere in the app) is marked; any other can be made active with
-// "Utiliser". Tapping a card edits it; a trash button deletes it (inline confirm).
-// "Nouveau programme" creates an empty one and opens it for editing.
+// "Utiliser". Tapping a card edits it; swiping a card left reveals a Supprimer
+// button. "Nouveau programme" creates an empty one and opens it for editing.
 //
 // The active program defines what a session logs, so nothing here can change
 // mid-session: every action is blocked with an explanatory notice while a
@@ -24,7 +25,8 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
   const [programs, setPrograms] = useState<ProgramRow[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);          // a create/activate is in flight
+  const [busy, setBusy] = useState(false);          // a create/activate/delete is in flight
+  const [openId, setOpenId] = useState<number | null>(null);  // row swiped open for delete
   const [blocked, setBlocked] = useState(false);
 
   const session = useSession();
@@ -63,6 +65,20 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
       setActiveId(id);
     } catch {
       /* keep the current active */
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(id: number) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fitRequest(() => axios.delete(`/api/fit/programs/${id}`));
+      setOpenId(null);
+      load();
+    } catch {
+      /* keep the program shown */
     } finally {
       setBusy(false);
     }
@@ -115,16 +131,17 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
         {programs.map(p => {
           const isActive = p.id === activeId;
           return (
-            <div
+            <FitSwipeRow
               key={p.id}
-              role="button"
-              tabIndex={0}
-              onClick={guard(() => onOpen(p))}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); guard(() => onOpen(p))(); } }}
-              className={`cursor-pointer rounded-2xl border px-5 py-4 transition-colors ${
+              isOpen={openId === p.id}
+              onOpen={() => setOpenId(p.id)}
+              onClose={() => setOpenId(null)}
+              onDelete={guard(() => remove(p.id))}
+              onTap={guard(() => onOpen(p))}
+              className={`rounded-2xl px-5 py-4 text-left ${
                 isActive
-                  ? 'border-emerald-500/60 bg-emerald-500/5'
-                  : 'border-slate-700 bg-slate-800/30 active:bg-slate-800/60'
+                  ? 'border border-emerald-500/60 bg-emerald-500/5'
+                  : 'border border-slate-700 bg-slate-800/30 active:bg-slate-800/60'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -142,17 +159,19 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
                     Actif
                   </span>
                 ) : (
-                  <button
-                    type="button"
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onPointerDown={e => e.stopPropagation()}
                     onClick={e => { e.stopPropagation(); guard(() => activate(p.id))(); }}
-                    disabled={busy}
-                    className="shrink-0 rounded-full border border-slate-600 px-3 py-1 text-xs font-medium text-slate-200 transition-colors active:bg-slate-800 disabled:opacity-60"
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); guard(() => activate(p.id))(); } }}
+                    className="shrink-0 rounded-full border border-slate-600 px-3 py-1 text-xs font-medium text-slate-200 transition-colors active:bg-slate-800"
                   >
                     Utiliser
-                  </button>
+                  </span>
                 )}
               </div>
-            </div>
+            </FitSwipeRow>
           );
         })}
 

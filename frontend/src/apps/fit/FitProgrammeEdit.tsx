@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import axios from 'axios';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { MusclePicker } from './MusclePicker';
 import { FitBackButton } from './FitBackButton';
@@ -21,8 +21,6 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
   const [workSets, setWorkSets] = useState<number | null>(program.work_sets);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const base = `/api/fit/programs/${program.id}`;
 
@@ -47,17 +45,6 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
   function chooseSets(n: number) {
     setWorkSets(n);
     fitRequest(() => axios.put(base, { work_sets: n })).catch(() => {});
-  }
-
-  async function remove() {
-    if (deleting) return;
-    setDeleting(true);
-    try {
-      await fitRequest(() => axios.delete(base));
-      onBack();   // back to the list, which refetches
-    } catch {
-      setDeleting(false);   // keep the editor open on failure
-    }
   }
 
   function toggleExercise(muscle: string, id: string) {
@@ -159,41 +146,6 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
           </div>
         </div>
       </div>
-
-      {confirmingDelete ? (
-        <div className="mt-12 flex flex-col items-center gap-3">
-          <p className="text-sm text-slate-300">Supprimer ce programme ?</p>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(false)}
-              disabled={deleting}
-              className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-xs font-medium text-slate-100 transition-colors active:bg-slate-800"
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              onClick={remove}
-              disabled={deleting}
-              className="rounded-lg bg-red-600/90 px-3 py-1.5 text-xs font-semibold text-white transition-colors active:bg-red-600 disabled:opacity-60"
-            >
-              Supprimer
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-12 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setConfirmingDelete(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-red-900/60 bg-red-950/30 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors active:bg-red-950/50"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Supprimer le programme
-          </button>
-        </div>
-      )}
     </div>
   );
 }
