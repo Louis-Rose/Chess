@@ -41,7 +41,7 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
       onClose={() => setOpenId(null)}
       onDelete={() => onDelete(session.id)}
       onTap={() => onSelect(session.id)}
-      className="flex flex-col items-center rounded-2xl border border-slate-700 bg-[#141c2f] px-4 py-4 text-center active:bg-[#182234]"
+      className="flex flex-col items-center border-slate-700 px-4 py-4 text-center"
     >
       <span className="font-medium text-slate-100">{sessionTitle(session.number, session.started_at)}</span>
       <span className="mt-0.5 text-sm text-slate-400">

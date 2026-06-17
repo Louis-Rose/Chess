@@ -138,11 +138,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
               onClose={() => setOpenId(null)}
               onDelete={guard(() => remove(p.id))}
               onTap={guard(() => onOpen(p))}
-              className={`rounded-2xl px-5 py-4 text-left ${
-                isActive
-                  ? 'border border-emerald-500/60 bg-emerald-500/5'
-                  : 'border border-slate-700 bg-slate-800/30 active:bg-slate-800/60'
-              }`}
+              className={`px-5 py-4 text-left ${isActive ? 'border-emerald-500/60' : 'border-slate-700'}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

@@ -2,8 +2,13 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 // A card that slides left to reveal a red "Supprimer" button behind it.
 // Shared by every list in the app that supports swipe-to-delete (Calendrier
-// sessions, in-session exercises, …). The parent owns the open/closed state so
-// only one row in a list is open at a time.
+// sessions, in-session exercises, programs, …). The parent owns the open/closed
+// state so only one row in a list is open at a time.
+//
+// The foreground card surface (rounded, bordered, OPAQUE background) is owned
+// here so the delete button stays hidden until the card is swiped — callers
+// only add their border colour, padding and content layout via `className`.
+const CARD = 'rounded-2xl border bg-[#141c2f] active:bg-[#182234]';
 
 const REVEAL = 88; // px the card slides left to expose the delete button
 
@@ -76,7 +81,7 @@ export function FitSwipeRow({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         style={{ transform: `translateX(${dx}px)`, touchAction: 'pan-y' }}
-        className={`relative w-full ${dragging ? '' : 'transition-transform duration-200'} ${className}`}
+        className={`relative w-full ${CARD} ${dragging ? '' : 'transition-transform duration-200'} ${className}`}
       >
         {children}
       </button>
