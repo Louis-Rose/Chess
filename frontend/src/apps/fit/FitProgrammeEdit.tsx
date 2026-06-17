@@ -79,8 +79,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
     ...MUSCLES.map(m => ({ key: m.name, label: m.name === 'Ischio-jambiers' ? 'Ischios' : m.name })),
   ];
 
-  const heading = active === 'name' ? (name.trim() || 'Programme')
-    : active === 'split' ? 'Training split'
+  const heading = active === 'split' ? 'Training split'
     : active === 'sets' ? 'Séries de travail'
     : active;
 
@@ -110,21 +109,24 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
         </nav>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Heading pinned at the top; the body fills and centers below it. */}
-          <h2 className="mt-12 text-center text-lg font-semibold text-slate-100">{heading}</h2>
+          {/* Heading pinned at the top; the body fills and centers below it.
+              On the Nom section the heading itself is the editable name field. */}
+          {active === 'name' ? (
+            <input
+              type="text"
+              value={name}
+              maxLength={NAME_MAX}
+              onChange={e => setName(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+              aria-label="Nom du programme"
+              className="mt-12 w-full rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-2 text-center text-lg font-semibold text-slate-100 outline-none transition-colors focus:border-emerald-500"
+            />
+          ) : (
+            <h2 className="mt-12 text-center text-lg font-semibold text-slate-100">{heading}</h2>
+          )}
           <div className="flex flex-1 flex-col justify-center pt-2">
-            {active === 'name' ? (
-              <input
-                type="text"
-                value={name}
-                maxLength={NAME_MAX}
-                onChange={e => setName(e.target.value)}
-                onBlur={saveName}
-                onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                aria-label="Nom du programme"
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-3 text-center text-slate-100 outline-none transition-colors focus:border-emerald-500"
-              />
-            ) : loading ? (
+            {active === 'name' ? null : loading ? (
               <div className="flex justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
               </div>
