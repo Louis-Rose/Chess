@@ -1,10 +1,12 @@
-import { Fragment, useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
 import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { MusclePicker } from './MusclePicker';
 import { FitBackButton } from './FitBackButton';
-import { MUSCLES, SPLITS, type FitProgram } from './programData';
+import { FitCustomExercises } from './FitCustomExercises';
+import { useCustomExercises } from './useCustomExercises';
+import { MUSCLES, SPLITS, exercisesForMuscle, type FitProgram } from './programData';
 
 // Editing one program. A left rail of sections (Nom, Split, Séries, then one per
 // muscle) lets the user jump to and edit any part at will — this is also how a
@@ -21,15 +23,22 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
   const [workSets, setWorkSets] = useState<number | null>(program.work_sets);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
+  const { customExercises, reloadCustom } = useCustomExercises();
 
   const base = `/api/fit/programs/${program.id}`;
 
-  useEffect(() => {
-    fitRequest(() => axios.get<{ selections: Record<string, string[]> }>(`${base}/exercises`))
+  const loadSelections = useCallback(() => {
+    return fitRequest(() => axios.get<{ selections: Record<string, string[]> }>(`${base}/exercises`))
       .then(res => setSelections(res.data.selections ?? {}))
       .catch(() => { /* start empty */ })
       .finally(() => setLoading(false));
   }, [base]);
+
+  useEffect(() => { loadSelections(); }, [loadSelections]);
+
+  // A custom exercise changed: refresh the registry (merged picker) and the
+  // program's selections (a deleted exercise is dropped server-side).
+  const onCustomChanged = () => { reloadCustom(); loadSelections(); };
 
   function saveName() {
     const trimmed = name.trim();
@@ -130,18 +139,16 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
                 ))}
               </div>
             ) : (
-              (() => {
-                const muscle = MUSCLES.find(m => m.name === active)!;
-                return (
-                  <MusclePicker
-                    key={muscle.name}
-                    exercises={muscle.exercises}
-                    ariaLabel={`Exercices ${muscle.name}`}
-                    selected={selections[muscle.name] ?? []}
-                    onToggle={id => toggleExercise(muscle.name, id)}
-                  />
-                );
-              })()
+              <>
+                <MusclePicker
+                  key={active}
+                  exercises={exercisesForMuscle(active)}
+                  ariaLabel={`Exercices ${active}`}
+                  selected={selections[active] ?? []}
+                  onToggle={id => toggleExercise(active, id)}
+                />
+                <FitCustomExercises muscle={active} customs={customExercises} onChanged={onCustomChanged} />
+              </>
             )}
           </div>
         </div>

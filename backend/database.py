@@ -609,6 +609,26 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('introduce_programs',))
             logger.info("Migrated existing fit profiles into per-user programs")
 
+        # Migration: user-defined custom exercises (free-text name + manual muscle
+        # involvement + an optional single row of variants). Merged into the
+        # catalogue everywhere; primary/secondary feed the weighted volume.
+        # primary_muscles / secondary_muscles / variants are JSON arrays (TEXT).
+        if not _table_exists(conn, 'fit_custom_exercises'):
+            conn.execute("""
+                CREATE TABLE fit_custom_exercises (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL,
+                    muscle TEXT NOT NULL,
+                    primary_muscles TEXT NOT NULL DEFAULT '[]',
+                    secondary_muscles TEXT NOT NULL DEFAULT '[]',
+                    variants TEXT NOT NULL DEFAULT '[]',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (user_id, name)
+                )
+            """)
+            logger.info("Created fit_custom_exercises table")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

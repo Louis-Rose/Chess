@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { MUSCLE_ORDER, MUSCLE_LEAVES, sortLabels } from './programData';
+import { MUSCLE_ORDER, isValidLeaf, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
 import { FitHeader } from './FitHeader';
 import { FitScreenHeader } from './FitScreenHeader';
 import { fitRequest } from './fitAuth';
+import { useCustomExercises } from './useCustomExercises';
 import { validatedLeaves } from './validatedExercises';
 
 // Full-screen "Ajouter un exercice" picker, shared by the new-session flow
@@ -19,6 +20,7 @@ export function FitExercisePicker({ program, onPick, onClose }: {
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
+  useCustomExercises();   // warm the custom catalogue so custom leaves stay valid
   // Days since each exercise (per stored leaf) was last done, shown on its card.
   const [recency, setRecency] = useState<Record<string, number>>({});
   useEffect(() => {
@@ -40,7 +42,7 @@ export function FitExercisePicker({ program, onPick, onClose }: {
       name,
       // Each valid program leaf is its own card (variants included), sorted so
       // variants of the same exercise sit next to each other.
-      exercises: sortLabels((program[name] ?? []).filter(ex => MUSCLE_LEAVES[name]?.has(ex))),
+      exercises: sortLabels((program[name] ?? []).filter(ex => isValidLeaf(name, ex))),
     }))
     .filter(g => g.exercises.length > 0);
 

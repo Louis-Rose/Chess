@@ -183,7 +183,56 @@ const LEAF_TO_MUSCLE: Record<string, string> = {};
 for (const [muscle, leaves] of Object.entries(MUSCLE_LEAVES)) {
   for (const leaf of leaves) LEAF_TO_MUSCLE[leaf] = muscle;
 }
-export const muscleOf = (leaf: string): string | null => LEAF_TO_MUSCLE[leaf] ?? null;
+
+// ── Custom (user-defined) exercises ──────────────────────────────────────────
+// A free-text exercise with manual muscle involvement and an optional single
+// row of variants. Fetched per user (useCustomExercises) and merged into the
+// catalogue here so the pickers, weighted volume and recency treat them exactly
+// like built-ins. Held in module state, refreshed by the hook; the helpers read
+// it at call time, so components that show custom data subscribe via the hook
+// to re-render when it loads.
+export interface CustomExercise {
+  id: number;
+  name: string;
+  muscle: string;
+  primary: string[];
+  secondary: string[];
+  variants: string[];   // single row of mutually-exclusive options ([] = none)
+}
+
+let CUSTOMS: CustomExercise[] = [];
+export const setCustomExercises = (list: CustomExercise[]) => { CUSTOMS = list; };
+export const getCustomExercises = () => CUSTOMS;
+
+const baseOfLeaf = (leaf: string) => {
+  const i = leaf.indexOf(' — ');
+  return i === -1 ? leaf : leaf.slice(0, i);
+};
+
+// Custom exercises of a muscle, as catalogue `Exercise` entries (so MusclePicker
+// renders them identically — a variant list becomes an expandable group).
+export const customExercisesForMuscle = (muscle: string): Exercise[] =>
+  CUSTOMS.filter(c => c.muscle === muscle).map(c =>
+    c.variants.length ? { name: c.name, variants: [sortLabels(c.variants)] } : c.name
+  );
+
+// A stored leaf -> its muscle group (catalogue first, then customs; null if
+// neither, i.e. an orphaned selection).
+export const muscleOf = (leaf: string): string | null => {
+  if (LEAF_TO_MUSCLE[leaf]) return LEAF_TO_MUSCLE[leaf];
+  const c = CUSTOMS.find(c => c.name === baseOfLeaf(leaf));
+  return c ? c.muscle : null;
+};
+
+// Whether a stored leaf is still a valid pick for a muscle (catalogue or custom).
+// Used to hide orphaned selections left after the catalogue/customs changed.
+export const isValidLeaf = (muscle: string, leaf: string): boolean => {
+  if (MUSCLE_LEAVES[muscle]?.has(leaf)) return true;
+  const i = leaf.indexOf(' — ');
+  const base = i === -1 ? leaf : leaf.slice(0, i);
+  return CUSTOMS.some(c => c.muscle === muscle && c.name === base
+    && (c.variants.length ? (i !== -1 && c.variants.includes(leaf.slice(i + 3))) : i === -1));
+};
 
 // Muscle involvement per exercise, used to weight training volume: each
 // working set adds 1 to every `primary` group and 0.5 to every `secondary`
@@ -263,6 +312,16 @@ export const muscleContribution = (leaf: string): Contribution => {
   const i = leaf.indexOf(' — ');
   const base = i === -1 ? leaf : leaf.slice(0, i);
   if (CONTRIB[base]) return CONTRIB[base];
+  const custom = CUSTOMS.find(c => c.name === base);
+  if (custom) return { primary: custom.primary, secondary: custom.secondary };
   const m = muscleOf(leaf);
   return { primary: m ? [m] : [], secondary: [] };
+};
+
+// Catalogue + custom exercises for a muscle, alphabetically — the full pick
+// list shown in the program editor.
+export const exercisesForMuscle = (muscle: string): Exercise[] => {
+  const cat = MUSCLES.find(m => m.name === muscle)?.exercises ?? [];
+  return [...cat, ...customExercisesForMuscle(muscle)]
+    .sort((a, b) => collator.compare(exLabel(a), exLabel(b)));
 };

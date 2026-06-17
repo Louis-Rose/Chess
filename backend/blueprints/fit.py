@@ -6,6 +6,7 @@ to /api/fit so they're never sent on — nor populated by — the main app.
 Per-user data lives in fit_profile.
 """
 
+import json
 import logging
 from collections import OrderedDict
 from functools import wraps
@@ -58,6 +59,50 @@ ALL_EXERCISES = {ex for exercises in MUSCLE_EXERCISES.values() for ex in exercis
 # Base exercise names (leaf without its " — variant" suffix) — machine settings
 # are keyed by base, since a setting belongs to the machine, not the grip.
 ALL_EXERCISE_BASES = {ex.split(' — ')[0] for ex in ALL_EXERCISES}
+
+
+def _variant_leaf(name, variant):
+    """The stored leaf for a (base name, variant) pair: '<name> — <variant>'."""
+    return f'{name} — {variant}'
+
+
+def _custom_exercises(conn, user_id):
+    """The user's custom exercises, parsed (primary/secondary/variants as lists)."""
+    rows = conn.execute(
+        'SELECT id, name, muscle, primary_muscles, secondary_muscles, variants '
+        'FROM fit_custom_exercises WHERE user_id = ? ORDER BY name',
+        (user_id,)
+    ).fetchall()
+    return [{
+        'id': r['id'], 'name': r['name'], 'muscle': r['muscle'],
+        'primary': json.loads(r['primary_muscles']),
+        'secondary': json.loads(r['secondary_muscles']),
+        'variants': json.loads(r['variants']),
+    } for r in rows]
+
+
+def _custom_leaves(conn, user_id, muscle=None):
+    """Valid stored leaves from the user's custom exercises, optionally for one
+    muscle. A variant-less custom exercise stores its bare name as the leaf."""
+    leaves = set()
+    for c in _custom_exercises(conn, user_id):
+        if muscle is not None and c['muscle'] != muscle:
+            continue
+        if c['variants']:
+            leaves.update(_variant_leaf(c['name'], v) for v in c['variants'])
+        else:
+            leaves.add(c['name'])
+    return leaves
+
+
+def _user_leaves(conn, user_id):
+    """Every exercise leaf the user may log: the catalogue plus their customs."""
+    return ALL_EXERCISES | _custom_leaves(conn, user_id)
+
+
+def _user_bases(conn, user_id):
+    """Every base exercise name the user may set a machine setting on."""
+    return ALL_EXERCISE_BASES | {c['name'] for c in _custom_exercises(conn, user_id)}
 
 
 def _set_fit_cookies(response, access_token, refresh_token):
@@ -385,12 +430,12 @@ def update_program_exercises(program_id):
     exercises = data.get('exercises')
     if muscle not in VALID_MUSCLES or not isinstance(exercises, list):
         return jsonify({'error': 'Invalid payload'}), 400
-    allowed = set(MUSCLE_EXERCISES[muscle])
-    exercises = list({e for e in exercises if e in allowed})
 
     with get_db() as conn:
         if not _owned_program(conn, program_id):
             return jsonify({'error': 'Not found'}), 404
+        allowed = set(MUSCLE_EXERCISES[muscle]) | _custom_leaves(conn, request.user_id, muscle)
+        exercises = list({e for e in exercises if e in allowed})
         conn.execute(
             'DELETE FROM fit_exercises WHERE program_id = ? AND muscle = ?',
             (program_id, muscle)
@@ -400,6 +445,152 @@ def update_program_exercises(program_id):
                 'INSERT INTO fit_exercises (user_id, program_id, muscle, exercise) VALUES (?, ?, ?, ?)',
                 (request.user_id, program_id, muscle, ex)
             )
+    return jsonify({'ok': True})
+
+
+# ── Custom exercises ─────────────────────────────────────────────────────────
+# User-defined exercises (free-text name, manual primary/secondary muscles, an
+# optional single row of variants). Merged into the catalogue everywhere.
+
+CUSTOM_NAME_MAX = 60
+CUSTOM_VARIANT_MAX = 40
+
+
+def _clean_custom(data):
+    """Validate a custom-exercise payload. Returns (clean_dict, None) or
+    (None, error_message)."""
+    name = (data.get('name') or '').strip()
+    if not name or len(name) > CUSTOM_NAME_MAX:
+        return None, 'Invalid name'
+    if name in ALL_EXERCISE_BASES:
+        return None, 'Name already exists'
+    if data.get('muscle') not in VALID_MUSCLES:
+        return None, 'Invalid muscle'
+
+    def clean_muscles(v):
+        if not isinstance(v, list):
+            return None
+        return list(dict.fromkeys(m for m in v if m in VALID_MUSCLES))
+
+    primary = clean_muscles(data.get('primary', []))
+    secondary = clean_muscles(data.get('secondary', []))
+    if primary is None or secondary is None:
+        return None, 'Invalid muscles'
+    if not primary:
+        return None, 'Pick at least one primary muscle'
+    secondary = [m for m in secondary if m not in primary]   # primary wins
+
+    raw_variants = data.get('variants', [])
+    if not isinstance(raw_variants, list):
+        return None, 'Invalid variants'
+    variants = list(dict.fromkeys(str(v).strip() for v in raw_variants if str(v).strip()))
+    if any(len(v) > CUSTOM_VARIANT_MAX for v in variants):
+        return None, 'Invalid variant'
+
+    return {'name': name, 'muscle': data['muscle'], 'primary': primary,
+            'secondary': secondary, 'variants': variants}, None
+
+
+def _rename_custom_base(conn, user_id, old, new):
+    """When a custom exercise is renamed, carry the rename across the user's
+    program selections and working weights (the base part of each leaf, keeping
+    any ' — variant' suffix). Logged history is left as-is."""
+    swap = (
+        "? || CASE WHEN position(' — ' in exercise) > 0 "
+        "THEN substr(exercise, position(' — ' in exercise)) ELSE '' END"
+    )
+    conn.execute(
+        f"UPDATE fit_exercises SET exercise = {swap} "
+        "WHERE user_id = ? AND split_part(exercise, ' — ', 1) = ?",
+        (new, user_id, old)
+    )
+    conn.execute(
+        f"UPDATE fit_work_weights SET exercise = {swap} "
+        "WHERE user_id = ? AND split_part(exercise, ' — ', 1) = ?",
+        (new, user_id, old)
+    )
+
+
+@fit_bp.route('/api/fit/custom-exercises', methods=['GET'])
+@fit_login_required
+def list_custom_exercises():
+    """All of the user's custom exercises."""
+    with get_db() as conn:
+        return jsonify({'exercises': _custom_exercises(conn, request.user_id)})
+
+
+@fit_bp.route('/api/fit/custom-exercises', methods=['POST'])
+@fit_login_required
+def create_custom_exercise():
+    """Create a custom exercise. Names are unique per user."""
+    clean, err = _clean_custom(request.get_json(silent=True) or {})
+    if err:
+        return jsonify({'error': err}), 400
+    with get_db() as conn:
+        if conn.execute(
+            'SELECT 1 FROM fit_custom_exercises WHERE user_id = ? AND name = ?',
+            (request.user_id, clean['name'])
+        ).fetchone():
+            return jsonify({'error': 'Name already exists'}), 409
+        row = conn.execute(
+            """INSERT INTO fit_custom_exercises
+                   (user_id, name, muscle, primary_muscles, secondary_muscles, variants)
+               VALUES (?, ?, ?, ?, ?, ?) RETURNING id""",
+            (request.user_id, clean['name'], clean['muscle'],
+             json.dumps(clean['primary']), json.dumps(clean['secondary']), json.dumps(clean['variants']))
+        ).fetchone()
+    return jsonify({'id': row['id'], **clean})
+
+
+@fit_bp.route('/api/fit/custom-exercises/<int:ex_id>', methods=['PUT'])
+@fit_login_required
+def update_custom_exercise(ex_id):
+    """Update a custom exercise. A rename carries over program selections and
+    working weights (history keeps the name it was logged with)."""
+    clean, err = _clean_custom(request.get_json(silent=True) or {})
+    if err:
+        return jsonify({'error': err}), 400
+    with get_db() as conn:
+        old = conn.execute(
+            'SELECT name FROM fit_custom_exercises WHERE id = ? AND user_id = ?',
+            (ex_id, request.user_id)
+        ).fetchone()
+        if not old:
+            return jsonify({'error': 'Not found'}), 404
+        if conn.execute(
+            'SELECT 1 FROM fit_custom_exercises WHERE user_id = ? AND name = ? AND id <> ?',
+            (request.user_id, clean['name'], ex_id)
+        ).fetchone():
+            return jsonify({'error': 'Name already exists'}), 409
+        conn.execute(
+            """UPDATE fit_custom_exercises
+               SET name = ?, muscle = ?, primary_muscles = ?, secondary_muscles = ?, variants = ?
+               WHERE id = ? AND user_id = ?""",
+            (clean['name'], clean['muscle'], json.dumps(clean['primary']),
+             json.dumps(clean['secondary']), json.dumps(clean['variants']), ex_id, request.user_id)
+        )
+        if old['name'] != clean['name']:
+            _rename_custom_base(conn, request.user_id, old['name'], clean['name'])
+    return jsonify({'id': ex_id, **clean})
+
+
+@fit_bp.route('/api/fit/custom-exercises/<int:ex_id>', methods=['DELETE'])
+@fit_login_required
+def delete_custom_exercise(ex_id):
+    """Delete a custom exercise and drop it from program selections. Logged
+    history and working weights are kept."""
+    with get_db() as conn:
+        row = conn.execute(
+            'SELECT name FROM fit_custom_exercises WHERE id = ? AND user_id = ?',
+            (ex_id, request.user_id)
+        ).fetchone()
+        if not row:
+            return jsonify({'error': 'Not found'}), 404
+        conn.execute('DELETE FROM fit_custom_exercises WHERE id = ? AND user_id = ?', (ex_id, request.user_id))
+        conn.execute(
+            "DELETE FROM fit_exercises WHERE user_id = ? AND split_part(exercise, ' — ', 1) = ?",
+            (request.user_id, row['name'])
+        )
     return jsonify({'ok': True})
 
 
@@ -421,9 +612,9 @@ def set_work_weight():
     data = request.get_json(silent=True) or {}
     exercise = data.get('exercise')
     weight = data.get('weight')
-    if exercise not in ALL_EXERCISES:
-        return jsonify({'error': 'Invalid exercise'}), 400
     with get_db() as conn:
+        if exercise not in _user_leaves(conn, request.user_id):
+            return jsonify({'error': 'Invalid exercise'}), 400
         if weight is None:
             conn.execute(
                 'DELETE FROM fit_work_weights WHERE user_id = ? AND exercise = ?',
@@ -458,9 +649,9 @@ def set_exercise_setting():
     data = request.get_json(silent=True) or {}
     exercise = data.get('exercise')
     setting = data.get('setting')
-    if exercise not in ALL_EXERCISE_BASES:
-        return jsonify({'error': 'Invalid exercise'}), 400
     with get_db() as conn:
+        if exercise not in _user_bases(conn, request.user_id):
+            return jsonify({'error': 'Invalid exercise'}), 400
         if setting is None or not str(setting).strip():
             conn.execute(
                 'DELETE FROM fit_exercise_settings WHERE user_id = ? AND exercise = ?',
@@ -803,8 +994,6 @@ def add_session_set(session_id):
     weight = data.get('weight')
     reps = data.get('reps')
     warmup = bool(data.get('warmup'))
-    if exercise not in ALL_EXERCISES:
-        return jsonify({'error': 'Invalid exercise'}), 400
     err = _validate_set_values(reps, weight)
     if err:
         return jsonify({'error': err}), 400
@@ -812,6 +1001,8 @@ def add_session_set(session_id):
     with get_db() as conn:
         if not _owned_session(conn, session_id):
             return jsonify({'error': 'Not found'}), 404
+        if exercise not in _user_leaves(conn, request.user_id):
+            return jsonify({'error': 'Invalid exercise'}), 400
         row = conn.execute(
             'INSERT INTO fit_session_sets (session_id, exercise, weight, reps, warmup) VALUES (?, ?, ?, ?, ?) RETURNING id',
             (session_id, exercise, weight, reps, warmup)

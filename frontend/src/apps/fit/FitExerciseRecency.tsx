@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { groupExercises, MUSCLE_LEAVES, MUSCLE_ORDER, sortLabels } from './programData';
+import { groupExercises, isValidLeaf, MUSCLE_ORDER, sortLabels } from './programData';
 import { FitExerciseRecent } from './FitExerciseRecent';
 import { FitBackButton } from './FitBackButton';
 
@@ -29,7 +29,7 @@ export function buildRecency(
   }
   const groups = MUSCLE_ORDER
     .map(m => {
-      const valid = (selections[m] ?? []).filter(l => MUSCLE_LEAVES[m]?.has(l));
+      const valid = (selections[m] ?? []).filter(l => isValidLeaf(m, l));
       const entries = groupExercises(sortLabels(valid)).map(g => ({ ...g, days: byBase[g.name] ?? null }));
       return { name: m, entries };
     })

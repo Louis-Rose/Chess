@@ -7,6 +7,7 @@ import { FitSessionDetail } from './FitSessionDetail';
 import { FitExerciseRecency, buildRecency, type RecencyGroup } from './FitExerciseRecency';
 import { hasResumableNav } from './fitSessionNav';
 import { validatedLeaves } from './validatedExercises';
+import { setCustomExercises, type CustomExercise } from './programData';
 import { getSession, clearSession } from './sessionTimer';
 
 // Accueil tab: start a new workout, with year-to-date totals above the button.
@@ -63,8 +64,12 @@ export function FitAccueil() {
     Promise.all([
       fitRequest(() => axios.get<{ exercises: { exercise: string; days: number }[] }>('/api/fit/last-done')),
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
+      fitRequest(() => axios.get<{ exercises: CustomExercise[] }>('/api/fit/custom-exercises')),
     ])
-      .then(([ld, ex]) => {
+      .then(([ld, ex, custom]) => {
+        // Warm the custom catalogue first so custom leaves aren't dropped as
+        // orphans when buildRecency filters to valid leaves.
+        setCustomExercises(custom.data.exercises ?? []);
         // Exercises validated in the ongoing session count as done today (0
         // days), before the session is finished and reaches /last-done.
         const today = validatedLeaves().map(exercise => ({ exercise, days: 0 }));

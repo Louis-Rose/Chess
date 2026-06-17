@@ -6,6 +6,7 @@ import { leafLabel, muscleOf, MUSCLE_ORDER, sortLabels } from './programData';
 import { formatShortDate } from './format';
 import { FitProgressChart, type ChartPoint } from './FitProgressChart';
 import { FitBackButton } from './FitBackButton';
+import { useCustomExercises } from './useCustomExercises';
 
 // Performances tab: one entry per exercise the user has worked. Tap an
 // exercise to see its progression graph (top working set per session).
@@ -14,6 +15,7 @@ interface Point { date: string | null; weight: number | null; reps: number; }
 interface ExercisePerf { exercise: string; points: Point[]; }
 
 export function FitPerformances() {
+  useCustomExercises();   // so muscleOf groups custom exercises correctly
   const [exercises, setExercises] = useState<ExercisePerf[]>([]);
   const [programLeaves, setProgramLeaves] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);

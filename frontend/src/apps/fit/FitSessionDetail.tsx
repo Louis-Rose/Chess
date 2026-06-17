@@ -14,6 +14,7 @@ import { FitSessionComment } from './FitSessionComment';
 import { PerfBadge, type PerfStatus } from './FitPerf';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
+import { useCustomExercises } from './useCustomExercises';
 
 interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
 
@@ -57,6 +58,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   onBack: () => void;
   editable?: boolean;
 }) {
+  useCustomExercises();   // so the weighted volume counts custom exercises
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);   // exercise leaf being edited, else overview
