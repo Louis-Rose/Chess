@@ -1,6 +1,25 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { variantId, exerciseEnglish, type Exercise } from './programData';
+
+// A small "edit" pencil overlaid on a custom-exercise card (left side). A span,
+// not a button, so it can live inside the card's <button> without nesting; taps
+// are stopped from toggling the card.
+function EditPencil({ onEdit }: { onEdit: () => void }) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label="Modifier l'exercice"
+      onPointerDown={e => e.stopPropagation()}
+      onClick={e => { e.stopPropagation(); onEdit(); }}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onEdit(); } }}
+      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 active:bg-slate-800"
+    >
+      <Pencil className="h-4 w-4" />
+    </span>
+  );
+}
 
 // "il y a 3 jours" style label for the days since an exercise was last done.
 const recencyLabel = (d: number) =>
@@ -38,11 +57,15 @@ const cardBase = 'flex items-center justify-center rounded-xl border px-4 py-3.5
 const cardOn = 'border-emerald-500 bg-emerald-500/10';
 const cardOff = 'border-slate-700 bg-slate-800/50 active:bg-slate-800';
 
-export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency }: {
+export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency, editableNames, onEdit }: {
   exercises: Exercise[];
   selected: string[];
   onToggle: (id: string) => void;
   ariaLabel?: string;
+  // Base names that are custom exercises: when set (with onEdit), those cards
+  // show an edit pencil. Used only in the program editor, not the session picker.
+  editableNames?: Set<string>;
+  onEdit?: (name: string) => void;
   // When provided, the open variant group is controlled by the parent so only
   // one is open across several MusclePickers (accordion). Otherwise it's local
   // and multiple groups can be open at once.
@@ -66,14 +89,16 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
         // Leaf exercise.
         if (typeof ex === 'string') {
           const isActive = selected.includes(ex);
+          const editable = editableNames?.has(ex) && onEdit;
           return (
             <button
               key={ex}
               type="button"
               aria-pressed={isActive}
               onClick={() => onToggle(ex)}
-              className={`${cardBase} ${isActive ? cardOn : cardOff}`}
+              className={`relative ${cardBase} ${isActive ? cardOn : cardOff}`}
             >
+              {editable && <EditPencil onEdit={() => onEdit!(ex)} />}
               <ExLabel name={ex} days={recency?.[ex]} />
             </button>
           );
@@ -91,6 +116,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               onClick={() => toggleOpen(ex.name, expanded)}
               className={`relative ${cardBase} ${anySelected ? cardOn : cardOff}`}
             >
+              {editableNames?.has(ex.name) && onEdit && <EditPencil onEdit={() => onEdit(ex.name)} />}
               <ExLabel name={ex.name} days={recency?.[ex.name]} />
               {expanded
                 ? <ChevronUp className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />

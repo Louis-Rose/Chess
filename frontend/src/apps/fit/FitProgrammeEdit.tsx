@@ -1,12 +1,12 @@
-import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import axios from 'axios';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { MusclePicker } from './MusclePicker';
 import { FitBackButton } from './FitBackButton';
-import { FitCustomExercises } from './FitCustomExercises';
+import { FitCustomExerciseForm, newCustomDraft, editCustomDraft, type CustomDraft } from './FitCustomExercises';
 import { useCustomExercises } from './useCustomExercises';
-import { MUSCLES, SPLITS, exercisesForMuscle, type FitProgram } from './programData';
+import { MUSCLES, SPLITS, exercisesForMuscle, variantId, type CustomExercise, type FitProgram } from './programData';
 
 // Editing one program. A left rail of sections (Nom, Split, Séries, then one per
 // muscle) lets the user jump to and edit any part at will — this is also how a
@@ -24,6 +24,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const { customExercises, reloadCustom } = useCustomExercises();
+  const [customDraft, setCustomDraft] = useState<CustomDraft | null>(null);
 
   const base = `/api/fit/programs/${program.id}`;
 
@@ -36,9 +37,40 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
 
   useEffect(() => { loadSelections(); }, [loadSelections]);
 
-  // A custom exercise changed: refresh the registry (merged picker) and the
-  // program's selections (a deleted exercise is dropped server-side).
-  const onCustomChanged = () => { reloadCustom(); loadSelections(); };
+  // Custom exercises of the active muscle get an edit pencil in the picker.
+  const editableNames = useMemo(
+    () => new Set(customExercises.filter(c => c.muscle === active).map(c => c.name)),
+    [customExercises, active]
+  );
+
+  function openEditCustom(name: string) {
+    const c = customExercises.find(x => x.muscle === active && x.name === name);
+    if (c) setCustomDraft(editCustomDraft(c));
+  }
+
+  // A newly created exercise is selected into the program by default (all its
+  // variant leaves, or its bare name when it has none).
+  function autoSelectCustom(saved: CustomExercise) {
+    const leaves = saved.variants.length ? saved.variants.map(v => variantId(saved.name, v)) : [saved.name];
+    setSelections(prev => {
+      const next = Array.from(new Set([...(prev[saved.muscle] ?? []), ...leaves]));
+      fitRequest(() => axios.put(`${base}/exercises`, { muscle: saved.muscle, exercises: next })).catch(() => {});
+      return { ...prev, [saved.muscle]: next };
+    });
+  }
+
+  function onCustomSaved(saved: CustomExercise, wasNew: boolean) {
+    setCustomDraft(null);
+    reloadCustom();
+    if (wasNew) autoSelectCustom(saved);
+    else loadSelections();   // a rename remaps stored leaves server-side
+  }
+
+  function onCustomDeleted() {
+    setCustomDraft(null);
+    reloadCustom();
+    loadSelections();        // it was dropped from the program server-side
+  }
 
   function saveName() {
     const trimmed = name.trim();
@@ -146,13 +178,32 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
                   ariaLabel={`Exercices ${active}`}
                   selected={selections[active] ?? []}
                   onToggle={id => toggleExercise(active, id)}
+                  editableNames={editableNames}
+                  onEdit={openEditCustom}
                 />
-                <FitCustomExercises muscle={active} customs={customExercises} onChanged={onCustomChanged} />
+                <button
+                  type="button"
+                  onClick={() => setCustomDraft(newCustomDraft(active))}
+                  className="mx-auto mt-8 inline-flex w-full max-w-[18rem] items-center justify-center gap-2 rounded-xl border border-dashed border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors active:bg-slate-800/60"
+                >
+                  <Plus className="h-4 w-4" />
+                  Créer un exercice
+                </button>
               </>
             )}
           </div>
         </div>
       </div>
+
+      {customDraft && (
+        <FitCustomExerciseForm
+          muscle={active}
+          draft={customDraft}
+          onClose={() => setCustomDraft(null)}
+          onSaved={onCustomSaved}
+          onDeleted={onCustomDeleted}
+        />
+      )}
     </div>
   );
 }

@@ -1,101 +1,37 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { MUSCLE_ORDER, type CustomExercise } from './programData';
 
-// Custom-exercise management for one muscle, shown under the picker in the
-// program editor. Lists this muscle's custom exercises (edit / delete) and a
-// "Créer un exercice" button that opens a form (free-text name, an optional row
-// of variants, and manual primary/secondary muscle selection). On any change it
-// calls onChanged so the parent reloads the merged picker + selections.
+// Create / edit / delete form for a custom exercise (free-text name, an optional
+// single row of variants, manual primary/secondary muscles). Driven by the
+// program editor: it owns the draft (new or from an existing exercise) and
+// reacts to onSaved / onDeleted. Custom exercises themselves are shown inline in
+// the picker, so there is no separate list here.
 
 const NAME_MAX = 60;
 
-type Draft = { id: number | null; name: string; variants: string[]; primary: string[]; secondary: string[] };
-
-export function FitCustomExercises({ muscle, customs, onChanged }: {
-  muscle: string;
-  customs: CustomExercise[];          // the full list; filtered to `muscle` here
-  onChanged: () => void;
-}) {
-  const mine = customs.filter(c => c.muscle === muscle);
-  const [draft, setDraft] = useState<Draft | null>(null);   // open form (new or edit)
-  const [confirmId, setConfirmId] = useState<number | null>(null);
-
-  function openNew() {
-    setDraft({ id: null, name: '', variants: [], primary: [muscle], secondary: [] });
-  }
-  function openEdit(c: CustomExercise) {
-    setDraft({ id: c.id, name: c.name, variants: [...c.variants], primary: [...c.primary], secondary: [...c.secondary] });
-  }
-
-  async function remove(id: number) {
-    try {
-      await fitRequest(() => axios.delete(`/api/fit/custom-exercises/${id}`));
-      setConfirmId(null);
-      onChanged();
-    } catch { /* keep shown */ }
-  }
-
-  return (
-    <div className="mx-auto mt-8 w-full max-w-[18rem]">
-      <p className="text-center text-xs uppercase tracking-wide text-slate-500">Mes exercices</p>
-
-      <div className="mt-3 flex flex-col gap-2">
-        {mine.map(c => (
-          <div key={c.id} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/40 px-3 py-2.5">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-slate-100">{c.name}</p>
-              {c.variants.length > 0 && (
-                <p className="truncate text-xs text-slate-400">({c.variants.join(', ')})</p>
-              )}
-            </div>
-            {confirmId === c.id ? (
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setConfirmId(null)} className="rounded-lg border border-slate-700 px-2 py-1 text-xs text-slate-200 active:bg-slate-800">Annuler</button>
-                <button type="button" onClick={() => remove(c.id)} className="rounded-lg bg-red-600/90 px-2 py-1 text-xs font-semibold text-white active:bg-red-600">Suppr.</button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <button type="button" aria-label="Modifier" onClick={() => openEdit(c)} className="rounded-lg p-1.5 text-slate-400 active:bg-slate-800">
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button type="button" aria-label="Supprimer" onClick={() => setConfirmId(c.id)} className="rounded-lg p-1.5 text-slate-500 active:text-red-300">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={openNew}
-        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors active:bg-slate-800/60"
-      >
-        <Plus className="h-4 w-4" />
-        Créer un exercice
-      </button>
-
-      {draft && (
-        <CustomForm
-          muscle={muscle}
-          draft={draft}
-          onClose={() => setDraft(null)}
-          onSaved={() => { setDraft(null); onChanged(); }}
-        />
-      )}
-    </div>
-  );
+export interface CustomDraft {
+  id: number | null;
+  name: string;
+  variants: string[];
+  primary: string[];
+  secondary: string[];
 }
 
-function CustomForm({ muscle, draft, onClose, onSaved }: {
+export const newCustomDraft = (muscle: string): CustomDraft =>
+  ({ id: null, name: '', variants: [], primary: [muscle], secondary: [] });
+
+export const editCustomDraft = (c: CustomExercise): CustomDraft =>
+  ({ id: c.id, name: c.name, variants: [...c.variants], primary: [...c.primary], secondary: [...c.secondary] });
+
+export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved, onDeleted }: {
   muscle: string;
-  draft: Draft;
+  draft: CustomDraft;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (saved: CustomExercise, wasNew: boolean) => void;
+  onDeleted: () => void;
 }) {
   const [name, setName] = useState(draft.name);
   const [variants, setVariants] = useState<string[]>(draft.variants);
@@ -104,6 +40,7 @@ function CustomForm({ muscle, draft, onClose, onSaved }: {
   const [secondary, setSecondary] = useState<string[]>(draft.secondary);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // A muscle is either primary or secondary, never both: toggling one role
   // clears the other.
@@ -131,12 +68,25 @@ function CustomForm({ muscle, draft, onClose, onSaved }: {
     setError(null);
     const body = { name: name.trim(), muscle, primary, secondary, variants };
     try {
-      if (draft.id == null) await fitRequest(() => axios.post('/api/fit/custom-exercises', body));
-      else await fitRequest(() => axios.put(`/api/fit/custom-exercises/${draft.id}`, body));
-      onSaved();
+      const res = draft.id == null
+        ? await fitRequest(() => axios.post<CustomExercise>('/api/fit/custom-exercises', body))
+        : await fitRequest(() => axios.put<CustomExercise>(`/api/fit/custom-exercises/${draft.id}`, body));
+      onSaved(res.data, draft.id == null);
     } catch (e) {
       const status = axios.isAxiosError(e) ? e.response?.status : undefined;
       setError(status === 409 ? 'Ce nom existe déjà.' : "Échec de l'enregistrement.");
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (draft.id == null || saving) return;
+    setSaving(true);
+    try {
+      await fitRequest(() => axios.delete(`/api/fit/custom-exercises/${draft.id}`));
+      onDeleted();
+    } catch {
+      setError("Échec de la suppression.");
       setSaving(false);
     }
   }
@@ -206,6 +156,25 @@ function CustomForm({ muscle, draft, onClose, onSaved }: {
         >
           Enregistrer
         </button>
+
+        {draft.id != null && (
+          confirmingDelete ? (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <span className="mr-auto text-sm text-slate-300">Supprimer cet exercice ?</span>
+              <button type="button" onClick={() => setConfirmingDelete(false)} disabled={saving} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-100 active:bg-slate-800">Annuler</button>
+              <button type="button" onClick={remove} disabled={saving} className="rounded-lg bg-red-600/90 px-3 py-1.5 text-xs font-semibold text-white active:bg-red-600 disabled:opacity-60">Supprimer</button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-900/60 bg-red-950/30 px-3 py-2 text-xs font-medium text-red-300 transition-colors active:bg-red-950/50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Supprimer l'exercice
+            </button>
+          )
+        )}
       </div>
     </div>
   );
