@@ -1,8 +1,10 @@
 // Shared formatting helpers for the fit app.
 
 // "8 × 14 kg" (or "8 reps" bodyweight); warmup sets are wrapped in parentheses.
-export const formatSet = (weight: number | null, reps: number, warmup: boolean) => {
-  const body = weight != null ? `${reps} × ${weight} kg` : `${reps} reps`;
+// A unilateral set (repsRight given) shows both sides: "8/7 × 14 kg".
+export const formatSet = (weight: number | null, reps: number, warmup: boolean, repsRight?: number | null) => {
+  const r = repsRight != null ? `${reps}/${repsRight}` : `${reps}`;
+  const body = weight != null ? `${r} × ${weight} kg` : `${r} reps`;
   return warmup ? `(${body})` : body;
 };
 

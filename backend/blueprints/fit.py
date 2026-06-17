@@ -668,6 +668,41 @@ def set_exercise_setting():
     return jsonify({'ok': True})
 
 
+@fit_bp.route('/api/fit/exercise-unilateral', methods=['GET'])
+@fit_login_required
+def get_exercise_unilateral():
+    """The base exercises the user logs per side (unilateral)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT exercise FROM fit_exercise_unilateral WHERE user_id = ?', (request.user_id,)
+        ).fetchall()
+    return jsonify({'exercises': [r['exercise'] for r in rows]})
+
+
+@fit_bp.route('/api/fit/exercise-unilateral', methods=['PUT'])
+@fit_login_required
+def set_exercise_unilateral():
+    """Mark a base exercise as unilateral (per-side logging) or clear it."""
+    data = request.get_json(silent=True) or {}
+    exercise = data.get('exercise')
+    unilateral = bool(data.get('unilateral'))
+    with get_db() as conn:
+        if exercise not in _user_bases(conn, request.user_id):
+            return jsonify({'error': 'Invalid exercise'}), 400
+        if unilateral:
+            conn.execute(
+                'INSERT INTO fit_exercise_unilateral (user_id, exercise) VALUES (?, ?) '
+                'ON CONFLICT (user_id, exercise) DO NOTHING',
+                (request.user_id, exercise)
+            )
+        else:
+            conn.execute(
+                'DELETE FROM fit_exercise_unilateral WHERE user_id = ? AND exercise = ?',
+                (request.user_id, exercise)
+            )
+    return jsonify({'ok': True, 'unilateral': unilateral})
+
+
 def _recompute_work_weight(conn, user_id, exercise):
     """Derive an exercise's working weight from history and persist it: the
     heaviest weight used on a working set across the three most recent finished
@@ -740,7 +775,7 @@ def _perf_by_session(conn):
     Returns {session_id: {'plus','equal','minus', 'exercises': {exercise: status|None}}}.
     """
     rows = conn.execute(
-        """SELECT s.id AS session_id, ss.exercise, ss.weight, ss.reps
+        """SELECT s.id AS session_id, ss.exercise, ss.weight, ss.reps, ss.reps_right
            FROM fit_sessions s
            JOIN fit_session_sets ss ON ss.session_id = s.id
            WHERE s.user_id = ? AND s.ended_at IS NOT NULL AND ss.warmup = FALSE
@@ -748,19 +783,21 @@ def _perf_by_session(conn):
         (request.user_id,)
     ).fetchall()
 
-    # Aggregate per (session, exercise) in chronological order: top weight + total reps.
+    # Aggregate per (session, exercise) in chronological order: top weight + total
+    # reps (both sides of a unilateral set count).
     agg = OrderedDict()          # (session_id, exercise) -> [max_weight, total_reps]
     session_order = []
     seen = set()
     for r in rows:
         sid, ex = r['session_id'], r['exercise']
         w = r['weight'] if r['weight'] is not None else 0
+        reps = r['reps'] + (r['reps_right'] or 0)
         key = (sid, ex)
         if key not in agg:
-            agg[key] = [w, r['reps']]
+            agg[key] = [w, reps]
         else:
             agg[key][0] = max(agg[key][0], w)
-            agg[key][1] += r['reps']
+            agg[key][1] += reps
         if sid not in seen:
             seen.add(sid)
             session_order.append(sid)
@@ -796,7 +833,7 @@ def _perf_by_session(conn):
 def _session_payload(conn, row):
     """Serialize a session row together with its logged sets (in order)."""
     sets = conn.execute(
-        'SELECT id, exercise, weight, reps, warmup FROM fit_session_sets WHERE session_id = ? ORDER BY id',
+        'SELECT id, exercise, weight, reps, reps_right, warmup FROM fit_session_sets WHERE session_id = ? ORDER BY id',
         (row['id'],)
     ).fetchall()
     notes = conn.execute(
@@ -810,7 +847,7 @@ def _session_payload(conn, row):
         'ended_at': row['ended_at'].isoformat() if row['ended_at'] else None,
         'comment': row['comment'],
         'sets': [{'id': s['id'], 'exercise': s['exercise'], 'weight': s['weight'],
-                  'reps': s['reps'], 'warmup': bool(s['warmup'])} for s in sets],
+                  'reps': s['reps'], 'reps_right': s['reps_right'], 'warmup': bool(s['warmup'])} for s in sets],
         'notes': {n['exercise']: n['note'] for n in notes},
     }
 
@@ -974,10 +1011,17 @@ def set_exercise_note(session_id):
     return jsonify({'ok': True, 'note': note})
 
 
-def _validate_set_values(reps, weight):
-    """Shared reps/weight validation for logging and editing a set. Returns an
-    error message, or None when the values are valid."""
-    if not isinstance(reps, int) or isinstance(reps, bool) or not 1 <= reps <= 1000:
+def _valid_reps(reps):
+    return isinstance(reps, int) and not isinstance(reps, bool) and 1 <= reps <= 1000
+
+
+def _validate_set_values(reps, weight, reps_right=None):
+    """Shared reps/weight validation for logging and editing a set. reps_right is
+    the optional right-side count of a unilateral set (None = bilateral). Returns
+    an error message, or None when the values are valid."""
+    if not _valid_reps(reps):
+        return 'Invalid reps'
+    if reps_right is not None and not _valid_reps(reps_right):
         return 'Invalid reps'
     if weight is not None:
         if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not 0 <= weight <= 1000:
@@ -993,8 +1037,9 @@ def add_session_set(session_id):
     exercise = data.get('exercise')
     weight = data.get('weight')
     reps = data.get('reps')
+    reps_right = data.get('reps_right')
     warmup = bool(data.get('warmup'))
-    err = _validate_set_values(reps, weight)
+    err = _validate_set_values(reps, weight, reps_right)
     if err:
         return jsonify({'error': err}), 400
 
@@ -1004,10 +1049,10 @@ def add_session_set(session_id):
         if exercise not in _user_leaves(conn, request.user_id):
             return jsonify({'error': 'Invalid exercise'}), 400
         row = conn.execute(
-            'INSERT INTO fit_session_sets (session_id, exercise, weight, reps, warmup) VALUES (?, ?, ?, ?, ?) RETURNING id',
-            (session_id, exercise, weight, reps, warmup)
+            'INSERT INTO fit_session_sets (session_id, exercise, weight, reps, reps_right, warmup) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
+            (session_id, exercise, weight, reps, reps_right, warmup)
         ).fetchone()
-    return jsonify({'id': row['id'], 'exercise': exercise, 'weight': weight, 'reps': reps, 'warmup': warmup})
+    return jsonify({'id': row['id'], 'exercise': exercise, 'weight': weight, 'reps': reps, 'reps_right': reps_right, 'warmup': warmup})
 
 
 @fit_bp.route('/api/fit/sessions/<int:session_id>/sets/<int:set_id>', methods=['PATCH'])
@@ -1017,8 +1062,9 @@ def update_session_set(session_id, set_id):
     data = request.get_json(silent=True) or {}
     weight = data.get('weight')
     reps = data.get('reps')
+    reps_right = data.get('reps_right')
     warmup = bool(data.get('warmup'))
-    err = _validate_set_values(reps, weight)
+    err = _validate_set_values(reps, weight, reps_right)
     if err:
         return jsonify({'error': err}), 400
 
@@ -1026,12 +1072,12 @@ def update_session_set(session_id, set_id):
         if not _owned_session(conn, session_id):
             return jsonify({'error': 'Not found'}), 404
         row = conn.execute(
-            'UPDATE fit_session_sets SET weight = ?, reps = ?, warmup = ? WHERE id = ? AND session_id = ? RETURNING id',
-            (weight, reps, warmup, set_id, session_id)
+            'UPDATE fit_session_sets SET weight = ?, reps = ?, reps_right = ?, warmup = ? WHERE id = ? AND session_id = ? RETURNING id',
+            (weight, reps, reps_right, warmup, set_id, session_id)
         ).fetchone()
         if not row:
             return jsonify({'error': 'Not found'}), 404
-    return jsonify({'id': set_id, 'weight': weight, 'reps': reps, 'warmup': warmup})
+    return jsonify({'id': set_id, 'weight': weight, 'reps': reps, 'reps_right': reps_right, 'warmup': warmup})
 
 
 @fit_bp.route('/api/fit/sessions/<int:session_id>/sets/<int:set_id>', methods=['DELETE'])
@@ -1145,7 +1191,7 @@ def exercise_history():
         return jsonify({'sessions': []})
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT s.id AS session_id, s.started_at, ss.weight, ss.reps, ss.warmup
+            """SELECT s.id AS session_id, s.started_at, ss.weight, ss.reps, ss.reps_right, ss.warmup
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
                WHERE s.user_id = ? AND split_part(ss.exercise, ' — ', 1) = ?
@@ -1161,7 +1207,7 @@ def exercise_history():
                     'sets': []}
             by_id[r['session_id']] = sess
             sessions.append(sess)
-        sess['sets'].append({'weight': r['weight'], 'reps': r['reps'], 'warmup': bool(r['warmup'])})
+        sess['sets'].append({'weight': r['weight'], 'reps': r['reps'], 'reps_right': r['reps_right'], 'warmup': bool(r['warmup'])})
     return jsonify({'sessions': sessions})
 
 
@@ -1173,7 +1219,7 @@ def performances():
     session's working weight), oldest first. Warmup sets are excluded."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT s.id AS session_id, s.started_at, ss.exercise, ss.weight, ss.reps
+            """SELECT s.id AS session_id, s.started_at, ss.exercise, ss.weight, ss.reps, ss.reps_right
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
                WHERE s.user_id = ? AND ss.warmup = FALSE
@@ -1181,7 +1227,8 @@ def performances():
             (request.user_id,)
         ).fetchall()
 
-    # exercise -> session_id -> {date, sets:[(weight, reps)]} (insertion = time order)
+    # exercise -> session_id -> {date, sets:[(weight, reps)]} (insertion = time
+    # order; a unilateral set's reps total both sides).
     by_exercise = {}
     for r in rows:
         sessions = by_exercise.setdefault(r['exercise'], {})
@@ -1189,7 +1236,7 @@ def performances():
         if sess is None:
             sess = {'date': r['started_at'].isoformat() if r['started_at'] else None, 'sets': []}
             sessions[r['session_id']] = sess
-        sess['sets'].append((r['weight'], r['reps']))
+        sess['sets'].append((r['weight'], r['reps'] + (r['reps_right'] or 0)))
 
     exercises = []
     for exercise, sessions in by_exercise.items():

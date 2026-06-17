@@ -629,6 +629,23 @@ def init_db():
             """)
             logger.info("Created fit_custom_exercises table")
 
+        # Migration: per-side (unilateral) logging. fit_session_sets.reps_right
+        # holds the right-side reps; NULL = a normal bilateral set (reps is the
+        # whole count). fit_exercise_unilateral marks a base exercise (per user)
+        # as unilateral so its set entry asks for left/right reps (shared weight).
+        if not _column_exists(conn, 'fit_session_sets', 'reps_right'):
+            conn.execute("ALTER TABLE fit_session_sets ADD COLUMN reps_right INTEGER")
+            logger.info("Added fit_session_sets.reps_right column")
+        if not _table_exists(conn, 'fit_exercise_unilateral'):
+            conn.execute("""
+                CREATE TABLE fit_exercise_unilateral (
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    exercise TEXT NOT NULL,
+                    PRIMARY KEY (user_id, exercise)
+                )
+            """)
+            logger.info("Created fit_exercise_unilateral table")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

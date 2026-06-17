@@ -14,6 +14,7 @@ import { FitSessionComment } from './FitSessionComment';
 import { PerfBadge, type PerfStatus } from './FitPerf';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
+import { useExerciseUnilateral } from './useExerciseUnilateral';
 import { useCustomExercises } from './useCustomExercises';
 
 interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
@@ -23,7 +24,7 @@ interface Confirm { title: string; message?: string; confirmLabel?: string; dang
 // sets, and exercises can be added (reached from the Calendrier history); read
 // only when opened as the last session from Accueil.
 
-interface SetRow { id: number; exercise: string; weight: number | null; reps: number; warmup: boolean; }
+interface SetRow { id: number; exercise: string; weight: number | null; reps: number; reps_right: number | null; warmup: boolean; }
 interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; comment: string | null; sets: SetRow[]; perf?: Record<string, PerfStatus | null>; notes?: Record<string, string>; }
 
 function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[] {
@@ -68,6 +69,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
+  const { unilateral, save: saveUnilateral } = useExerciseUnilateral();
 
   useEffect(() => {
     const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]> } }>?] = [
@@ -83,16 +85,16 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
       .finally(() => setLoading(false));
   }, [sessionId, editable]);
 
-  async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean) {
+  async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) {
     const res = await fitRequest(() =>
-      axios.post<SetRow>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup }));
+      axios.post<SetRow>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup, reps_right: repsRight }));
     setSession(prev => prev && { ...prev, sets: [...prev.sets, res.data] });
   }
 
-  async function updateSet(setId: number, weight: number | null, reps: number, warmup: boolean) {
+  async function updateSet(setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) {
     await fitRequest(() =>
-      axios.patch(`/api/fit/sessions/${sessionId}/sets/${setId}`, { weight, reps, warmup }));
-    setSession(prev => prev && { ...prev, sets: prev.sets.map(s => s.id === setId ? { ...s, weight, reps, warmup } : s) });
+      axios.patch(`/api/fit/sessions/${sessionId}/sets/${setId}`, { weight, reps, warmup, reps_right: repsRight }));
+    setSession(prev => prev && { ...prev, sets: prev.sets.map(s => s.id === setId ? { ...s, weight, reps, reps_right: repsRight, warmup } : s) });
   }
 
   function deleteSet(setId: number) {
@@ -174,13 +176,15 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
             key={editing}
             exercise={editing}
             sets={sets}
-            onAddSet={(w, r, warmup) => askChange(() => addSet(editing, w, r, warmup))}
-            onUpdateSet={(id, w, r, warmup) => askChange(() => updateSet(id, w, r, warmup))}
+            onAddSet={(w, r, warmup, rr) => askChange(() => addSet(editing, w, r, warmup, rr))}
+            onUpdateSet={(id, w, r, warmup, rr) => askChange(() => updateSet(id, w, r, warmup, rr))}
             onDeleteSet={confirmDeleteSet}
             workWeight={workWeights[editing] ?? null}
             onWorkWeightChange={w => saveWorkWeight(editing, w)}
             setting={exerciseSettings[editing.split(' — ')[0]] ?? null}
             onSettingChange={s => saveSetting(editing.split(' — ')[0], s)}
+            unilateral={unilateral.has(editing.split(' — ')[0])}
+            onUnilateralChange={v => saveUnilateral(editing.split(' — ')[0], v)}
           />
           <FitExerciseRecent exercise={editing} excludeSessionId={sessionId} />
         </div>

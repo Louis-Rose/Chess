@@ -18,25 +18,29 @@ export interface LoggedSet {
   id: number;
   weight: number | null;
   reps: number;
+  reps_right: number | null;   // right-side reps of a unilateral set, else null
   warmup: boolean;
 }
 
 interface Props {
   exercise: string;                                       // stored leaf
   sets: LoggedSet[];
-  onAddSet: (weight: number | null, reps: number, warmup: boolean) => Promise<void>;
-  onUpdateSet: (setId: number, weight: number | null, reps: number, warmup: boolean) => Promise<void>;
+  onAddSet: (weight: number | null, reps: number, warmup: boolean, repsRight: number | null) => Promise<void>;
+  onUpdateSet: (setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) => Promise<void>;
   onDeleteSet: (setId: number) => void;
   workWeight?: number | null;                             // persisted working weight, pre-fills new working sets
   onWorkWeightChange?: (weight: number | null) => void;   // persist an edit to it
   setting?: string | null;                                // persisted machine-setting override (per base)
   onSettingChange?: (setting: string | null) => void;     // persist an edit to it
+  unilateral?: boolean;                                   // log reps per side (Gauche / Droite), shared weight
+  onUnilateralChange?: (value: boolean) => void;          // persist the per-exercise toggle
   onValidate?: () => void;                                // shows a "Valider l'exercice" button inside the card
 }
 
-export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, onValidate }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, unilateral, onUnilateralChange, onValidate }: Props) {
   const [weight, setWeight] = useState('');
-  const [reps, setReps] = useState('');
+  const [reps, setReps] = useState('');           // left side when unilateral
+  const [repsRight, setRepsRight] = useState(''); // right side, unilateral only
   // Guided sequence. Resume at the right step: working sets → warmup done;
   // warmup sets only → warming up; nothing logged → not started.
   type Phase = 'start' | 'warmup' | 'work';
@@ -84,14 +88,18 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   const formVisible = adding || editingId != null;
 
   const repsNum = parseInt(reps, 10);
+  const repsRightNum = parseInt(repsRight, 10);
   const weightNum = weight.trim() === '' ? null : parseFloat(weight.replace(',', '.'));
-  const valid = Number.isFinite(repsNum) && repsNum > 0 && (weightNum === null || Number.isFinite(weightNum));
+  const valid = Number.isFinite(repsNum) && repsNum > 0
+    && (!unilateral || (Number.isFinite(repsRightNum) && repsRightNum > 0))
+    && (weightNum === null || Number.isFinite(weightNum));
 
   function openAdd() {
     setEditingId(null);
     // Pre-fill the working weight only for a working set (warmup starts empty).
     setWeight(warmupMode ? '' : workWeightStr);
     setReps('');
+    setRepsRight('');
     setAdding(true);
   }
 
@@ -109,6 +117,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setAdding(false);
     setEditingId(s.id);
     setReps(String(s.reps));
+    setRepsRight(s.reps_right == null ? '' : String(s.reps_right));
     setWeight(s.weight == null ? '' : String(s.weight));
   }
 
@@ -117,6 +126,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setAdding(false);
     setWeight('');
     setReps('');
+    setRepsRight('');
   }
 
   async function submit() {
@@ -125,10 +135,11 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     const isWarmup = editingId != null
       ? (sets.find(s => s.id === editingId)?.warmup ?? false)
       : warmupMode;
+    const rr = unilateral ? repsRightNum : null;
     setSaving(true);
     try {
-      if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, isWarmup);
-      else await onAddSet(weightNum, repsNum, isWarmup);
+      if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, isWarmup, rr);
+      else await onAddSet(weightNum, repsNum, isWarmup, rr);
       reset();
     } catch {
       /* cancelled (or failed): keep the entered values so the user can retry */
@@ -167,7 +178,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
             isEditing ? 'text-emerald-400' : dim ? 'text-slate-400' : 'font-medium text-slate-100'
           }`}
         >
-          {formatSet(s.weight, s.reps, false)}
+          {formatSet(s.weight, s.reps, false, s.reps_right)}
         </button>
       </td>
     );
@@ -205,6 +216,22 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           />
           <span className="text-white">kg</span>
         </div>
+        {onUnilateralChange && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!!unilateral}
+            onClick={() => onUnilateralChange(!unilateral)}
+            className={`mt-1 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              unilateral
+                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
+                : 'border-slate-700 text-slate-300 active:bg-slate-800'
+            }`}
+          >
+            {unilateral && <Check className="h-3.5 w-3.5" />}
+            Unilatéral (saisie par côté)
+          </button>
+        )}
       </div>
 
       {/* Separates the exercise's settings from its sets and logging actions. */}
@@ -252,35 +279,66 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               ? 'Échauffement' : 'Série de travail'}
           </p>
 
-          <div className="mt-3 flex items-end gap-2">
-            <label className="flex-1 text-center text-xs text-slate-100">
-              Répétitions
-              <input
-                value={reps}
-                onChange={e => setReps(e.target.value)}
-                inputMode="numeric"
-                className={`mt-1 ${inputClass}`}
-              />
-            </label>
-            <label className="flex-1 text-center text-xs text-slate-100">
-              Poids (kg)
-              <input
-                value={weight}
-                onChange={e => setWeight(e.target.value.replace(',', '.'))}
-                inputMode="decimal"
-                className={`mt-1 ${inputClass}`}
-              />
-            </label>
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!valid || saving}
-              aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
-              className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
-            >
-              {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-            </button>
-          </div>
+          {unilateral ? (
+            // Per-side: Gauche / Droite reps on one row, then the shared weight.
+            <div className="mt-3 flex flex-col gap-2">
+              <div className="flex items-end gap-2">
+                <label className="flex-1 text-center text-xs text-slate-100">
+                  Gauche
+                  <input value={reps} onChange={e => setReps(e.target.value)} inputMode="numeric" className={`mt-1 ${inputClass}`} />
+                </label>
+                <label className="flex-1 text-center text-xs text-slate-100">
+                  Droite
+                  <input value={repsRight} onChange={e => setRepsRight(e.target.value)} inputMode="numeric" className={`mt-1 ${inputClass}`} />
+                </label>
+              </div>
+              <div className="flex items-end gap-2">
+                <label className="flex-1 text-center text-xs text-slate-100">
+                  Poids (kg)
+                  <input value={weight} onChange={e => setWeight(e.target.value.replace(',', '.'))} inputMode="decimal" className={`mt-1 ${inputClass}`} />
+                </label>
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={!valid || saving}
+                  aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
+                  className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
+                >
+                  {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 flex items-end gap-2">
+              <label className="flex-1 text-center text-xs text-slate-100">
+                Répétitions
+                <input
+                  value={reps}
+                  onChange={e => setReps(e.target.value)}
+                  inputMode="numeric"
+                  className={`mt-1 ${inputClass}`}
+                />
+              </label>
+              <label className="flex-1 text-center text-xs text-slate-100">
+                Poids (kg)
+                <input
+                  value={weight}
+                  onChange={e => setWeight(e.target.value.replace(',', '.'))}
+                  inputMode="decimal"
+                  className={`mt-1 ${inputClass}`}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={submit}
+                disabled={!valid || saving}
+                aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
+                className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
+              >
+                {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-4 flex flex-col items-center gap-4">

@@ -5,7 +5,7 @@ import { formatSet } from './format';
 // number of rows. Warmups are dimmed, working sets stand out. Shared by
 // FitSessionDetail and FitExerciseRecent.
 
-export interface DisplaySet { reps: number; weight: number | null; warmup: boolean; }
+export interface DisplaySet { reps: number; weight: number | null; warmup: boolean; reps_right?: number | null; }
 
 const cell = 'border border-slate-700 px-2 py-1 text-center';
 
@@ -25,10 +25,10 @@ export function FitSetList({ sets }: { sets: DisplaySet[] }) {
         {Array.from({ length: rows }, (_, i) => (
           <tr key={i}>
             <td className={`${cell} text-slate-400`}>
-              {warmups[i] ? formatSet(warmups[i].weight, warmups[i].reps, false) : ''}
+              {warmups[i] ? formatSet(warmups[i].weight, warmups[i].reps, false, warmups[i].reps_right) : ''}
             </td>
             <td className={`${cell} font-medium text-slate-100`}>
-              {work[i] ? formatSet(work[i].weight, work[i].reps, false) : ''}
+              {work[i] ? formatSet(work[i].weight, work[i].reps, false, work[i].reps_right) : ''}
             </td>
           </tr>
         ))}
