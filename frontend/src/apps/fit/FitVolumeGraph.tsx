@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { MUSCLE_ORDER, muscleContribution } from './programData';
+import { weekDays, weekSplitOptions } from './splitDays';
 
 // Weekly training volume the program assigns to each muscle, as a horizontal bar
 // per muscle group. Per selected exercise, the work-set count adds 1 to each of
-// its primary muscles and 0.5 to each secondary (muscleContribution). Reference
-// lines at 10 and 20 sets/week mark the usual hypertrophy range. Shown in the
-// program editor's "Volume" section.
+// its primary muscles and 0.5 to each secondary (muscleContribution); that
+// "per-passage" volume is then multiplied by how many times the chosen split
+// trains the muscle in the week. With several splits, a toggle switches between
+// them. Reference lines at 10 and 20 sets/week mark the usual hypertrophy range.
+// Shown in the program editor's "Volume" section.
 
 const REF_LINES = [10, 20];
 const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
@@ -14,10 +18,17 @@ const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 const TRACK_LEFT = '5rem';     // label 4.5rem + gap 0.5rem
 const TRACK_RIGHT = '2.75rem'; // value 2.25rem + gap 0.5rem
 
-export function FitVolumeGraph({ selections, workSets }: {
+export function FitVolumeGraph({ selections, workSets, splits, bodyPartOrder }: {
   selections: Record<string, string[]>;
   workSets: number | null;
+  splits: string[];
+  bodyPartOrder: string[];
 }) {
+  const options = weekSplitOptions(splits);
+  const [chosen, setChosen] = useState<string | null>(options[0]?.key ?? null);
+  // The selected split, falling back to the first if it was removed.
+  const active = options.some(o => o.key === chosen) ? chosen : (options[0]?.key ?? null);
+
   if (!workSets)
     return (
       <p className="text-center text-sm text-slate-400">
@@ -25,21 +36,52 @@ export function FitVolumeGraph({ selections, workSets }: {
       </p>
     );
 
+  // Per-passage volume from the selected exercises (primary 1, secondary 0.5).
   const leaves = Array.from(new Set(Object.values(selections).flat()));
-  const vol: Record<string, number> = {};
+  const base: Record<string, number> = {};
   for (const leaf of leaves) {
     const { primary, secondary } = muscleContribution(leaf);
-    for (const m of primary) vol[m] = (vol[m] ?? 0) + workSets;
-    for (const m of secondary) vol[m] = (vol[m] ?? 0) + workSets * 0.5;
+    for (const m of primary) base[m] = (base[m] ?? 0) + workSets;
+    for (const m of secondary) base[m] = (base[m] ?? 0) + workSets * 0.5;
   }
-  const max = Math.max(20, ...MUSCLE_ORDER.map(m => vol[m] ?? 0));
+
+  // Weekly frequency per muscle from the chosen split (how many of the week's
+  // sessions train it). No split → counted once (per-passage volume).
+  const days = weekDays(active, bodyPartOrder);
+  const freq = (m: string) => (days.length ? days.filter(d => d.muscles.includes(m)).length : 1);
+
+  const vol: Record<string, number> = {};
+  for (const m of MUSCLE_ORDER) vol[m] = (base[m] ?? 0) * freq(m);
+  const max = Math.max(20, ...MUSCLE_ORDER.map(m => vol[m]));
 
   return (
     <div className="mx-auto w-full max-w-[22rem]">
-      <h3 className="mb-1 text-center text-xs uppercase tracking-wide text-slate-500">
+      <h3 className="text-center text-base font-semibold uppercase tracking-wide text-white">
         Volume hebdomadaire
       </h3>
-      <div className="relative pt-4">
+
+      {/* Several splits: switch which one the volume is computed for. */}
+      {options.length > 1 && (
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          {options.map(o => (
+            <button
+              key={o.key}
+              type="button"
+              aria-pressed={active === o.key}
+              onClick={() => setChosen(o.key)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                active === o.key
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
+                  : 'border-slate-700 text-slate-300 active:bg-slate-800'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="relative mt-4 pt-4">
         {/* Reference lines at 10 and 20 sets, spanning every bar. */}
         <div className="pointer-events-none absolute bottom-0 top-4" style={{ left: TRACK_LEFT, right: TRACK_RIGHT }}>
           {REF_LINES.map(n => (
@@ -51,7 +93,7 @@ export function FitVolumeGraph({ selections, workSets }: {
 
         <div className="flex flex-col gap-1.5">
           {MUSCLE_ORDER.map(m => {
-            const v = vol[m] ?? 0;
+            const v = vol[m];
             return (
               <div key={m} className="flex items-center gap-2">
                 <span className="w-[4.5rem] shrink-0 truncate text-right text-[11px] text-slate-400" title={m}>{m}</span>

@@ -137,7 +137,10 @@ export function FitProgrammeSection({ section, editor }: {
         </div>
         {/* Volume graph below the choices, once the program has exercises. */}
         {Object.values(selections).some(a => a.length > 0) && (
-          <FitVolumeGraph selections={selections} workSets={workSets} />
+          <>
+            <div className="h-px w-full bg-slate-700" />
+            <FitVolumeGraph selections={selections} workSets={workSets} splits={splits} bodyPartOrder={bodyPartOrder} />
+          </>
         )}
       </div>
     );
