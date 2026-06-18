@@ -27,6 +27,11 @@ const PRINCIPES: Principe[] = [
     corps:
       "Le volume hebdomadaire optimal se situe entre 10 et 20 séries effectives par groupe musculaire et par semaine. Il est recommandé de le répartir sur deux séances distinctes dans la semaine.",
   },
+  {
+    titre: 'Exploser en phase concentrique',
+    corps:
+      "Exploser en phase concentrique consiste à pousser le poids avec une vitesse maximale pour recruter instantanément les fibres musculaires rapides, celles qui ont le plus gros potentiel de force et de croissance. En clair : contrôle la descente, mais explose à la montée.",
+  },
 ];
 
 export function FitPrincipes() {
