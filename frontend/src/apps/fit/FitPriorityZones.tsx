@@ -58,7 +58,7 @@ export function FitPriorityZones({ priorities, setPriority }: {
     <div className="flex flex-col">
       {ZONES.map((z, i) => {
         const muscles = MUSCLES.filter(m => zoneOf(priorities[m.name]) === z.key);
-        const accent = z.key === 'weak' ? 'text-emerald-300' : z.key === 'strong' ? 'text-amber-300' : 'text-slate-300';
+        const accent = z.key === 'weak' ? 'text-red-300' : z.key === 'strong' ? 'text-emerald-300' : 'text-slate-300';
         return (
           <div
             key={z.key}
@@ -86,8 +86,8 @@ export function FitPriorityZones({ priorities, setPriority }: {
                     onPointerCancel={onCancel}
                     style={{ touchAction: 'none', opacity: drag?.muscle === m.name ? 0.35 : 1 }}
                     className={`cursor-grab touch-none select-none rounded-full border px-3 py-1.5 text-sm font-medium transition-colors active:cursor-grabbing ${
-                      z.key === 'weak' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
-                        : z.key === 'strong' ? 'border-amber-500 bg-amber-500/10 text-amber-200'
+                      z.key === 'weak' ? 'border-red-500 bg-red-500/10 text-red-200'
+                        : z.key === 'strong' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
                         : 'border-slate-700 bg-slate-800/50 text-slate-200'
                     }`}
                   >
