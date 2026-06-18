@@ -10,20 +10,16 @@ import { weekDays, type WeekDay } from './splitDays';
 // Full-screen overlay shown before a fresh session when the week's split hasn't
 // been chosen yet and there's more than one option. Each option previews its
 // session breakdown.
-export function FitWeekSplitPicker({ options, bodyPartOrder, onChoose, onSkip }: {
+export function FitWeekSplitPicker({ options, bodyPartOrder, onChoose }: {
   options: { key: string; label: string }[];
   bodyPartOrder: string[];
   onChoose: (key: string) => void;
-  onSkip: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-30 flex flex-col bg-slate-900 text-slate-100">
       <div className="flex-1 overflow-y-auto px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))]">
         <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-5">
-          <div className="mt-4 text-center">
-            <h2 className="text-xl font-semibold">Quel split cette semaine ?</h2>
-            <p className="mt-1 text-sm text-slate-400">Tu pourras le suivre séance après séance.</p>
-          </div>
+          <h2 className="mt-4 text-center text-xl font-semibold">Quel split cette semaine ?</h2>
 
           {options.map(o => {
             const days = weekDays(o.key, bodyPartOrder);
@@ -43,14 +39,6 @@ export function FitWeekSplitPicker({ options, bodyPartOrder, onChoose, onSkip }:
               </button>
             );
           })}
-
-          <button
-            type="button"
-            onClick={onSkip}
-            className="mx-auto mt-2 text-sm font-medium text-slate-400 active:text-slate-200"
-          >
-            Ignorer pour cette fois
-          </button>
         </div>
       </div>
     </div>

@@ -425,7 +425,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           options={weekOptions}
           bodyPartOrder={bodyPartOrder}
           onChoose={chooseWeekSplit}
-          onSkip={() => setPickingWeek(false)}
         />
       )}
 
