@@ -268,11 +268,9 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         </tbody>
       </table>
 
-      {repGoal != null && (
+      {repGoal != null && repAvg != null && (
         <p className="mt-3 text-center text-xs">
-          {repAvg == null ? (
-            <span className="text-slate-400">Objectif : {repGoal} reps par série de travail</span>
-          ) : goalReached ? (
+          {goalReached ? (
             <span className="font-medium text-emerald-400">Objectif atteint ({repAvgStr} de moyenne). Passe au poids supérieur.</span>
           ) : (
             <span className="text-slate-400">Objectif : {repGoal} reps. Moyenne actuelle : {repAvgStr}.</span>
