@@ -1,5 +1,4 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { ArrowDown, ArrowUp } from 'lucide-react';
 import { MUSCLES, type MusclePriority, type Priorities } from './programData';
 
 // Three priority zones a muscle can be dragged into. Muscles default to Neutre
@@ -10,9 +9,9 @@ import { MUSCLES, type MusclePriority, type Priorities } from './programData';
 type Zone = 'weak' | 'neutral' | 'strong';
 
 const ZONES: { key: Zone; title: string; hint: string; state: MusclePriority | null }[] = [
-  { key: 'weak', title: 'Points faibles', hint: 'début de séance', state: 'weak' },
-  { key: 'neutral', title: 'Neutre', hint: '', state: null },
   { key: 'strong', title: 'Points forts', hint: 'fin de séance', state: 'strong' },
+  { key: 'neutral', title: 'Neutre', hint: '', state: null },
+  { key: 'weak', title: 'Points faibles', hint: 'début de séance', state: 'weak' },
 ];
 
 const zoneOf = (p: MusclePriority | undefined): Zone =>
@@ -69,12 +68,8 @@ export function FitPriorityZones({ priorities, setPriority }: {
             }`}
           >
             <div className="flex items-baseline justify-center gap-2">
-              <span className={`inline-flex items-center gap-1 text-sm font-semibold ${accent}`}>
-                {z.key === 'weak' && <ArrowUp className="h-3.5 w-3.5" />}
-                {z.key === 'strong' && <ArrowDown className="h-3.5 w-3.5" />}
-                {z.title}
-              </span>
-              {z.hint && <span className="text-xs text-slate-500">{z.hint}</span>}
+              <span className={`text-sm font-semibold ${accent}`}>{z.title}</span>
+              {z.hint && <span className="text-xs text-slate-500">({z.hint})</span>}
             </div>
 
             <div className="flex min-h-[2.75rem] flex-wrap content-center justify-center gap-2">

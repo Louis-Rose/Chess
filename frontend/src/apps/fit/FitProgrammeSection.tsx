@@ -95,14 +95,7 @@ export function FitProgrammeSection({ section, editor }: {
     );
 
   if (section === 'priority')
-    return (
-      <div className="flex flex-col gap-4">
-        <p className="rounded-lg bg-slate-800/40 px-3.5 py-2.5 text-left text-sm text-slate-300">
-          Cela influera l'ordre d'exécution des exercices : points faibles en début de séance, points forts en fin de séance.
-        </p>
-        <FitPriorityZones priorities={priorities} setPriority={setPriority} />
-      </div>
-    );
+    return <FitPriorityZones priorities={priorities} setPriority={setPriority} />;
 
   if (section === 'bodypart')
     return (
