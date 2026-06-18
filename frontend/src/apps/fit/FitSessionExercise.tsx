@@ -14,6 +14,10 @@ import { formatSet } from './format';
 // Tapping a logged set loads it into the same form to edit it in place (its
 // type is kept as-is).
 
+// The warmup is a fixed number of sets, after which the exercise moves to its
+// working sets on its own.
+const WARMUP_SETS = 2;
+
 export interface LoggedSet {
   id: number;
   weight: number | null;
@@ -41,18 +45,19 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');           // left side when unilateral
   const [repsRight, setRepsRight] = useState(''); // right side, unilateral only
-  // Guided sequence. Resume at the right step: working sets → warmup done;
-  // warmup sets only → warming up; nothing logged → not started.
+  // Guided sequence. The warmup is always exactly WARMUP_SETS sets, then it moves
+  // on to the working sets automatically (no "end warmup" step). Resume at the
+  // right step: any working set, or the warmup already complete → work; some
+  // warmup logged → warming up; nothing → not started.
   type Phase = 'start' | 'warmup' | 'work';
   const [phase, setPhase] = useState<Phase>(
-    sets.some(s => !s.warmup) ? 'work' : sets.some(s => s.warmup) ? 'warmup' : 'start',
+    sets.some(s => !s.warmup) || sets.filter(s => s.warmup).length >= WARMUP_SETS ? 'work'
+      : sets.some(s => s.warmup) ? 'warmup' : 'start',
   );
   const warmupMode = phase !== 'work';   // sets are warmups until the warmup ends
-  const hasWarmup = sets.some(s => s.warmup);
   const hasWork = sets.some(s => !s.warmup);
-  // Can't end the warmup before a warmup set is in, nor finish before a working
-  // set is in. Starting the warmup has no such gate.
-  const stepDisabled = (phase === 'warmup' && !hasWarmup) || (phase === 'work' && !hasWork);
+  // Can't finish the exercise before a working set is in.
+  const stepDisabled = phase === 'work' && !hasWork;
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);  // set being edited, else adding a new one
   const [adding, setAdding] = useState(false);                      // add form opened via "Ajouter une série"
@@ -103,14 +108,9 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setAdding(true);
   }
 
-  // Walk the sequence forward: start → warmup → work. Ending the warmup flips a
-  // new set's pre-filled weight to the working weight.
+  // Start the warmup. (Warmup → work happens on its own after WARMUP_SETS sets.)
   function advancePhase() {
     if (phase === 'start') setPhase('warmup');
-    else if (phase === 'warmup') {
-      setPhase('work');
-      if (adding && editingId == null) setWeight(workWeightStr);
-    }
   }
 
   function startEdit(s: LoggedSet) {
@@ -141,6 +141,10 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, isWarmup, rr);
       else await onAddSet(weightNum, repsNum, isWarmup, rr);
       reset();
+      // The warmup is exactly WARMUP_SETS sets: once they're in, move to working.
+      if (editingId == null && isWarmup && sets.filter(s => s.warmup).length + 1 >= WARMUP_SETS) {
+        setPhase('work');
+      }
     } catch {
       /* cancelled (or failed): keep the entered values so the user can retry */
     } finally {
@@ -346,9 +350,10 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         </div>
       ) : (
         <div className="mt-4 flex flex-col items-center gap-4">
-          {/* One slot, three steps: start → end warmup → finish. Ending the
-              warmup / finishing is gated on having logged a set of that type. */}
-          {(phase !== 'work' || onValidate) && (
+          {/* Two steps only: start the warmup, then finish the exercise. The
+              warmup ends on its own after WARMUP_SETS sets; finishing is gated on
+              a working set being logged. */}
+          {(phase === 'start' || (phase === 'work' && onValidate)) && (
             <>
               <div className="h-px w-full bg-slate-700" />
               <button
@@ -357,11 +362,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                 disabled={stepDisabled}
                 className="rounded-xl border border-slate-700 bg-slate-800/50 px-3.5 py-1.5 text-xs font-medium text-slate-100 transition-colors active:bg-slate-800 disabled:opacity-40 disabled:active:bg-slate-800/50"
               >
-                {phase === 'start'
-                  ? "Commencer l'échauffement"
-                  : phase === 'warmup'
-                    ? "Fin de l'échauffement"
-                    : "Terminer l'exercice"}
+                {phase === 'start' ? "Commencer l'échauffement" : "Terminer l'exercice"}
               </button>
             </>
           )}
