@@ -37,7 +37,7 @@ FIT_ACCESS_PATH = '/api/fit'
 FIT_REFRESH_PATH = '/api/fit/auth'
 
 # Allowed training splits — keep in sync with the frontend selector.
-VALID_SPLITS = {'full_body', 'upper_lower', 'push_pull_legs', 'body_part', 'no_split'}
+VALID_SPLITS = {'full_body', 'upper', 'lower', 'upper_and_lower', 'upper_lower', 'push_pull_legs', 'body_part', 'no_split'}
 
 # Allowed exercises per muscle group — keep in sync with FitExercises.tsx.
 MUSCLE_EXERCISES = {

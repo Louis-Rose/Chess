@@ -27,6 +27,9 @@ export interface Split {
 // Defined freely; SPLITS exposes them alphabetically with negatives last.
 const SPLITS_RAW: Split[] = [
   { key: 'full_body', label: 'Full Body' },
+  { key: 'upper', label: 'Upper' },
+  { key: 'lower', label: 'Lower' },
+  { key: 'upper_and_lower', label: 'Upper et Lower' },
   { key: 'upper_lower', label: 'Upper / Lower' },
   { key: 'push_pull_legs', label: 'Push / Pull / Legs' },
   { key: 'body_part', label: 'Body part' },
