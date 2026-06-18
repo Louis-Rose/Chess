@@ -32,6 +32,23 @@ export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; o
 
   const nameEmpty = section === 'name' && editor.name.trim().length === 0;
 
+  const question = (
+    <h2 className="mx-auto max-w-[20rem] text-center text-lg font-semibold text-slate-100">
+      {sectionQuestion(section)}
+    </h2>
+  );
+  const nextButton = (
+    <button
+      type="button"
+      onClick={next}
+      disabled={nameEmpty}
+      className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition-colors active:bg-emerald-500 disabled:opacity-50"
+    >
+      {isLast ? 'Terminer' : 'Suivant'}
+      {!isLast && <ChevronRight className="h-4 w-4" />}
+    </button>
+  );
+
   return (
     <div className="mx-auto flex min-h-[80vh] w-full max-w-md flex-col px-4 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <FitBackButton onClick={back} />
@@ -44,25 +61,25 @@ export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; o
         />
       </div>
 
-      <h2 className="mx-auto mt-8 max-w-[20rem] text-center text-lg font-semibold text-slate-100">
-        {sectionQuestion(section)}
-      </h2>
-
-      {/* The single-field name step stays compact near the top instead of being
-          stretched over the full height like the longer (muscle) steps. */}
-      <div className={`flex flex-col ${section === 'name' ? 'pt-3' : 'flex-1 justify-center py-6'}`}>
-        <FitProgrammeSection section={section} editor={editor} />
-      </div>
-
-      <button
-        type="button"
-        onClick={next}
-        disabled={nameEmpty}
-        className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition-colors active:bg-emerald-500 disabled:opacity-50"
-      >
-        {isLast ? 'Terminer' : 'Suivant'}
-        {!isLast && <ChevronRight className="h-4 w-4" />}
-      </button>
+      {section === 'name' ? (
+        // The single-field name step: question, input and button stay together
+        // as one group, evenly spaced and centered over the available height.
+        <div className="flex flex-1 flex-col justify-center gap-7">
+          {question}
+          <FitProgrammeSection section={section} editor={editor} />
+          {nextButton}
+        </div>
+      ) : (
+        // The longer steps keep the question pinned up top, the (often tall)
+        // body centered, and the button at the bottom.
+        <>
+          <div className="mt-8">{question}</div>
+          <div className="flex flex-1 flex-col justify-center py-6">
+            <FitProgrammeSection section={section} editor={editor} />
+          </div>
+          <div className="mt-4">{nextButton}</div>
+        </>
+      )}
     </div>
   );
 }

@@ -663,6 +663,27 @@ def init_db():
             conn.execute("ALTER TABLE fit_programs ADD COLUMN priorities TEXT NOT NULL DEFAULT '{}'")
             logger.info("Added fit_programs.priorities column")
 
+        # Migration: for a Body part split, the user's chosen day order (one muscle
+        # group per day) — a JSON array of muscle names, per program. Other splits
+        # use a fixed day->muscle mapping defined in code.
+        if not _column_exists(conn, 'fit_programs', 'body_part_order'):
+            conn.execute("ALTER TABLE fit_programs ADD COLUMN body_part_order TEXT NOT NULL DEFAULT '[]'")
+            logger.info("Added fit_programs.body_part_order column")
+
+        # Migration: the split chosen for a given week (Monday-anchored). A program
+        # can carry several splits; each week the user picks which one applies, at
+        # the first session of the week. One row per user per week.
+        if not _table_exists(conn, 'fit_week_splits'):
+            conn.execute("""
+                CREATE TABLE fit_week_splits (
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    week_start DATE NOT NULL,
+                    split TEXT NOT NULL,
+                    PRIMARY KEY (user_id, week_start)
+                )
+            """)
+            logger.info("Created fit_week_splits table")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

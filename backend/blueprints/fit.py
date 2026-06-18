@@ -235,6 +235,19 @@ def _splits_of(row):
         return []
 
 
+def _body_part_order_of(row):
+    """A program's Body-part day order as a list of muscle names. Stored as a JSON
+    array in `body_part_order` (one muscle group per day, the user's chosen order)."""
+    raw = row['body_part_order'] if row is not None else None
+    if not raw:
+        return []
+    try:
+        val = json.loads(raw)
+    except (ValueError, TypeError):
+        return []
+    return [m for m in val if m in VALID_MUSCLES] if isinstance(val, list) else []
+
+
 def _priorities_of(row):
     """A program row's per-muscle priorities as a {muscle: 'weak'|'strong'} dict.
     Stored as a JSON object in the `priorities` column (muscles absent from it are
@@ -255,7 +268,7 @@ def _active_program(conn):
     """The user's active program row (id, name, splits, work_sets), or None.
     Falls back to the most recent program when no explicit active pointer is set."""
     row = conn.execute(
-        """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities
+        """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities, p.body_part_order
            FROM fit_programs p
            JOIN fit_profile f ON f.active_program_id = p.id
            WHERE f.user_id = ?""",
@@ -264,7 +277,7 @@ def _active_program(conn):
     if row:
         return row
     return conn.execute(
-        'SELECT id, name, splits, work_sets, priorities FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+        'SELECT id, name, splits, work_sets, priorities, body_part_order FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
         (request.user_id,)
     ).fetchone()
 
@@ -272,7 +285,7 @@ def _active_program(conn):
 def _owned_program(conn, program_id):
     """Return the program row if it belongs to the current user, else None."""
     return conn.execute(
-        'SELECT id, name, splits, work_sets, priorities FROM fit_programs WHERE id = ? AND user_id = ?',
+        'SELECT id, name, splits, work_sets, priorities, body_part_order FROM fit_programs WHERE id = ? AND user_id = ?',
         (program_id, request.user_id)
     ).fetchone()
 
@@ -314,7 +327,12 @@ def get_exercises():
             ).fetchall()
             for r in rows:
                 selections.setdefault(r['muscle'], []).append(r['exercise'])
-    return jsonify({'selections': selections, 'priorities': _priorities_of(prog)})
+    return jsonify({
+        'selections': selections,
+        'priorities': _priorities_of(prog),
+        'splits': _splits_of(prog),
+        'body_part_order': _body_part_order_of(prog),
+    })
 
 
 @fit_bp.route('/api/fit/programs', methods=['GET'])
@@ -323,7 +341,7 @@ def list_programs():
     """All of the user's programs (with exercise counts) plus the active one's id."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities,
+            """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities, p.body_part_order,
                       COUNT(e.exercise) AS exercise_count
                FROM fit_programs p
                LEFT JOIN fit_exercises e ON e.program_id = p.id
@@ -336,6 +354,7 @@ def list_programs():
     return jsonify({
         'programs': [{'id': r['id'], 'name': r['name'], 'splits': _splits_of(r),
                       'work_sets': r['work_sets'], 'priorities': _priorities_of(r),
+                      'body_part_order': _body_part_order_of(r),
                       'exercise_count': r['exercise_count']} for r in rows],
         'active_id': active['id'] if active else None,
     })
@@ -355,7 +374,7 @@ def create_program():
             ).fetchone()['c']
             name = f'Programme {n + 1}'
         row = conn.execute(
-            "INSERT INTO fit_programs (user_id, name, splits) VALUES (?, ?, '[]') RETURNING id, name, splits, work_sets, priorities",
+            "INSERT INTO fit_programs (user_id, name, splits) VALUES (?, ?, '[]') RETURNING id, name, splits, work_sets, priorities, body_part_order",
             (request.user_id, name[:PROGRAM_NAME_MAX])
         ).fetchone()
         # Make it active if the user has no active program yet.
@@ -365,7 +384,8 @@ def create_program():
         if not cur or cur['active_program_id'] is None:
             _set_active_program(conn, row['id'])
     return jsonify({'id': row['id'], 'name': row['name'], 'splits': _splits_of(row),
-                    'work_sets': row['work_sets'], 'priorities': _priorities_of(row)})
+                    'work_sets': row['work_sets'], 'priorities': _priorities_of(row),
+                    'body_part_order': _body_part_order_of(row)})
 
 
 @fit_bp.route('/api/fit/programs/active', methods=['PUT'])
@@ -412,6 +432,12 @@ def update_program(program_id):
         ):
             return jsonify({'error': 'Invalid priorities'}), 400
         updates['priorities'] = json.dumps(pr)
+    if 'body_part_order' in data:
+        # Ordered list of muscle groups (one per day) for a Body part split.
+        order = data['body_part_order']
+        if not isinstance(order, list) or any(m not in VALID_MUSCLES for m in order):
+            return jsonify({'error': 'Invalid body_part_order'}), 400
+        updates['body_part_order'] = json.dumps(order)
     if not updates:
         return jsonify({'error': 'Nothing to update'}), 400
 
@@ -428,6 +454,8 @@ def update_program(program_id):
         resp['splits'] = json.loads(resp['splits'])   # send the array, not its JSON text
     if 'priorities' in resp:
         resp['priorities'] = json.loads(resp['priorities'])   # send the object, not its JSON text
+    if 'body_part_order' in resp:
+        resp['body_part_order'] = json.loads(resp['body_part_order'])
     return jsonify(resp)
 
 
