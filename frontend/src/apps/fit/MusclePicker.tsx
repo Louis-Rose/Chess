@@ -119,10 +119,27 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
         if (typeof ex === 'string') {
           const isActive = selected.includes(ex);
           const isCustom = editableNames?.has(ex);
+          // In the editor (onToggleUnilateral set), a leaf expands via a chevron
+          // to reveal its Unilatéral chip (it has no variant options of its own).
+          const expandable = !!onToggleUnilateral;
+          const expanded = expandable && isExpanded(ex);
           const content = (
             <>
               {isCustom && onEdit && <EditPencil onEdit={() => onEdit(ex)} />}
               <ExLabel name={ex} days={recency?.[ex]} />
+              {expandable && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Options de l'exercice"
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => { e.stopPropagation(); toggleOpen(ex, expanded); }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleOpen(ex, expanded); } }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 active:bg-slate-800"
+                >
+                  {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                </span>
+              )}
             </>
           );
           // Custom leaves swipe left to delete; catalogue leaves are plain.
@@ -133,7 +150,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               onClose={() => setSwiped(null)}
               onDelete={() => onDelete(ex)}
               onTap={() => onToggle(ex)}
-              className={`flex items-center justify-center px-4 py-3.5 text-center ${isActive ? 'border-emerald-500' : 'border-slate-700'}`}
+              className={`relative flex items-center justify-center px-4 py-3.5 text-center ${isActive ? 'border-emerald-500' : 'border-slate-700'}`}
             >
               {content}
             </FitSwipeRow>
@@ -147,9 +164,16 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               {content}
             </button>
           );
-          // The Unilatéral chip lives only under expanded groups (below their
-          // options), so leaf exercises just render their card.
-          return <Fragment key={ex}>{card}</Fragment>;
+          if (!expandable) return <Fragment key={ex}>{card}</Fragment>;
+          // Expanding a leaf reveals only its Unilatéral chip (no options).
+          return (
+            <div key={ex} className="flex flex-col gap-3">
+              {card}
+              {expanded && (
+                <UnilateralToggle on={!!unilateralNames?.has(ex)} onToggle={() => onToggleUnilateral!(ex)} />
+              )}
+            </div>
+          );
         }
 
         // Group with variants — expands to reveal its sub-options (rows).
