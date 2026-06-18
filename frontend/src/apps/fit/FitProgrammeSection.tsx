@@ -142,7 +142,7 @@ export function FitProgrammeSection({ section, editor }: {
       </div>
     );
 
-  // A muscle section: its exercise multi-select plus a "Créer un exercice" button.
+  // A muscle section: its exercise multi-select plus an "Ajouter un exercice" button.
   return (
     <>
       <MusclePicker
@@ -163,7 +163,7 @@ export function FitProgrammeSection({ section, editor }: {
         className="mx-auto mt-8 inline-flex w-full max-w-[18rem] items-center justify-center gap-2 rounded-xl border border-dashed border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors active:bg-slate-800/60"
       >
         <Plus className="h-4 w-4" />
-        Créer un exercice
+        Ajouter un exercice
       </button>
 
       {customDraft && (
