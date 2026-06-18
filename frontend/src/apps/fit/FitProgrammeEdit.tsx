@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { FitBackButton } from './FitBackButton';
-import { FitProgrammeSection } from './FitProgrammeSection';
+import { FitProgrammeSection, sectionQuestion } from './FitProgrammeSection';
 import { useProgramEditor } from './useProgramEditor';
 import { MUSCLES, type FitProgram } from './programData';
 
@@ -22,11 +22,6 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
     { key: 'sets', label: 'Séries' },
     ...MUSCLES.map(m => ({ key: m.name, label: m.name === 'Ischio-jambiers' ? 'Ischios' : m.name })),
   ];
-
-  const heading = active === 'name' ? 'Nom du programme'
-    : active === 'split' ? 'Training split'
-    : active === 'sets' ? 'Séries de travail'
-    : active;
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -54,7 +49,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
         </nav>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <h2 className="mt-12 text-center text-lg font-semibold text-slate-100">{heading}</h2>
+          <h2 className="mt-12 text-center text-lg font-semibold text-slate-100">{sectionQuestion(active)}</h2>
           <div className="flex flex-1 flex-col justify-center pt-2">
             <FitProgrammeSection section={active} editor={editor} />
           </div>

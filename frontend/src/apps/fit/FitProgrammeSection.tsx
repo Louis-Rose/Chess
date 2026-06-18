@@ -16,6 +16,17 @@ const NAME_MAX = 60;
 // Section keys, in order: name, split, sets, then one per muscle.
 export const SECTION_KEYS = ['name', 'split', 'sets', ...MUSCLES.map(m => m.name)];
 
+// "Quels exercices pour <le dos / les épaules> ?" — only Dos is singular.
+const musclePhrase = (m: string) => (m === 'Dos' ? 'le dos' : `les ${m.toLowerCase()}`);
+
+// The guiding question shown as each section's heading — shared by the create
+// wizard and the rail editor of an existing program.
+export const sectionQuestion = (section: string) =>
+  section === 'name' ? 'Comment veux-tu nommer ce programme ?'
+    : section === 'split' ? 'Quel split veux-tu suivre ?'
+    : section === 'sets' ? 'Combien de séries de travail par exercice ?'
+    : `Quels exercices pour ${musclePhrase(section)} ?`;
+
 export function FitProgrammeSection({ section, editor }: {
   section: string;
   editor: ProgramEditor;

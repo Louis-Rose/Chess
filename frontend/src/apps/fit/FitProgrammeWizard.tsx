@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { FitBackButton } from './FitBackButton';
-import { FitProgrammeSection, SECTION_KEYS } from './FitProgrammeSection';
+import { FitProgrammeSection, SECTION_KEYS, sectionQuestion } from './FitProgrammeSection';
 import { useProgramEditor } from './useProgramEditor';
 import { type FitProgram } from './programData';
 
@@ -12,15 +12,6 @@ import { type FitProgram } from './programData';
 // keeps what was filled in. "Suivant" advances (selecting an answer only
 // selects it); the top-left back button steps back, or leaves from step one.
 // "Terminer" on the last step returns to the list.
-
-// "Quels exercices pour <le dos / les épaules> ?" — only Dos is singular.
-const musclePhrase = (m: string) => (m === 'Dos' ? 'le dos' : `les ${m.toLowerCase()}`);
-
-const question = (section: string) =>
-  section === 'name' ? 'Comment veux-tu nommer ce programme ?'
-    : section === 'split' ? 'Quel split veux-tu suivre ?'
-    : section === 'sets' ? 'Combien de séries de travail par exercice ?'
-    : `Quels exercices pour ${musclePhrase(section)} ?`;
 
 export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; onDone: () => void }) {
   const [step, setStep] = useState(0);
@@ -54,7 +45,7 @@ export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; o
       </div>
 
       <h2 className="mx-auto mt-8 max-w-[20rem] text-center text-lg font-semibold text-slate-100">
-        {question(section)}
+        {sectionQuestion(section)}
       </h2>
 
       <div className="flex flex-1 flex-col justify-center py-6">
