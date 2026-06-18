@@ -1,5 +1,6 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useRef, useState } from 'react';
 import { MUSCLES, type MusclePriority, type Priorities } from './programData';
+import { usePointerDrag, DragOverlay } from './usePointerDrag';
 
 // Three priority zones a muscle can be dragged into. Muscles default to Neutre
 // (stored as absent from the priorities map); weak points lead the session,
@@ -22,7 +23,6 @@ export function FitPriorityZones({ priorities, setPriority }: {
   setPriority: (muscle: string, state: MusclePriority | null) => void;
 }) {
   const zoneEls = useRef<Record<Zone, HTMLDivElement | null>>({ weak: null, neutral: null, strong: null });
-  const [drag, setDrag] = useState<{ muscle: string; x: number; y: number } | null>(null);
   const [hover, setHover] = useState<Zone | null>(null);
 
   // The zone whose box contains the point, if any.
@@ -34,25 +34,14 @@ export function FitPriorityZones({ priorities, setPriority }: {
     return null;
   };
 
-  const onDown = (muscle: string) => (e: ReactPointerEvent) => {
-    e.preventDefault();
-    try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* ignore */ }
-    setDrag({ muscle, x: e.clientX, y: e.clientY });
-    setHover(zoneOf(priorities[muscle]));
-  };
-  const onMove = (e: ReactPointerEvent) => {
-    if (!drag) return;
-    setDrag({ ...drag, x: e.clientX, y: e.clientY });
-    setHover(zoneAt(e.clientX, e.clientY));
-  };
-  const onUp = (e: ReactPointerEvent) => {
-    if (!drag) return;
-    const z = zoneAt(e.clientX, e.clientY);
-    if (z) setPriority(drag.muscle, ZONES.find(zz => zz.key === z)!.state);
-    setDrag(null);
-    setHover(null);
-  };
-  const onCancel = () => { setDrag(null); setHover(null); };
+  const { drag, bind } = usePointerDrag<string>({
+    onMove: (_m, x, y) => setHover(zoneAt(x, y)),
+    onDrop: (muscle, x, y) => {
+      const z = zoneAt(x, y);
+      if (z) setPriority(muscle, ZONES.find(zz => zz.key === z)!.state);
+      setHover(null);
+    },
+  });
 
   return (
     <div className="flex flex-col">
@@ -80,11 +69,8 @@ export function FitPriorityZones({ priorities, setPriority }: {
                   <button
                     key={m.name}
                     type="button"
-                    onPointerDown={onDown(m.name)}
-                    onPointerMove={onMove}
-                    onPointerUp={onUp}
-                    onPointerCancel={onCancel}
-                    style={{ touchAction: 'none', opacity: drag?.muscle === m.name ? 0.35 : 1 }}
+                    {...bind(m.name)}
+                    style={{ touchAction: 'none', opacity: drag?.item === m.name ? 0.35 : 1 }}
                     className={`cursor-grab touch-none select-none rounded-full border px-3 py-1.5 text-sm font-medium transition-colors active:cursor-grabbing ${
                       z.key === 'weak' ? 'border-red-500 bg-red-500/10 text-red-200'
                         : z.key === 'strong' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
@@ -102,12 +88,11 @@ export function FitPriorityZones({ priorities, setPriority }: {
 
       {/* The chip floating under the pointer while dragging. */}
       {drag && (
-        <div
-          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-500 bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100 shadow-lg"
-          style={{ left: drag.x, top: drag.y }}
-        >
-          {drag.muscle}
-        </div>
+        <DragOverlay x={drag.x} y={drag.y}>
+          <div className="rounded-full border border-slate-500 bg-slate-700 px-3 py-1.5 text-sm font-medium text-slate-100">
+            {drag.item}
+          </div>
+        </DragOverlay>
       )}
     </div>
   );

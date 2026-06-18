@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
 import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, type Priorities, type Split } from './programData';
+import { usePointerDrag, DragOverlay } from './usePointerDrag';
 import { FitPriorityZones } from './FitPriorityZones';
 import { FitVolumeGraph } from './FitVolumeGraph';
 import type { ProgramEditor } from './useProgramEditor';
@@ -186,46 +187,54 @@ export function FitProgrammeSection({ section, editor }: {
   );
 }
 
-// Muscle execution order: a freely drag-reorderable list — the whole row is the
-// drag handle. The order is unconstrained; priority badges (point faible rouge /
-// fort vert) are just hints for the advice above. Touch-friendly pointer drag
-// (no library): the row captures the pointer, rows swap as it crosses a row height.
-const ROW_PX = 56;   // approximate row height incl. gap, for step detection
+// A muscle row's label + its priority badge (point faible rouge / fort vert).
+function MuscleLabel({ m, priorities }: { m: string; priorities: Priorities }) {
+  const p = priorities[m];
+  return (
+    <span className="flex-1 text-left text-sm text-slate-100">
+      {m}
+      {p === 'weak' && <span className="ml-2 text-xs text-red-300">point faible</span>}
+      {p === 'strong' && <span className="ml-2 text-xs text-emerald-300">point fort</span>}
+    </span>
+  );
+}
 
+// Muscle execution order: a freely drag-reorderable list — the whole row is the
+// drag handle, with a lifted clone following the pointer (same drag as the
+// priority zones, via usePointerDrag). The order is unconstrained; priority
+// badges are just hints for the advice above.
 function MuscleOrderSection({ order, priorities, onReorder }: {
   order: string[];
   priorities: Priorities;
   onReorder: (next: string[]) => void;
 }) {
   const [items, setItems] = useState<string[]>(order);
-  const dragFrom = useRef<number | null>(null);
-  const lastY = useRef(0);
-  const [dragging, setDragging] = useState<number | null>(null);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const rowEls = useRef<Record<string, HTMLLIElement | null>>({});
+  const dragging = useRef(false);
 
   // Resync from outside when not mid-drag (e.g. exercises added/removed).
-  useEffect(() => { if (dragFrom.current == null) setItems(order); }, [order]);
+  useEffect(() => { if (!dragging.current) setItems(order); }, [order]);
 
-  function begin(e: React.PointerEvent, i: number) {
-    e.preventDefault();
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
-    dragFrom.current = i; lastY.current = e.clientY; setDragging(i);
-  }
-  function moveTo(e: React.PointerEvent) {
-    const from = dragFrom.current;
-    if (from == null) return;
-    const steps = Math.trunc((e.clientY - lastY.current) / ROW_PX);
-    if (steps === 0) return;
-    const to = Math.max(0, Math.min(items.length - 1, from + steps));
-    if (to === from) return;
-    setItems(prev => { const n = [...prev]; const [m] = n.splice(from, 1); n.splice(to, 0, m); return n; });
-    lastY.current += (to - from) * ROW_PX;
-    dragFrom.current = to; setDragging(to);
-  }
-  function end() {
-    if (dragFrom.current == null) return;
-    dragFrom.current = null; setDragging(null);
-    onReorder(items);
-  }
+  const { drag, bind } = usePointerDrag<string>({
+    // Live reorder: move the dragged muscle to whichever row the pointer is over.
+    onMove: (muscle, _x, y) => {
+      dragging.current = true;
+      setItems(prev => {
+        const from = prev.indexOf(muscle);
+        if (from < 0) return prev;
+        let to = from;
+        for (let i = 0; i < prev.length; i++) {
+          const r = rowEls.current[prev[i]]?.getBoundingClientRect();
+          if (r && y >= r.top && y <= r.bottom) { to = i; break; }
+        }
+        if (to === from) return prev;
+        const n = [...prev]; n.splice(from, 1); n.splice(to, 0, muscle); return n;
+      });
+    },
+    onDrop: () => { dragging.current = false; onReorder(itemsRef.current); },
+  });
 
   return (
     <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4">
@@ -233,30 +242,30 @@ function MuscleOrderSection({ order, priorities, onReorder }: {
         Conseil : Travaille tes points faibles en premier, et tes points forts en fin de séance.
       </p>
       <ul className="flex flex-col gap-2">
-        {items.map((m, i) => {
-          const p = priorities[m];
-          return (
-            <li
-              key={m}
-              aria-label={`Déplacer ${m}`}
-              onPointerDown={e => begin(e, i)}
-              onPointerMove={moveTo}
-              onPointerUp={end}
-              onPointerCancel={end}
-              style={{ touchAction: 'none' }}
-              className={`flex cursor-grab items-center gap-2 rounded-xl border bg-slate-800/50 px-3 py-2.5 ${
-                dragging === i ? 'border-emerald-500' : 'border-slate-700'
-              }`}
-            >
-              <span className="flex-1 text-left text-sm text-slate-100">
-                {m}
-                {p === 'weak' && <span className="ml-2 text-xs text-red-300">point faible</span>}
-                {p === 'strong' && <span className="ml-2 text-xs text-emerald-300">point fort</span>}
-              </span>
-            </li>
-          );
-        })}
+        {items.map(m => (
+          <li
+            key={m}
+            ref={el => { rowEls.current[m] = el; }}
+            aria-label={`Déplacer ${m}`}
+            {...bind(m)}
+            style={{ touchAction: 'none', opacity: drag?.item === m ? 0.35 : 1 }}
+            className={`flex cursor-grab select-none items-center gap-2 rounded-xl border bg-slate-800/50 px-3 py-2.5 active:cursor-grabbing ${
+              drag?.item === m ? 'border-emerald-500' : 'border-slate-700'
+            }`}
+          >
+            <MuscleLabel m={m} priorities={priorities} />
+          </li>
+        ))}
       </ul>
+
+      {/* The lifted row following the pointer while dragging. */}
+      {drag && (
+        <DragOverlay x={drag.x} y={drag.y}>
+          <div className="flex w-[18rem] items-center gap-2 rounded-xl border border-emerald-500 bg-slate-800 px-3 py-2.5">
+            <MuscleLabel m={drag.item} priorities={priorities} />
+          </div>
+        </DragOverlay>
+      )}
     </div>
   );
 }
