@@ -1,26 +1,27 @@
 import { Fragment, useState } from 'react';
-import { Check, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { variantId, exerciseEnglish, type Exercise } from './programData';
 import { FitSwipeRow } from './FitSwipeRow';
 import { ExerciseMuscles } from './FitExerciseMuscles';
 
-// A small "Unilatéral" on/off chip shown under each exercise in the program
-// editor. It marks the movement as logged per side (Gauche / Droite); the
-// session entry form then asks for left/right reps. Per base exercise.
+// A small Unilatéral / Bilatéral choice shown under each exercise in the program
+// editor. Unilatéral marks the movement as logged per side (Gauche / Droite);
+// the session entry form then asks for left/right reps. The selected option is
+// framed in green. Bilatéral is the default. Per base exercise.
 function UnilateralToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  const chip = (selected: boolean) =>
+    `rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+      selected ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200' : 'border-slate-700 text-slate-400 active:bg-slate-800'
+    }`;
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={onToggle}
-      className={`inline-flex items-center gap-1 self-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-        on ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200' : 'border-slate-700 text-slate-400 active:bg-slate-800'
-      }`}
-    >
-      {on && <Check className="h-3 w-3" />}
-      Unilatéral
-    </button>
+    <div className="flex items-center justify-center gap-2">
+      <button type="button" aria-pressed={!on} onClick={() => { if (on) onToggle(); }} className={chip(!on)}>
+        Bilatéral
+      </button>
+      <button type="button" aria-pressed={on} onClick={() => { if (!on) onToggle(); }} className={chip(on)}>
+        Unilatéral
+      </button>
+    </div>
   );
 }
 
