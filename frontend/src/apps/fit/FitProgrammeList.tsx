@@ -108,7 +108,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
 
   if (programs.length === 0) {
     return (
-      <FitShell title="Mes programmes">
+      <FitShell title="Mes programmes" center>
         <div className="mx-auto w-full max-w-[20rem] text-center">
           <p className="text-sm text-slate-400">Aucun programme pour le moment.</p>
           <button
@@ -127,7 +127,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
   }
 
   return (
-    <FitShell title="Mes programmes">
+    <FitShell title="Mes programmes" center>
       <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-4">
         {programs.map(p => {
           const isActive = p.id === activeId;

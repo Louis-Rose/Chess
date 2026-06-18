@@ -14,10 +14,11 @@ interface FitShellProps {
   counter?: string;       // e.g. "1 / 11"
   onBack?: () => void;    // renders a "Précédent" text link when provided
   footer?: ReactNode;     // pinned to the bottom
+  center?: boolean;       // vertically center the body in the space below the title
   children: ReactNode;    // the options / body
 }
 
-export function FitShell({ title, question, counter, onBack, footer, children }: FitShellProps) {
+export function FitShell({ title, question, counter, onBack, footer, center, children }: FitShellProps) {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       {onBack && <FitBackButton onClick={onBack} />}
@@ -26,7 +27,7 @@ export function FitShell({ title, question, counter, onBack, footer, children }:
       {counter && <p className="mt-1 text-center text-xs text-slate-500">{counter}</p>}
       {question && <p className="mt-12 text-center text-lg text-white">{question}</p>}
 
-      <div className={question ? 'mt-9' : 'mt-10'}>{children}</div>
+      <div className={center ? 'flex flex-1 flex-col justify-center' : (question ? 'mt-9' : 'mt-10')}>{children}</div>
 
       {footer && <div className="mt-auto flex justify-center">{footer}</div>}
     </div>
