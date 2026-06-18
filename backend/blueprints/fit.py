@@ -57,6 +57,8 @@ MUSCLE_EXERCISES = {
     'Mollets': ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'],
 }
 VALID_MUSCLES = set(MUSCLE_EXERCISES)
+# Leg muscles — placed last in the default muscle execution order.
+LEG_MUSCLES = {'Fessiers', 'Quadriceps', 'Ischio-jambiers', 'Mollets'}
 # Every valid exercise leaf, across all muscles — used to validate logged sets.
 ALL_EXERCISES = {ex for exercises in MUSCLE_EXERCISES.values() for ex in exercises}
 # Base exercise names (leaf without its " — variant" suffix) — machine settings
@@ -251,10 +253,12 @@ def _body_part_order_of(row):
 
 
 def _muscle_order_of(row):
-    """The program's muscle execution order (used within each priority tier).
-    Stored as a JSON array in `muscle_order`; unknown muscles are dropped and any
-    valid muscle missing from it is appended in the catalogue order, so the result
-    always lists every muscle. Empty/absent → the catalogue (anatomical) order."""
+    """The program's muscle execution order. Stored as a JSON array in
+    `muscle_order`; unknown muscles are dropped and any missing one is appended in
+    catalogue order, so the result always lists every muscle. When the user hasn't
+    set an order yet (empty), the default puts legs last, weak points first and
+    strong points last (then catalogue order) — a sensible start that the user can
+    then freely drag to override."""
     raw = row['muscle_order'] if row is not None else None
     stored = []
     if raw:
@@ -264,8 +268,18 @@ def _muscle_order_of(row):
                 stored = [m for m in val if m in VALID_MUSCLES]
         except (ValueError, TypeError):
             stored = []
-    seen = set(stored)
-    return stored + [m for m in MUSCLE_EXERCISES if m not in seen]
+    if stored:
+        seen = set(stored)
+        return stored + [m for m in MUSCLE_EXERCISES if m not in seen]
+    # Default order, derived from the priorities.
+    priorities = _priorities_of(row)
+    catalogue = list(MUSCLE_EXERCISES)
+    rank = {'weak': -1, 'strong': 1}
+    return sorted(catalogue, key=lambda m: (
+        1 if m in LEG_MUSCLES else 0,
+        rank.get(priorities.get(m), 0),
+        catalogue.index(m),
+    ))
 
 
 def _priorities_of(row):
