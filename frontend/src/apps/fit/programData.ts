@@ -104,15 +104,15 @@ const exLabel = (ex: Exercise) => (typeof ex === 'string' ? ex : ex.name);
 // order itself is anatomical, left as-is.
 const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
   { name: 'Épaules', exercises: [{ name: 'Développé épaules', variants: [['Machine', 'Haltères']] }, 'Développé militaire', { name: 'Élévations latérales', variants: [['Poulie basse', 'Haltères']] }] },
-  { name: 'Pectoraux', exercises: [{ name: 'Développé couché', variants: [['Barre', 'Haltères']] }, { name: 'Développé incliné', variants: [['Barre', 'Haltères']] }, 'Dips', { name: 'Pec Deck', variants: [['Poignées', 'Boudins']] }] },
+  { name: 'Pectoraux', exercises: [{ name: 'Développé couché', variants: [['Barre', 'Haltères']] }, { name: 'Développé incliné', variants: [['Barre', 'Haltères']] }, 'Dips (Pectoraux)', { name: 'Pec Deck', variants: [['Poignées', 'Boudins']] }] },
   { name: 'Dorsaux', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
   { name: 'Trapèzes', exercises: [{ name: 'Shrugs', variants: [['Haltères', 'Barre', 'Machine']] }] },
-  { name: 'Biceps', exercises: [{ name: 'Curl incliné', variants: [['Supination', 'Rotation']] }, { name: 'Curl pupitre', variants: [['Machine', 'Haltères', 'Barre EZ']] }] },
-  { name: 'Triceps', exercises: [{ name: 'Extension poulie haute', variants: [['Barre', 'Corde']] }, { name: 'Extension poulie basse (overhead)', variants: [['Barre', 'Corde']] }] },
-  { name: 'Avant-bras', exercises: ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'] },
+  { name: 'Biceps', exercises: [{ name: 'Curl incliné', variants: [['Supination', 'Rotation']] }, { name: 'Curl pupitre', variants: [['Machine', 'Haltères', 'Barre EZ']] }, 'Curl marteau'] },
+  { name: 'Triceps', exercises: [{ name: 'Extension poulie haute', variants: [['Barre', 'Corde']] }, { name: 'Extension poulie basse (overhead)', variants: [['Barre', 'Corde']] }, 'Dips (Triceps)'] },
+  { name: 'Avant-bras', exercises: ['Flexions de poignets', 'Extensions de poignets'] },
   { name: 'Abdos', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche', 'Relevés de jambes'] },
-  { name: 'Fessiers', exercises: ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'] },
-  { name: 'Quadriceps', exercises: ['Soulevé de terre barre hex', 'Hack squat', 'Leg extension', 'Presse à cuisses', 'Presse à cuisses incliné', 'Presse à cuisses horizontale'] },
+  { name: 'Fessiers', exercises: ['Hip thrust', 'Soulevé de terre sumo'] },
+  { name: 'Quadriceps', exercises: ['Soulevé de terre barre hex', 'Hack squat', 'Leg extension', 'Squat gobelet', 'Presse à cuisses', 'Presse à cuisses incliné', 'Presse à cuisses horizontale'] },
   { name: 'Ischio-jambiers', exercises: ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'] },
   { name: 'Mollets', exercises: ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'] },
 ];
@@ -137,7 +137,8 @@ export const EXERCISE_META: Record<string, ExerciseMeta> = {
   // Pectoraux
   'Développé couché': { en: 'Bench Press' },
   'Développé incliné': { en: 'Incline Bench Press' },
-  'Dips': { en: 'Dips' },
+  'Dips (Pectoraux)': { en: 'Dips' },
+  'Dips (Triceps)': { en: 'Dips' },
   'Pec Deck': { en: 'Pec Deck', settings: '3, 2' },
   // Dorsaux
   'Tractions': { en: 'Pull-ups' },
@@ -309,7 +310,8 @@ const CONTRIB: Record<string, Contribution> = {
   // Pectoraux
   'Développé couché': { primary: [Pec], secondary: [Tri, Ep] },
   'Développé incliné': { primary: [Pec], secondary: [Ep, Tri] },
-  'Dips': { primary: [Pec], secondary: [Tri, Ep] },
+  'Dips (Pectoraux)': { primary: [Pec], secondary: [Tri, Ep] },
+  'Dips (Triceps)': { primary: [Tri], secondary: [Pec, Ep] },
   'Pec Deck — Poignées': { primary: [Pec], secondary: [Ep, Bi, AB] },
   'Pec Deck — Boudins': { primary: [Pec], secondary: [Ep] },
   // Dorsaux
@@ -335,7 +337,7 @@ const CONTRIB: Record<string, Contribution> = {
   'Extension poulie haute': { primary: [Tri], secondary: [Ep] },
   'Extension poulie basse (overhead)': { primary: [Tri], secondary: [Abdo] },
   // Avant-bras
-  'Curl marteau': { primary: [AB], secondary: [Bi] },
+  'Curl marteau': { primary: [Bi], secondary: [AB] },
   'Flexions de poignets': { primary: [AB], secondary: [] },
   'Extensions de poignets': { primary: [AB], secondary: [] },
   // Abdos
@@ -345,8 +347,8 @@ const CONTRIB: Record<string, Contribution> = {
   'Relevés de jambes': { primary: [Abdo], secondary: [] },
   // Fessiers
   'Hip thrust': { primary: [Fes], secondary: [Isch, Quad, Dor] },
-  'Squat gobelet': { primary: [Fes, Quad], secondary: [Isch, Abdo, Ep, Bi] },
-  'Soulevé de terre sumo': { primary: [Fes], secondary: [Quad, Isch, Dor, AB] },
+  'Squat gobelet': { primary: [Quad], secondary: [Fes, Isch, Abdo] },
+  'Soulevé de terre sumo': { primary: [Quad, Fes], secondary: [Isch, Dor, AB] },
   // Quadriceps
   'Soulevé de terre barre hex': { primary: [Quad, Fes], secondary: [Isch, Dor, AB, Abdo] },
   'Hack squat': { primary: [Quad], secondary: [Fes, Isch] },

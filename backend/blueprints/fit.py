@@ -44,15 +44,15 @@ VALID_PRIORITIES = {'weak', 'strong'}
 # Allowed exercises per muscle group — keep in sync with FitExercises.tsx.
 MUSCLE_EXERCISES = {
     'Épaules': ['Développé épaules — Machine', 'Développé épaules — Haltères', 'Développé militaire', 'Élévations latérales — Poulie basse', 'Élévations latérales — Haltères'],
-    'Pectoraux': ['Développé couché — Barre', 'Développé couché — Haltères', 'Développé incliné — Barre', 'Développé incliné — Haltères', 'Dips', 'Pec Deck — Poignées', 'Pec Deck — Boudins'],
+    'Pectoraux': ['Développé couché — Barre', 'Développé couché — Haltères', 'Développé incliné — Barre', 'Développé incliné — Haltères', 'Dips (Pectoraux)', 'Pec Deck — Poignées', 'Pec Deck — Boudins'],
     'Dorsaux': ['Tractions — Pronation', 'Tractions — Supination', 'Tractions — Prise neutre', 'Tirage vertical (poulie haute) — Pronation', 'Tirage vertical (poulie haute) — Supination', 'Tirage vertical (poulie haute) — Prise neutre', 'Rowing assis — Machine', 'Rowing assis — Poulie basse', 'Rowing assis — Pronation', 'Rowing assis — Supination', 'Rowing assis — Prise neutre'],
     'Trapèzes': ['Shrugs — Haltères', 'Shrugs — Barre', 'Shrugs — Machine'],
-    'Biceps': ['Curl incliné — Supination', 'Curl incliné — Rotation', 'Curl pupitre — Machine', 'Curl pupitre — Haltères', 'Curl pupitre — Barre EZ'],
-    'Triceps': ['Extension poulie haute — Barre', 'Extension poulie haute — Corde', 'Extension poulie basse (overhead) — Barre', 'Extension poulie basse (overhead) — Corde'],
-    'Avant-bras': ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'],
+    'Biceps': ['Curl incliné — Supination', 'Curl incliné — Rotation', 'Curl pupitre — Machine', 'Curl pupitre — Haltères', 'Curl pupitre — Barre EZ', 'Curl marteau'],
+    'Triceps': ['Extension poulie haute — Barre', 'Extension poulie haute — Corde', 'Extension poulie basse (overhead) — Barre', 'Extension poulie basse (overhead) — Corde', 'Dips (Triceps)'],
+    'Avant-bras': ['Flexions de poignets', 'Extensions de poignets'],
     'Abdos': ['Crunch', 'Enroulements de bassin', 'Gainage planche', 'Relevés de jambes'],
-    'Fessiers': ['Hip thrust', 'Squat gobelet', 'Soulevé de terre sumo'],
-    'Quadriceps': ['Soulevé de terre barre hex', 'Hack squat', 'Leg extension', 'Presse à cuisses', 'Presse à cuisses incliné', 'Presse à cuisses horizontale'],
+    'Fessiers': ['Hip thrust', 'Soulevé de terre sumo'],
+    'Quadriceps': ['Soulevé de terre barre hex', 'Hack squat', 'Leg extension', 'Squat gobelet', 'Presse à cuisses', 'Presse à cuisses incliné', 'Presse à cuisses horizontale'],
     'Ischio-jambiers': ['Soulevé de terre jambes tendues', 'Leg curl allongé', 'Leg curl assis'],
     'Mollets': ['Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses'],
 }

@@ -704,6 +704,21 @@ def init_db():
             conn.execute("""ALTER TABLE fit_programs ADD COLUMN rep_goals TEXT NOT NULL DEFAULT '{"upper":10,"lower":12,"isolation":12}'""")
             logger.info("Added fit_programs.rep_goals column")
 
+        # Migration: catalogue refinement. 'Dips' becomes 'Dips (Pectoraux)' (its
+        # historic home) with a new 'Dips (Triceps)'; 'Curl marteau' moves from
+        # Avant-bras to Biceps and 'Squat gobelet' from Fessiers to Quadriceps.
+        # Rename the stored 'Dips' leaf everywhere (selections, set logs, working
+        # weights, settings, unilateral) and re-file the two moved exercises'
+        # selections under their new muscle group.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('recat_dips_curl_squat',)).fetchone():
+            for table in ('fit_exercises', 'fit_session_sets', 'fit_work_weights',
+                          'fit_exercise_settings', 'fit_exercise_unilateral'):
+                conn.execute(f"UPDATE {table} SET exercise = 'Dips (Pectoraux)' WHERE exercise = 'Dips'")
+            conn.execute("UPDATE fit_exercises SET muscle = 'Biceps' WHERE exercise = 'Curl marteau' AND muscle = 'Avant-bras'")
+            conn.execute("UPDATE fit_exercises SET muscle = 'Quadriceps' WHERE exercise = 'Squat gobelet' AND muscle = 'Fessiers'")
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('recat_dips_curl_squat',))
+            logger.info("Re-categorised Dips / Curl marteau / Squat gobelet")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
