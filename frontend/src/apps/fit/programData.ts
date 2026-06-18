@@ -34,13 +34,13 @@ export interface Split {
 
 // Defined freely; SPLITS exposes them alphabetically with negatives last.
 const SPLITS_RAW: Split[] = [
-  { key: 'full_body', label: 'Full Body', sessions: ['tout le corps'] },
-  { key: 'upper_lower', label: 'Upper / Lower', sessions: ['haut du corps', 'bas du corps'] },
-  { key: 'upper_lower_upper', label: 'Upper / Lower / Upper', sessions: ['haut du corps', 'bas du corps', 'haut du corps'] },
+  { key: 'full_body', label: 'Full Body x2', sessions: ['Tout le corps', 'Tout le corps'] },
+  { key: 'upper_lower', label: 'Upper / Lower', sessions: ['Haut du corps', 'Bas du corps'] },
+  { key: 'upper_lower_upper', label: 'Upper / Lower / Upper', sessions: ['Haut du corps', 'Bas du corps', 'Haut du corps'] },
   // Grouped with the Upper/Lower variants: ordered just before "Upper / Lower".
-  { key: 'lower_upper_lower', label: 'Lower / Upper / Lower', sortLabel: 'Upper / Lower', sessions: ['bas du corps', 'haut du corps', 'bas du corps'] },
-  { key: 'push_pull_legs', label: 'Push / Pull / Legs', sessions: ['poussée (pectoraux, épaules, triceps)', 'tirage (dos, biceps)', 'jambes'] },
-  { key: 'body_part', label: 'Body part', example: true, sessions: ['pectoraux', 'dos', 'jambes', 'épaules', 'bras'] },
+  { key: 'lower_upper_lower', label: 'Lower / Upper / Lower', sortLabel: 'Upper / Lower', sessions: ['Bas du corps', 'Haut du corps', 'Bas du corps'] },
+  { key: 'push_pull_legs', label: 'Push / Pull / Legs', sessions: ['Poussée (pectoraux, épaules, triceps)', 'Tirage (dos, biceps)', 'Jambes'] },
+  { key: 'body_part', label: 'Body part', example: true, sessions: ['Pectoraux', 'Dos', 'Jambes', 'Épaules', 'Bras'] },
   { key: 'no_split', label: 'Pas de split', negative: true, note: 'Aucun découpage : tu composes chaque séance comme tu veux.' },
 ];
 

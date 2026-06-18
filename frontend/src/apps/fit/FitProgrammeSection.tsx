@@ -125,7 +125,8 @@ function SplitDefinition({ split }: { split: Split }) {
       ) : (
         <>
           {split.example && <p className="mb-1 text-xs text-slate-400">Par exemple :</p>}
-          <ul className="flex flex-col gap-0.5">
+          {/* Long breakdowns (e.g. Body part) spread over two columns to stay compact. */}
+          <ul className={(split.sessions?.length ?? 0) >= 4 ? 'grid grid-cols-2 gap-x-3 gap-y-0.5' : 'flex flex-col gap-0.5'}>
             {split.sessions?.map((s, i) => (
               <li key={i} className="text-slate-300">
                 <span className="font-medium text-slate-100">Séance {i + 1}</span> : {s}
