@@ -17,28 +17,30 @@ export function FitWeekSplitPicker({ options, bodyPartOrder, onChoose }: {
 }) {
   return (
     <div className="fixed inset-0 z-30 flex flex-col bg-slate-900 text-slate-100">
-      <div className="flex-1 overflow-y-auto px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))]">
-        <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-5">
-          <h2 className="mt-4 text-center text-xl font-semibold">Quel split cette semaine ?</h2>
+      <div className="flex flex-1 flex-col justify-center overflow-y-auto px-5 py-10">
+        <div className="mx-auto flex w-full max-w-[22rem] flex-col">
+          <h2 className="text-center text-xl font-semibold">Quel split cette semaine ?</h2>
 
-          {options.map(o => {
-            const days = weekDays(o.key, bodyPartOrder);
-            return (
-              <button
-                key={o.key}
-                type="button"
-                onClick={() => onChoose(o.key)}
-                className="rounded-2xl border border-slate-700 bg-slate-800/40 px-4 py-3.5 text-left transition-colors active:bg-slate-800"
-              >
-                <span className="block font-semibold text-slate-100">{o.label}</span>
-                {days.length > 0 && (
-                  <span className="mt-1 block text-sm text-slate-400">
-                    {days.map(d => d.label).join(' · ')}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          <div className="mt-12 flex flex-col gap-4">
+            {options.map(o => {
+              const days = weekDays(o.key, bodyPartOrder);
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  onClick={() => onChoose(o.key)}
+                  className="rounded-2xl border border-slate-700 bg-slate-800/40 px-4 py-3.5 text-left transition-colors active:bg-slate-800"
+                >
+                  <span className="block font-semibold text-slate-100">{o.label}</span>
+                  {days.length > 0 && (
+                    <span className="mt-1 block text-sm text-slate-400">
+                      {days.map(d => d.label).join(' · ')}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
