@@ -98,7 +98,9 @@ export const splitLabel = (key: string | null) =>
 
 // An exercise with variants expands into one or more rows of sub-options
 // (`variants` is an array of rows). Each leaf is stored as `"<name> — <variant>"`.
-export type Exercise = string | { name: string; variants: string[][] };
+// `exclusive` makes each variant row single-select in the program (picking one
+// option clears the others of that row).
+export type Exercise = string | { name: string; variants: string[][]; exclusive?: boolean };
 
 const exLabel = (ex: Exercise) => (typeof ex === 'string' ? ex : ex.name);
 
@@ -111,7 +113,7 @@ const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
   { name: 'Dorsaux', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
   { name: 'Trapèzes', exercises: [{ name: 'Shrugs', variants: [['Haltères', 'Barre', 'Machine']] }] },
   { name: 'Biceps', exercises: [{ name: 'Curl incliné', variants: [['Supination', 'Rotation']] }, { name: 'Curl pupitre', variants: [['Machine', 'Haltères', 'Barre EZ']] }, 'Curl marteau'] },
-  { name: 'Triceps', exercises: [{ name: 'Extension poulie haute', variants: [['Barre', 'Corde']] }, { name: 'Extension poulie basse (overhead)', variants: [['Barre', 'Corde']] }, 'Dips (Triceps)'] },
+  { name: 'Triceps', exercises: [{ name: 'Extension poulie haute', variants: [['Barre', 'Corde']] }, { name: 'Extension poulie basse (overhead)', variants: [['Barre', 'Corde']], exclusive: true }, 'Dips (Triceps)'] },
   { name: 'Avant-bras', exercises: ['Flexions de poignets', 'Extensions de poignets'] },
   { name: 'Abdos', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche', 'Relevés de jambes'] },
   { name: 'Fessiers', exercises: ['Hip thrust', 'Soulevé de terre sumo'] },
@@ -123,7 +125,7 @@ const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
 export const MUSCLES = MUSCLES_RAW.map(m => ({
   name: m.name,
   exercises: m.exercises
-    .map(ex => (typeof ex === 'string' ? ex : { name: ex.name, variants: ex.variants.map(sortLabels) }))
+    .map(ex => (typeof ex === 'string' ? ex : { name: ex.name, variants: ex.variants.map(sortLabels), exclusive: ex.exclusive }))
     .sort((a, b) => collator.compare(exLabel(a), exLabel(b))),
 }));
 
@@ -199,6 +201,22 @@ export const exerciseSettingsValue = (name: string): string => {
 };
 
 export const variantId = (name: string, variant: string) => `${name} — ${variant}`;
+
+// Catalogue exercises with variants, by base name (for exclusivity lookups).
+const EXERCISE_BY_BASE: Record<string, { variants: string[][]; exclusive?: boolean }> = {};
+for (const m of MUSCLES) for (const ex of m.exercises) if (typeof ex !== 'string') EXERCISE_BY_BASE[ex.name] = ex;
+
+// For an exclusive-variant exercise, the other leaves of the same variant row as
+// `leaf` — i.e. the selections to clear when `leaf` is picked. Empty otherwise.
+export const exclusiveSiblings = (leaf: string): string[] => {
+  const i = leaf.indexOf(' — ');
+  if (i === -1) return [];
+  const base = leaf.slice(0, i), variant = leaf.slice(i + 3);
+  const ex = EXERCISE_BY_BASE[base];
+  if (!ex || !ex.exclusive) return [];
+  const row = ex.variants.find(r => r.includes(variant));
+  return row ? row.filter(v => v !== variant).map(v => variantId(base, v)) : [];
+};
 
 // Display a single stored leaf: "Rowing assis — Machine" -> "Rowing assis (Machine)".
 export const leafLabel = (leaf: string) => {

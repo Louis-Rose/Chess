@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
-import { REP_GOAL_DEFAULT, normalizeMuscleOrder, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
+import { REP_GOAL_DEFAULT, exclusiveSiblings, normalizeMuscleOrder, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
 import type { CustomDraft } from './FitCustomExercises';
 
 // Shared editing state for one program: name, split, working sets, per-muscle
@@ -138,7 +138,14 @@ export function useProgramEditor(program: FitProgram) {
   function toggleExercise(muscle: string, id: string) {
     setSelections(prev => {
       const cur = prev[muscle] ?? [];
-      const next = cur.includes(id) ? cur.filter(e => e !== id) : [...cur, id];
+      let next: string[];
+      if (cur.includes(id)) {
+        next = cur.filter(e => e !== id);
+      } else {
+        // Exclusive variants: picking one clears the others of its row.
+        const siblings = exclusiveSiblings(id);
+        next = [...cur.filter(e => !siblings.includes(e)), id];
+      }
       fitRequest(() => axios.put(`${base}/exercises`, { muscle, exercises: next })).catch(() => {});
       return { ...prev, [muscle]: next };
     });
