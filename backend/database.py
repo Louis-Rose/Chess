@@ -655,6 +655,14 @@ def init_db():
             conn.execute("UPDATE fit_programs SET splits = '[]' WHERE splits IS NULL")
             logger.info("Added fit_programs.splits column")
 
+        # Migration: per-muscle training priority within a program. A JSON object
+        # mapping a muscle to 'weak' (a weak point — its exercises lead the
+        # session) or 'strong' (a strong point — they close it); muscles absent
+        # from the object are neutral. Empty object = no prioritisation.
+        if not _column_exists(conn, 'fit_programs', 'priorities'):
+            conn.execute("ALTER TABLE fit_programs ADD COLUMN priorities TEXT NOT NULL DEFAULT '{}'")
+            logger.info("Added fit_programs.priorities column")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

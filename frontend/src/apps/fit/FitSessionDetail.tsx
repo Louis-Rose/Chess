@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
-import { leafLabel, muscleContribution, MUSCLE_ORDER } from './programData';
+import { leafLabel, muscleContribution, MUSCLE_ORDER, type Priorities } from './programData';
 import { sessionTitle } from './format';
 import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
@@ -66,20 +66,21 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const [validating, setValidating] = useState<string | null>(null); // exercise whose note modal is open
   const [picking, setPicking] = useState(false);
   const [program, setProgram] = useState<Record<string, string[]>>({});
+  const [priorities, setPriorities] = useState<Priorities>({});
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
   const { unilateral } = useExerciseUnilateral();
 
   useEffect(() => {
-    const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]> } }>?] = [
+    const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]>; priorities: Priorities } }>?] = [
       fitRequest(() => axios.get<Session>(`/api/fit/sessions/${sessionId}`)),
     ];
-    if (editable) requests[1] = fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises'));
+    if (editable) requests[1] = fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities }>('/api/fit/exercises'));
     Promise.all(requests)
       .then(([sessionRes, exRes]) => {
         setSession(sessionRes.data);
-        if (exRes) setProgram(exRes.data.selections ?? {});
+        if (exRes) { setProgram(exRes.data.selections ?? {}); setPriorities(exRes.data.priorities ?? {}); }
       })
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
@@ -344,6 +345,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
       {picking && (
         <FitExercisePicker
           program={program}
+          priorities={priorities}
           onPick={leaf => { setPicking(false); setEditing(leaf); }}
           onClose={() => setPicking(false)}
         />

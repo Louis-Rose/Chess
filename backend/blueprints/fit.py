@@ -38,6 +38,8 @@ FIT_REFRESH_PATH = '/api/fit/auth'
 
 # Allowed training splits — keep in sync with the frontend selector.
 VALID_SPLITS = {'full_body', 'upper_lower', 'upper_lower_upper', 'lower_upper_lower', 'push_pull_legs', 'body_part', 'no_split'}
+# A muscle's training priority within a program — keep in sync with the frontend.
+VALID_PRIORITIES = {'weak', 'strong'}
 
 # Allowed exercises per muscle group — keep in sync with FitExercises.tsx.
 MUSCLE_EXERCISES = {
@@ -233,11 +235,27 @@ def _splits_of(row):
         return []
 
 
+def _priorities_of(row):
+    """A program row's per-muscle priorities as a {muscle: 'weak'|'strong'} dict.
+    Stored as a JSON object in the `priorities` column (muscles absent from it are
+    neutral). Filters to known muscles / states defensively."""
+    raw = row['priorities'] if row is not None else None
+    if not raw:
+        return {}
+    try:
+        val = json.loads(raw)
+    except (ValueError, TypeError):
+        return {}
+    if not isinstance(val, dict):
+        return {}
+    return {m: s for m, s in val.items() if m in VALID_MUSCLES and s in VALID_PRIORITIES}
+
+
 def _active_program(conn):
     """The user's active program row (id, name, splits, work_sets), or None.
     Falls back to the most recent program when no explicit active pointer is set."""
     row = conn.execute(
-        """SELECT p.id, p.name, p.splits, p.work_sets
+        """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities
            FROM fit_programs p
            JOIN fit_profile f ON f.active_program_id = p.id
            WHERE f.user_id = ?""",
@@ -246,7 +264,7 @@ def _active_program(conn):
     if row:
         return row
     return conn.execute(
-        'SELECT id, name, splits, work_sets FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+        'SELECT id, name, splits, work_sets, priorities FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
         (request.user_id,)
     ).fetchone()
 
@@ -254,7 +272,7 @@ def _active_program(conn):
 def _owned_program(conn, program_id):
     """Return the program row if it belongs to the current user, else None."""
     return conn.execute(
-        'SELECT id, name, splits, work_sets FROM fit_programs WHERE id = ? AND user_id = ?',
+        'SELECT id, name, splits, work_sets, priorities FROM fit_programs WHERE id = ? AND user_id = ?',
         (program_id, request.user_id)
     ).fetchone()
 
@@ -285,7 +303,8 @@ def get_profile():
 @fit_bp.route('/api/fit/exercises', methods=['GET'])
 @fit_login_required
 def get_exercises():
-    """Return the active program's selected exercises grouped by muscle."""
+    """Return the active program's selected exercises grouped by muscle, plus its
+    per-muscle priorities (the session uses them to order the exercise picker)."""
     selections: dict[str, list] = {}
     with get_db() as conn:
         prog = _active_program(conn)
@@ -295,7 +314,7 @@ def get_exercises():
             ).fetchall()
             for r in rows:
                 selections.setdefault(r['muscle'], []).append(r['exercise'])
-    return jsonify({'selections': selections})
+    return jsonify({'selections': selections, 'priorities': _priorities_of(prog)})
 
 
 @fit_bp.route('/api/fit/programs', methods=['GET'])
@@ -304,7 +323,7 @@ def list_programs():
     """All of the user's programs (with exercise counts) plus the active one's id."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT p.id, p.name, p.splits, p.work_sets,
+            """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities,
                       COUNT(e.exercise) AS exercise_count
                FROM fit_programs p
                LEFT JOIN fit_exercises e ON e.program_id = p.id
@@ -316,7 +335,8 @@ def list_programs():
         active = _active_program(conn)
     return jsonify({
         'programs': [{'id': r['id'], 'name': r['name'], 'splits': _splits_of(r),
-                      'work_sets': r['work_sets'], 'exercise_count': r['exercise_count']} for r in rows],
+                      'work_sets': r['work_sets'], 'priorities': _priorities_of(r),
+                      'exercise_count': r['exercise_count']} for r in rows],
         'active_id': active['id'] if active else None,
     })
 
@@ -335,7 +355,7 @@ def create_program():
             ).fetchone()['c']
             name = f'Programme {n + 1}'
         row = conn.execute(
-            "INSERT INTO fit_programs (user_id, name, splits) VALUES (?, ?, '[]') RETURNING id, name, splits, work_sets",
+            "INSERT INTO fit_programs (user_id, name, splits) VALUES (?, ?, '[]') RETURNING id, name, splits, work_sets, priorities",
             (request.user_id, name[:PROGRAM_NAME_MAX])
         ).fetchone()
         # Make it active if the user has no active program yet.
@@ -344,7 +364,8 @@ def create_program():
         ).fetchone()
         if not cur or cur['active_program_id'] is None:
             _set_active_program(conn, row['id'])
-    return jsonify({'id': row['id'], 'name': row['name'], 'splits': _splits_of(row), 'work_sets': row['work_sets']})
+    return jsonify({'id': row['id'], 'name': row['name'], 'splits': _splits_of(row),
+                    'work_sets': row['work_sets'], 'priorities': _priorities_of(row)})
 
 
 @fit_bp.route('/api/fit/programs/active', methods=['PUT'])
@@ -363,7 +384,7 @@ def set_active_program():
 @fit_bp.route('/api/fit/programs/<int:program_id>', methods=['PUT'])
 @fit_login_required
 def update_program(program_id):
-    """Update a program's name, splits and/or working-sets count."""
+    """Update a program's name, splits, working-sets count and/or priorities."""
     data = request.get_json(silent=True) or {}
     updates = {}
     if 'name' in data:
@@ -383,6 +404,14 @@ def update_program(program_id):
         if not isinstance(ws, int) or isinstance(ws, bool) or not WORK_SETS_MIN <= ws <= WORK_SETS_MAX:
             return jsonify({'error': 'Invalid work_sets'}), 400
         updates['work_sets'] = ws
+    if 'priorities' in data:
+        # {muscle: 'weak'|'strong'}; absent muscles are neutral. {} clears all.
+        pr = data['priorities']
+        if not isinstance(pr, dict) or any(
+            m not in VALID_MUSCLES or s not in VALID_PRIORITIES for m, s in pr.items()
+        ):
+            return jsonify({'error': 'Invalid priorities'}), 400
+        updates['priorities'] = json.dumps(pr)
     if not updates:
         return jsonify({'error': 'Nothing to update'}), 400
 
@@ -397,6 +426,8 @@ def update_program(program_id):
     resp = dict(updates)
     if 'splits' in resp:
         resp['splits'] = json.loads(resp['splits'])   # send the array, not its JSON text
+    if 'priorities' in resp:
+        resp['priorities'] = json.loads(resp['priorities'])   # send the object, not its JSON text
     return jsonify(resp)
 
 

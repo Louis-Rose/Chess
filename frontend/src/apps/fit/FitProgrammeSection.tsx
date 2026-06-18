@@ -1,8 +1,8 @@
 import { Fragment, useMemo, type ReactNode } from 'react';
-import { Loader2, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Loader2, Plus } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
-import { MUSCLES, SPLITS, exercisesForMuscle, type Split } from './programData';
+import { MUSCLES, SPLITS, exercisesForMuscle, type Priorities, type Split } from './programData';
 import type { ProgramEditor } from './useProgramEditor';
 
 // One program section's body (the controls under the heading), shared by the
@@ -13,8 +13,8 @@ import type { ProgramEditor } from './useProgramEditor';
 export const WORK_SETS_OPTIONS = [2, 3, 4, 5, 6];
 const NAME_MAX = 60;
 
-// Section keys, in order: name, split, sets, then one per muscle.
-export const SECTION_KEYS = ['name', 'split', 'sets', ...MUSCLES.map(m => m.name)];
+// Section keys, in order: name, split, priority, sets, then one per muscle.
+export const SECTION_KEYS = ['name', 'split', 'priority', 'sets', ...MUSCLES.map(m => m.name)];
 
 // "Quels exercices pour <le dos / les épaules> ?" — only Dos is singular.
 const musclePhrase = (m: string) => (m === 'Dos' ? 'le dos' : `les ${m.toLowerCase()}`);
@@ -24,6 +24,7 @@ const musclePhrase = (m: string) => (m === 'Dos' ? 'le dos' : `les ${m.toLowerCa
 export const sectionQuestion = (section: string) =>
   section === 'name' ? 'Comment veux-tu nommer ce programme ?'
     : section === 'split' ? 'Quel(s) split(s) veux-tu suivre ? (choix multiples possibles)'
+    : section === 'priority' ? 'Quels muscles veux-tu prioriser (points faibles) ou non (points forts) ?'
     : section === 'sets' ? 'Combien de séries de travail par exercice ?'
     : `Quels exercices pour ${musclePhrase(section)} ?`;
 
@@ -33,6 +34,7 @@ export function FitProgrammeSection({ section, editor }: {
 }) {
   const {
     loading, name, setName, saveName, splits, toggleSplit, workSets, chooseSets,
+    priorities, cyclePriority, clearPriorities,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
     onCustomSaved, deleteCustom, unilateral, saveUnilateral,
   } = editor;
@@ -81,6 +83,9 @@ export function FitProgrammeSection({ section, editor }: {
       </div>
     );
 
+  if (section === 'priority')
+    return <PrioritySection priorities={priorities} cyclePriority={cyclePriority} clearPriorities={clearPriorities} />;
+
   if (section === 'sets')
     return (
       <div className="grid grid-cols-5 gap-2">
@@ -123,6 +128,61 @@ export function FitProgrammeSection({ section, editor }: {
         />
       )}
     </>
+  );
+}
+
+// Per-muscle priority picker: each muscle is a chip the user taps to cycle
+// neutral -> point faible (prioritaire) -> point fort -> neutral. Weak points
+// lead the session, strong points close it; "Pas de priorisation" clears all.
+function PrioritySection({ priorities, cyclePriority, clearPriorities }: {
+  priorities: Priorities;
+  cyclePriority: (muscle: string) => void;
+  clearPriorities: () => void;
+}) {
+  const hasAny = Object.keys(priorities).length > 0;
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="rounded-lg bg-slate-800/40 px-3.5 py-2.5 text-left text-sm text-slate-300">
+        Cela influera l'ordre d'exécution des exercices : points faibles en début de séance, points forts en fin de séance.
+      </p>
+
+      <div className="flex flex-wrap justify-center gap-2">
+        {MUSCLES.map(m => {
+          const p = priorities[m.name];
+          return (
+            <button
+              key={m.name}
+              type="button"
+              onClick={() => cyclePriority(m.name)}
+              aria-label={`${m.name} : ${p === 'weak' ? 'point faible' : p === 'strong' ? 'point fort' : 'neutre'}`}
+              className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                p === 'weak' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
+                  : p === 'strong' ? 'border-amber-500 bg-amber-500/10 text-amber-200'
+                  : 'border-slate-700 bg-slate-800/50 text-slate-200 active:bg-slate-800'
+              }`}
+            >
+              {p === 'weak' && <ArrowUp className="h-3.5 w-3.5" />}
+              {p === 'strong' && <ArrowDown className="h-3.5 w-3.5" />}
+              {m.name}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-center gap-4 text-xs text-slate-400">
+        <span className="inline-flex items-center gap-1"><ArrowUp className="h-3 w-3 text-emerald-400" /> Point faible (prioritaire)</span>
+        <span className="inline-flex items-center gap-1"><ArrowDown className="h-3 w-3 text-amber-400" /> Point fort</span>
+      </div>
+
+      <button
+        type="button"
+        onClick={clearPriorities}
+        disabled={!hasAny}
+        className="mx-auto rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition-colors active:bg-slate-800 disabled:opacity-40"
+      >
+        Pas de priorisation
+      </button>
+    </div>
   );
 }
 

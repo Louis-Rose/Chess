@@ -12,7 +12,7 @@ import { FitScreenHeader } from './FitScreenHeader';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
 import { useExerciseUnilateral } from './useExerciseUnilateral';
-import { leafLabel } from './programData';
+import { leafLabel, type Priorities } from './programData';
 import { sessionTitle } from './format';
 import { loadSessionNav, saveSessionNav, clearSessionNav } from './fitSessionNav';
 import { startRest, clearRest } from './restTimer';
@@ -55,6 +55,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [comment, setComment] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});   // per-exercise notes
   const [program, setProgram] = useState<Record<string, string[]>>({});
+  const [priorities, setPriorities] = useState<Priorities>({});
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState(false);
@@ -73,7 +74,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     // sets), otherwise starts a fresh empty one.
     Promise.all([
       fitRequest(() => axios.post<SessionPayload>('/api/fit/sessions')),
-      fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
+      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities }>('/api/fit/exercises')),
     ])
       .then(([sessionRes, exRes]) => {
         const sid = sessionRes.data.id;
@@ -87,6 +88,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         setComment(sessionRes.data.comment);
         setNotes(sessionRes.data.notes ?? {});
         setProgram(exRes.data.selections ?? {});
+        setPriorities(exRes.data.priorities ?? {});
 
         const grouped = groupSets(sessionRes.data.sets ?? []);
         // Restore the exact sub-view the user left from (open exercise / picker).
@@ -363,6 +365,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       {picking && (
         <FitExercisePicker
           program={program}
+          priorities={priorities}
           onPick={addExercise}
           onClose={() => setPicking(false)}
         />

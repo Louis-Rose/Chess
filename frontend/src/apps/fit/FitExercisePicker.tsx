@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { MUSCLE_ORDER, isValidLeaf, sortLabels } from './programData';
+import { MUSCLE_ORDER, isValidLeaf, sortLabels, priorityRank, type Priorities } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
 import { FitHeader } from './FitHeader';
@@ -15,8 +15,9 @@ import { validatedLeaves } from './validatedExercises';
 // its own card (the variant shown under the base name), so a single tap adds it
 // (onPick). It only lists the program's still-valid exercises.
 
-export function FitExercisePicker({ program, onPick, onClose }: {
+export function FitExercisePicker({ program, priorities = {}, onPick, onClose }: {
   program: Record<string, string[]>;
+  priorities?: Priorities;
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
@@ -37,6 +38,10 @@ export function FitExercisePicker({ program, onPick, onClose }: {
   // Nothing is pre-highlighted: the picker only adds exercises, so showing the
   // ones already in the session as "selected" was misleading.
   const selected: string[] = [];
+  // Muscles in anatomical order, then re-grouped by the program's priorities so
+  // weak points (to bring up) lead and strong points close — guiding the user to
+  // pick, and thus train, them in that order. Sort is stable, so same-priority
+  // muscles keep their anatomical order.
   const groups = MUSCLE_ORDER
     .map(name => ({
       name,
@@ -44,7 +49,8 @@ export function FitExercisePicker({ program, onPick, onClose }: {
       // variants of the same exercise sit next to each other.
       exercises: sortLabels((program[name] ?? []).filter(ex => isValidLeaf(name, ex))),
     }))
-    .filter(g => g.exercises.length > 0);
+    .filter(g => g.exercises.length > 0)
+    .sort((a, b) => priorityRank(priorities, a.name) - priorityRank(priorities, b.name));
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col bg-slate-900 text-slate-100">

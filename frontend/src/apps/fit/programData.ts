@@ -12,7 +12,25 @@ export interface FitProgram {
   name: string;
   splits: string[];
   work_sets: number | null;
+  priorities: Priorities;
 }
+
+// Per-muscle training priority within a program. A muscle is 'weak' (a weak
+// point to bring up — its exercises lead the session) or 'strong' (a strong
+// point — its exercises close the session); muscles absent from the map are
+// neutral. An empty map means "Pas de priorisation". Keep the muscle keys /
+// states in sync with backend/blueprints/fit.py.
+export type MusclePriority = 'weak' | 'strong';
+export type Priorities = Record<string, MusclePriority>;
+
+// Tap-to-cycle order for a muscle: neutral -> weak -> strong -> neutral.
+export const nextPriority = (cur: MusclePriority | undefined): MusclePriority | undefined =>
+  cur === undefined ? 'weak' : cur === 'weak' ? 'strong' : undefined;
+
+// Session muscle ordering rank: weak points first (-1), neutral (0), strong
+// points last (1). Ties keep the caller's existing (catalogue/anatomical) order.
+export const priorityRank = (priorities: Priorities, muscle: string): number =>
+  priorities[muscle] === 'weak' ? -1 : priorities[muscle] === 'strong' ? 1 : 0;
 
 // Option lists are shown alphabetically, with any "negative" option (e.g. "Pas
 // de split") pinned last. sortLabels is the single helper enforcing that order.

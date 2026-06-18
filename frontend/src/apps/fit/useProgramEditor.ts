@@ -3,7 +3,7 @@ import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
 import { useExerciseUnilateral } from './useExerciseUnilateral';
-import { variantId, type CustomExercise, type FitProgram } from './programData';
+import { nextPriority, variantId, type CustomExercise, type FitProgram, type Priorities } from './programData';
 import type { CustomDraft } from './FitCustomExercises';
 
 // Shared editing state for one program: name, split, working sets, per-muscle
@@ -18,6 +18,7 @@ export function useProgramEditor(program: FitProgram) {
   const [name, setName] = useState(program.name);
   const [splits, setSplits] = useState<string[]>(program.splits ?? []);
   const [workSets, setWorkSets] = useState<number | null>(program.work_sets);
+  const [priorities, setPriorities] = useState<Priorities>(program.priorities ?? {});
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const { customExercises, reloadCustom } = useCustomExercises();
@@ -53,6 +54,24 @@ export function useProgramEditor(program: FitProgram) {
   function chooseSets(n: number) {
     setWorkSets(n);
     fitRequest(() => axios.put(base, { work_sets: n })).catch(() => {});
+  }
+
+  function savePriorities(next: Priorities) {
+    setPriorities(next);
+    fitRequest(() => axios.put(base, { priorities: next })).catch(() => {});
+  }
+
+  // Tap a muscle to cycle its priority neutral -> weak -> strong -> neutral.
+  function cyclePriority(muscle: string) {
+    const next = { ...priorities };
+    const stage = nextPriority(next[muscle]);
+    if (stage) next[muscle] = stage; else delete next[muscle];
+    savePriorities(next);
+  }
+
+  // "Pas de priorisation": clear every muscle back to neutral.
+  function clearPriorities() {
+    if (Object.keys(priorities).length) savePriorities({});
   }
 
   function toggleExercise(muscle: string, id: string) {
@@ -99,6 +118,7 @@ export function useProgramEditor(program: FitProgram) {
     name, setName, saveName,
     splits, toggleSplit,
     workSets, chooseSets,
+    priorities, cyclePriority, clearPriorities,
     selections, toggleExercise,
     customExercises, customDraft, setCustomDraft, onCustomSaved, deleteCustom,
     unilateral, saveUnilateral,
