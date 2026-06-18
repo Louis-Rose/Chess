@@ -65,7 +65,6 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const [validating, setValidating] = useState<string | null>(null); // exercise whose note modal is open
   const [picking, setPicking] = useState(false);
   const [program, setProgram] = useState<Record<string, string[]>>({});
-  const [priorities, setPriorities] = useState<Priorities>({});
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
@@ -80,7 +79,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
     Promise.all(requests)
       .then(([sessionRes, exRes]) => {
         setSession(sessionRes.data);
-        if (exRes) { setProgram(exRes.data.selections ?? {}); setPriorities(exRes.data.priorities ?? {}); setUnilateral(new Set(exRes.data.unilateral ?? [])); setMuscleOrder(exRes.data.muscle_order ?? []); }
+        if (exRes) { setProgram(exRes.data.selections ?? {}); setUnilateral(new Set(exRes.data.unilateral ?? [])); setMuscleOrder(exRes.data.muscle_order ?? []); }
       })
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
@@ -345,7 +344,6 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
       {picking && (
         <FitExercisePicker
           program={program}
-          priorities={priorities}
           muscleOrder={muscleOrder}
           onPick={leaf => { setPicking(false); setEditing(leaf); }}
           onClose={() => setPicking(false)}

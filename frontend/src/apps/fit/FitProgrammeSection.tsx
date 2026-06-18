@@ -1,8 +1,8 @@
-import { Fragment, useMemo, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ArrowDown, ArrowUp, GripVertical, Loader2, Plus, X } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
-import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, muscleBucket, type Priorities, type Split } from './programData';
+import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, type Priorities, type Split } from './programData';
 import { FitPriorityZones } from './FitPriorityZones';
 import { FitVolumeGraph } from './FitVolumeGraph';
 import type { ProgramEditor } from './useProgramEditor';
@@ -48,7 +48,7 @@ export function FitProgrammeSection({ section, editor }: {
   const {
     loading, name, setName, saveName, splits, toggleSplit, workSets, chooseSets,
     priorities, setPriority,
-    orderedMuscles, moveMuscle,
+    orderedMuscles, reorderMuscles,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
@@ -103,7 +103,7 @@ export function FitProgrammeSection({ section, editor }: {
     return <FitPriorityZones priorities={priorities} setPriority={setPriority} />;
 
   if (section === 'order')
-    return <MuscleOrderSection order={orderedMuscles()} priorities={priorities} onMove={moveMuscle} />;
+    return <MuscleOrderSection order={orderedMuscles()} priorities={priorities} onReorder={reorderMuscles} />;
 
   if (section === 'bodypart')
     return (
@@ -186,38 +186,79 @@ export function FitProgrammeSection({ section, editor }: {
   );
 }
 
-// Muscle execution order, already sorted the way the session runs: legs last,
-// points faibles (rouge) first and points forts (vert) last. Reordering is only
-// possible within a bucket (same legs/priority status), so the arrows are
-// disabled at bucket boundaries.
-function MuscleOrderSection({ order, priorities, onMove }: {
+// Muscle execution order: a freely drag-reorderable list (grab the handle). The
+// order is unconstrained; priority badges (point faible rouge / fort vert) are
+// just hints for the advice above. Touch-friendly pointer drag (no library):
+// the grip captures the pointer, rows swap as it crosses a row height.
+const ROW_PX = 56;   // approximate row height incl. gap, for step detection
+
+function MuscleOrderSection({ order, priorities, onReorder }: {
   order: string[];
   priorities: Priorities;
-  onMove: (muscle: string, dir: -1 | 1) => void;
+  onReorder: (next: string[]) => void;
 }) {
-  const sameBucket = (a: string | undefined, b: string | undefined) =>
-    a != null && b != null && muscleBucket(priorities, a) === muscleBucket(priorities, b);
+  const [items, setItems] = useState<string[]>(order);
+  const dragFrom = useRef<number | null>(null);
+  const lastY = useRef(0);
+  const [dragging, setDragging] = useState<number | null>(null);
+
+  // Resync from outside when not mid-drag (e.g. exercises added/removed).
+  useEffect(() => { if (dragFrom.current == null) setItems(order); }, [order]);
+
+  function begin(e: React.PointerEvent, i: number) {
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    dragFrom.current = i; lastY.current = e.clientY; setDragging(i);
+  }
+  function moveTo(e: React.PointerEvent) {
+    const from = dragFrom.current;
+    if (from == null) return;
+    const steps = Math.trunc((e.clientY - lastY.current) / ROW_PX);
+    if (steps === 0) return;
+    const to = Math.max(0, Math.min(items.length - 1, from + steps));
+    if (to === from) return;
+    setItems(prev => { const n = [...prev]; const [m] = n.splice(from, 1); n.splice(to, 0, m); return n; });
+    lastY.current += (to - from) * ROW_PX;
+    dragFrom.current = to; setDragging(to);
+  }
+  function end() {
+    if (dragFrom.current == null) return;
+    dragFrom.current = null; setDragging(null);
+    onReorder(items);
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4">
       <p className="rounded-lg bg-slate-800/40 px-3.5 py-2.5 text-left text-sm text-slate-300">
-        Les points faibles passent en premier, les points forts en dernier, et les jambes toujours à la fin. Tu règles la suite à l'intérieur de chaque groupe.
+        Conseil : Travaille tes points faibles en premier, et tes points forts en fin de séance.
       </p>
       <ul className="flex flex-col gap-2">
-        {order.map((m, i) => {
+        {items.map((m, i) => {
           const p = priorities[m];
           return (
-            <li key={m} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2.5">
+            <li
+              key={m}
+              className={`flex items-center gap-2 rounded-xl border bg-slate-800/50 px-3 py-2.5 ${
+                dragging === i ? 'border-emerald-500' : 'border-slate-700'
+              }`}
+            >
               <span className="flex-1 text-left text-sm text-slate-100">
                 {m}
                 {p === 'weak' && <span className="ml-2 text-xs text-red-300">point faible</span>}
                 {p === 'strong' && <span className="ml-2 text-xs text-emerald-300">point fort</span>}
               </span>
-              <button type="button" aria-label="Monter" disabled={!sameBucket(order[i - 1], m)} onClick={() => onMove(m, -1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
-                <ArrowUp className="h-4 w-4" />
-              </button>
-              <button type="button" aria-label="Descendre" disabled={!sameBucket(order[i + 1], m)} onClick={() => onMove(m, 1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
-                <ArrowDown className="h-4 w-4" />
-              </button>
+              <span
+                role="button"
+                aria-label={`Déplacer ${m}`}
+                onPointerDown={e => begin(e, i)}
+                onPointerMove={moveTo}
+                onPointerUp={end}
+                onPointerCancel={end}
+                style={{ touchAction: 'none' }}
+                className="cursor-grab touch-none rounded-lg p-1 text-slate-400 active:bg-slate-800"
+              >
+                <GripVertical className="h-5 w-5" />
+              </span>
             </li>
           );
         })}

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
-import { REP_GOAL_DEFAULT, muscleBucket, normalizeMuscleOrder, sortMusclesForExecution, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
+import { REP_GOAL_DEFAULT, normalizeMuscleOrder, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
 import type { CustomDraft } from './FitCustomExercises';
 
 // Shared editing state for one program: name, split, working sets, per-muscle
@@ -119,25 +119,18 @@ export function useProgramEditor(program: FitProgram) {
     });
   }
 
-  // Muscles shown in the order step, in execution order (legs last, weak first /
-  // strong last): only those with a selected exercise, so the editor lists just
-  // the relevant muscles. Falls back to all when none is selected yet (the create
-  // wizard, before exercises are picked).
+  // Muscles shown in the order step, in the program's stored order: only those
+  // with a selected exercise, so the editor lists just the relevant muscles.
+  // Falls back to all when none is selected yet (the create wizard).
   function orderedMuscles(): string[] {
     const withEx = muscleOrder.filter(m => (selections[m] ?? []).length > 0);
-    return sortMusclesForExecution(withEx.length ? withEx : muscleOrder, priorities, muscleOrder);
+    return withEx.length ? withEx : muscleOrder;
   }
 
-  // Reorder one muscle among the shown ones, within its (legs / priority) bucket
-  // only — the bucket order itself is fixed. Empty muscles keep their slot in the
-  // stored order. Saved as the whole order.
-  function moveMuscle(muscle: string, dir: -1 | 1) {
-    const visible = orderedMuscles();
-    const target = visible[visible.indexOf(muscle) + dir];
-    if (!target || muscleBucket(priorities, target) !== muscleBucket(priorities, muscle)) return;
-    const next = [...muscleOrder];
-    const a = next.indexOf(muscle), b = next.indexOf(target);
-    [next[a], next[b]] = [next[b], next[a]];
+  // Commit a freely drag-reordered list of the shown muscles. The hidden (empty)
+  // muscles keep their order, appended after. Saved as the whole order.
+  function reorderMuscles(visibleOrder: string[]) {
+    const next = [...visibleOrder, ...muscleOrder.filter(m => !visibleOrder.includes(m))];
     setMuscleOrder(next);
     fitRequest(() => axios.put(base, { muscle_order: next })).catch(() => {});
   }
@@ -187,7 +180,7 @@ export function useProgramEditor(program: FitProgram) {
     splits, toggleSplit,
     workSets, chooseSets,
     priorities, setPriority,
-    muscleOrder, orderedMuscles, moveMuscle,
+    muscleOrder, orderedMuscles, reorderMuscles,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise,

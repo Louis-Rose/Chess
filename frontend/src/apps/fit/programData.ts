@@ -246,23 +246,6 @@ export const normalizeMuscleOrder = (order: string[] | undefined): string[] => {
   return [...valid, ...MUSCLE_ORDER.filter(m => !seen.has(m))];
 };
 
-// Leg muscles, always trained last in the execution order.
-export const LEG_MUSCLES = new Set(['Fessiers', 'Quadriceps', 'Ischio-jambiers', 'Mollets']);
-
-// The order exercises are executed in: legs always last, then weak points first
-// and strong points last, ties broken by the program's base muscle order. Shared
-// by the program "Ordre" step and the in-session exercise picker.
-export const sortMusclesForExecution = (muscles: string[], priorities: Priorities, baseOrder: string[]): string[] =>
-  [...muscles].sort((a, b) =>
-    (LEG_MUSCLES.has(a) ? 1 : 0) - (LEG_MUSCLES.has(b) ? 1 : 0)
-    || priorityRank(priorities, a) - priorityRank(priorities, b)
-    || baseOrder.indexOf(a) - baseOrder.indexOf(b)
-  );
-
-// The (leg, priority) bucket a muscle falls in — muscles can only be reordered
-// within their bucket, since legs-last and the priority tiers are fixed.
-export const muscleBucket = (priorities: Priorities, m: string): string =>
-  `${LEG_MUSCLES.has(m) ? 1 : 0}:${priorities[m] ?? 'neutral'}`;
 
 // Reverse lookup: a stored leaf -> its muscle group (null if orphaned).
 const LEAF_TO_MUSCLE: Record<string, string> = {};

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { MUSCLE_ORDER, isValidLeaf, sortLabels, sortMusclesForExecution, type Priorities } from './programData';
+import { MUSCLE_ORDER, isValidLeaf, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
 import { FitHeader } from './FitHeader';
@@ -15,13 +15,12 @@ import { validatedLeaves } from './validatedExercises';
 // its own card (the variant shown under the base name), so a single tap adds it
 // (onPick). It only lists the program's still-valid exercises.
 
-export function FitExercisePicker({ program, priorities = {}, muscles, muscleOrder, onPick, onClose }: {
+export function FitExercisePicker({ program, muscles, muscleOrder, onPick, onClose }: {
   program: Record<string, string[]>;
-  priorities?: Priorities;
   // When set (the week's split day), only these muscle groups are shown, with a
   // toggle to reveal all the program's muscles instead.
   muscles?: string[];
-  // The program's muscle execution order (base order before priority tiers).
+  // The program's chosen muscle order (from the "Ordre" step).
   muscleOrder?: string[];
   onPick: (leaf: string) => void;
   onClose: () => void;
@@ -45,10 +44,10 @@ export function FitExercisePicker({ program, priorities = {}, muscles, muscleOrd
   // Nothing is pre-highlighted: the picker only adds exercises, so showing the
   // ones already in the session as "selected" was misleading.
   const selected: string[] = [];
-  // Execution order: legs last, weak points first / strong last, ties broken by
-  // the program's base muscle order.
+  // The program's chosen muscle order (fallback anatomical), as set in the
+  // "Ordre" step — used as-is.
   const base = muscleOrder && muscleOrder.length > 0 ? muscleOrder : MUSCLE_ORDER;
-  const groups = sortMusclesForExecution(base, priorities, base)
+  const groups = base
     .filter(name => !dayFilter || dayFilter.has(name))
     .map(name => ({
       name,

@@ -56,7 +56,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [comment, setComment] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});   // per-exercise notes
   const [program, setProgram] = useState<Record<string, string[]>>({});
-  const [priorities, setPriorities] = useState<Priorities>({});
   const [repGoals, setRepGoals] = useState<RepGoals>(REP_GOAL_DEFAULT);
   const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
   // The week's split (which one the user follows this week) and the data to
@@ -99,7 +98,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         setComment(sessionRes.data.comment);
         setNotes(sessionRes.data.notes ?? {});
         setProgram(exRes.data.selections ?? {});
-        setPriorities(exRes.data.priorities ?? {});
         setRepGoals(exRes.data.rep_goals ?? REP_GOAL_DEFAULT);
         setUnilateral(new Set(exRes.data.unilateral ?? []));
         setMuscleOrder(exRes.data.muscle_order ?? []);
@@ -415,7 +413,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       {picking && (
         <FitExercisePicker
           program={program}
-          priorities={priorities}
           muscles={today?.muscles}
           muscleOrder={muscleOrder}
           onPick={addExercise}
