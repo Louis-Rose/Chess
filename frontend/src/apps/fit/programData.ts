@@ -108,12 +108,12 @@ const exLabel = (ex: Exercise) => (typeof ex === 'string' ? ex : ex.name);
 // within each row) alphabetically. Row order is preserved as written. Muscle
 // order itself is anatomical, left as-is.
 const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
-  { name: 'Épaules', exercises: [{ name: 'Développé épaules', variants: [['Machine', 'Haltères']] }, 'Développé militaire', { name: 'Élévations latérales', variants: [['Poulie basse', 'Haltères']] }] },
-  { name: 'Pectoraux', exercises: [{ name: 'Développé couché', variants: [['Barre', 'Haltères']] }, { name: 'Développé incliné', variants: [['Barre', 'Haltères']] }, 'Dips (Pectoraux)', { name: 'Pec Deck', variants: [['Poignées', 'Boudins']] }] },
-  { name: 'Dorsaux', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
-  { name: 'Trapèzes', exercises: [{ name: 'Shrugs', variants: [['Haltères', 'Barre', 'Machine']] }] },
-  { name: 'Biceps', exercises: [{ name: 'Curl incliné', variants: [['Supination', 'Rotation']] }, { name: 'Curl pupitre', variants: [['Machine', 'Haltères', 'Barre EZ']] }, 'Curl marteau'] },
-  { name: 'Triceps', exercises: [{ name: 'Extension poulie haute', variants: [['Barre', 'Corde']] }, { name: 'Extension poulie basse (overhead)', variants: [['Barre', 'Corde']], exclusive: true }, 'Dips (Triceps)'] },
+  { name: 'Épaules', exercises: [{ name: 'Développé épaules', variants: [['Machine', 'Haltères']], exclusive: true }, 'Développé militaire', { name: 'Élévations latérales', variants: [['Poulie basse', 'Haltères']], exclusive: true }] },
+  { name: 'Pectoraux', exercises: [{ name: 'Développé couché', variants: [['Barre', 'Haltères']], exclusive: true }, { name: 'Développé incliné', variants: [['Barre', 'Haltères']], exclusive: true }, 'Dips (Pectoraux)', { name: 'Pec Deck', variants: [['Poignées', 'Boudins']], exclusive: true }] },
+  { name: 'Dorsaux', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']], exclusive: true }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']], exclusive: true }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']], exclusive: true }] },
+  { name: 'Trapèzes', exercises: [{ name: 'Shrugs', variants: [['Haltères', 'Barre', 'Machine']], exclusive: true }] },
+  { name: 'Biceps', exercises: [{ name: 'Curl incliné', variants: [['Supination', 'Rotation']], exclusive: true }, { name: 'Curl pupitre', variants: [['Machine', 'Haltères', 'Barre EZ']], exclusive: true }, 'Curl marteau'] },
+  { name: 'Triceps', exercises: [{ name: 'Extension poulie haute', variants: [['Barre', 'Corde']], exclusive: true }, { name: 'Extension poulie basse (overhead)', variants: [['Barre', 'Corde']], exclusive: true }, 'Dips (Triceps)'] },
   { name: 'Avant-bras', exercises: ['Flexions de poignets', 'Extensions de poignets'] },
   { name: 'Abdos', exercises: ['Crunch', 'Enroulements de bassin', 'Gainage planche', 'Relevés de jambes'] },
   { name: 'Fessiers', exercises: ['Hip thrust', 'Soulevé de terre sumo'] },
