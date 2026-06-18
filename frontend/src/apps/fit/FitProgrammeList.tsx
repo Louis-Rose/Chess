@@ -10,8 +10,9 @@ import { useSession } from './sessionTimer';
 
 // Landing for the Programme tab: the list of the user's programs. The active one
 // (used everywhere in the app) is marked; any other can be made active with
-// "Utiliser". Tapping a card edits it; swiping a card left reveals a Supprimer
-// button. "Nouveau programme" creates an empty one and opens it for editing.
+// "Utiliser". Tapping a card edits it (onOpen with isNew=false); swiping a card
+// left reveals a Supprimer button. "Nouveau programme" creates an empty one and
+// opens it in the guided wizard (onOpen with isNew=true).
 //
 // The active program defines what a session logs, so nothing here can change
 // mid-session: every action is blocked with an explanatory notice while a
@@ -21,7 +22,7 @@ interface ProgramRow extends FitProgram {
   exercise_count: number;
 }
 
-export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => void }) {
+export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isNew: boolean) => void }) {
   const [programs, setPrograms] = useState<ProgramRow[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
     setBusy(true);
     try {
       const res = await fitRequest(() => axios.post<FitProgram>('/api/fit/programs', {}));
-      onOpen(res.data);
+      onOpen(res.data, true);
     } catch {
       /* stay on the list */
     } finally {
@@ -137,7 +138,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram) => 
               onOpen={() => setOpenId(p.id)}
               onClose={() => setOpenId(null)}
               onDelete={guard(() => remove(p.id))}
-              onTap={guard(() => onOpen(p))}
+              onTap={guard(() => onOpen(p, false))}
               className={`px-5 py-4 text-left ${isActive ? 'border-emerald-500/60' : 'border-slate-700'}`}
             >
               <div className="flex items-start justify-between gap-3">
