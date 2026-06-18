@@ -21,7 +21,7 @@ export function FitWeekSplitPicker({ options, bodyPartOrder, onChoose }: {
         <div className="mx-auto flex w-full max-w-[22rem] flex-col">
           <h2 className="text-center text-xl font-semibold">Quel split cette semaine ?</h2>
 
-          <div className="mt-12 flex flex-col gap-4">
+          <div className="mt-24 flex flex-col gap-8">
             {options.map(o => {
               const days = weekDays(o.key, bodyPartOrder);
               return (
