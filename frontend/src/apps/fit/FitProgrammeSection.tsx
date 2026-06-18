@@ -48,7 +48,7 @@ export function FitProgrammeSection({ section, editor }: {
   const {
     loading, name, setName, saveName, splits, toggleSplit, workSets, chooseSets,
     priorities, setPriority,
-    muscleOrder, moveMuscle,
+    orderedMuscles, moveMuscle,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
@@ -103,7 +103,7 @@ export function FitProgrammeSection({ section, editor }: {
     return <FitPriorityZones priorities={priorities} setPriority={setPriority} />;
 
   if (section === 'order')
-    return <MuscleOrderSection order={muscleOrder} priorities={priorities} onMove={moveMuscle} />;
+    return <MuscleOrderSection order={orderedMuscles()} priorities={priorities} onMove={moveMuscle} />;
 
   if (section === 'bodypart')
     return (
@@ -193,7 +193,7 @@ export function FitProgrammeSection({ section, editor }: {
 function MuscleOrderSection({ order, priorities, onMove }: {
   order: string[];
   priorities: Priorities;
-  onMove: (index: number, dir: -1 | 1) => void;
+  onMove: (muscle: string, dir: -1 | 1) => void;
 }) {
   return (
     <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4">
@@ -210,10 +210,10 @@ function MuscleOrderSection({ order, priorities, onMove }: {
                 {p === 'weak' && <span className="ml-2 text-xs text-emerald-300">point faible</span>}
                 {p === 'strong' && <span className="ml-2 text-xs text-amber-300">point fort</span>}
               </span>
-              <button type="button" aria-label="Monter" disabled={i === 0} onClick={() => onMove(i, -1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
+              <button type="button" aria-label="Monter" disabled={i === 0} onClick={() => onMove(m, -1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
                 <ArrowUp className="h-4 w-4" />
               </button>
-              <button type="button" aria-label="Descendre" disabled={i === order.length - 1} onClick={() => onMove(i, 1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
+              <button type="button" aria-label="Descendre" disabled={i === order.length - 1} onClick={() => onMove(m, 1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
                 <ArrowDown className="h-4 w-4" />
               </button>
             </li>

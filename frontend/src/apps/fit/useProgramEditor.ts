@@ -119,12 +119,23 @@ export function useProgramEditor(program: FitProgram) {
     });
   }
 
-  // Muscle execution order: reorder within the list, saved as the whole order.
-  function moveMuscle(index: number, dir: -1 | 1) {
-    const j = index + dir;
-    if (j < 0 || j >= muscleOrder.length) return;
+  // Muscles shown in the order step: those with a selected exercise (so the
+  // editor lists only relevant muscles). Falls back to all when none is selected
+  // yet (e.g. the create wizard, before exercises are picked).
+  function orderedMuscles(): string[] {
+    const withEx = muscleOrder.filter(m => (selections[m] ?? []).length > 0);
+    return withEx.length ? withEx : muscleOrder;
+  }
+
+  // Reorder one muscle among the shown ones; empty muscles keep their slot in the
+  // full stored order. Saved as the whole order.
+  function moveMuscle(muscle: string, dir: -1 | 1) {
+    const visible = orderedMuscles();
+    const target = visible[visible.indexOf(muscle) + dir];
+    if (!target) return;
     const next = [...muscleOrder];
-    [next[index], next[j]] = [next[j], next[index]];
+    const a = next.indexOf(muscle), b = next.indexOf(target);
+    [next[a], next[b]] = [next[b], next[a]];
     setMuscleOrder(next);
     fitRequest(() => axios.put(base, { muscle_order: next })).catch(() => {});
   }
@@ -174,7 +185,7 @@ export function useProgramEditor(program: FitProgram) {
     splits, toggleSplit,
     workSets, chooseSets,
     priorities, setPriority,
-    muscleOrder, moveMuscle,
+    muscleOrder, orderedMuscles, moveMuscle,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise,
