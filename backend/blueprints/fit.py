@@ -359,7 +359,8 @@ def update_program(program_id):
             return jsonify({'error': 'Invalid name'}), 400
         updates['name'] = name[:PROGRAM_NAME_MAX]
     if 'split' in data:
-        if data['split'] not in VALID_SPLITS:
+        # null clears the split (re-clicking the selected one deselects it).
+        if data['split'] is not None and data['split'] not in VALID_SPLITS:
             return jsonify({'error': 'Invalid split'}), 400
         updates['split'] = data['split']
     if 'work_sets' in data:

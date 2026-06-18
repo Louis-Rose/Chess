@@ -42,8 +42,11 @@ export function useProgramEditor(program: FitProgram) {
   }
 
   function chooseSplit(s: string) {
-    setSplit(s);
-    fitRequest(() => axios.put(base, { split: s })).catch(() => {});
+    setSplit(prev => {
+      const next = prev === s ? null : s;   // re-clicking the selected split deselects it
+      fitRequest(() => axios.put(base, { split: next })).catch(() => {});
+      return next;
+    });
   }
 
   function chooseSets(n: number) {
