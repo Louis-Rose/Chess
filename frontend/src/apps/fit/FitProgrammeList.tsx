@@ -131,6 +131,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
       <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-4">
         {programs.map(p => {
           const isActive = p.id === activeId;
+          const splitLabels = p.splits.map(splitLabel).filter(Boolean);
           return (
             <FitSwipeRow
               key={p.id}
@@ -164,9 +165,16 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
               </div>
 
               <h2 className="truncate text-lg font-semibold text-white">{p.name}</h2>
-              <p className="mt-1 text-sm text-white">
-                {p.splits.map(splitLabel).filter(Boolean).join(' & ') || 'Split non défini'}
-              </p>
+              {/* One split per line; from the second on, a leading "&". */}
+              {splitLabels.length === 0 ? (
+                <p className="mt-1 text-sm text-white">Split non défini</p>
+              ) : (
+                splitLabels.map((label, i) => (
+                  <p key={i} className={`text-sm text-white ${i === 0 ? 'mt-1' : ''}`}>
+                    {i === 0 ? label : `& ${label}`}
+                  </p>
+                ))
+              )}
               <p className="text-sm text-white">
                 {p.exercise_count} exercice{p.exercise_count !== 1 ? 's' : ''}
               </p>
