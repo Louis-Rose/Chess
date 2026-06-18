@@ -4,6 +4,7 @@ import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
 import { MUSCLES, SPLITS, exercisesForMuscle, type Split } from './programData';
 import { FitPriorityZones } from './FitPriorityZones';
+import { FitVolumeGraph } from './FitVolumeGraph';
 import type { ProgramEditor } from './useProgramEditor';
 
 // One program section's body (the controls under the heading), shared by the
@@ -115,10 +116,16 @@ export function FitProgrammeSection({ section, editor }: {
 
   if (section === 'sets')
     return (
-      <div className="grid grid-cols-5 gap-2">
-        {WORK_SETS_OPTIONS.map(n => (
-          <Choice key={n} active={n === workSets} onClick={() => chooseSets(n)}>{n}</Choice>
-        ))}
+      <div className="flex flex-col gap-8">
+        <div className="grid grid-cols-5 gap-2">
+          {WORK_SETS_OPTIONS.map(n => (
+            <Choice key={n} active={n === workSets} onClick={() => chooseSets(n)}>{n}</Choice>
+          ))}
+        </div>
+        {/* Volume graph below the choices, once the program has exercises. */}
+        {Object.values(selections).some(a => a.length > 0) && (
+          <FitVolumeGraph selections={selections} workSets={workSets} />
+        )}
       </div>
     );
 

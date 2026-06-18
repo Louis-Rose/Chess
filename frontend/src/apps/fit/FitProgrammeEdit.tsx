@@ -22,7 +22,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
     // The Body part day order, only when that split is selected.
     ...(editor.splits.includes('body_part') ? [{ key: 'bodypart', label: 'Ordre' }] : []),
     { key: 'priority', label: 'Priorités' },
-    { key: 'sets', label: 'Séries' },
+    { key: 'sets', label: 'Volume' },
     ...MUSCLES.map(m => ({ key: m.name, label: m.name === 'Ischio-jambiers' ? 'Ischios' : m.name })),
   ];
 
@@ -53,7 +53,9 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
 
         <div className="flex min-w-0 flex-1 flex-col">
           <h2 className="mt-12 text-center text-lg font-semibold text-slate-100">{sectionQuestion(active)}</h2>
-          <div className="flex flex-1 flex-col justify-center pt-2">
+          {/* The Volume section keeps its choices up top (graph below); other
+              sections center their (shorter) body in the available height. */}
+          <div className={`flex flex-1 flex-col pt-2 ${active === 'sets' ? 'justify-start' : 'justify-center'}`}>
             <FitProgrammeSection section={active} editor={editor} />
           </div>
         </div>
