@@ -48,7 +48,9 @@ export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; o
         {sectionQuestion(section)}
       </h2>
 
-      <div className="flex flex-1 flex-col justify-center py-6">
+      {/* The single-field name step stays compact near the top instead of being
+          stretched over the full height like the longer (muscle) steps. */}
+      <div className={`flex flex-col ${section === 'name' ? 'pt-3' : 'flex-1 justify-center py-6'}`}>
         <FitProgrammeSection section={section} editor={editor} />
       </div>
 
