@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
@@ -11,7 +11,7 @@ import { FitConfirm } from './FitConfirm';
 import { FitScreenHeader } from './FitScreenHeader';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
-import { leafLabel, repGoalCategory, REP_GOAL_DEFAULT, type Priorities, type RepGoals } from './programData';
+import { leafLabel, muscleOf, repGoalCategory, MUSCLE_ORDER, REP_GOAL_DEFAULT, type Priorities, type RepGoals } from './programData';
 import { weekSplitOptions, weekDays, currentDay } from './splitDays';
 import { FitWeekSplitPicker } from './FitWeek';
 import { sessionTitle } from './format';
@@ -58,6 +58,8 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [repGoals, setRepGoals] = useState<RepGoals>(REP_GOAL_DEFAULT);
   const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
+  const [groupIndex, setGroupIndex] = useState(0);   // current muscle group in the program order
+  const groupInit = useRef(false);
   // The week's split (which one the user follows this week) and the data to
   // locate today's session within it, so the picker is filtered to the day.
   const [weekSplit, setWeekSplit] = useState<string | null>(null);
@@ -312,10 +314,34 @@ export function FitSession({ onDone }: { onDone: () => void }) {
 
   const editingEntry = editing ? entries.find(e => e.exercise === editing) ?? null : null;
 
-  // Today's session within the week's split: its label (banner) and muscles
-  // (the picker filter). Empty when there's no week plan.
+  // Today's session within the week's split: its label (banner) and muscles.
+  // Empty when there's no week plan.
   const weekDayList = weekSplit ? weekDays(weekSplit, bodyPartOrder) : [];
   const today = currentDay(weekDayList, doneThisWeek);
+
+  // The program order is authoritative in session: the picker walks the muscle
+  // groups one at a time, forward only. Sequence = program order, restricted to
+  // today's split muscles (if any) and to groups that actually have exercises.
+  const groupSequence = useMemo(() => {
+    const base = muscleOrder.length ? muscleOrder : MUSCLE_ORDER;
+    const day = today?.muscles;
+    return base.filter(m => (!day || day.includes(m)) && (program[m]?.length ?? 0) > 0);
+  }, [muscleOrder, today?.muscles, program]);
+
+  // Land on the furthest group already worked (so resume never goes backward).
+  useEffect(() => {
+    if (groupInit.current || loading) return;
+    groupInit.current = true;
+    const floor = entries.reduce((mx, e) => {
+      const i = groupSequence.indexOf(muscleOf(e.exercise) ?? '');
+      return i > mx ? i : mx;
+    }, 0);
+    setGroupIndex(floor);
+  }, [loading, entries, groupSequence]);
+
+  const clampedGroupIndex = Math.min(groupIndex, Math.max(0, groupSequence.length - 1));
+  const currentGroup = groupSequence[clampedGroupIndex];
+  const nextGroup = groupSequence[clampedGroupIndex + 1] ?? null;
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -413,8 +439,10 @@ export function FitSession({ onDone }: { onDone: () => void }) {
       {picking && (
         <FitExercisePicker
           program={program}
-          muscles={today?.muscles}
           muscleOrder={muscleOrder}
+          group={currentGroup}
+          nextGroup={nextGroup}
+          onNextGroup={() => setGroupIndex(i => Math.min(i + 1, groupSequence.length - 1))}
           onPick={addExercise}
           onClose={() => setPicking(false)}
         />

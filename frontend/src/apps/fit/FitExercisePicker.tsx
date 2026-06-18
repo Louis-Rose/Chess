@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { ChevronRight } from 'lucide-react';
 import { MUSCLE_ORDER, isValidLeaf, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
@@ -9,25 +10,26 @@ import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
 import { validatedLeaves } from './validatedExercises';
 
-// Full-screen "Ajouter un exercice" picker, shared by the new-session flow
-// (FitSession) and the session editor (FitSessionDetail). Unlike the Programme
-// exercise step, there's no variant chooser: each program variant is offered as
-// its own card (the variant shown under the base name), so a single tap adds it
-// (onPick). It only lists the program's still-valid exercises.
+// Full-screen "Ajouter un exercice" picker. Two modes:
+//  - Sequential (live session): only the current muscle group (`group`) is
+//    offered; a "Groupe suivant" button walks forward through the program order.
+//  - Free (editing a past session): every program muscle is listed, in order.
+// Each program variant is its own card (single tap adds it via onPick); only
+// still-valid exercises are shown.
 
-export function FitExercisePicker({ program, muscles, muscleOrder, onPick, onClose }: {
+export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNextGroup, onPick, onClose }: {
   program: Record<string, string[]>;
-  // When set (the week's split day), only these muscle groups are shown, with a
-  // toggle to reveal all the program's muscles instead.
-  muscles?: string[];
   // The program's chosen muscle order (from the "Ordre" step).
   muscleOrder?: string[];
+  // Sequential mode: the only muscle group whose exercises can be added now.
+  group?: string;
+  // The next group's name (shown on the "Groupe suivant" button), or null on the last.
+  nextGroup?: string | null;
+  onNextGroup?: () => void;
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
   useCustomExercises();   // warm the custom catalogue so custom leaves stay valid
-  const [showAll, setShowAll] = useState(false);
-  const dayFilter = muscles && muscles.length > 0 && !showAll ? new Set(muscles) : null;
   // Days since each exercise (per stored leaf) was last done, shown on its card.
   const [recency, setRecency] = useState<Record<string, number>>({});
   useEffect(() => {
@@ -44,11 +46,11 @@ export function FitExercisePicker({ program, muscles, muscleOrder, onPick, onClo
   // Nothing is pre-highlighted: the picker only adds exercises, so showing the
   // ones already in the session as "selected" was misleading.
   const selected: string[] = [];
-  // The program's chosen muscle order (fallback anatomical), as set in the
-  // "Ordre" step — used as-is.
+  // Sequential mode shows just the current group; free mode shows all, in the
+  // program's chosen order (fallback anatomical).
   const base = muscleOrder && muscleOrder.length > 0 ? muscleOrder : MUSCLE_ORDER;
-  const groups = base
-    .filter(name => !dayFilter || dayFilter.has(name))
+  const names = group != null ? [group] : base;
+  const groups = names
     .map(name => ({
       name,
       // Each valid program leaf is its own card (variants included), sorted so
@@ -56,6 +58,8 @@ export function FitExercisePicker({ program, muscles, muscleOrder, onPick, onClo
       exercises: sortLabels((program[name] ?? []).filter(ex => isValidLeaf(name, ex))),
     }))
     .filter(g => g.exercises.length > 0);
+
+  const sequential = group != null;
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col bg-slate-900 text-slate-100">
@@ -72,15 +76,6 @@ export function FitExercisePicker({ program, muscles, muscleOrder, onPick, onClo
           </p>
         ) : (
           <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-6">
-            {muscles && muscles.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowAll(v => !v)}
-                className="mx-auto rounded-full border border-slate-700 px-4 py-1.5 text-xs font-medium text-slate-300 transition-colors active:bg-slate-800"
-              >
-                {showAll ? 'Filtrer sur la séance du jour' : 'Voir tous les muscles'}
-              </button>
-            )}
             {groups.map(g => (
               <section key={g.name}>
                 <h3 className="text-center text-xs uppercase tracking-wide text-white">{g.name}</h3>
@@ -96,6 +91,18 @@ export function FitExercisePicker({ program, muscles, muscleOrder, onPick, onClo
               </section>
             ))}
           </div>
+        )}
+
+        {/* Walk to the next muscle group (forward only). */}
+        {sequential && nextGroup && (
+          <button
+            type="button"
+            onClick={onNextGroup}
+            className="mx-auto mt-8 flex w-full max-w-[22rem] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition-colors active:bg-emerald-500"
+          >
+            Groupe suivant : {nextGroup}
+            <ChevronRight className="h-4 w-4" />
+          </button>
         )}
       </div>
     </div>
