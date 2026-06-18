@@ -23,18 +23,25 @@ export interface Split {
   label: string;
   negative?: boolean;   // a "none" option (e.g. "Pas de split") — kept last
   sortLabel?: string;   // ordering-only override (an exception to the alpha order); an overridden split sorts just before the real one sharing its label
+  // Shown under the split once selected. `sessions` is the per-session
+  // breakdown (the UI prefixes each with "Séance N :"); `example` marks the
+  // breakdown as one possible arrangement among many (Body part); `note` is a
+  // free-form description used when there is no fixed session cycle.
+  sessions?: string[];
+  example?: boolean;
+  note?: string;
 }
 
 // Defined freely; SPLITS exposes them alphabetically with negatives last.
 const SPLITS_RAW: Split[] = [
-  { key: 'full_body', label: 'Full Body' },
-  { key: 'upper_lower', label: 'Upper / Lower' },
-  { key: 'upper_lower_upper', label: 'Upper / Lower / Upper' },
+  { key: 'full_body', label: 'Full Body', sessions: ['tout le corps'] },
+  { key: 'upper_lower', label: 'Upper / Lower', sessions: ['haut du corps', 'bas du corps'] },
+  { key: 'upper_lower_upper', label: 'Upper / Lower / Upper', sessions: ['haut du corps', 'bas du corps', 'haut du corps'] },
   // Grouped with the Upper/Lower variants: ordered just before "Upper / Lower".
-  { key: 'lower_upper_lower', label: 'Lower / Upper / Lower', sortLabel: 'Upper / Lower' },
-  { key: 'push_pull_legs', label: 'Push / Pull / Legs' },
-  { key: 'body_part', label: 'Body part' },
-  { key: 'no_split', label: 'Pas de split', negative: true },
+  { key: 'lower_upper_lower', label: 'Lower / Upper / Lower', sortLabel: 'Upper / Lower', sessions: ['bas du corps', 'haut du corps', 'bas du corps'] },
+  { key: 'push_pull_legs', label: 'Push / Pull / Legs', sessions: ['poussée (pectoraux, épaules, triceps)', 'tirage (dos, biceps)', 'jambes'] },
+  { key: 'body_part', label: 'Body part', example: true, sessions: ['pectoraux', 'dos', 'jambes', 'épaules', 'bras'] },
+  { key: 'no_split', label: 'Pas de split', negative: true, note: 'Aucun découpage : tu composes chaque séance comme tu veux.' },
 ];
 
 export const SPLITS: Split[] = [...SPLITS_RAW].sort((a, b) => {

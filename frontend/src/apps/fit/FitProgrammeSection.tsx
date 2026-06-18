@@ -1,8 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
+import { Fragment, useMemo, type ReactNode } from 'react';
 import { Loader2, Plus } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
-import { MUSCLES, SPLITS, exercisesForMuscle } from './programData';
+import { MUSCLES, SPLITS, exercisesForMuscle, type Split } from './programData';
 import type { ProgramEditor } from './useProgramEditor';
 
 // One program section's body (the controls under the heading), shared by the
@@ -61,8 +61,11 @@ export function FitProgrammeSection({ section, editor }: {
   if (section === 'split')
     return (
       <div className="flex flex-col gap-2.5">
-        {SPLITS.map(({ key, label }) => (
-          <Choice key={key} active={key === split} onClick={() => chooseSplit(key)}>{label}</Choice>
+        {SPLITS.map(s => (
+          <Fragment key={s.key}>
+            <Choice active={s.key === split} onClick={() => chooseSplit(s.key)}>{s.label}</Choice>
+            {s.key === split && <SplitDefinition split={s} />}
+          </Fragment>
         ))}
       </div>
     );
@@ -109,6 +112,29 @@ export function FitProgrammeSection({ section, editor }: {
         />
       )}
     </>
+  );
+}
+
+// The breakdown of the selected split, shown right under it: one line per
+// session ("Séance N : …"), or a free-form note when there is no fixed cycle.
+function SplitDefinition({ split }: { split: Split }) {
+  return (
+    <div className="-mt-0.5 rounded-lg bg-slate-800/40 px-3.5 py-2.5 text-left text-sm">
+      {split.note ? (
+        <p className="text-slate-300">{split.note}</p>
+      ) : (
+        <>
+          {split.example && <p className="mb-1 text-xs text-slate-400">Par exemple :</p>}
+          <ul className="flex flex-col gap-0.5">
+            {split.sessions?.map((s, i) => (
+              <li key={i} className="text-slate-300">
+                <span className="font-medium text-slate-100">Séance {i + 1}</span> : {s}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 
