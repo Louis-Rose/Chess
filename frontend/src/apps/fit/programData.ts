@@ -26,10 +26,6 @@ export interface FitProgram {
 export type MusclePriority = 'weak' | 'strong';
 export type Priorities = Record<string, MusclePriority>;
 
-// Tap-to-cycle order for a muscle: neutral -> weak -> strong -> neutral.
-export const nextPriority = (cur: MusclePriority | undefined): MusclePriority | undefined =>
-  cur === undefined ? 'weak' : cur === 'weak' ? 'strong' : undefined;
-
 // Session muscle ordering rank: weak points first (-1), neutral (0), strong
 // points last (1). Ties keep the caller's existing (catalogue/anatomical) order.
 export const priorityRank = (priorities: Priorities, muscle: string): number =>

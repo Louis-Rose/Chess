@@ -3,7 +3,7 @@ import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
 import { useExerciseUnilateral } from './useExerciseUnilateral';
-import { nextPriority, variantId, type CustomExercise, type FitProgram, type Priorities } from './programData';
+import { variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities } from './programData';
 import type { CustomDraft } from './FitCustomExercises';
 
 // Shared editing state for one program: name, split, working sets, per-muscle
@@ -62,17 +62,13 @@ export function useProgramEditor(program: FitProgram) {
     fitRequest(() => axios.put(base, { priorities: next })).catch(() => {});
   }
 
-  // Tap a muscle to cycle its priority neutral -> weak -> strong -> neutral.
-  function cyclePriority(muscle: string) {
+  // Drag a muscle into a zone: 'weak' / 'strong', or null for neutral (the
+  // default, stored as absent from the map).
+  function setPriority(muscle: string, state: MusclePriority | null) {
+    if ((priorities[muscle] ?? null) === state) return;
     const next = { ...priorities };
-    const stage = nextPriority(next[muscle]);
-    if (stage) next[muscle] = stage; else delete next[muscle];
+    if (state) next[muscle] = state; else delete next[muscle];
     savePriorities(next);
-  }
-
-  // "Pas de priorisation": clear every muscle back to neutral.
-  function clearPriorities() {
-    if (Object.keys(priorities).length) savePriorities({});
   }
 
   // Body part day order (one muscle group per day). Adding appends a day,
@@ -139,7 +135,7 @@ export function useProgramEditor(program: FitProgram) {
     name, setName, saveName,
     splits, toggleSplit,
     workSets, chooseSets,
-    priorities, cyclePriority, clearPriorities,
+    priorities, setPriority,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     selections, toggleExercise,
     customExercises, customDraft, setCustomDraft, onCustomSaved, deleteCustom,
