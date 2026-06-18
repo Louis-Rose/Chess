@@ -11,7 +11,6 @@ import { FitConfirm } from './FitConfirm';
 import { FitScreenHeader } from './FitScreenHeader';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
-import { useExerciseUnilateral } from './useExerciseUnilateral';
 import { leafLabel, repGoalCategory, REP_GOAL_DEFAULT, type Priorities, type RepGoals } from './programData';
 import { weekSplitOptions, weekDays, currentDay } from './splitDays';
 import { FitWeekSplitPicker } from './FitWeek';
@@ -77,14 +76,14 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [confirmLeaf, setConfirmLeaf] = useState<string | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
-  const { unilateral } = useExerciseUnilateral();
+  const [unilateral, setUnilateral] = useState<Set<string>>(new Set());   // per active program
 
   useEffect(() => {
     // POST resumes the in-progress session if there is one (with its logged
     // sets), otherwise starts a fresh empty one.
     Promise.all([
       fitRequest(() => axios.post<SessionPayload>('/api/fit/sessions')),
-      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; splits: string[]; body_part_order: string[]; rep_goals: RepGoals }>('/api/fit/exercises')),
+      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; splits: string[]; body_part_order: string[]; rep_goals: RepGoals; unilateral: string[] }>('/api/fit/exercises')),
       fitRequest(() => axios.get<{ split: string | null; done_this_week: number }>('/api/fit/week-split')),
     ])
       .then(([sessionRes, exRes, weekRes]) => {
@@ -101,6 +100,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         setProgram(exRes.data.selections ?? {});
         setPriorities(exRes.data.priorities ?? {});
         setRepGoals(exRes.data.rep_goals ?? REP_GOAL_DEFAULT);
+        setUnilateral(new Set(exRes.data.unilateral ?? []));
 
         const grouped = groupSets(sessionRes.data.sets ?? []);
 

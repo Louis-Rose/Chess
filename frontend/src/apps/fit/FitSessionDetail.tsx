@@ -14,7 +14,6 @@ import { FitSessionComment } from './FitSessionComment';
 import { PerfBadge, type PerfStatus } from './FitPerf';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
-import { useExerciseUnilateral } from './useExerciseUnilateral';
 import { useCustomExercises } from './useCustomExercises';
 
 interface Confirm { title: string; message?: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void; onCancel?: () => void; }
@@ -70,17 +69,17 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
-  const { unilateral } = useExerciseUnilateral();
+  const [unilateral, setUnilateral] = useState<Set<string>>(new Set());   // active program's
 
   useEffect(() => {
-    const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]>; priorities: Priorities } }>?] = [
+    const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]>; priorities: Priorities; unilateral: string[] } }>?] = [
       fitRequest(() => axios.get<Session>(`/api/fit/sessions/${sessionId}`)),
     ];
-    if (editable) requests[1] = fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities }>('/api/fit/exercises'));
+    if (editable) requests[1] = fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; unilateral: string[] }>('/api/fit/exercises'));
     Promise.all(requests)
       .then(([sessionRes, exRes]) => {
         setSession(sessionRes.data);
-        if (exRes) { setProgram(exRes.data.selections ?? {}); setPriorities(exRes.data.priorities ?? {}); }
+        if (exRes) { setProgram(exRes.data.selections ?? {}); setPriorities(exRes.data.priorities ?? {}); setUnilateral(new Set(exRes.data.unilateral ?? [])); }
       })
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));

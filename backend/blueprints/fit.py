@@ -343,6 +343,7 @@ def get_exercises():
     """Return the active program's selected exercises grouped by muscle, plus its
     per-muscle priorities (the session uses them to order the exercise picker)."""
     selections: dict[str, list] = {}
+    unilateral: list = []
     with get_db() as conn:
         prog = _active_program(conn)
         if prog:
@@ -351,12 +352,14 @@ def get_exercises():
             ).fetchall()
             for r in rows:
                 selections.setdefault(r['muscle'], []).append(r['exercise'])
+            unilateral = _program_unilateral(conn, prog['id'])
     return jsonify({
         'selections': selections,
         'priorities': _priorities_of(prog),
         'splits': _splits_of(prog),
         'body_part_order': _body_part_order_of(prog),
         'rep_goals': _rep_goals_of(prog),
+        'unilateral': unilateral,
     })
 
 
@@ -574,20 +577,30 @@ def set_week_split():
     return jsonify({'split': split, 'done_this_week': done})
 
 
+def _program_unilateral(conn, program_id):
+    """The base exercises logged per side (unilateral) within a program."""
+    rows = conn.execute(
+        'SELECT exercise FROM fit_program_unilateral WHERE program_id = ?', (program_id,)
+    ).fetchall()
+    return [r['exercise'] for r in rows]
+
+
 @fit_bp.route('/api/fit/programs/<int:program_id>/exercises', methods=['GET'])
 @fit_login_required
 def get_program_exercises(program_id):
-    """Return one program's selected exercises grouped by muscle."""
+    """Return one program's selected exercises grouped by muscle, plus its
+    per-side (unilateral) exercises."""
     with get_db() as conn:
         if not _owned_program(conn, program_id):
             return jsonify({'error': 'Not found'}), 404
         rows = conn.execute(
             'SELECT muscle, exercise FROM fit_exercises WHERE program_id = ?', (program_id,)
         ).fetchall()
+        unilateral = _program_unilateral(conn, program_id)
     selections: dict[str, list] = {}
     for r in rows:
         selections.setdefault(r['muscle'], []).append(r['exercise'])
-    return jsonify({'selections': selections})
+    return jsonify({'selections': selections, 'unilateral': unilateral})
 
 
 @fit_bp.route('/api/fit/programs/<int:program_id>/exercises', methods=['PUT'])
@@ -615,6 +628,33 @@ def update_program_exercises(program_id):
                 (request.user_id, program_id, muscle, ex)
             )
     return jsonify({'ok': True})
+
+
+@fit_bp.route('/api/fit/programs/<int:program_id>/unilateral', methods=['PUT'])
+@fit_login_required
+def set_program_unilateral(program_id):
+    """Mark a base exercise as unilateral (per-side logging) within a program,
+    or clear it."""
+    data = request.get_json(silent=True) or {}
+    exercise = data.get('exercise')
+    unilateral = bool(data.get('unilateral'))
+    with get_db() as conn:
+        if not _owned_program(conn, program_id):
+            return jsonify({'error': 'Not found'}), 404
+        if exercise not in _user_bases(conn, request.user_id):
+            return jsonify({'error': 'Invalid exercise'}), 400
+        if unilateral:
+            conn.execute(
+                'INSERT INTO fit_program_unilateral (program_id, exercise) VALUES (?, ?) '
+                'ON CONFLICT (program_id, exercise) DO NOTHING',
+                (program_id, exercise)
+            )
+        else:
+            conn.execute(
+                'DELETE FROM fit_program_unilateral WHERE program_id = ? AND exercise = ?',
+                (program_id, exercise)
+            )
+    return jsonify({'ok': True, 'unilateral': unilateral})
 
 
 # ── Custom exercises ─────────────────────────────────────────────────────────
@@ -837,41 +877,6 @@ def set_exercise_setting():
                 (request.user_id, exercise, setting.strip())
             )
     return jsonify({'ok': True})
-
-
-@fit_bp.route('/api/fit/exercise-unilateral', methods=['GET'])
-@fit_login_required
-def get_exercise_unilateral():
-    """The base exercises the user logs per side (unilateral)."""
-    with get_db() as conn:
-        rows = conn.execute(
-            'SELECT exercise FROM fit_exercise_unilateral WHERE user_id = ?', (request.user_id,)
-        ).fetchall()
-    return jsonify({'exercises': [r['exercise'] for r in rows]})
-
-
-@fit_bp.route('/api/fit/exercise-unilateral', methods=['PUT'])
-@fit_login_required
-def set_exercise_unilateral():
-    """Mark a base exercise as unilateral (per-side logging) or clear it."""
-    data = request.get_json(silent=True) or {}
-    exercise = data.get('exercise')
-    unilateral = bool(data.get('unilateral'))
-    with get_db() as conn:
-        if exercise not in _user_bases(conn, request.user_id):
-            return jsonify({'error': 'Invalid exercise'}), 400
-        if unilateral:
-            conn.execute(
-                'INSERT INTO fit_exercise_unilateral (user_id, exercise) VALUES (?, ?) '
-                'ON CONFLICT (user_id, exercise) DO NOTHING',
-                (request.user_id, exercise)
-            )
-        else:
-            conn.execute(
-                'DELETE FROM fit_exercise_unilateral WHERE user_id = ? AND exercise = ?',
-                (request.user_id, exercise)
-            )
-    return jsonify({'ok': True, 'unilateral': unilateral})
 
 
 def _recompute_work_weight(conn, user_id, exercise):

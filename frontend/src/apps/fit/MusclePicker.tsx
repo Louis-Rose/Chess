@@ -147,13 +147,9 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               {content}
             </button>
           );
-          if (!onToggleUnilateral) return <Fragment key={ex}>{card}</Fragment>;
-          return (
-            <div key={ex} className="flex flex-col gap-1.5">
-              {card}
-              <UnilateralToggle on={!!unilateralNames?.has(ex)} onToggle={() => onToggleUnilateral(ex)} />
-            </div>
-          );
+          // The Unilatéral chip lives only under expanded groups (below their
+          // options), so leaf exercises just render their card.
+          return <Fragment key={ex}>{card}</Fragment>;
         }
 
         // Group with variants — expands to reveal its sub-options (rows).
@@ -194,10 +190,6 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
               </button>
             )}
 
-            {onToggleUnilateral && (
-              <UnilateralToggle on={!!unilateralNames?.has(ex.name)} onToggle={() => onToggleUnilateral(ex.name)} />
-            )}
-
             {expanded && (
               <div className="flex flex-col gap-2">
                 {ex.variants.map((row, ri) => (
@@ -223,6 +215,10 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
                     })}
                   </div>
                 ))}
+                {/* The Unilatéral chip sits under the options, only when expanded. */}
+                {onToggleUnilateral && (
+                  <UnilateralToggle on={!!unilateralNames?.has(ex.name)} onToggle={() => onToggleUnilateral(ex.name)} />
+                )}
               </div>
             )}
           </div>

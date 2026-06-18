@@ -725,6 +725,27 @@ def init_db():
             conn.execute("ALTER TABLE fit_custom_exercises ADD COLUMN isolation BOOLEAN NOT NULL DEFAULT FALSE")
             logger.info("Added fit_custom_exercises.isolation column")
 
+        # Migration: the unilateral flag is now per program (a movement can be
+        # logged per side in one program and not another). New table keyed by
+        # program; backfill each user's old per-user flags into all their programs.
+        if not _table_exists(conn, 'fit_program_unilateral'):
+            conn.execute("""
+                CREATE TABLE fit_program_unilateral (
+                    program_id INTEGER NOT NULL REFERENCES fit_programs(id) ON DELETE CASCADE,
+                    exercise TEXT NOT NULL,
+                    PRIMARY KEY (program_id, exercise)
+                )
+            """)
+            if _table_exists(conn, 'fit_exercise_unilateral'):
+                conn.execute("""
+                    INSERT INTO fit_program_unilateral (program_id, exercise)
+                    SELECT p.id, eu.exercise
+                    FROM fit_exercise_unilateral eu
+                    JOIN fit_programs p ON p.user_id = eu.user_id
+                    ON CONFLICT DO NOTHING
+                """)
+            logger.info("Created fit_program_unilateral table (per-program unilateral)")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

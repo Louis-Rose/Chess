@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
-import { useExerciseUnilateral } from './useExerciseUnilateral';
 import { REP_GOAL_DEFAULT, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
 import type { CustomDraft } from './FitCustomExercises';
 
@@ -22,19 +21,32 @@ export function useProgramEditor(program: FitProgram) {
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>(program.body_part_order ?? []);
   const [repGoals, setRepGoals] = useState<RepGoals>(program.rep_goals ?? REP_GOAL_DEFAULT);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [unilateral, setUnilateral] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const { customExercises, reloadCustom } = useCustomExercises();
-  const { unilateral, save: saveUnilateral } = useExerciseUnilateral();
   const [customDraft, setCustomDraft] = useState<CustomDraft | null>(null);
 
   const base = `/api/fit/programs/${program.id}`;
 
   const loadSelections = useCallback(() => {
-    return fitRequest(() => axios.get<{ selections: Record<string, string[]> }>(`${base}/exercises`))
-      .then(res => setSelections(res.data.selections ?? {}))
+    return fitRequest(() => axios.get<{ selections: Record<string, string[]>; unilateral: string[] }>(`${base}/exercises`))
+      .then(res => {
+        setSelections(res.data.selections ?? {});
+        setUnilateral(new Set(res.data.unilateral ?? []));
+      })
       .catch(() => { /* start empty */ })
       .finally(() => setLoading(false));
   }, [base]);
+
+  // Unilateral is per program: tapping the chip toggles the base for this program.
+  function saveUnilateral(exercise: string, value: boolean) {
+    setUnilateral(prev => {
+      const next = new Set(prev);
+      if (value) next.add(exercise); else next.delete(exercise);
+      return next;
+    });
+    fitRequest(() => axios.put(`${base}/unilateral`, { exercise, unilateral: value })).catch(() => {});
+  }
 
   useEffect(() => { loadSelections(); }, [loadSelections]);
 
