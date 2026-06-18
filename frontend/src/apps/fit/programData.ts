@@ -58,7 +58,7 @@ const SPLITS_RAW: Split[] = [
   // Grouped with the Upper/Lower variants: ordered just before "Upper / Lower".
   { key: 'lower_upper_lower', label: 'Lower / Upper / Lower', sortLabel: 'Upper / Lower', sessions: ['Bas du corps', 'Haut du corps', 'Bas du corps'] },
   { key: 'push_pull_legs', label: 'Push / Pull / Legs', sessions: ['Poussée (pectoraux, épaules, triceps)', 'Tirage (dos, biceps)', 'Jambes'] },
-  { key: 'body_part', label: 'Body part', example: true, sessions: ['Pectoraux', 'Dos', 'Jambes', 'Épaules', 'Bras'] },
+  { key: 'body_part', label: 'Body part', example: true, sessions: ['Pectoraux', 'Dorsaux', 'Jambes', 'Épaules', 'Bras'] },
   { key: 'no_split', label: 'Pas de split', negative: true, note: 'Aucun découpage : tu composes chaque séance comme tu veux.' },
 ];
 
@@ -85,7 +85,8 @@ const exLabel = (ex: Exercise) => (typeof ex === 'string' ? ex : ex.name);
 const MUSCLES_RAW: { name: string; exercises: Exercise[] }[] = [
   { name: 'Épaules', exercises: [{ name: 'Développé épaules', variants: [['Machine', 'Haltères']] }, 'Développé militaire', { name: 'Élévations latérales', variants: [['Poulie basse', 'Haltères']] }] },
   { name: 'Pectoraux', exercises: [{ name: 'Développé couché', variants: [['Barre', 'Haltères']] }, { name: 'Développé incliné', variants: [['Barre', 'Haltères']] }, 'Dips', { name: 'Pec Deck', variants: [['Poignées', 'Boudins']] }] },
-  { name: 'Dos', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
+  { name: 'Dorsaux', exercises: [{ name: 'Tractions', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Tirage vertical (poulie haute)', variants: [['Pronation', 'Supination', 'Prise neutre']] }, { name: 'Rowing assis', variants: [['Machine', 'Poulie basse'], ['Pronation', 'Supination', 'Prise neutre']] }] },
+  { name: 'Trapèzes', exercises: [{ name: 'Shrugs', variants: [['Haltères', 'Barre', 'Machine']] }] },
   { name: 'Biceps', exercises: [{ name: 'Curl incliné', variants: [['Supination', 'Rotation']] }, { name: 'Curl pupitre', variants: [['Machine', 'Haltères', 'Barre EZ']] }] },
   { name: 'Triceps', exercises: [{ name: 'Extension poulie haute', variants: [['Barre', 'Corde']] }, { name: 'Extension poulie basse (overhead)', variants: [['Barre', 'Corde']] }] },
   { name: 'Avant-bras', exercises: ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'] },
@@ -118,10 +119,12 @@ export const EXERCISE_META: Record<string, ExerciseMeta> = {
   'Développé incliné': { en: 'Incline Bench Press' },
   'Dips': { en: 'Dips' },
   'Pec Deck': { en: 'Pec Deck', settings: '3, 2' },
-  // Dos
+  // Dorsaux
   'Tractions': { en: 'Pull-ups' },
   'Tirage vertical (poulie haute)': { en: 'Lat Pulldown' },
   'Rowing assis': { en: 'Seated Row', settings: '4, 7' },
+  // Trapèzes
+  'Shrugs': { en: 'Shrugs' },
   // Biceps
   'Curl incliné': { en: 'Incline Curl' },
   'Curl pupitre': { en: 'Preacher Curl', settings: '3' },
@@ -268,39 +271,43 @@ export const isValidLeaf = (muscle: string, leaf: string): boolean => {
 
 // Muscle involvement per exercise, used to weight training volume: each
 // working set adds 1 to every `primary` group and 0.5 to every `secondary`
-// group. Only the 11 tracked groups appear here (sub-muscles and untracked
+// group. Only the 12 tracked groups appear here (sub-muscles and untracked
 // stabilisers like coiffe/adducteurs/érecteurs-as-such are folded into their
 // group or dropped). Keyed by stored leaf, with base-name fallback for
 // exercises whose variants share the same involvement.
 interface Contribution { primary: string[]; secondary: string[] }
 
-const Ep = 'Épaules', Pec = 'Pectoraux', Dos = 'Dos', Bi = 'Biceps', Tri = 'Triceps',
+const Ep = 'Épaules', Pec = 'Pectoraux', Dor = 'Dorsaux', Trap = 'Trapèzes', Bi = 'Biceps', Tri = 'Triceps',
   AB = 'Avant-bras', Abdo = 'Abdos', Fes = 'Fessiers', Quad = 'Quadriceps',
   Isch = 'Ischio-jambiers', Mol = 'Mollets';
 
 const CONTRIB: Record<string, Contribution> = {
   // Épaules
-  'Développé épaules': { primary: [Ep], secondary: [Tri, Pec, Dos] },
+  'Développé épaules': { primary: [Ep], secondary: [Tri, Pec, Dor] },
   'Développé militaire': { primary: [Ep], secondary: [Tri, Pec, Abdo, Fes] },
-  'Élévations latérales': { primary: [Ep], secondary: [Dos] },
+  'Élévations latérales': { primary: [Ep], secondary: [Dor] },
   // Pectoraux
   'Développé couché': { primary: [Pec], secondary: [Tri, Ep] },
   'Développé incliné': { primary: [Pec], secondary: [Ep, Tri] },
   'Dips': { primary: [Pec], secondary: [Tri, Ep] },
   'Pec Deck — Poignées': { primary: [Pec], secondary: [Ep, Bi, AB] },
   'Pec Deck — Boudins': { primary: [Pec], secondary: [Ep] },
-  // Dos
-  'Tractions — Pronation': { primary: [Dos], secondary: [Ep, Bi, AB] },
-  'Tractions — Supination': { primary: [Dos], secondary: [Bi, AB] },
-  'Tractions — Prise neutre': { primary: [Dos], secondary: [Bi, AB] },
-  'Tirage vertical (poulie haute) — Pronation': { primary: [Dos], secondary: [Ep, Bi] },
-  'Tirage vertical (poulie haute) — Supination': { primary: [Dos], secondary: [Bi, AB] },
-  'Tirage vertical (poulie haute) — Prise neutre': { primary: [Dos], secondary: [Bi, AB] },
-  'Rowing assis — Machine': { primary: [Dos], secondary: [Bi, AB] },
-  'Rowing assis — Poulie basse': { primary: [Dos], secondary: [Bi, AB] },
-  'Rowing assis — Pronation': { primary: [Dos], secondary: [Ep] },
-  'Rowing assis — Supination': { primary: [Dos], secondary: [Bi, AB] },
-  'Rowing assis — Prise neutre': { primary: [Dos], secondary: [Bi, AB] },
+  // Dorsaux
+  'Tractions — Pronation': { primary: [Dor], secondary: [Ep, Bi, AB] },
+  'Tractions — Supination': { primary: [Dor], secondary: [Bi, AB] },
+  'Tractions — Prise neutre': { primary: [Dor], secondary: [Bi, AB] },
+  'Tirage vertical (poulie haute) — Pronation': { primary: [Dor], secondary: [Ep, Bi] },
+  'Tirage vertical (poulie haute) — Supination': { primary: [Dor], secondary: [Bi, AB] },
+  'Tirage vertical (poulie haute) — Prise neutre': { primary: [Dor], secondary: [Bi, AB] },
+  // Rowing assis: the grip sets the dorsaux/trapèzes split — pronation leads the
+  // traps, the neutral grip the lats; the machine/cable/supination stay lat-led.
+  'Rowing assis — Machine': { primary: [Dor], secondary: [Trap, Bi, AB] },
+  'Rowing assis — Poulie basse': { primary: [Dor], secondary: [Trap, Bi, AB] },
+  'Rowing assis — Pronation': { primary: [Trap], secondary: [Dor, Ep] },
+  'Rowing assis — Supination': { primary: [Dor], secondary: [Bi, AB] },
+  'Rowing assis — Prise neutre': { primary: [Dor], secondary: [Trap, Bi, AB] },
+  // Trapèzes
+  'Shrugs': { primary: [Trap], secondary: [AB] },
   // Biceps
   'Curl incliné': { primary: [Bi], secondary: [AB] },
   'Curl pupitre': { primary: [Bi], secondary: [AB] },
@@ -314,21 +321,21 @@ const CONTRIB: Record<string, Contribution> = {
   // Abdos
   'Crunch': { primary: [Abdo], secondary: [] },
   'Enroulements de bassin': { primary: [Abdo], secondary: [] },
-  'Gainage planche': { primary: [Abdo], secondary: [Quad, Pec, Ep, Tri, Dos] },
+  'Gainage planche': { primary: [Abdo], secondary: [Quad, Pec, Ep, Tri, Dor] },
   'Relevés de jambes': { primary: [Abdo], secondary: [] },
   // Fessiers
-  'Hip thrust': { primary: [Fes], secondary: [Isch, Quad, Dos] },
+  'Hip thrust': { primary: [Fes], secondary: [Isch, Quad, Dor] },
   'Squat gobelet': { primary: [Fes, Quad], secondary: [Isch, Abdo, Ep, Bi] },
-  'Soulevé de terre sumo': { primary: [Fes], secondary: [Quad, Isch, Dos, AB] },
+  'Soulevé de terre sumo': { primary: [Fes], secondary: [Quad, Isch, Dor, AB] },
   // Quadriceps
-  'Soulevé de terre barre hex': { primary: [Quad, Fes], secondary: [Isch, Dos, AB, Abdo] },
+  'Soulevé de terre barre hex': { primary: [Quad, Fes], secondary: [Isch, Dor, AB, Abdo] },
   'Hack squat': { primary: [Quad], secondary: [Fes, Isch] },
   'Leg extension': { primary: [Quad], secondary: [] },
   'Presse à cuisses': { primary: [Quad], secondary: [Fes, Isch] },
   'Presse à cuisses incliné': { primary: [Quad], secondary: [Fes, Isch] },
   'Presse à cuisses horizontale': { primary: [Quad], secondary: [Fes, Isch] },
   // Ischio-jambiers
-  'Soulevé de terre jambes tendues': { primary: [Isch], secondary: [Fes, Dos, AB] },
+  'Soulevé de terre jambes tendues': { primary: [Isch], secondary: [Fes, Dor, AB] },
   'Leg curl allongé': { primary: [Isch], secondary: [Mol] },
   'Leg curl assis': { primary: [Isch], secondary: [Mol] },
   // Mollets

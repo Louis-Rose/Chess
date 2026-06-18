@@ -45,7 +45,8 @@ VALID_PRIORITIES = {'weak', 'strong'}
 MUSCLE_EXERCISES = {
     'Épaules': ['Développé épaules — Machine', 'Développé épaules — Haltères', 'Développé militaire', 'Élévations latérales — Poulie basse', 'Élévations latérales — Haltères'],
     'Pectoraux': ['Développé couché — Barre', 'Développé couché — Haltères', 'Développé incliné — Barre', 'Développé incliné — Haltères', 'Dips', 'Pec Deck — Poignées', 'Pec Deck — Boudins'],
-    'Dos': ['Tractions — Pronation', 'Tractions — Supination', 'Tractions — Prise neutre', 'Tirage vertical (poulie haute) — Pronation', 'Tirage vertical (poulie haute) — Supination', 'Tirage vertical (poulie haute) — Prise neutre', 'Rowing assis — Machine', 'Rowing assis — Poulie basse', 'Rowing assis — Pronation', 'Rowing assis — Supination', 'Rowing assis — Prise neutre'],
+    'Dorsaux': ['Tractions — Pronation', 'Tractions — Supination', 'Tractions — Prise neutre', 'Tirage vertical (poulie haute) — Pronation', 'Tirage vertical (poulie haute) — Supination', 'Tirage vertical (poulie haute) — Prise neutre', 'Rowing assis — Machine', 'Rowing assis — Poulie basse', 'Rowing assis — Pronation', 'Rowing assis — Supination', 'Rowing assis — Prise neutre'],
+    'Trapèzes': ['Shrugs — Haltères', 'Shrugs — Barre', 'Shrugs — Machine'],
     'Biceps': ['Curl incliné — Supination', 'Curl incliné — Rotation', 'Curl pupitre — Machine', 'Curl pupitre — Haltères', 'Curl pupitre — Barre EZ'],
     'Triceps': ['Extension poulie haute — Barre', 'Extension poulie haute — Corde', 'Extension poulie basse (overhead) — Barre', 'Extension poulie basse (overhead) — Corde'],
     'Avant-bras': ['Curl marteau', 'Flexions de poignets', 'Extensions de poignets'],

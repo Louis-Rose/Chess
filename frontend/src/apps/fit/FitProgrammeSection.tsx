@@ -25,8 +25,9 @@ export const sectionKeysFor = (splits: string[]) => {
   return [...base.slice(0, i + 1), 'bodypart', ...base.slice(i + 1)];
 };
 
-// "Quels exercices pour <le dos / les épaules> ?" — only Dos is singular.
-const musclePhrase = (m: string) => (m === 'Dos' ? 'le dos' : `les ${m.toLowerCase()}`);
+// "Quels exercices pour les épaules / les dorsaux ?" — every muscle group reads
+// naturally with a plural article.
+const musclePhrase = (m: string) => `les ${m.toLowerCase()}`;
 
 // The guiding question shown as each section's heading — shared by the create
 // wizard and the rail editor of an existing program.

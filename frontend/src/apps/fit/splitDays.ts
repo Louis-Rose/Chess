@@ -10,10 +10,10 @@ import { MUSCLE_ORDER, SPLITS } from './programData';
 // group per day, the user's chosen sequence).
 
 const ALL = MUSCLE_ORDER;
-const UPPER = ['Épaules', 'Pectoraux', 'Dos', 'Biceps', 'Triceps', 'Avant-bras', 'Abdos'];
+const UPPER = ['Épaules', 'Pectoraux', 'Dorsaux', 'Trapèzes', 'Biceps', 'Triceps', 'Avant-bras', 'Abdos'];
 const LOWER = ['Fessiers', 'Quadriceps', 'Ischio-jambiers', 'Mollets', 'Abdos'];
 const PUSH = ['Pectoraux', 'Épaules', 'Triceps', 'Abdos'];
-const PULL = ['Dos', 'Biceps', 'Avant-bras', 'Abdos'];
+const PULL = ['Dorsaux', 'Trapèzes', 'Biceps', 'Avant-bras', 'Abdos'];
 const LEGS = ['Fessiers', 'Quadriceps', 'Ischio-jambiers', 'Mollets', 'Abdos'];
 
 // Muscle groups per session, by split key. Order matches the split's `sessions`

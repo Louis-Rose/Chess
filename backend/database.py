@@ -670,6 +670,19 @@ def init_db():
             conn.execute("ALTER TABLE fit_programs ADD COLUMN body_part_order TEXT NOT NULL DEFAULT '[]'")
             logger.info("Added fit_programs.body_part_order column")
 
+        # Migration: split the 'Dos' muscle group into 'Dorsaux' (its existing,
+        # lat-focused exercises) and a new, initially empty 'Trapèzes' group.
+        # Rename 'Dos' wherever it is stored: exercise selections, the priorities
+        # map and the Body part day order. The REPLACEs are no-ops on rows that
+        # never referenced 'Dos'. Stored set logs key off exercise leaves (which
+        # don't change), so sessions are unaffected.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('split_dos_into_dorsaux',)).fetchone():
+            conn.execute("UPDATE fit_exercises SET muscle = 'Dorsaux' WHERE muscle = 'Dos'")
+            conn.execute("""UPDATE fit_programs SET priorities = REPLACE(priorities, '"Dos"', '"Dorsaux"')""")
+            conn.execute("""UPDATE fit_programs SET body_part_order = REPLACE(body_part_order, '"Dos"', '"Dorsaux"')""")
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('split_dos_into_dorsaux',))
+            logger.info("Split muscle 'Dos' into 'Dorsaux' + 'Trapèzes'")
+
         # Migration: the split chosen for a given week (Monday-anchored). A program
         # can carry several splits; each week the user picks which one applies, at
         # the first session of the week. One row per user per week.
