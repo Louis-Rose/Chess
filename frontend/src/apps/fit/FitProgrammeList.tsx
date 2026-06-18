@@ -175,7 +175,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
                   </p>
                 ))
               )}
-              <p className="text-sm text-white">
+              <p className="mt-2 text-sm text-white">
                 {p.exercise_count} exercice{p.exercise_count !== 1 ? 's' : ''}
               </p>
             </FitSwipeRow>
