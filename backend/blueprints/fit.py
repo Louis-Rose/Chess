@@ -265,11 +265,33 @@ def _priorities_of(row):
     return {m: s for m, s in val.items() if m in VALID_MUSCLES and s in VALID_PRIORITIES}
 
 
+# Target reps per working set, per exercise category — keep in sync with the
+# frontend. The session averages the working-set reps; reaching the goal is the
+# cue to move up in weight. Each category picks one of three options.
+REP_GOAL_OPTIONS = {'upper': [8, 10, 12], 'lower': [10, 12, 15], 'isolation': [10, 12, 15]}
+REP_GOAL_DEFAULT = {'upper': 10, 'lower': 12, 'isolation': 12}
+
+
+def _rep_goals_of(row):
+    """A program's target reps per category {upper, lower, isolation}. Stored as a
+    JSON object in `rep_goals`; missing/invalid entries fall back to the default."""
+    raw = row['rep_goals'] if row is not None else None
+    val = {}
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                val = parsed
+        except (ValueError, TypeError):
+            val = {}
+    return {c: (val[c] if val.get(c) in REP_GOAL_OPTIONS[c] else REP_GOAL_DEFAULT[c]) for c in REP_GOAL_OPTIONS}
+
+
 def _active_program(conn):
     """The user's active program row (id, name, splits, work_sets), or None.
     Falls back to the most recent program when no explicit active pointer is set."""
     row = conn.execute(
-        """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities, p.body_part_order
+        """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities, p.body_part_order, p.rep_goals
            FROM fit_programs p
            JOIN fit_profile f ON f.active_program_id = p.id
            WHERE f.user_id = ?""",
@@ -278,7 +300,7 @@ def _active_program(conn):
     if row:
         return row
     return conn.execute(
-        'SELECT id, name, splits, work_sets, priorities, body_part_order FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+        'SELECT id, name, splits, work_sets, priorities, body_part_order, rep_goals FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
         (request.user_id,)
     ).fetchone()
 
@@ -286,7 +308,7 @@ def _active_program(conn):
 def _owned_program(conn, program_id):
     """Return the program row if it belongs to the current user, else None."""
     return conn.execute(
-        'SELECT id, name, splits, work_sets, priorities, body_part_order FROM fit_programs WHERE id = ? AND user_id = ?',
+        'SELECT id, name, splits, work_sets, priorities, body_part_order, rep_goals FROM fit_programs WHERE id = ? AND user_id = ?',
         (program_id, request.user_id)
     ).fetchone()
 
@@ -333,6 +355,7 @@ def get_exercises():
         'priorities': _priorities_of(prog),
         'splits': _splits_of(prog),
         'body_part_order': _body_part_order_of(prog),
+        'rep_goals': _rep_goals_of(prog),
     })
 
 
@@ -342,7 +365,7 @@ def list_programs():
     """All of the user's programs (with exercise counts) plus the active one's id."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities, p.body_part_order,
+            """SELECT p.id, p.name, p.splits, p.work_sets, p.priorities, p.body_part_order, p.rep_goals,
                       COUNT(e.exercise) AS exercise_count
                FROM fit_programs p
                LEFT JOIN fit_exercises e ON e.program_id = p.id
@@ -355,7 +378,7 @@ def list_programs():
     return jsonify({
         'programs': [{'id': r['id'], 'name': r['name'], 'splits': _splits_of(r),
                       'work_sets': r['work_sets'], 'priorities': _priorities_of(r),
-                      'body_part_order': _body_part_order_of(r),
+                      'body_part_order': _body_part_order_of(r), 'rep_goals': _rep_goals_of(r),
                       'exercise_count': r['exercise_count']} for r in rows],
         'active_id': active['id'] if active else None,
     })
@@ -375,7 +398,7 @@ def create_program():
             ).fetchone()['c']
             name = f'Programme {n + 1}'
         row = conn.execute(
-            "INSERT INTO fit_programs (user_id, name, splits) VALUES (?, ?, '[]') RETURNING id, name, splits, work_sets, priorities, body_part_order",
+            "INSERT INTO fit_programs (user_id, name, splits) VALUES (?, ?, '[]') RETURNING id, name, splits, work_sets, priorities, body_part_order, rep_goals",
             (request.user_id, name[:PROGRAM_NAME_MAX])
         ).fetchone()
         # Make it active if the user has no active program yet.
@@ -386,7 +409,7 @@ def create_program():
             _set_active_program(conn, row['id'])
     return jsonify({'id': row['id'], 'name': row['name'], 'splits': _splits_of(row),
                     'work_sets': row['work_sets'], 'priorities': _priorities_of(row),
-                    'body_part_order': _body_part_order_of(row)})
+                    'body_part_order': _body_part_order_of(row), 'rep_goals': _rep_goals_of(row)})
 
 
 @fit_bp.route('/api/fit/programs/active', methods=['PUT'])
@@ -439,6 +462,16 @@ def update_program(program_id):
         if not isinstance(order, list) or any(m not in VALID_MUSCLES for m in order):
             return jsonify({'error': 'Invalid body_part_order'}), 400
         updates['body_part_order'] = json.dumps(order)
+    if 'rep_goals' in data:
+        # {upper, lower, isolation}: each one of its category's allowed options.
+        rg = data['rep_goals']
+        if not isinstance(rg, dict) or any(
+            c not in REP_GOAL_OPTIONS or v not in REP_GOAL_OPTIONS[c] for c, v in rg.items()
+        ):
+            return jsonify({'error': 'Invalid rep_goals'}), 400
+        # Merge onto the defaults so a partial update keeps the other categories.
+        merged = {**REP_GOAL_DEFAULT, **{c: v for c, v in rg.items()}}
+        updates['rep_goals'] = json.dumps(merged)
     if not updates:
         return jsonify({'error': 'Nothing to update'}), 400
 
@@ -457,6 +490,8 @@ def update_program(program_id):
         resp['priorities'] = json.loads(resp['priorities'])   # send the object, not its JSON text
     if 'body_part_order' in resp:
         resp['body_part_order'] = json.loads(resp['body_part_order'])
+    if 'rep_goals' in resp:
+        resp['rep_goals'] = json.loads(resp['rep_goals'])
     return jsonify(resp)
 
 

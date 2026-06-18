@@ -2,7 +2,7 @@ import { Fragment, useMemo, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
-import { MUSCLES, SPLITS, exercisesForMuscle, type Split } from './programData';
+import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, type Split } from './programData';
 import { FitPriorityZones } from './FitPriorityZones';
 import { FitVolumeGraph } from './FitVolumeGraph';
 import type { ProgramEditor } from './useProgramEditor';
@@ -19,7 +19,7 @@ const NAME_MAX = 60;
 // the program includes a Body part split, a 'bodypart' step (the day order) is
 // inserted right after 'split'.
 export const sectionKeysFor = (splits: string[]) => {
-  const base = ['name', 'split', 'priority', 'sets', ...MUSCLES.map(m => m.name)];
+  const base = ['name', 'split', 'priority', 'sets', 'reps', ...MUSCLES.map(m => m.name)];
   if (!splits.includes('body_part')) return base;
   const i = base.indexOf('split');
   return [...base.slice(0, i + 1), 'bodypart', ...base.slice(i + 1)];
@@ -37,6 +37,7 @@ export const sectionQuestion = (section: string) =>
     : section === 'priority' ? 'Quels muscles veux-tu prioriser (points faibles) ou non (points forts) ?'
     : section === 'bodypart' ? 'Dans quel ordre veux-tu enchaîner tes séances ? (un groupe musculaire par séance)'
     : section === 'sets' ? 'Combien de séries de travail par exercice ?'
+    : section === 'reps' ? 'Combien de répétitions vises-tu par série ?'
     : `Quels exercices pour ${musclePhrase(section)} ?`;
 
 export function FitProgrammeSection({ section, editor }: {
@@ -47,6 +48,7 @@ export function FitProgrammeSection({ section, editor }: {
     loading, name, setName, saveName, splits, toggleSplit, workSets, chooseSets,
     priorities, setPriority,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
+    repGoals, setRepGoal,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
     onCustomSaved, deleteCustom, unilateral, saveUnilateral,
   } = editor;
@@ -106,6 +108,23 @@ export function FitProgrammeSection({ section, editor }: {
         onRemove={removeBodyPartDay}
         onMove={moveBodyPartDay}
       />
+    );
+
+  if (section === 'reps')
+    return (
+      <div className="flex flex-col gap-6">
+        {REP_CATEGORIES.map(c => (
+          <div key={c.key}>
+            <p className="text-center text-sm font-medium text-slate-200">{c.label}</p>
+            {c.hint && <p className="mb-2 text-center text-xs text-slate-500">{c.hint}</p>}
+            <div className={`grid grid-cols-3 gap-2 ${c.hint ? '' : 'mt-2'}`}>
+              {REP_GOAL_OPTIONS[c.key].map(n => (
+                <Choice key={n} active={repGoals[c.key] === n} onClick={() => setRepGoal(c.key, n)}>{n}</Choice>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     );
 
   if (section === 'sets')

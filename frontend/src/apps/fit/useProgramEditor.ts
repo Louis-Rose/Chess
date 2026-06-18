@@ -3,7 +3,7 @@ import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
 import { useExerciseUnilateral } from './useExerciseUnilateral';
-import { variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities } from './programData';
+import { REP_GOAL_DEFAULT, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
 import type { CustomDraft } from './FitCustomExercises';
 
 // Shared editing state for one program: name, split, working sets, per-muscle
@@ -20,6 +20,7 @@ export function useProgramEditor(program: FitProgram) {
   const [workSets, setWorkSets] = useState<number | null>(program.work_sets);
   const [priorities, setPriorities] = useState<Priorities>(program.priorities ?? {});
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>(program.body_part_order ?? []);
+  const [repGoals, setRepGoals] = useState<RepGoals>(program.rep_goals ?? REP_GOAL_DEFAULT);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const { customExercises, reloadCustom } = useCustomExercises();
@@ -91,6 +92,15 @@ export function useProgramEditor(program: FitProgram) {
     saveBodyPartOrder(next);
   }
 
+  // Target reps for a category; saves the whole {upper, lower, isolation} object.
+  function setRepGoal(category: RepCategory, n: number) {
+    setRepGoals(prev => {
+      const next = { ...prev, [category]: n };
+      fitRequest(() => axios.put(base, { rep_goals: next })).catch(() => {});
+      return next;
+    });
+  }
+
   function toggleExercise(muscle: string, id: string) {
     setSelections(prev => {
       const cur = prev[muscle] ?? [];
@@ -137,6 +147,7 @@ export function useProgramEditor(program: FitProgram) {
     workSets, chooseSets,
     priorities, setPriority,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
+    repGoals, setRepGoal,
     selections, toggleExercise,
     customExercises, customDraft, setCustomDraft, onCustomSaved, deleteCustom,
     unilateral, saveUnilateral,

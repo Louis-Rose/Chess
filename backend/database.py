@@ -697,6 +697,13 @@ def init_db():
             """)
             logger.info("Created fit_week_splits table")
 
+        # Migration: target reps per working set, per exercise category
+        # (upper / lower / isolation). A JSON object; the session averages the
+        # working-set reps and reaching the goal cues a weight increase.
+        if not _column_exists(conn, 'fit_programs', 'rep_goals'):
+            conn.execute("""ALTER TABLE fit_programs ADD COLUMN rep_goals TEXT NOT NULL DEFAULT '{"upper":10,"lower":12,"isolation":12}'""")
+            logger.info("Added fit_programs.rep_goals column")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

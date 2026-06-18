@@ -23,6 +23,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
     ...(editor.splits.includes('body_part') ? [{ key: 'bodypart', label: 'Ordre' }] : []),
     { key: 'priority', label: 'Priorités' },
     { key: 'sets', label: 'Volume' },
+    { key: 'reps', label: 'Reps' },
     ...MUSCLES.map(m => ({ key: m.name, label: m.name === 'Ischio-jambiers' ? 'Ischios' : m.name })),
   ];
 

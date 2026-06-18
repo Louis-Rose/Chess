@@ -16,7 +16,27 @@ export interface FitProgram {
   // For a Body part split: the user's chosen day order, one muscle group per
   // day. Other splits use the fixed day->muscle mapping in splitDays.ts.
   body_part_order: string[];
+  // Target reps per working set, per exercise category. The session averages the
+  // working-set reps; reaching the goal cues a weight increase.
+  rep_goals: RepGoals;
 }
+
+// Target reps per working set, by exercise category. Each category picks one of
+// its allowed options. Keep in sync with backend/blueprints/fit.py.
+export type RepCategory = 'upper' | 'lower' | 'isolation';
+export type RepGoals = Record<RepCategory, number>;
+
+export const REP_GOAL_OPTIONS: Record<RepCategory, number[]> = {
+  upper: [8, 10, 12],
+  lower: [10, 12, 15],
+  isolation: [10, 12, 15],
+};
+export const REP_GOAL_DEFAULT: RepGoals = { upper: 10, lower: 12, isolation: 12 };
+export const REP_CATEGORIES: { key: RepCategory; label: string; hint?: string }[] = [
+  { key: 'upper', label: 'Haut du corps' },
+  { key: 'lower', label: 'Bas du corps' },
+  { key: 'isolation', label: 'Isolation', hint: 'biceps, triceps, épaules' },
+];
 
 // Per-muscle training priority within a program. A muscle is 'weak' (a weak
 // point to bring up — its exercises lead the session) or 'strong' (a strong
