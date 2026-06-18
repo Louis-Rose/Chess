@@ -69,7 +69,7 @@ export function FitPriorityZones({ priorities, setPriority }: {
           >
             <div className="flex items-baseline justify-center gap-2">
               <span className={`text-sm font-semibold ${accent}`}>{z.title}</span>
-              {z.hint && <span className="text-xs text-slate-500">({z.hint})</span>}
+              {z.hint && <span className="text-xs text-white">({z.hint})</span>}
             </div>
 
             <div className="flex min-h-[2.75rem] flex-wrap content-center justify-center gap-2">
