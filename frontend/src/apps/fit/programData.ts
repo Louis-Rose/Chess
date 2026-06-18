@@ -19,6 +19,9 @@ export interface FitProgram {
   // Target reps per working set, per exercise category. The session averages the
   // working-set reps; reaching the goal cues a weight increase.
   rep_goals: RepGoals;
+  // Muscle execution order, used to order the session's exercise picker within
+  // each priority tier. May be partial/empty; normalizeMuscleOrder fills it.
+  muscle_order: string[];
 }
 
 // Target reps per working set, by exercise category. Each category picks one of
@@ -233,6 +236,15 @@ export const MUSCLE_LEAVES: Record<string, Set<string>> = Object.fromEntries(
 
 // Muscle groups in catalogue (anatomical) order.
 export const MUSCLE_ORDER = MUSCLES.map(m => m.name);
+
+// A program's stored muscle order, completed into every muscle: keep the stored
+// (valid) ones, then append any missing muscle in catalogue order. Empty input
+// → the catalogue (anatomical, upper→lower) order.
+export const normalizeMuscleOrder = (order: string[] | undefined): string[] => {
+  const valid = (order ?? []).filter(m => MUSCLE_ORDER.includes(m));
+  const seen = new Set(valid);
+  return [...valid, ...MUSCLE_ORDER.filter(m => !seen.has(m))];
+};
 
 // Reverse lookup: a stored leaf -> its muscle group (null if orphaned).
 const LEAF_TO_MUSCLE: Record<string, string> = {};

@@ -58,6 +58,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [priorities, setPriorities] = useState<Priorities>({});
   const [repGoals, setRepGoals] = useState<RepGoals>(REP_GOAL_DEFAULT);
+  const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
   // The week's split (which one the user follows this week) and the data to
   // locate today's session within it, so the picker is filtered to the day.
   const [weekSplit, setWeekSplit] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     // sets), otherwise starts a fresh empty one.
     Promise.all([
       fitRequest(() => axios.post<SessionPayload>('/api/fit/sessions')),
-      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; splits: string[]; body_part_order: string[]; rep_goals: RepGoals; unilateral: string[] }>('/api/fit/exercises')),
+      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; splits: string[]; body_part_order: string[]; rep_goals: RepGoals; unilateral: string[]; muscle_order: string[] }>('/api/fit/exercises')),
       fitRequest(() => axios.get<{ split: string | null; done_this_week: number }>('/api/fit/week-split')),
     ])
       .then(([sessionRes, exRes, weekRes]) => {
@@ -101,6 +102,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         setPriorities(exRes.data.priorities ?? {});
         setRepGoals(exRes.data.rep_goals ?? REP_GOAL_DEFAULT);
         setUnilateral(new Set(exRes.data.unilateral ?? []));
+        setMuscleOrder(exRes.data.muscle_order ?? []);
 
         const grouped = groupSets(sessionRes.data.sets ?? []);
 
@@ -415,6 +417,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           program={program}
           priorities={priorities}
           muscles={today?.muscles}
+          muscleOrder={muscleOrder}
           onPick={addExercise}
           onClose={() => setPicking(false)}
         />

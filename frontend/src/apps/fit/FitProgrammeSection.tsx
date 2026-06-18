@@ -2,7 +2,7 @@ import { Fragment, useMemo, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
-import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, type Split } from './programData';
+import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, type Priorities, type Split } from './programData';
 import { FitPriorityZones } from './FitPriorityZones';
 import { FitVolumeGraph } from './FitVolumeGraph';
 import type { ProgramEditor } from './useProgramEditor';
@@ -19,7 +19,7 @@ const NAME_MAX = 60;
 // the program includes a Body part split, a 'bodypart' step (the day order) is
 // inserted right after 'split'.
 export const sectionKeysFor = (splits: string[]) => {
-  const base = ['name', 'split', 'priority', 'sets', 'reps', ...MUSCLES.map(m => m.name)];
+  const base = ['name', 'split', 'priority', 'order', 'sets', 'reps', ...MUSCLES.map(m => m.name)];
   if (!splits.includes('body_part')) return base;
   const i = base.indexOf('split');
   return [...base.slice(0, i + 1), 'bodypart', ...base.slice(i + 1)];
@@ -35,6 +35,7 @@ export const sectionQuestion = (section: string) =>
   section === 'name' ? 'Comment veux-tu nommer ce programme ?'
     : section === 'split' ? 'Quel(s) split(s) veux-tu suivre ? (choix multiples possibles)'
     : section === 'priority' ? 'Quels muscles veux-tu prioriser (points faibles) ou non (points forts) ?'
+    : section === 'order' ? "Dans quel ordre veux-tu exécuter les muscles ?"
     : section === 'bodypart' ? 'Dans quel ordre veux-tu enchaîner tes séances ? (un groupe musculaire par séance)'
     : section === 'sets' ? 'Combien de séries de travail par exercice ?'
     : section === 'reps' ? 'Combien de répétitions vises-tu par série ?'
@@ -47,6 +48,7 @@ export function FitProgrammeSection({ section, editor }: {
   const {
     loading, name, setName, saveName, splits, toggleSplit, workSets, chooseSets,
     priorities, setPriority,
+    muscleOrder, moveMuscle,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
@@ -99,6 +101,9 @@ export function FitProgrammeSection({ section, editor }: {
 
   if (section === 'priority')
     return <FitPriorityZones priorities={priorities} setPriority={setPriority} />;
+
+  if (section === 'order')
+    return <MuscleOrderSection order={muscleOrder} priorities={priorities} onMove={moveMuscle} />;
 
   if (section === 'bodypart')
     return (
@@ -178,6 +183,44 @@ export function FitProgrammeSection({ section, editor }: {
         />
       )}
     </>
+  );
+}
+
+// Muscle execution order: a reorderable list of every muscle (the base order).
+// Points faibles are always trained first and points forts last (priority tiers);
+// this order only decides the sequence within each tier. Priority badges show
+// which muscles sit in which tier.
+function MuscleOrderSection({ order, priorities, onMove }: {
+  order: string[];
+  priorities: Priorities;
+  onMove: (index: number, dir: -1 | 1) => void;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4">
+      <p className="rounded-lg bg-slate-800/40 px-3.5 py-2.5 text-left text-sm text-slate-300">
+        Les points faibles passent toujours en premier, les points forts en dernier. Cet ordre règle la suite à l'intérieur de chaque groupe.
+      </p>
+      <ul className="flex flex-col gap-2">
+        {order.map((m, i) => {
+          const p = priorities[m];
+          return (
+            <li key={m} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2.5">
+              <span className="flex-1 text-left text-sm text-slate-100">
+                {m}
+                {p === 'weak' && <span className="ml-2 text-xs text-emerald-300">point faible</span>}
+                {p === 'strong' && <span className="ml-2 text-xs text-amber-300">point fort</span>}
+              </span>
+              <button type="button" aria-label="Monter" disabled={i === 0} onClick={() => onMove(i, -1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
+                <ArrowUp className="h-4 w-4" />
+              </button>
+              <button type="button" aria-label="Descendre" disabled={i === order.length - 1} onClick={() => onMove(i, 1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
+                <ArrowDown className="h-4 w-4" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

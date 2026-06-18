@@ -746,6 +746,13 @@ def init_db():
                 """)
             logger.info("Created fit_program_unilateral table (per-program unilateral)")
 
+        # Migration: per-program muscle execution order (used to order the session
+        # exercise picker within each priority tier). JSON array of muscle names;
+        # empty falls back to the catalogue (anatomical) order in code.
+        if not _column_exists(conn, 'fit_programs', 'muscle_order'):
+            conn.execute("ALTER TABLE fit_programs ADD COLUMN muscle_order TEXT NOT NULL DEFAULT '[]'")
+            logger.info("Added fit_programs.muscle_order column")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

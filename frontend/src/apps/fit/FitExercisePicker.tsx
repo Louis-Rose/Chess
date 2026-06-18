@@ -15,12 +15,14 @@ import { validatedLeaves } from './validatedExercises';
 // its own card (the variant shown under the base name), so a single tap adds it
 // (onPick). It only lists the program's still-valid exercises.
 
-export function FitExercisePicker({ program, priorities = {}, muscles, onPick, onClose }: {
+export function FitExercisePicker({ program, priorities = {}, muscles, muscleOrder, onPick, onClose }: {
   program: Record<string, string[]>;
   priorities?: Priorities;
   // When set (the week's split day), only these muscle groups are shown, with a
   // toggle to reveal all the program's muscles instead.
   muscles?: string[];
+  // The program's muscle execution order (base order before priority tiers).
+  muscleOrder?: string[];
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
@@ -43,11 +45,11 @@ export function FitExercisePicker({ program, priorities = {}, muscles, onPick, o
   // Nothing is pre-highlighted: the picker only adds exercises, so showing the
   // ones already in the session as "selected" was misleading.
   const selected: string[] = [];
-  // Muscles in anatomical order, then re-grouped by the program's priorities so
-  // weak points (to bring up) lead and strong points close — guiding the user to
-  // pick, and thus train, them in that order. Sort is stable, so same-priority
-  // muscles keep their anatomical order.
-  const groups = MUSCLE_ORDER
+  // Muscles in the program's chosen base order (fallback anatomical), then
+  // re-grouped by priority tiers (weak first, strong last) — sort is stable, so
+  // same-tier muscles keep the program order.
+  const order = muscleOrder && muscleOrder.length > 0 ? muscleOrder : MUSCLE_ORDER;
+  const groups = order
     .filter(name => !dayFilter || dayFilter.has(name))
     .map(name => ({
       name,

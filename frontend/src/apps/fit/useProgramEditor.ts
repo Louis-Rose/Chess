@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
-import { REP_GOAL_DEFAULT, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
+import { REP_GOAL_DEFAULT, normalizeMuscleOrder, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
 import type { CustomDraft } from './FitCustomExercises';
 
 // Shared editing state for one program: name, split, working sets, per-muscle
@@ -20,6 +20,7 @@ export function useProgramEditor(program: FitProgram) {
   const [priorities, setPriorities] = useState<Priorities>(program.priorities ?? {});
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>(program.body_part_order ?? []);
   const [repGoals, setRepGoals] = useState<RepGoals>(program.rep_goals ?? REP_GOAL_DEFAULT);
+  const [muscleOrder, setMuscleOrder] = useState<string[]>(normalizeMuscleOrder(program.muscle_order));
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [unilateral, setUnilateral] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -118,6 +119,16 @@ export function useProgramEditor(program: FitProgram) {
     });
   }
 
+  // Muscle execution order: reorder within the list, saved as the whole order.
+  function moveMuscle(index: number, dir: -1 | 1) {
+    const j = index + dir;
+    if (j < 0 || j >= muscleOrder.length) return;
+    const next = [...muscleOrder];
+    [next[index], next[j]] = [next[j], next[index]];
+    setMuscleOrder(next);
+    fitRequest(() => axios.put(base, { muscle_order: next })).catch(() => {});
+  }
+
   function toggleExercise(muscle: string, id: string) {
     setSelections(prev => {
       const cur = prev[muscle] ?? [];
@@ -163,6 +174,7 @@ export function useProgramEditor(program: FitProgram) {
     splits, toggleSplit,
     workSets, chooseSets,
     priorities, setPriority,
+    muscleOrder, moveMuscle,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise,

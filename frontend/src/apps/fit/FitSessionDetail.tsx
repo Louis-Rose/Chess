@@ -70,16 +70,17 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
   const [unilateral, setUnilateral] = useState<Set<string>>(new Set());   // active program's
+  const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
 
   useEffect(() => {
-    const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]>; priorities: Priorities; unilateral: string[] } }>?] = [
+    const requests: [Promise<{ data: Session }>, Promise<{ data: { selections: Record<string, string[]>; priorities: Priorities; unilateral: string[]; muscle_order: string[] } }>?] = [
       fitRequest(() => axios.get<Session>(`/api/fit/sessions/${sessionId}`)),
     ];
-    if (editable) requests[1] = fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; unilateral: string[] }>('/api/fit/exercises'));
+    if (editable) requests[1] = fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; unilateral: string[]; muscle_order: string[] }>('/api/fit/exercises'));
     Promise.all(requests)
       .then(([sessionRes, exRes]) => {
         setSession(sessionRes.data);
-        if (exRes) { setProgram(exRes.data.selections ?? {}); setPriorities(exRes.data.priorities ?? {}); setUnilateral(new Set(exRes.data.unilateral ?? [])); }
+        if (exRes) { setProgram(exRes.data.selections ?? {}); setPriorities(exRes.data.priorities ?? {}); setUnilateral(new Set(exRes.data.unilateral ?? [])); setMuscleOrder(exRes.data.muscle_order ?? []); }
       })
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
@@ -345,6 +346,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
         <FitExercisePicker
           program={program}
           priorities={priorities}
+          muscleOrder={muscleOrder}
           onPick={leaf => { setPicking(false); setEditing(leaf); }}
           onClose={() => setPicking(false)}
         />
