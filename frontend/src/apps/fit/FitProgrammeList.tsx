@@ -139,19 +139,13 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
               onClose={() => setOpenId(null)}
               onDelete={guard(() => remove(p.id))}
               onTap={guard(() => onOpen(p, false))}
-              className={`px-5 py-4 text-left ${isActive ? 'border-emerald-500/60' : 'border-slate-700'}`}
+              className={`relative px-5 py-4 text-center ${isActive ? 'border-emerald-500/60' : 'border-slate-700'}`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="truncate text-lg font-semibold text-slate-100">{p.name}</h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    {p.splits.map(splitLabel).filter(Boolean).join(' · ') || 'Split non défini'}
-                    <span className="mx-1.5 text-slate-600">·</span>
-                    {p.exercise_count} exercice{p.exercise_count > 1 ? 's' : ''}
-                  </p>
-                </div>
+              {/* Status / activate badge, pinned top-right so the text below
+                  stays centered. */}
+              <div className="absolute right-4 top-4">
                 {isActive ? (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300">
                     <Check className="h-3.5 w-3.5" />
                     Actif
                   </span>
@@ -162,12 +156,20 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
                     onPointerDown={e => e.stopPropagation()}
                     onClick={e => { e.stopPropagation(); guard(() => activate(p.id))(); }}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); guard(() => activate(p.id))(); } }}
-                    className="shrink-0 rounded-full border border-slate-600 px-3 py-1 text-xs font-medium text-slate-200 transition-colors active:bg-slate-800"
+                    className="rounded-full border border-slate-600 px-3 py-1 text-xs font-medium text-slate-200 transition-colors active:bg-slate-800"
                   >
                     Utiliser
                   </span>
                 )}
               </div>
+
+              <h2 className="truncate text-lg font-semibold text-white">{p.name}</h2>
+              <p className="mt-1 text-sm text-white">
+                {p.splits.map(splitLabel).filter(Boolean).join(' & ') || 'Split non défini'}
+              </p>
+              <p className="text-sm text-white">
+                {p.exercise_count} exercice{p.exercise_count !== 1 ? 's' : ''}
+              </p>
             </FitSwipeRow>
           );
         })}
