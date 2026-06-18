@@ -32,15 +32,15 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
       <FitBackButton onClick={onBack} />
 
       <div className="mt-4 flex gap-2">
-        <nav className="flex w-24 shrink-0 flex-col gap-1 self-start rounded-xl border border-slate-700 bg-slate-800/20 p-1.5" aria-label="Sections du programme">
+        <nav className="flex w-24 shrink-0 flex-col gap-0.5 self-start rounded-xl border border-slate-700 bg-slate-800/20 p-1" aria-label="Sections du programme">
           {sections.map((s, i) => (
             <Fragment key={s.key}>
-              {i > 0 && <div className="my-1 h-px bg-slate-800" />}
+              {i > 0 && <div className="h-px bg-slate-800" />}
               <button
                 type="button"
                 onClick={() => setActive(s.key)}
                 aria-current={active === s.key ? 'true' : undefined}
-                className={`rounded-lg px-1.5 py-2 text-left text-[13px] leading-tight transition-colors ${
+                className={`rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-tight transition-colors ${
                   active === s.key
                     ? 'bg-emerald-500/10 font-medium text-emerald-300'
                     : 'text-slate-400 active:bg-slate-800/60'

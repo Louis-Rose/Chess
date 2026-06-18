@@ -56,10 +56,15 @@ export function useProgramEditor(program: FitProgram) {
     fitRequest(() => axios.put(base, { name: trimmed })).catch(() => {});
   }
 
-  // A program can carry several splits; tapping one toggles it on/off.
+  // A program can carry several splits; tapping one toggles it on/off. "Pas de
+  // split" is mutually exclusive with real splits: choosing it clears the rest,
+  // and choosing any real split clears it.
   function toggleSplit(s: string) {
     setSplits(prev => {
-      const next = prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s];
+      let next: string[];
+      if (prev.includes(s)) next = prev.filter(x => x !== s);
+      else if (s === 'no_split') next = ['no_split'];
+      else next = [...prev.filter(x => x !== 'no_split'), s];
       fitRequest(() => axios.put(base, { splits: next })).catch(() => {});
       return next;
     });
