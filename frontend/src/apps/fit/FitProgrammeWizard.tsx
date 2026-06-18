@@ -64,7 +64,7 @@ export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; o
       {section === 'name' ? (
         // The single-field name step: question, input and button stay together
         // as one group, evenly spaced and centered over the available height.
-        <div className="flex flex-1 flex-col justify-center gap-7">
+        <div className="flex flex-1 flex-col justify-center gap-14">
           {question}
           <FitProgrammeSection section={section} editor={editor} />
           {nextButton}
