@@ -22,6 +22,7 @@ export interface Split {
   key: string;
   label: string;
   negative?: boolean;   // a "none" option (e.g. "Pas de split") — kept last
+  sortLabel?: string;   // ordering-only override (an exception to the alpha order); an overridden split sorts just before the real one sharing its label
 }
 
 // Defined freely; SPLITS exposes them alphabetically with negatives last.
@@ -29,7 +30,8 @@ const SPLITS_RAW: Split[] = [
   { key: 'full_body', label: 'Full Body' },
   { key: 'upper_lower', label: 'Upper / Lower' },
   { key: 'upper_lower_upper', label: 'Upper / Lower / Upper' },
-  { key: 'lower_upper_lower', label: 'Lower / Upper / Lower' },
+  // Grouped with the Upper/Lower variants: ordered just before "Upper / Lower".
+  { key: 'lower_upper_lower', label: 'Lower / Upper / Lower', sortLabel: 'Upper / Lower' },
   { key: 'push_pull_legs', label: 'Push / Pull / Legs' },
   { key: 'body_part', label: 'Body part' },
   { key: 'no_split', label: 'Pas de split', negative: true },
@@ -37,7 +39,10 @@ const SPLITS_RAW: Split[] = [
 
 export const SPLITS: Split[] = [...SPLITS_RAW].sort((a, b) => {
   if (!!a.negative !== !!b.negative) return a.negative ? 1 : -1;
-  return collator.compare(a.label, b.label);
+  const c = collator.compare(a.sortLabel ?? a.label, b.sortLabel ?? b.label);
+  if (c !== 0) return c;
+  // Same ordering label: the overridden one (sortLabel set) comes first.
+  return (a.sortLabel ? 0 : 1) - (b.sortLabel ? 0 : 1);
 });
 
 export const splitLabel = (key: string | null) =>
