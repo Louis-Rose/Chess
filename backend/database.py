@@ -646,6 +646,15 @@ def init_db():
             """)
             logger.info("Created fit_exercise_unilateral table")
 
+        # Migration: a program can carry several splits (each week the user picks
+        # which one applies). Stored as a JSON array in fit_programs.splits; the
+        # legacy single `split` column is backfilled into it once, then unused.
+        if not _column_exists(conn, 'fit_programs', 'splits'):
+            conn.execute("ALTER TABLE fit_programs ADD COLUMN splits TEXT")
+            conn.execute("UPDATE fit_programs SET splits = '[\"' || split || '\"]' WHERE split IS NOT NULL")
+            conn.execute("UPDATE fit_programs SET splits = '[]' WHERE splits IS NULL")
+            logger.info("Added fit_programs.splits column")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

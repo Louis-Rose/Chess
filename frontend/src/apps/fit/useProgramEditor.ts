@@ -16,7 +16,7 @@ import type { CustomDraft } from './FitCustomExercises';
 
 export function useProgramEditor(program: FitProgram) {
   const [name, setName] = useState(program.name);
-  const [split, setSplit] = useState<string | null>(program.split);
+  const [splits, setSplits] = useState<string[]>(program.splits ?? []);
   const [workSets, setWorkSets] = useState<number | null>(program.work_sets);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
@@ -41,10 +41,11 @@ export function useProgramEditor(program: FitProgram) {
     fitRequest(() => axios.put(base, { name: trimmed })).catch(() => {});
   }
 
-  function chooseSplit(s: string) {
-    setSplit(prev => {
-      const next = prev === s ? null : s;   // re-clicking the selected split deselects it
-      fitRequest(() => axios.put(base, { split: next })).catch(() => {});
+  // A program can carry several splits; tapping one toggles it on/off.
+  function toggleSplit(s: string) {
+    setSplits(prev => {
+      const next = prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s];
+      fitRequest(() => axios.put(base, { splits: next })).catch(() => {});
       return next;
     });
   }
@@ -96,7 +97,7 @@ export function useProgramEditor(program: FitProgram) {
   return {
     loading,
     name, setName, saveName,
-    split, chooseSplit,
+    splits, toggleSplit,
     workSets, chooseSets,
     selections, toggleExercise,
     customExercises, customDraft, setCustomDraft, onCustomSaved, deleteCustom,

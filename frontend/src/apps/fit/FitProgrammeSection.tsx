@@ -23,7 +23,7 @@ const musclePhrase = (m: string) => (m === 'Dos' ? 'le dos' : `les ${m.toLowerCa
 // wizard and the rail editor of an existing program.
 export const sectionQuestion = (section: string) =>
   section === 'name' ? 'Comment veux-tu nommer ce programme ?'
-    : section === 'split' ? 'Quel split veux-tu suivre ?'
+    : section === 'split' ? 'Quel(s) split(s) veux-tu suivre ? (choix multiples possibles)'
     : section === 'sets' ? 'Combien de séries de travail par exercice ?'
     : `Quels exercices pour ${musclePhrase(section)} ?`;
 
@@ -32,7 +32,7 @@ export function FitProgrammeSection({ section, editor }: {
   editor: ProgramEditor;
 }) {
   const {
-    loading, name, setName, saveName, split, chooseSplit, workSets, chooseSets,
+    loading, name, setName, saveName, splits, toggleSplit, workSets, chooseSets,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
     onCustomSaved, deleteCustom, unilateral, saveUnilateral,
   } = editor;
@@ -74,8 +74,8 @@ export function FitProgrammeSection({ section, editor }: {
       <div className="flex flex-col gap-2.5">
         {SPLITS.map(s => (
           <Fragment key={s.key}>
-            <Choice active={s.key === split} onClick={() => chooseSplit(s.key)}>{s.label}</Choice>
-            {s.key === split && <SplitDefinition split={s} />}
+            <Choice active={splits.includes(s.key)} onClick={() => toggleSplit(s.key)}>{s.label}</Choice>
+            {splits.includes(s.key) && <SplitDefinition split={s} />}
           </Fragment>
         ))}
       </div>

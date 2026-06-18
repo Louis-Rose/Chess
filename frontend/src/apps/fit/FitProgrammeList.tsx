@@ -145,7 +145,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
                 <div className="min-w-0">
                   <h2 className="truncate text-lg font-semibold text-slate-100">{p.name}</h2>
                   <p className="mt-1 text-sm text-slate-400">
-                    {splitLabel(p.split) || 'Split non défini'}
+                    {p.splits.map(splitLabel).filter(Boolean).join(' · ') || 'Split non défini'}
                     <span className="mx-1.5 text-slate-600">·</span>
                     {p.exercise_count} exercice{p.exercise_count > 1 ? 's' : ''}
                   </p>

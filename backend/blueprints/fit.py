@@ -220,11 +220,24 @@ WORK_SETS_MIN, WORK_SETS_MAX = 2, 6
 PROGRAM_NAME_MAX = 60
 
 
+def _splits_of(row):
+    """A program row's splits as a list. Stored as a JSON array in the `splits`
+    column (a program can carry several; the user picks which applies each week)."""
+    raw = row['splits'] if row is not None else None
+    if not raw:
+        return []
+    try:
+        val = json.loads(raw)
+        return val if isinstance(val, list) else []
+    except (ValueError, TypeError):
+        return []
+
+
 def _active_program(conn):
-    """The user's active program row (id, name, split, work_sets), or None.
+    """The user's active program row (id, name, splits, work_sets), or None.
     Falls back to the most recent program when no explicit active pointer is set."""
     row = conn.execute(
-        """SELECT p.id, p.name, p.split, p.work_sets
+        """SELECT p.id, p.name, p.splits, p.work_sets
            FROM fit_programs p
            JOIN fit_profile f ON f.active_program_id = p.id
            WHERE f.user_id = ?""",
@@ -233,7 +246,7 @@ def _active_program(conn):
     if row:
         return row
     return conn.execute(
-        'SELECT id, name, split, work_sets FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+        'SELECT id, name, splits, work_sets FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
         (request.user_id,)
     ).fetchone()
 
@@ -241,7 +254,7 @@ def _active_program(conn):
 def _owned_program(conn, program_id):
     """Return the program row if it belongs to the current user, else None."""
     return conn.execute(
-        'SELECT id, name, split, work_sets FROM fit_programs WHERE id = ? AND user_id = ?',
+        'SELECT id, name, splits, work_sets FROM fit_programs WHERE id = ? AND user_id = ?',
         (program_id, request.user_id)
     ).fetchone()
 
@@ -264,7 +277,7 @@ def get_profile():
     with get_db() as conn:
         prog = _active_program(conn)
     return jsonify({
-        'split': prog['split'] if prog else None,
+        'splits': _splits_of(prog),
         'work_sets': prog['work_sets'] if prog else None,
     })
 
@@ -291,7 +304,7 @@ def list_programs():
     """All of the user's programs (with exercise counts) plus the active one's id."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT p.id, p.name, p.split, p.work_sets,
+            """SELECT p.id, p.name, p.splits, p.work_sets,
                       COUNT(e.exercise) AS exercise_count
                FROM fit_programs p
                LEFT JOIN fit_exercises e ON e.program_id = p.id
@@ -302,7 +315,7 @@ def list_programs():
         ).fetchall()
         active = _active_program(conn)
     return jsonify({
-        'programs': [{'id': r['id'], 'name': r['name'], 'split': r['split'],
+        'programs': [{'id': r['id'], 'name': r['name'], 'splits': _splits_of(r),
                       'work_sets': r['work_sets'], 'exercise_count': r['exercise_count']} for r in rows],
         'active_id': active['id'] if active else None,
     })
@@ -322,7 +335,7 @@ def create_program():
             ).fetchone()['c']
             name = f'Programme {n + 1}'
         row = conn.execute(
-            'INSERT INTO fit_programs (user_id, name) VALUES (?, ?) RETURNING id, name, split, work_sets',
+            "INSERT INTO fit_programs (user_id, name, splits) VALUES (?, ?, '[]') RETURNING id, name, splits, work_sets",
             (request.user_id, name[:PROGRAM_NAME_MAX])
         ).fetchone()
         # Make it active if the user has no active program yet.
@@ -331,7 +344,7 @@ def create_program():
         ).fetchone()
         if not cur or cur['active_program_id'] is None:
             _set_active_program(conn, row['id'])
-    return jsonify({'id': row['id'], 'name': row['name'], 'split': row['split'], 'work_sets': row['work_sets']})
+    return jsonify({'id': row['id'], 'name': row['name'], 'splits': _splits_of(row), 'work_sets': row['work_sets']})
 
 
 @fit_bp.route('/api/fit/programs/active', methods=['PUT'])
@@ -350,7 +363,7 @@ def set_active_program():
 @fit_bp.route('/api/fit/programs/<int:program_id>', methods=['PUT'])
 @fit_login_required
 def update_program(program_id):
-    """Update a program's name, split and/or working-sets count."""
+    """Update a program's name, splits and/or working-sets count."""
     data = request.get_json(silent=True) or {}
     updates = {}
     if 'name' in data:
@@ -358,11 +371,13 @@ def update_program(program_id):
         if not name:
             return jsonify({'error': 'Invalid name'}), 400
         updates['name'] = name[:PROGRAM_NAME_MAX]
-    if 'split' in data:
-        # null clears the split (re-clicking the selected one deselects it).
-        if data['split'] is not None and data['split'] not in VALID_SPLITS:
-            return jsonify({'error': 'Invalid split'}), 400
-        updates['split'] = data['split']
+    if 'splits' in data:
+        # A program may carry several splits (the user picks which one each week).
+        splits = data['splits']
+        if not isinstance(splits, list) or any(s not in VALID_SPLITS for s in splits):
+            return jsonify({'error': 'Invalid splits'}), 400
+        deduped = list(dict.fromkeys(splits))   # keep order, drop duplicates
+        updates['splits'] = json.dumps(deduped)
     if 'work_sets' in data:
         ws = data['work_sets']
         if not isinstance(ws, int) or isinstance(ws, bool) or not WORK_SETS_MIN <= ws <= WORK_SETS_MAX:
@@ -379,7 +394,10 @@ def update_program(program_id):
             f'UPDATE fit_programs SET {set_clause} WHERE id = ? AND user_id = ?',
             (*updates.values(), program_id, request.user_id)
         )
-    return jsonify(updates)
+    resp = dict(updates)
+    if 'splits' in resp:
+        resp['splits'] = json.loads(resp['splits'])   # send the array, not its JSON text
+    return jsonify(resp)
 
 
 @fit_bp.route('/api/fit/programs/<int:program_id>', methods=['DELETE'])
