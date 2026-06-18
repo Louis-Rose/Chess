@@ -35,7 +35,7 @@ export const REP_GOAL_DEFAULT: RepGoals = { upper: 10, lower: 12, isolation: 12 
 export const REP_CATEGORIES: { key: RepCategory; label: string; hint?: string }[] = [
   { key: 'upper', label: 'Haut du corps' },
   { key: 'lower', label: 'Bas du corps' },
-  { key: 'isolation', label: 'Isolation', hint: 'biceps, triceps, épaules' },
+  { key: 'isolation', label: 'Isolation' },
 ];
 
 // Per-muscle training priority within a program. A muscle is 'weak' (a weak
