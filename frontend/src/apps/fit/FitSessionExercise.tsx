@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Plus, Trash2, X } from 'lucide-react';
 import { leafLabel, exerciseEnglish, exerciseSettingsValue } from './programData';
+import { ExerciseMuscles } from './FitExerciseMuscles';
 import { formatSet } from './format';
 
 // One exercise card inside a session: its logged sets plus a form to add the
@@ -200,6 +201,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     <div className="rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4">
       <p className="text-center font-medium text-slate-100">{leafLabel(exercise)}</p>
       {english && <p className="text-center text-xs text-slate-400">{english}</p>}
+      <ExerciseMuscles leaf={exercise} />
 
       <div className="mt-4 flex flex-col items-center gap-2 text-sm">
         {showSettings && (

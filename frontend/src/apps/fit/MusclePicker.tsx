@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react';
 import { Check, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { variantId, exerciseEnglish, type Exercise } from './programData';
 import { FitSwipeRow } from './FitSwipeRow';
+import { ExerciseMuscles } from './FitExerciseMuscles';
 
 // A small "Unilatéral" on/off chip shown under each exercise in the program
 // editor. It marks the movement as logged per side (Gauche / Droite); the
@@ -62,6 +63,7 @@ function ExLabel({ name, days }: { name: string; days?: number | null }) {
       <span className="font-medium text-slate-100">{base}</span>
       {variant && <span className="font-medium text-slate-100">({variant})</span>}
       {en && <span className="mt-0.5 text-xs text-slate-400">{en}</span>}
+      <ExerciseMuscles leaf={name} />
       {days != null && <span className="mt-0.5 text-xs text-emerald-400/80">{recencyLabel(days)}</span>}
     </span>
   );
