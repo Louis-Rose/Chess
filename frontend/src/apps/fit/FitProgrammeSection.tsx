@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, GripVertical, Loader2, Plus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
 import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, type Priorities, type Split } from './programData';
@@ -186,10 +186,10 @@ export function FitProgrammeSection({ section, editor }: {
   );
 }
 
-// Muscle execution order: a freely drag-reorderable list (grab the handle). The
-// order is unconstrained; priority badges (point faible rouge / fort vert) are
-// just hints for the advice above. Touch-friendly pointer drag (no library):
-// the grip captures the pointer, rows swap as it crosses a row height.
+// Muscle execution order: a freely drag-reorderable list — the whole row is the
+// drag handle. The order is unconstrained; priority badges (point faible rouge /
+// fort vert) are just hints for the advice above. Touch-friendly pointer drag
+// (no library): the row captures the pointer, rows swap as it crosses a row height.
 const ROW_PX = 56;   // approximate row height incl. gap, for step detection
 
 function MuscleOrderSection({ order, priorities, onReorder }: {
@@ -238,7 +238,13 @@ function MuscleOrderSection({ order, priorities, onReorder }: {
           return (
             <li
               key={m}
-              className={`flex items-center gap-2 rounded-xl border bg-slate-800/50 px-3 py-2.5 ${
+              aria-label={`Déplacer ${m}`}
+              onPointerDown={e => begin(e, i)}
+              onPointerMove={moveTo}
+              onPointerUp={end}
+              onPointerCancel={end}
+              style={{ touchAction: 'none' }}
+              className={`flex cursor-grab items-center gap-2 rounded-xl border bg-slate-800/50 px-3 py-2.5 ${
                 dragging === i ? 'border-emerald-500' : 'border-slate-700'
               }`}
             >
@@ -246,18 +252,6 @@ function MuscleOrderSection({ order, priorities, onReorder }: {
                 {m}
                 {p === 'weak' && <span className="ml-2 text-xs text-red-300">point faible</span>}
                 {p === 'strong' && <span className="ml-2 text-xs text-emerald-300">point fort</span>}
-              </span>
-              <span
-                role="button"
-                aria-label={`Déplacer ${m}`}
-                onPointerDown={e => begin(e, i)}
-                onPointerMove={moveTo}
-                onPointerUp={end}
-                onPointerCancel={end}
-                style={{ touchAction: 'none' }}
-                className="cursor-grab touch-none rounded-lg p-1 text-slate-400 active:bg-slate-800"
-              >
-                <GripVertical className="h-5 w-5" />
               </span>
             </li>
           );
