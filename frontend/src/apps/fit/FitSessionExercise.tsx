@@ -16,8 +16,12 @@ import { formatSet } from './format';
 // type is kept as-is).
 
 // The warmup is a fixed number of sets, after which the exercise moves to its
-// working sets on its own.
+// working sets on its own. Each warmup set is pre-filled from the working
+// weight: a fraction of it (rounded to the kg) and a suggested rep count
+// (10-15 reps light, then 8-10 heavier). All stay editable.
 const WARMUP_SETS = 2;
+const WARMUP_PCT = [0.33, 0.66];
+const WARMUP_REPS = [12, 9];
 
 export interface LoggedSet {
   id: number;
@@ -102,10 +106,22 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   function openAdd() {
     setEditingId(null);
-    // Pre-fill the working weight only for a working set (warmup starts empty).
-    setWeight(warmupMode ? '' : workWeightStr);
-    setReps('');
-    setRepsRight('');
+    if (warmupMode) {
+      // Pre-fill the warmup set from the working weight: set 1 ≈ 33%, set 2 ≈ 66%
+      // (rounded to the kg), with a suggested rep count. Both stay editable.
+      const idx = Math.min(sets.filter(s => s.warmup).length, WARMUP_SETS - 1);
+      const wwBasis = workWeightStr.trim() !== '' ? parseFloat(workWeightStr.replace(',', '.')) : (workWeight ?? NaN);
+      const w = Number.isFinite(wwBasis) ? Math.round(wwBasis * WARMUP_PCT[idx]) : null;
+      const reps = String(WARMUP_REPS[idx]);
+      setWeight(w != null ? String(w) : '');
+      setReps(reps);
+      setRepsRight(unilateral ? reps : '');
+    } else {
+      // A working set pre-fills the working weight.
+      setWeight(workWeightStr);
+      setReps('');
+      setRepsRight('');
+    }
     setAdding(true);
   }
 
