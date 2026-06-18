@@ -16,6 +16,11 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
   // Name + split + working sets first, then one entry per muscle. Rail labels are
   // shortened to keep it narrow; the full name still shows as the section
   // heading. A thin separator is drawn between every entry.
+  // A muscle rail entry is dimmed (still clickable) when no exercise is selected
+  // for it yet.
+  const isEmpty = (key: string) =>
+    MUSCLES.some(m => m.name === key) && !(editor.selections[key]?.length);
+
   const sections = [
     { key: 'name', label: 'Nom' },
     { key: 'split', label: 'Split' },
@@ -44,7 +49,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
                 className={`rounded-lg px-1.5 py-1.5 text-left text-[13px] leading-tight transition-colors ${
                   active === s.key
                     ? 'bg-emerald-500/10 font-medium text-emerald-300'
-                    : 'text-slate-400 active:bg-slate-800/60'
+                    : `${isEmpty(s.key) ? 'text-slate-600' : 'text-slate-400'} active:bg-slate-800/60`
                 }`}
               >
                 {s.label}
