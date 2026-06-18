@@ -254,6 +254,7 @@ export interface CustomExercise {
   primary: string[];
   secondary: string[];
   variants: string[];   // single row of mutually-exclusive options ([] = none)
+  isolation: boolean;    // isolation movement (vs compound) — feeds the rep goal
 }
 
 let CUSTOMS: CustomExercise[] = [];
@@ -278,6 +279,39 @@ export const muscleOf = (leaf: string): string | null => {
   if (LEAF_TO_MUSCLE[leaf]) return LEAF_TO_MUSCLE[leaf];
   const c = CUSTOMS.find(c => c.name === baseOfLeaf(leaf));
   return c ? c.muscle : null;
+};
+
+// Isolation movements (by base name) — everything else is a compound. Used to
+// pick an exercise's rep goal: upper-body compounds aim lower (8/10/12), upper
+// isolations aim higher (10/12/15). Lower-body and abs use their own goals
+// regardless. Custom exercises carry their own `isolation` flag.
+const ISOLATION_EXERCISES = new Set<string>([
+  'Élévations latérales', 'Pec Deck', 'Shrugs',
+  'Curl incliné', 'Curl pupitre', 'Curl marteau',
+  'Extension poulie haute', 'Extension poulie basse (overhead)',
+  'Flexions de poignets', 'Extensions de poignets',
+  'Crunch', 'Enroulements de bassin', 'Gainage planche', 'Relevés de jambes',
+  'Leg extension', 'Leg curl allongé', 'Leg curl assis',
+  'Extensions de mollets debout', 'Extensions de mollets assis', 'Extensions à la presse à cuisses',
+]);
+
+// Whether an exercise (stored leaf) is an isolation movement.
+export const isIsolation = (leaf: string): boolean => {
+  const base = baseOfLeaf(leaf);
+  if (ISOLATION_EXERCISES.has(base)) return true;
+  const c = CUSTOMS.find(c => c.name === base);
+  return c ? c.isolation : false;
+};
+
+const LOWER_MUSCLES = new Set(['Fessiers', 'Quadriceps', 'Ischio-jambiers', 'Mollets']);
+
+// Which rep goal an exercise follows: lower-body and abs go to 'lower'/'isolation';
+// upper-body splits by movement type (compound -> 'upper', isolation -> 'isolation').
+export const repGoalCategory = (leaf: string): RepCategory => {
+  const muscle = muscleOf(leaf);
+  if (muscle && LOWER_MUSCLES.has(muscle)) return 'lower';
+  if (muscle === 'Abdos') return 'isolation';
+  return isIsolation(leaf) ? 'isolation' : 'upper';
 };
 
 // Whether a stored leaf is still a valid pick for a muscle (catalogue or custom).

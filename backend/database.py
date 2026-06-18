@@ -719,6 +719,12 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('recat_dips_curl_squat',))
             logger.info("Re-categorised Dips / Curl marteau / Squat gobelet")
 
+        # Migration: custom exercises carry a compound/isolation flag (feeds the
+        # rep goal, like catalogue exercises). Existing customs default to compound.
+        if not _column_exists(conn, 'fit_custom_exercises', 'isolation'):
+            conn.execute("ALTER TABLE fit_custom_exercises ADD COLUMN isolation BOOLEAN NOT NULL DEFAULT FALSE")
+            logger.info("Added fit_custom_exercises.isolation column")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

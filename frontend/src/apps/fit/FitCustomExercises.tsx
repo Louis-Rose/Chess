@@ -18,13 +18,14 @@ export interface CustomDraft {
   variants: string[];
   primary: string[];
   secondary: string[];
+  isolation: boolean;
 }
 
 export const newCustomDraft = (muscle: string): CustomDraft =>
-  ({ id: null, name: '', variants: [], primary: [muscle], secondary: [] });
+  ({ id: null, name: '', variants: [], primary: [muscle], secondary: [], isolation: false });
 
 export const editCustomDraft = (c: CustomExercise): CustomDraft =>
-  ({ id: c.id, name: c.name, variants: [...c.variants], primary: [...c.primary], secondary: [...c.secondary] });
+  ({ id: c.id, name: c.name, variants: [...c.variants], primary: [...c.primary], secondary: [...c.secondary], isolation: c.isolation });
 
 export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved }: {
   muscle: string;
@@ -37,6 +38,7 @@ export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved }: {
   const [variantInput, setVariantInput] = useState('');
   const [primary, setPrimary] = useState<string[]>(draft.primary);
   const [secondary, setSecondary] = useState<string[]>(draft.secondary);
+  const [isolation, setIsolation] = useState(draft.isolation);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +66,7 @@ export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved }: {
     if (!canSave) return;
     setSaving(true);
     setError(null);
-    const body = { name: name.trim(), muscle, primary, secondary, variants };
+    const body = { name: name.trim(), muscle, primary, secondary, variants, isolation };
     try {
       const res = draft.id == null
         ? await fitRequest(() => axios.post<CustomExercise>('/api/fit/custom-exercises', body))
@@ -131,6 +133,27 @@ export function FitCustomExerciseForm({ muscle, draft, onClose, onSaved }: {
 
         <MuscleChips label="Muscles principaux" selected={primary} onToggle={togglePrimary} />
         <MuscleChips label="Muscles secondaires" selected={secondary} onToggle={toggleSecondary} />
+
+        <div className="mt-4">
+          <p className="text-xs uppercase tracking-wide text-slate-500">Type</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {[{ k: false, label: 'Composé' }, { k: true, label: 'Isolation' }].map(o => (
+              <button
+                key={o.label}
+                type="button"
+                aria-pressed={isolation === o.k}
+                onClick={() => setIsolation(o.k)}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                  isolation === o.k
+                    ? 'border-emerald-500 bg-emerald-500/10 text-slate-100'
+                    : 'border-slate-700 bg-slate-800/50 text-slate-300 active:bg-slate-800'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {error && <p className="mt-3 text-center text-sm text-red-400">{error}</p>}
 

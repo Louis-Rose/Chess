@@ -33,10 +33,11 @@ interface Props {
   setting?: string | null;                                // persisted machine-setting override (per base)
   onSettingChange?: (setting: string | null) => void;     // persist an edit to it
   unilateral?: boolean;                                   // set in the program: log reps per side (Gauche / Droite), shared weight
+  repGoal?: number | null;                                // target reps/working set; reaching it on average cues a weight increase
   onValidate?: () => void;                                // shows a "Valider l'exercice" button inside the card
 }
 
-export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, unilateral, onValidate }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, unilateral, repGoal, onValidate }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');           // left side when unilateral
   const [repsRight, setRepsRight] = useState(''); // right side, unilateral only
@@ -158,6 +159,14 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   const warmupSets = sets.filter(s => s.warmup);
   const workSets = sets.filter(s => !s.warmup);
   const setRows = Math.max(3, warmupSets.length, workSets.length);
+
+  // Progression cue: average the working sets' reps (per side when unilateral);
+  // once the average reaches the goal, it's time to add weight.
+  const repAvg = workSets.length
+    ? workSets.reduce((sum, s) => sum + (s.reps_right != null ? (s.reps + s.reps_right) / 2 : s.reps), 0) / workSets.length
+    : null;
+  const repAvgStr = repAvg == null ? '' : Number.isInteger(repAvg) ? String(repAvg) : repAvg.toFixed(1);
+  const goalReached = repGoal != null && repAvg != null && repAvg >= repGoal;
   const cell = 'border border-slate-700 text-center';
 
   const english = exerciseEnglish(baseName);
@@ -236,6 +245,18 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           ))}
         </tbody>
       </table>
+
+      {repGoal != null && (
+        <p className="mt-3 text-center text-xs">
+          {repAvg == null ? (
+            <span className="text-slate-400">Objectif : {repGoal} reps par série de travail</span>
+          ) : goalReached ? (
+            <span className="font-medium text-emerald-400">Objectif atteint ({repAvgStr} de moyenne). Passe au poids supérieur.</span>
+          ) : (
+            <span className="text-slate-400">Objectif : {repGoal} reps. Moyenne actuelle : {repAvgStr}.</span>
+          )}
+        </p>
+      )}
 
       {formVisible ? (
         <div className="relative mt-3 rounded-xl border border-slate-700 bg-slate-900/40 px-3 pb-3 pt-7">

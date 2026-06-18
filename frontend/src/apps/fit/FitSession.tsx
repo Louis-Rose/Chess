@@ -12,7 +12,7 @@ import { FitScreenHeader } from './FitScreenHeader';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
 import { useExerciseUnilateral } from './useExerciseUnilateral';
-import { leafLabel, type Priorities } from './programData';
+import { leafLabel, repGoalCategory, REP_GOAL_DEFAULT, type Priorities, type RepGoals } from './programData';
 import { weekSplitOptions, weekDays, currentDay } from './splitDays';
 import { FitWeekSplitPicker } from './FitWeek';
 import { sessionTitle } from './format';
@@ -58,6 +58,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [notes, setNotes] = useState<Record<string, string>>({});   // per-exercise notes
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [priorities, setPriorities] = useState<Priorities>({});
+  const [repGoals, setRepGoals] = useState<RepGoals>(REP_GOAL_DEFAULT);
   // The week's split (which one the user follows this week) and the data to
   // locate today's session within it, so the picker is filtered to the day.
   const [weekSplit, setWeekSplit] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     // sets), otherwise starts a fresh empty one.
     Promise.all([
       fitRequest(() => axios.post<SessionPayload>('/api/fit/sessions')),
-      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; splits: string[]; body_part_order: string[] }>('/api/fit/exercises')),
+      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; splits: string[]; body_part_order: string[]; rep_goals: RepGoals }>('/api/fit/exercises')),
       fitRequest(() => axios.get<{ split: string | null; done_this_week: number }>('/api/fit/week-split')),
     ])
       .then(([sessionRes, exRes, weekRes]) => {
@@ -99,6 +100,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         setNotes(sessionRes.data.notes ?? {});
         setProgram(exRes.data.selections ?? {});
         setPriorities(exRes.data.priorities ?? {});
+        setRepGoals(exRes.data.rep_goals ?? REP_GOAL_DEFAULT);
 
         const grouped = groupSets(sessionRes.data.sets ?? []);
 
@@ -345,6 +347,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               setting={exerciseSettings[editingEntry.exercise.split(' — ')[0]] ?? null}
               onSettingChange={s => saveSetting(editingEntry.exercise.split(' — ')[0], s)}
               unilateral={unilateral.has(editingEntry.exercise.split(' — ')[0])}
+              repGoal={repGoals[repGoalCategory(editingEntry.exercise)]}
               onValidate={requestValidate}
             />
             <FitExerciseRecent exercise={editingEntry.exercise} excludeSessionId={sessionId} />

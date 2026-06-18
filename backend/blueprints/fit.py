@@ -72,7 +72,7 @@ def _variant_leaf(name, variant):
 def _custom_exercises(conn, user_id):
     """The user's custom exercises, parsed (primary/secondary/variants as lists)."""
     rows = conn.execute(
-        'SELECT id, name, muscle, primary_muscles, secondary_muscles, variants '
+        'SELECT id, name, muscle, primary_muscles, secondary_muscles, variants, isolation '
         'FROM fit_custom_exercises WHERE user_id = ? ORDER BY name',
         (user_id,)
     ).fetchall()
@@ -81,6 +81,7 @@ def _custom_exercises(conn, user_id):
         'primary': json.loads(r['primary_muscles']),
         'secondary': json.loads(r['secondary_muscles']),
         'variants': json.loads(r['variants']),
+        'isolation': bool(r['isolation']),
     } for r in rows]
 
 
@@ -656,7 +657,8 @@ def _clean_custom(data):
         return None, 'Invalid variant'
 
     return {'name': name, 'muscle': data['muscle'], 'primary': primary,
-            'secondary': secondary, 'variants': variants}, None
+            'secondary': secondary, 'variants': variants,
+            'isolation': bool(data.get('isolation'))}, None
 
 
 def _rename_custom_base(conn, user_id, old, new):
@@ -702,10 +704,11 @@ def create_custom_exercise():
             return jsonify({'error': 'Name already exists'}), 409
         row = conn.execute(
             """INSERT INTO fit_custom_exercises
-                   (user_id, name, muscle, primary_muscles, secondary_muscles, variants)
-               VALUES (?, ?, ?, ?, ?, ?) RETURNING id""",
+                   (user_id, name, muscle, primary_muscles, secondary_muscles, variants, isolation)
+               VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id""",
             (request.user_id, clean['name'], clean['muscle'],
-             json.dumps(clean['primary']), json.dumps(clean['secondary']), json.dumps(clean['variants']))
+             json.dumps(clean['primary']), json.dumps(clean['secondary']), json.dumps(clean['variants']),
+             clean['isolation'])
         ).fetchone()
     return jsonify({'id': row['id'], **clean})
 
@@ -732,10 +735,10 @@ def update_custom_exercise(ex_id):
             return jsonify({'error': 'Name already exists'}), 409
         conn.execute(
             """UPDATE fit_custom_exercises
-               SET name = ?, muscle = ?, primary_muscles = ?, secondary_muscles = ?, variants = ?
+               SET name = ?, muscle = ?, primary_muscles = ?, secondary_muscles = ?, variants = ?, isolation = ?
                WHERE id = ? AND user_id = ?""",
             (clean['name'], clean['muscle'], json.dumps(clean['primary']),
-             json.dumps(clean['secondary']), json.dumps(clean['variants']), ex_id, request.user_id)
+             json.dumps(clean['secondary']), json.dumps(clean['variants']), clean['isolation'], ex_id, request.user_id)
         )
         if old['name'] != clean['name']:
             _rename_custom_base(conn, request.user_id, old['name'], clean['name'])
