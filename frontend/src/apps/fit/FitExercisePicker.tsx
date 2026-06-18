@@ -15,13 +15,18 @@ import { validatedLeaves } from './validatedExercises';
 // its own card (the variant shown under the base name), so a single tap adds it
 // (onPick). It only lists the program's still-valid exercises.
 
-export function FitExercisePicker({ program, priorities = {}, onPick, onClose }: {
+export function FitExercisePicker({ program, priorities = {}, muscles, onPick, onClose }: {
   program: Record<string, string[]>;
   priorities?: Priorities;
+  // When set (the week's split day), only these muscle groups are shown, with a
+  // toggle to reveal all the program's muscles instead.
+  muscles?: string[];
   onPick: (leaf: string) => void;
   onClose: () => void;
 }) {
   useCustomExercises();   // warm the custom catalogue so custom leaves stay valid
+  const [showAll, setShowAll] = useState(false);
+  const dayFilter = muscles && muscles.length > 0 && !showAll ? new Set(muscles) : null;
   // Days since each exercise (per stored leaf) was last done, shown on its card.
   const [recency, setRecency] = useState<Record<string, number>>({});
   useEffect(() => {
@@ -43,6 +48,7 @@ export function FitExercisePicker({ program, priorities = {}, onPick, onClose }:
   // pick, and thus train, them in that order. Sort is stable, so same-priority
   // muscles keep their anatomical order.
   const groups = MUSCLE_ORDER
+    .filter(name => !dayFilter || dayFilter.has(name))
     .map(name => ({
       name,
       // Each valid program leaf is its own card (variants included), sorted so
@@ -67,6 +73,15 @@ export function FitExercisePicker({ program, priorities = {}, onPick, onClose }:
           </p>
         ) : (
           <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-6">
+            {muscles && muscles.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAll(v => !v)}
+                className="mx-auto rounded-full border border-slate-700 px-4 py-1.5 text-xs font-medium text-slate-300 transition-colors active:bg-slate-800"
+              >
+                {showAll ? 'Filtrer sur la séance du jour' : 'Voir tous les muscles'}
+              </button>
+            )}
             {groups.map(g => (
               <section key={g.name}>
                 <h3 className="text-center text-xs uppercase tracking-wide text-white">{g.name}</h3>

@@ -19,6 +19,8 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
   const sections = [
     { key: 'name', label: 'Nom' },
     { key: 'split', label: 'Split' },
+    // The Body part day order, only when that split is selected.
+    ...(editor.splits.includes('body_part') ? [{ key: 'bodypart', label: 'Ordre' }] : []),
     { key: 'priority', label: 'Priorités' },
     { key: 'sets', label: 'Séries' },
     ...MUSCLES.map(m => ({ key: m.name, label: m.name === 'Ischio-jambiers' ? 'Ischios' : m.name })),

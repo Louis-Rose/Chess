@@ -483,6 +483,60 @@ def delete_program(program_id):
     return jsonify({'ok': True})
 
 
+# ── Week split (which split applies this week) ───────────────────────────────
+# A program can carry several splits; at the first session of the week the user
+# picks which one applies. Stored per week, Monday-anchored.
+
+def _week_done_count(conn):
+    """Finished sessions (with >=1 logged set) started in the current week."""
+    return conn.execute(
+        """SELECT COUNT(*) AS c FROM (
+               SELECT s.id FROM fit_sessions s
+               JOIN fit_session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id = ? AND s.ended_at IS NOT NULL
+                 AND s.started_at >= date_trunc('week', CURRENT_DATE)
+               GROUP BY s.id
+           ) t""",
+        (request.user_id,)
+    ).fetchone()['c']
+
+
+@fit_bp.route('/api/fit/week-split', methods=['GET'])
+@fit_login_required
+def get_week_split():
+    """The split chosen for the current week (Monday-anchored), or null, plus how
+    many sessions are already done this week (to locate the current day)."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT split FROM fit_week_splits WHERE user_id = ? AND week_start = date_trunc('week', CURRENT_DATE)::date",
+            (request.user_id,)
+        ).fetchone()
+        done = _week_done_count(conn)
+    return jsonify({'split': row['split'] if row else None, 'done_this_week': done})
+
+
+@fit_bp.route('/api/fit/week-split', methods=['PUT'])
+@fit_login_required
+def set_week_split():
+    """Set the split for the current week. Must be one of the active program's
+    splits (excluding "Pas de split")."""
+    data = request.get_json(silent=True) or {}
+    split = data.get('split')
+    with get_db() as conn:
+        prog = _active_program(conn)
+        options = [s for s in _splits_of(prog) if s != 'no_split']
+        if split not in options:
+            return jsonify({'error': 'Invalid split'}), 400
+        conn.execute(
+            """INSERT INTO fit_week_splits (user_id, week_start, split)
+               VALUES (?, date_trunc('week', CURRENT_DATE)::date, ?)
+               ON CONFLICT (user_id, week_start) DO UPDATE SET split = EXCLUDED.split""",
+            (request.user_id, split)
+        )
+        done = _week_done_count(conn)
+    return jsonify({'split': split, 'done_this_week': done})
+
+
 @fit_bp.route('/api/fit/programs/<int:program_id>/exercises', methods=['GET'])
 @fit_login_required
 def get_program_exercises(program_id):

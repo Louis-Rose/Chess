@@ -6,6 +6,7 @@ import { FitSessionDetail } from './FitSessionDetail';
 import { FitConfirm } from './FitConfirm';
 import { FitSwipeRow } from './FitSwipeRow';
 import { PerfCounts } from './FitPerf';
+import { FitWeekPlan } from './FitWeek';
 import { sessionTitle } from './format';
 
 // Calendrier tab: the history of past sessions, newest first. Tap one to see
@@ -81,6 +82,10 @@ export function FitCalendrier() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [period, setPeriod] = useState<Period>('mois');
+  // This week's plan from the chosen split (shown at the top).
+  const [weekSplit, setWeekSplit] = useState<string | null>(null);
+  const [bodyPartOrder, setBodyPartOrder] = useState<string[]>([]);
+  const [doneThisWeek, setDoneThisWeek] = useState(0);
   // A just-deleted session, kept around so it can be undone. The backend DELETE
   // is deferred until the undo window elapses (or the tab unmounts).
   const [pendingUndo, setPendingUndo] = useState<SessionSummary | null>(null);
@@ -91,6 +96,17 @@ export function FitCalendrier() {
       .then(res => setSessions(res.data.sessions ?? []))
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
+    // This week's plan: the chosen split + how far through the week we are.
+    Promise.all([
+      fitRequest(() => axios.get<{ split: string | null; done_this_week: number }>('/api/fit/week-split')),
+      fitRequest(() => axios.get<{ body_part_order: string[] }>('/api/fit/exercises')),
+    ])
+      .then(([week, ex]) => {
+        setWeekSplit(week.data.split);
+        setDoneThisWeek(week.data.done_this_week ?? 0);
+        setBodyPartOrder(ex.data.body_part_order ?? []);
+      })
+      .catch(() => { /* no week plan */ });
   }, []);
 
   // Commit the deferred delete now (timer fired, a new delete arrived, or the
@@ -143,6 +159,8 @@ export function FitCalendrier() {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-center text-2xl font-semibold">Calendrier</h1>
+
+      <FitWeekPlan split={weekSplit} bodyPartOrder={bodyPartOrder} doneThisWeek={doneThisWeek} />
 
       {loading ? (
         <div className="mt-10 flex justify-center">

@@ -13,6 +13,9 @@ export interface FitProgram {
   splits: string[];
   work_sets: number | null;
   priorities: Priorities;
+  // For a Body part split: the user's chosen day order, one muscle group per
+  // day. Other splits use the fixed day->muscle mapping in splitDays.ts.
+  body_part_order: string[];
 }
 
 // Per-muscle training priority within a program. A muscle is 'weak' (a weak

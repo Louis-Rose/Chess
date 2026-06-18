@@ -19,6 +19,7 @@ export function useProgramEditor(program: FitProgram) {
   const [splits, setSplits] = useState<string[]>(program.splits ?? []);
   const [workSets, setWorkSets] = useState<number | null>(program.work_sets);
   const [priorities, setPriorities] = useState<Priorities>(program.priorities ?? {});
+  const [bodyPartOrder, setBodyPartOrder] = useState<string[]>(program.body_part_order ?? []);
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const { customExercises, reloadCustom } = useCustomExercises();
@@ -74,6 +75,26 @@ export function useProgramEditor(program: FitProgram) {
     if (Object.keys(priorities).length) savePriorities({});
   }
 
+  // Body part day order (one muscle group per day). Adding appends a day,
+  // removing drops one by position, moving reorders. Saved immediately.
+  function saveBodyPartOrder(next: string[]) {
+    setBodyPartOrder(next);
+    fitRequest(() => axios.put(base, { body_part_order: next })).catch(() => {});
+  }
+  function addBodyPartDay(muscle: string) {
+    saveBodyPartOrder([...bodyPartOrder, muscle]);
+  }
+  function removeBodyPartDay(index: number) {
+    saveBodyPartOrder(bodyPartOrder.filter((_, i) => i !== index));
+  }
+  function moveBodyPartDay(index: number, dir: -1 | 1) {
+    const j = index + dir;
+    if (j < 0 || j >= bodyPartOrder.length) return;
+    const next = [...bodyPartOrder];
+    [next[index], next[j]] = [next[j], next[index]];
+    saveBodyPartOrder(next);
+  }
+
   function toggleExercise(muscle: string, id: string) {
     setSelections(prev => {
       const cur = prev[muscle] ?? [];
@@ -119,6 +140,7 @@ export function useProgramEditor(program: FitProgram) {
     splits, toggleSplit,
     workSets, chooseSets,
     priorities, cyclePriority, clearPriorities,
+    bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     selections, toggleExercise,
     customExercises, customDraft, setCustomDraft, onCustomSaved, deleteCustom,
     unilateral, saveUnilateral,

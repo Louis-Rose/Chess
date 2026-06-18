@@ -1,5 +1,5 @@
 import { Fragment, useMemo, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Loader2, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
 import { MUSCLES, SPLITS, exercisesForMuscle, type Priorities, type Split } from './programData';
@@ -13,8 +13,15 @@ import type { ProgramEditor } from './useProgramEditor';
 export const WORK_SETS_OPTIONS = [2, 3, 4, 5, 6];
 const NAME_MAX = 60;
 
-// Section keys, in order: name, split, priority, sets, then one per muscle.
-export const SECTION_KEYS = ['name', 'split', 'priority', 'sets', ...MUSCLES.map(m => m.name)];
+// Section keys, in order: name, split, priority, sets, then one per muscle. When
+// the program includes a Body part split, a 'bodypart' step (the day order) is
+// inserted right after 'split'.
+export const sectionKeysFor = (splits: string[]) => {
+  const base = ['name', 'split', 'priority', 'sets', ...MUSCLES.map(m => m.name)];
+  if (!splits.includes('body_part')) return base;
+  const i = base.indexOf('split');
+  return [...base.slice(0, i + 1), 'bodypart', ...base.slice(i + 1)];
+};
 
 // "Quels exercices pour <le dos / les épaules> ?" — only Dos is singular.
 const musclePhrase = (m: string) => (m === 'Dos' ? 'le dos' : `les ${m.toLowerCase()}`);
@@ -25,6 +32,7 @@ export const sectionQuestion = (section: string) =>
   section === 'name' ? 'Comment veux-tu nommer ce programme ?'
     : section === 'split' ? 'Quel(s) split(s) veux-tu suivre ? (choix multiples possibles)'
     : section === 'priority' ? 'Quels muscles veux-tu prioriser (points faibles) ou non (points forts) ?'
+    : section === 'bodypart' ? 'Dans quel ordre veux-tu enchaîner tes séances ? (un groupe musculaire par séance)'
     : section === 'sets' ? 'Combien de séries de travail par exercice ?'
     : `Quels exercices pour ${musclePhrase(section)} ?`;
 
@@ -35,6 +43,7 @@ export function FitProgrammeSection({ section, editor }: {
   const {
     loading, name, setName, saveName, splits, toggleSplit, workSets, chooseSets,
     priorities, cyclePriority, clearPriorities,
+    bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
     onCustomSaved, deleteCustom, unilateral, saveUnilateral,
   } = editor;
@@ -85,6 +94,16 @@ export function FitProgrammeSection({ section, editor }: {
 
   if (section === 'priority')
     return <PrioritySection priorities={priorities} cyclePriority={cyclePriority} clearPriorities={clearPriorities} />;
+
+  if (section === 'bodypart')
+    return (
+      <BodyPartOrderSection
+        order={bodyPartOrder}
+        onAdd={addBodyPartDay}
+        onRemove={removeBodyPartDay}
+        onMove={moveBodyPartDay}
+      />
+    );
 
   if (section === 'sets')
     return (
@@ -182,6 +201,59 @@ function PrioritySection({ priorities, cyclePriority, clearPriorities }: {
       >
         Pas de priorisation
       </button>
+    </div>
+  );
+}
+
+// Body part day order: the user builds an ordered list of sessions, one muscle
+// group per day. Tap a muscle below to append a day; reorder with the arrows or
+// remove. This sequence drives the week plan and the per-session content filter.
+function BodyPartOrderSection({ order, onAdd, onRemove, onMove }: {
+  order: string[];
+  onAdd: (muscle: string) => void;
+  onRemove: (index: number) => void;
+  onMove: (index: number, dir: -1 | 1) => void;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4">
+      {order.length === 0 ? (
+        <p className="rounded-lg bg-slate-800/40 px-3.5 py-2.5 text-center text-sm text-slate-400">
+          Ajoute des séances dans l'ordre voulu en touchant un muscle ci-dessous.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {order.map((m, i) => (
+            <li key={i} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2.5">
+              <span className="flex-1 text-left text-sm text-slate-100">
+                <span className="font-medium text-slate-400">Séance {i + 1}</span> · {m}
+              </span>
+              <button type="button" aria-label="Monter" disabled={i === 0} onClick={() => onMove(i, -1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
+                <ArrowUp className="h-4 w-4" />
+              </button>
+              <button type="button" aria-label="Descendre" disabled={i === order.length - 1} onClick={() => onMove(i, 1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
+                <ArrowDown className="h-4 w-4" />
+              </button>
+              <button type="button" aria-label="Retirer" onClick={() => onRemove(i)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800">
+                <X className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex flex-wrap justify-center gap-2">
+        {MUSCLES.map(m => (
+          <button
+            key={m.name}
+            type="button"
+            onClick={() => onAdd(m.name)}
+            className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors active:bg-slate-800"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {m.name}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
