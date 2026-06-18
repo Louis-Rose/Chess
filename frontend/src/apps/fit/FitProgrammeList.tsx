@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import axios from 'axios';
 import { Check, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
@@ -165,14 +165,15 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
               </div>
 
               <h2 className="truncate text-lg font-semibold text-white">{p.name}</h2>
-              {/* One split per line; from the second on, a leading "&". */}
+              {/* One split per line, with "&" alone on its own line between them. */}
               {splitLabels.length === 0 ? (
                 <p className="mt-1 text-sm text-white">Split non défini</p>
               ) : (
                 splitLabels.map((label, i) => (
-                  <p key={i} className={`text-sm text-white ${i === 0 ? 'mt-1' : ''}`}>
-                    {i === 0 ? label : `& ${label}`}
-                  </p>
+                  <Fragment key={i}>
+                    {i > 0 && <p className="text-sm text-white">&</p>}
+                    <p className={`text-sm text-white ${i === 0 ? 'mt-1' : ''}`}>{label}</p>
+                  </Fragment>
                 ))
               )}
               <p className="mt-2 text-sm text-white">
