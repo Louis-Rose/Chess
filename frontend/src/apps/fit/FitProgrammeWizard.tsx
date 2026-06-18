@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { FitBackButton } from './FitBackButton';
-import { FitProgrammeSection, SECTION_KEYS, sectionQuestion } from './FitProgrammeSection';
+import { FitProgrammeSection, sectionKeysFor, sectionQuestion } from './FitProgrammeSection';
 import { useProgramEditor } from './useProgramEditor';
 import { type FitProgram } from './programData';
 
@@ -17,18 +17,21 @@ export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; o
   const [step, setStep] = useState(0);
   const editor = useProgramEditor(program);
 
-  const section = SECTION_KEYS[step];
-  const isFirst = step === 0;
-  const isLast = step === SECTION_KEYS.length - 1;
+  // Steps depend on the chosen splits: a Body part split adds an "order" step.
+  const keys = sectionKeysFor(editor.splits);
+  const clamped = Math.min(step, keys.length - 1);
+  const section = keys[clamped];
+  const isFirst = clamped === 0;
+  const isLast = clamped === keys.length - 1;
 
   const next = () => {
     if (section === 'name') editor.saveName();
     if (isLast) { onDone(); return; }
-    setStep(s => Math.min(s + 1, SECTION_KEYS.length - 1));
+    setStep(Math.min(clamped + 1, keys.length - 1));
   };
   // The top-left back button steps back through the flow; from the first step it
   // leaves to the program list.
-  const back = () => (isFirst ? onDone() : setStep(s => s - 1));
+  const back = () => (isFirst ? onDone() : setStep(clamped - 1));
 
   const nameEmpty = section === 'name' && editor.name.trim().length === 0;
 
@@ -57,14 +60,14 @@ export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; o
       <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-800">
         <div
           className="h-full rounded-full bg-emerald-500 transition-all"
-          style={{ width: `${((step + 1) / SECTION_KEYS.length) * 100}%` }}
+          style={{ width: `${((clamped + 1) / keys.length) * 100}%` }}
         />
       </div>
 
       {section === 'name' ? (
         // The single-field name step: question, input and button stay together
         // as one group, evenly spaced and centered over the available height.
-        <div className="flex flex-1 flex-col justify-center gap-14">
+        <div className="flex flex-1 flex-col justify-center gap-21">
           {question}
           <FitProgrammeSection section={section} editor={editor} />
           {nextButton}
