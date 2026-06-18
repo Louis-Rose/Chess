@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
-import { REP_GOAL_DEFAULT, normalizeMuscleOrder, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
+import { REP_GOAL_DEFAULT, muscleBucket, normalizeMuscleOrder, sortMusclesForExecution, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
 import type { CustomDraft } from './FitCustomExercises';
 
 // Shared editing state for one program: name, split, working sets, per-muscle
@@ -119,20 +119,22 @@ export function useProgramEditor(program: FitProgram) {
     });
   }
 
-  // Muscles shown in the order step: those with a selected exercise (so the
-  // editor lists only relevant muscles). Falls back to all when none is selected
-  // yet (e.g. the create wizard, before exercises are picked).
+  // Muscles shown in the order step, in execution order (legs last, weak first /
+  // strong last): only those with a selected exercise, so the editor lists just
+  // the relevant muscles. Falls back to all when none is selected yet (the create
+  // wizard, before exercises are picked).
   function orderedMuscles(): string[] {
     const withEx = muscleOrder.filter(m => (selections[m] ?? []).length > 0);
-    return withEx.length ? withEx : muscleOrder;
+    return sortMusclesForExecution(withEx.length ? withEx : muscleOrder, priorities, muscleOrder);
   }
 
-  // Reorder one muscle among the shown ones; empty muscles keep their slot in the
-  // full stored order. Saved as the whole order.
+  // Reorder one muscle among the shown ones, within its (legs / priority) bucket
+  // only — the bucket order itself is fixed. Empty muscles keep their slot in the
+  // stored order. Saved as the whole order.
   function moveMuscle(muscle: string, dir: -1 | 1) {
     const visible = orderedMuscles();
     const target = visible[visible.indexOf(muscle) + dir];
-    if (!target) return;
+    if (!target || muscleBucket(priorities, target) !== muscleBucket(priorities, muscle)) return;
     const next = [...muscleOrder];
     const a = next.indexOf(muscle), b = next.indexOf(target);
     [next[a], next[b]] = [next[b], next[a]];

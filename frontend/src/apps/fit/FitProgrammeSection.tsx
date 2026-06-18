@@ -2,7 +2,7 @@ import { Fragment, useMemo, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
-import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, type Priorities, type Split } from './programData';
+import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, muscleBucket, type Priorities, type Split } from './programData';
 import { FitPriorityZones } from './FitPriorityZones';
 import { FitVolumeGraph } from './FitVolumeGraph';
 import type { ProgramEditor } from './useProgramEditor';
@@ -35,7 +35,7 @@ export const sectionQuestion = (section: string) =>
   section === 'name' ? 'Comment veux-tu nommer ce programme ?'
     : section === 'split' ? 'Quel(s) split(s) veux-tu suivre ? (choix multiples possibles)'
     : section === 'priority' ? 'Quels muscles veux-tu prioriser (points faibles) ou non (points forts) ?'
-    : section === 'order' ? "Dans quel ordre veux-tu exécuter les muscles ?"
+    : section === 'order' ? 'Dans quel ordre veux-tu faire tes exercices ?'
     : section === 'bodypart' ? 'Dans quel ordre veux-tu enchaîner tes séances ? (un groupe musculaire par séance)'
     : section === 'sets' ? 'Combien de séries de travail par exercice ?'
     : section === 'reps' ? 'Combien de répétitions vises-tu par série ?'
@@ -186,19 +186,21 @@ export function FitProgrammeSection({ section, editor }: {
   );
 }
 
-// Muscle execution order: a reorderable list of every muscle (the base order).
-// Points faibles are always trained first and points forts last (priority tiers);
-// this order only decides the sequence within each tier. Priority badges show
-// which muscles sit in which tier.
+// Muscle execution order, already sorted the way the session runs: legs last,
+// points faibles (rouge) first and points forts (vert) last. Reordering is only
+// possible within a bucket (same legs/priority status), so the arrows are
+// disabled at bucket boundaries.
 function MuscleOrderSection({ order, priorities, onMove }: {
   order: string[];
   priorities: Priorities;
   onMove: (muscle: string, dir: -1 | 1) => void;
 }) {
+  const sameBucket = (a: string | undefined, b: string | undefined) =>
+    a != null && b != null && muscleBucket(priorities, a) === muscleBucket(priorities, b);
   return (
     <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4">
       <p className="rounded-lg bg-slate-800/40 px-3.5 py-2.5 text-left text-sm text-slate-300">
-        Les points faibles passent toujours en premier, les points forts en dernier. Cet ordre règle la suite à l'intérieur de chaque groupe.
+        Les points faibles passent en premier, les points forts en dernier, et les jambes toujours à la fin. Tu règles la suite à l'intérieur de chaque groupe.
       </p>
       <ul className="flex flex-col gap-2">
         {order.map((m, i) => {
@@ -207,13 +209,13 @@ function MuscleOrderSection({ order, priorities, onMove }: {
             <li key={m} className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2.5">
               <span className="flex-1 text-left text-sm text-slate-100">
                 {m}
-                {p === 'weak' && <span className="ml-2 text-xs text-emerald-300">point faible</span>}
-                {p === 'strong' && <span className="ml-2 text-xs text-amber-300">point fort</span>}
+                {p === 'weak' && <span className="ml-2 text-xs text-red-300">point faible</span>}
+                {p === 'strong' && <span className="ml-2 text-xs text-emerald-300">point fort</span>}
               </span>
-              <button type="button" aria-label="Monter" disabled={i === 0} onClick={() => onMove(m, -1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
+              <button type="button" aria-label="Monter" disabled={!sameBucket(order[i - 1], m)} onClick={() => onMove(m, -1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
                 <ArrowUp className="h-4 w-4" />
               </button>
-              <button type="button" aria-label="Descendre" disabled={i === order.length - 1} onClick={() => onMove(m, 1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
+              <button type="button" aria-label="Descendre" disabled={!sameBucket(order[i + 1], m)} onClick={() => onMove(m, 1)} className="rounded-lg p-1 text-slate-400 active:bg-slate-800 disabled:opacity-30">
                 <ArrowDown className="h-4 w-4" />
               </button>
             </li>

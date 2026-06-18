@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { MUSCLE_ORDER, isValidLeaf, sortLabels, priorityRank, type Priorities } from './programData';
+import { MUSCLE_ORDER, isValidLeaf, sortLabels, sortMusclesForExecution, type Priorities } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
 import { FitHeader } from './FitHeader';
@@ -45,11 +45,10 @@ export function FitExercisePicker({ program, priorities = {}, muscles, muscleOrd
   // Nothing is pre-highlighted: the picker only adds exercises, so showing the
   // ones already in the session as "selected" was misleading.
   const selected: string[] = [];
-  // Muscles in the program's chosen base order (fallback anatomical), then
-  // re-grouped by priority tiers (weak first, strong last) — sort is stable, so
-  // same-tier muscles keep the program order.
-  const order = muscleOrder && muscleOrder.length > 0 ? muscleOrder : MUSCLE_ORDER;
-  const groups = order
+  // Execution order: legs last, weak points first / strong last, ties broken by
+  // the program's base muscle order.
+  const base = muscleOrder && muscleOrder.length > 0 ? muscleOrder : MUSCLE_ORDER;
+  const groups = sortMusclesForExecution(base, priorities, base)
     .filter(name => !dayFilter || dayFilter.has(name))
     .map(name => ({
       name,
@@ -57,8 +56,7 @@ export function FitExercisePicker({ program, priorities = {}, muscles, muscleOrd
       // variants of the same exercise sit next to each other.
       exercises: sortLabels((program[name] ?? []).filter(ex => isValidLeaf(name, ex))),
     }))
-    .filter(g => g.exercises.length > 0)
-    .sort((a, b) => priorityRank(priorities, a.name) - priorityRank(priorities, b.name));
+    .filter(g => g.exercises.length > 0);
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col bg-slate-900 text-slate-100">
