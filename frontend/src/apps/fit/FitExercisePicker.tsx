@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight } from 'lucide-react';
-import { MUSCLE_ORDER, isValidLeaf, sortLabels } from './programData';
+import { MUSCLE_ORDER, isValidLeaf, sessionLeaves, sortLabels } from './programData';
 import { MusclePicker } from './MusclePicker';
 import { FitChrono } from './FitChrono';
 import { FitHeader } from './FitHeader';
@@ -53,9 +53,10 @@ export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNe
   const groups = names
     .map(name => ({
       name,
-      // Each valid program leaf is its own card (variants included), sorted so
-      // variants of the same exercise sit next to each other.
-      exercises: sortLabels((program[name] ?? []).filter(ex => isValidLeaf(name, ex))),
+      // Each configured exercise is its own card. A variant exercise's rows are
+      // independent settings, so one pick per row (Rowing assis: equipment +
+      // grip) becomes a single combined card, not one card per leaf.
+      exercises: sessionLeaves(sortLabels((program[name] ?? []).filter(ex => isValidLeaf(name, ex)))),
     }))
     .filter(g => g.exercises.length > 0);
 

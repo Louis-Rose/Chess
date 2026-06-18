@@ -271,6 +271,11 @@ for (const [muscle, leaves] of Object.entries(MUSCLE_LEAVES)) {
   for (const leaf of leaves) LEAF_TO_MUSCLE[leaf] = muscle;
 }
 
+// Base exercise name -> its muscle group, so combined session leaves (which
+// aren't individual stored leaves) still resolve to a group.
+const BASE_TO_MUSCLE: Record<string, string> = {};
+for (const m of MUSCLES) for (const ex of m.exercises) BASE_TO_MUSCLE[typeof ex === 'string' ? ex : ex.name] = m.name;
+
 // ── Custom (user-defined) exercises ──────────────────────────────────────────
 // A free-text exercise with manual muscle involvement and an optional single
 // row of variants. Fetched per user (useCustomExercises) and merged into the
@@ -308,8 +313,42 @@ export const customExercisesForMuscle = (muscle: string): Exercise[] =>
 // neither, i.e. an orphaned selection).
 export const muscleOf = (leaf: string): string | null => {
   if (LEAF_TO_MUSCLE[leaf]) return LEAF_TO_MUSCLE[leaf];
-  const c = CUSTOMS.find(c => c.name === baseOfLeaf(leaf));
+  const base = baseOfLeaf(leaf);
+  if (BASE_TO_MUSCLE[base]) return BASE_TO_MUSCLE[base];
+  const c = CUSTOMS.find(c => c.name === base);
   return c ? c.muscle : null;
+};
+
+// Expand a muscle's stored leaves into the "configured exercises" shown in the
+// session picker. A variant exercise's rows are independent settings (Rowing
+// assis: equipment + grip), so one pick per row is a single exercise — its
+// leaves combine into one card "base — v1, v2". Several picks in the same row
+// stay separate cards (the cartesian product across rows). Bare leaves pass
+// through. Pass a pre-sorted list so bases/variants come out ordered.
+export const sessionLeaves = (leaves: string[]): string[] => {
+  const order: string[] = [];
+  const byBase = new Map<string, string[]>();
+  for (const leaf of leaves) {
+    const i = leaf.indexOf(' — ');
+    const base = i === -1 ? leaf : leaf.slice(0, i);
+    if (!byBase.has(base)) { byBase.set(base, []); order.push(base); }
+    if (i !== -1) byBase.get(base)!.push(leaf.slice(i + 3));
+  }
+  const out: string[] = [];
+  for (const base of order) {
+    const variants = byBase.get(base)!;
+    if (variants.length === 0) { out.push(base); continue; }
+    const cat = EXERCISE_BY_BASE[base];
+    const custom = cat ? null : CUSTOMS.find(c => c.name === base);
+    const rows = cat ? cat.variants : custom && custom.variants.length ? [custom.variants] : [variants];
+    // Selected variants per row, in row order; rows with no pick drop out.
+    const perRow = rows.map(row => row.filter(v => variants.includes(v))).filter(sel => sel.length > 0);
+    // One card per combination across rows (cartesian product).
+    let combos: string[][] = [[]];
+    for (const sel of perRow) combos = combos.flatMap(c => sel.map(v => [...c, v]));
+    for (const combo of combos) out.push(`${base} — ${combo.join(', ')}`);
+  }
+  return out;
 };
 
 // Isolation movements (by base name) — everything else is a compound. Used to
@@ -437,6 +476,15 @@ export const muscleContribution = (leaf: string): Contribution => {
   if (CONTRIB[leaf]) return CONTRIB[leaf];
   const i = leaf.indexOf(' — ');
   const base = i === -1 ? leaf : leaf.slice(0, i);
+  // Combined session leaf "base — v1, v2": the most specific facet wins (grip
+  // over equipment, as rows are stored equipment-first).
+  if (i !== -1) {
+    let hit: Contribution | undefined;
+    for (const f of leaf.slice(i + 3).split(',').map(s => s.trim())) {
+      if (CONTRIB[variantId(base, f)]) hit = CONTRIB[variantId(base, f)];
+    }
+    if (hit) return hit;
+  }
   if (CONTRIB[base]) return CONTRIB[base];
   const custom = CUSTOMS.find(c => c.name === base);
   if (custom) return { primary: custom.primary, secondary: custom.secondary };
