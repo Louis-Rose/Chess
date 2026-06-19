@@ -131,6 +131,7 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
       <FitBackButton onClick={onBack} />
 
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
+      <p className="mt-2 text-center text-sm text-slate-400">Total de répétitions par séance</p>
 
       {/* Collapsed borders so only real cells are outlined: overhanging cells get
           a full border, and the empty space past a row's last cell stays bare. */}
