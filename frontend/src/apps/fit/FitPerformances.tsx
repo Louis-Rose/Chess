@@ -105,10 +105,16 @@ const weightLabel = (w: number | null) => (w == null ? 'PdC' : `${w} kg`);
 const LABEL_PX = 64;   // w-16
 const CELL_PX = 81;    // w-20 (80px) + 1px cushion so we never overflow
 
-function chunk<T>(arr: T[], n: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
-  return out;
+// Wrap a weight's sessions (given oldest → newest) into rows of n, with the most
+// recent row on top and the oldest (possibly partial) row at the bottom. Within
+// each row, oldest stays on the left and newest on the right.
+function wrapRows<T>(arr: T[], n: number): T[][] {
+  const groups: T[][] = [];
+  const rem = arr.length % n;
+  let i = 0;
+  if (rem > 0) { groups.push(arr.slice(0, rem)); i = rem; }
+  for (; i < arr.length; i += n) groups.push(arr.slice(i, i + n));
+  return groups.reverse();
 }
 
 // Zero-padded day/month (e.g. "02/03").
@@ -176,7 +182,7 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
         <table className="border-collapse">
           <tbody>
             {weights.flatMap(w => {
-              const rows = chunk(cellsFor(w), cols);
+              const rows = wrapRows(cellsFor(w), cols);
               return rows.map((row, ri) => (
                 <tr key={`${w}-${ri}`}>
                   {ri === 0 && (
