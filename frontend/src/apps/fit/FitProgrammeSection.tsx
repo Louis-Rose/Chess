@@ -3,8 +3,10 @@ import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react';
 import { MusclePicker } from './MusclePicker';
 import { FitCustomExerciseForm, newCustomDraft, editCustomDraft } from './FitCustomExercises';
 import { MUSCLES, SPLITS, REP_CATEGORIES, REP_GOAL_OPTIONS, exercisesForMuscle, type Priorities, type Split } from './programData';
+import { hasFixedSessions, splitSessionLabels } from './splitDays';
 import { usePointerDrag, DragOverlay } from './usePointerDrag';
 import { FitPriorityZones } from './FitPriorityZones';
+import { FitSessionOrder } from './FitSessionOrder';
 import { FitVolumeGraph } from './FitVolumeGraph';
 import type { ProgramEditor } from './useProgramEditor';
 
@@ -49,7 +51,8 @@ export function FitProgrammeSection({ section, editor }: {
   const {
     loading, name, setName, saveName, split, chooseSplit, workSets, chooseSets,
     priorities, setPriority,
-    orderedMuscles, reorderMuscles,
+    muscleOrder, orderedMuscles, reorderMuscles,
+    sessionOrder, sessions, reorderSession, removeFromSession,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
@@ -104,7 +107,10 @@ export function FitProgrammeSection({ section, editor }: {
     return <FitPriorityZones priorities={priorities} setPriority={setPriority} />;
 
   if (section === 'order')
-    return <MuscleOrderSection order={orderedMuscles()} priorities={priorities} onReorder={reorderMuscles} />;
+    // A fixed split orders its muscles per session; otherwise a single flat list.
+    return hasFixedSessions(split)
+      ? <FitSessionOrder sessions={sessions} labels={splitSessionLabels(split)} priorities={priorities} onReorder={reorderSession} onRemove={removeFromSession} />
+      : <MuscleOrderSection order={orderedMuscles()} priorities={priorities} onReorder={reorderMuscles} />;
 
   if (section === 'bodypart')
     return (
@@ -145,7 +151,7 @@ export function FitProgrammeSection({ section, editor }: {
         {Object.values(selections).some(a => a.length > 0) && (
           <>
             <div className="h-px w-full bg-slate-700" />
-            <FitVolumeGraph selections={selections} workSets={workSets} split={split} bodyPartOrder={bodyPartOrder} />
+            <FitVolumeGraph selections={selections} workSets={workSets} split={split} bodyPartOrder={bodyPartOrder} sessionOrder={sessionOrder} muscleOrder={muscleOrder} />
           </>
         )}
       </div>

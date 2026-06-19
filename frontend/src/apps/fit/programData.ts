@@ -22,6 +22,10 @@ export interface FitProgram {
   // Muscle execution order, used to order the session's exercise picker within
   // each priority tier. May be partial/empty; normalizeMuscleOrder fills it.
   muscle_order: string[];
+  // Per-session muscle order/membership within a split: {split: [[muscle, …], …]}.
+  // For the chosen split, each entry is the ordered (and possibly trimmed) muscle
+  // groups of a session. Empty for a split = its default day breakdown (splitDays).
+  session_order: Record<string, string[][]>;
 }
 
 // Target reps per working set, by exercise category. Each category picks one of

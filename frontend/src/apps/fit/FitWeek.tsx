@@ -8,12 +8,14 @@ import { weekDays, type WeekDay } from './splitDays';
 // The week's planned sessions for the Calendrier: the split's days, the
 // first `doneThisWeek` marked done and the rest "à venir". Returns null when
 // there's no plan (no split chosen, or none with a fixed/known layout).
-export function FitWeekPlan({ split, bodyPartOrder, doneThisWeek }: {
+export function FitWeekPlan({ split, bodyPartOrder, sessionOrder, muscleOrder, doneThisWeek }: {
   split: string | null;
   bodyPartOrder: string[];
+  sessionOrder: Record<string, string[][]>;
+  muscleOrder: string[];
   doneThisWeek: number;
 }) {
-  const days: WeekDay[] = weekDays(split, bodyPartOrder);
+  const days: WeekDay[] = weekDays(split, bodyPartOrder, sessionOrder, muscleOrder);
   if (!split || days.length === 0) return null;
 
   return (

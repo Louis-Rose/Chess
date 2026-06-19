@@ -743,6 +743,15 @@ def init_db():
             conn.execute("ALTER TABLE fit_programs ADD COLUMN muscle_order TEXT NOT NULL DEFAULT '[]'")
             logger.info("Added fit_programs.muscle_order column")
 
+        # Migration: per-session muscle order/membership within a split. A JSON
+        # object {split: [[muscle, …], …]} — for the chosen split, the ordered
+        # (and possibly trimmed) muscle groups of each of its sessions, letting the
+        # user reorder and drop a muscle from a given session. Empty = the split's
+        # default day breakdown (derived in code).
+        if not _column_exists(conn, 'fit_programs', 'session_order'):
+            conn.execute("ALTER TABLE fit_programs ADD COLUMN session_order TEXT NOT NULL DEFAULT '{}'")
+            logger.info("Added fit_programs.session_order column")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

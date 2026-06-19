@@ -63,6 +63,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   // so the exercise picker is filtered to the day's muscles.
   const [weekSplit, setWeekSplit] = useState<string | null>(null);
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>([]);
+  const [sessionOrder, setSessionOrder] = useState<Record<string, string[][]>>({});
   const [doneThisWeek, setDoneThisWeek] = useState(0);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +83,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     // sets), otherwise starts a fresh empty one.
     Promise.all([
       fitRequest(() => axios.post<SessionPayload>('/api/fit/sessions')),
-      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; split: string | null; body_part_order: string[]; rep_goals: RepGoals; unilateral: string[]; muscle_order: string[]; done_this_week: number }>('/api/fit/exercises')),
+      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; split: string | null; body_part_order: string[]; rep_goals: RepGoals; unilateral: string[]; muscle_order: string[]; session_order: Record<string, string[][]>; done_this_week: number }>('/api/fit/exercises')),
     ])
       .then(([sessionRes, exRes]) => {
         const sid = sessionRes.data.id;
@@ -106,6 +107,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         // doneThisWeek locates today's session within the split's cycle.
         setWeekSplit(exRes.data.split ?? null);
         setBodyPartOrder(exRes.data.body_part_order ?? []);
+        setSessionOrder(exRes.data.session_order ?? {});
         setDoneThisWeek(exRes.data.done_this_week ?? 0);
         // Restore the exact sub-view the user left from (open exercise / picker).
         // An open exercise with no sets yet won't be in `grouped`, so re-add it.
@@ -293,18 +295,17 @@ export function FitSession({ onDone }: { onDone: () => void }) {
 
   const editingEntry = editing ? entries.find(e => e.exercise === editing) ?? null : null;
 
-  // Today's session within the week's split: its label (banner) and muscles.
-  // Empty when there's no week plan.
-  const weekDayList = weekSplit ? weekDays(weekSplit, bodyPartOrder) : [];
+  // Today's session within the week's split: its label (banner) and ordered
+  // muscles (the user's per-session order). Empty when there's no week plan.
+  const weekDayList = weekSplit ? weekDays(weekSplit, bodyPartOrder, sessionOrder, muscleOrder) : [];
   const today = currentDay(weekDayList, doneThisWeek);
 
-  // The program order is authoritative in session: the picker walks the muscle
-  // groups one at a time, forward only. Sequence = program order, restricted to
-  // today's split muscles (if any) and to groups that actually have exercises.
+  // The picker walks the muscle groups one at a time, forward only. With a split,
+  // it follows today's session order; otherwise the program's global muscle
+  // order. Either way, restricted to groups that actually have exercises.
   const groupSequence = useMemo(() => {
-    const base = muscleOrder.length ? muscleOrder : MUSCLE_ORDER;
-    const day = today?.muscles;
-    return base.filter(m => (!day || day.includes(m)) && (program[m]?.length ?? 0) > 0);
+    const seq = today?.muscles ?? (muscleOrder.length ? muscleOrder : MUSCLE_ORDER);
+    return seq.filter(m => (program[m]?.length ?? 0) > 0);
   }, [muscleOrder, today?.muscles, program]);
 
   // Land on the furthest group already worked (so resume never goes backward).

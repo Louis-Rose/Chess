@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { fitRequest } from './fitAuth';
 import { useCustomExercises } from './useCustomExercises';
 import { REP_GOAL_DEFAULT, exclusiveSiblings, normalizeMuscleOrder, variantId, type CustomExercise, type FitProgram, type MusclePriority, type Priorities, type RepCategory, type RepGoals } from './programData';
+import { effectiveSplitSessions } from './splitDays';
 import type { CustomDraft } from './FitCustomExercises';
 
 // Shared editing state for one program: name, split, working sets, per-muscle
@@ -21,6 +22,7 @@ export function useProgramEditor(program: FitProgram) {
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>(program.body_part_order ?? []);
   const [repGoals, setRepGoals] = useState<RepGoals>(program.rep_goals ?? REP_GOAL_DEFAULT);
   const [muscleOrder, setMuscleOrder] = useState<string[]>(normalizeMuscleOrder(program.muscle_order));
+  const [sessionOrder, setSessionOrder] = useState<Record<string, string[][]>>(program.session_order ?? {});
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [unilateral, setUnilateral] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -127,6 +129,31 @@ export function useProgramEditor(program: FitProgram) {
     fitRequest(() => axios.put(base, { muscle_order: next })).catch(() => {});
   }
 
+  // The chosen split's effective sessions (each an ordered muscle list), the
+  // user's override layered over the split's muscleOrder-arranged default. Empty
+  // for no_split / Body part (which have no fixed multi-muscle breakdown here).
+  const sessions = useMemo(
+    () => effectiveSplitSessions(split, sessionOrder, muscleOrder),
+    [split, sessionOrder, muscleOrder]
+  );
+
+  // Persist a new full set of sessions for the current split (one entry per
+  // session). Stored under sessionOrder[split]; reorder/remove go through this.
+  function saveSessions(next: string[][]) {
+    if (!split) return;
+    const nextOrder = { ...sessionOrder, [split]: next };
+    setSessionOrder(nextOrder);
+    fitRequest(() => axios.put(base, { session_order: nextOrder })).catch(() => {});
+  }
+  // Reorder the muscles within one session (drag & drop).
+  function reorderSession(index: number, muscles: string[]) {
+    saveSessions(sessions.map((s, i) => (i === index ? muscles : s)));
+  }
+  // Drop a muscle group from one session (swipe to delete).
+  function removeFromSession(index: number, muscle: string) {
+    saveSessions(sessions.map((s, i) => (i === index ? s.filter(m => m !== muscle) : s)));
+  }
+
   function toggleExercise(muscle: string, id: string) {
     setSelections(prev => {
       const cur = prev[muscle] ?? [];
@@ -180,6 +207,7 @@ export function useProgramEditor(program: FitProgram) {
     workSets, chooseSets,
     priorities, setPriority,
     muscleOrder, orderedMuscles, reorderMuscles,
+    sessionOrder, sessions, reorderSession, removeFromSession,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise,

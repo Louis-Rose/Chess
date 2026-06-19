@@ -27,20 +27,73 @@ const SPLIT_DAY_MUSCLES: Record<string, string[][]> = {
   push_pull_legs: [PUSH, PULL, LEGS],
 };
 
+// Whether a split has a fixed, multi-muscle session breakdown the user can
+// reorder/trim per session (i.e. not no_split, and not the single-muscle-per-day
+// Body part split which the dedicated day-order step already handles).
+export const hasFixedSessions = (split: string | null): boolean =>
+  !!split && split in SPLIT_DAY_MUSCLES;
+
+// A day's muscles arranged by the program's muscle order (then catalogue order
+// for any the order omits). Keeps only the muscles belonging to the day.
+function orderDayMuscles(dayMuscles: string[], muscleOrder: string[]): string[] {
+  const ord = muscleOrder.length ? muscleOrder : ALL;
+  const inDay = new Set(dayMuscles);
+  const ordered = ord.filter(m => inDay.has(m));
+  // Append any day muscle the order didn't mention (defensive).
+  return [...ordered, ...dayMuscles.filter(m => !ordered.includes(m))];
+}
+
+// A fixed split's default sessions: each day's muscles, arranged by muscleOrder.
+export function defaultSplitSessions(split: string, muscleOrder: string[] = []): string[][] {
+  const byDay = SPLIT_DAY_MUSCLES[split];
+  return byDay ? byDay.map(day => orderDayMuscles(day, muscleOrder)) : [];
+}
+
+// The split's effective sessions: the user's per-session override when present
+// and well-formed (same session count), else the muscleOrder-arranged default.
+// An override is sanitised against each day's allowed muscles, preserving its
+// order and any removals.
+export function effectiveSplitSessions(
+  split: string | null,
+  sessionOrder: Record<string, string[][]> = {},
+  muscleOrder: string[] = [],
+): string[][] {
+  if (!split) return [];
+  const defaults = defaultSplitSessions(split, muscleOrder);
+  const override = sessionOrder[split];
+  if (!override || override.length !== defaults.length) return defaults;
+  return defaults.map((day, i) => {
+    const allowed = new Set(day);
+    return (override[i] ?? []).filter(m => allowed.has(m));
+  });
+}
+
 export interface WeekDay {
   label: string;       // e.g. "Haut du corps" or, for Body part, the muscle name
   muscles: string[];   // muscle groups trained that day (empty = no filter)
 }
 
+// The split's session labels (per its breakdown in programData), or [].
+export function splitSessionLabels(split: string | null): string[] {
+  return split ? SPLITS.find(s => s.key === split)?.sessions ?? [] : [];
+}
+
 // The ordered list of sessions for a chosen split. Empty when there is no plan
-// (no split, "Pas de split", or a Body part split with no order set yet).
-export function weekDays(split: string | null, bodyPartOrder: string[] = []): WeekDay[] {
+// (no split, "Pas de split", or a Body part split with no order set yet). For a
+// fixed split, the per-session muscle order/membership reflects the user's
+// override (sessionOrder), arranged by muscleOrder otherwise.
+export function weekDays(
+  split: string | null,
+  bodyPartOrder: string[] = [],
+  sessionOrder: Record<string, string[][]> = {},
+  muscleOrder: string[] = [],
+): WeekDay[] {
   if (!split || split === 'no_split') return [];
   if (split === 'body_part') return bodyPartOrder.map(m => ({ label: m, muscles: [m] }));
-  const byDay = SPLIT_DAY_MUSCLES[split];
-  if (!byDay) return [];
-  const labels = SPLITS.find(s => s.key === split)?.sessions ?? [];
-  return byDay.map((muscles, i) => ({ label: labels[i] ?? `Séance ${i + 1}`, muscles }));
+  if (!SPLIT_DAY_MUSCLES[split]) return [];
+  const labels = splitSessionLabels(split);
+  return effectiveSplitSessions(split, sessionOrder, muscleOrder)
+    .map((muscles, i) => ({ label: labels[i] ?? `Séance ${i + 1}`, muscles }));
 }
 
 // The session being done now, given how many are already done this week. Cycles

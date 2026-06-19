@@ -16,11 +16,13 @@ const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 const TRACK_LEFT = '5rem';     // label 4.5rem + gap 0.5rem
 const TRACK_RIGHT = '2.75rem'; // value 2.25rem + gap 0.5rem
 
-export function FitVolumeGraph({ selections, workSets, split, bodyPartOrder }: {
+export function FitVolumeGraph({ selections, workSets, split, bodyPartOrder, sessionOrder, muscleOrder }: {
   selections: Record<string, string[]>;
   workSets: number | null;
   split: string | null;
   bodyPartOrder: string[];
+  sessionOrder: Record<string, string[][]>;
+  muscleOrder: string[];
 }) {
   if (!workSets)
     return (
@@ -40,7 +42,7 @@ export function FitVolumeGraph({ selections, workSets, split, bodyPartOrder }: {
 
   // Weekly frequency per muscle from the split (how many of the week's sessions
   // train it). No split → counted once (per-passage volume).
-  const days = weekDays(split, bodyPartOrder);
+  const days = weekDays(split, bodyPartOrder, sessionOrder, muscleOrder);
   const freq = (m: string) => (days.length ? days.filter(d => d.muscles.includes(m)).length : 1);
 
   const vol: Record<string, number> = {};

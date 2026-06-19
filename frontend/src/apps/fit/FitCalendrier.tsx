@@ -85,6 +85,8 @@ export function FitCalendrier() {
   // This week's plan from the chosen split (shown at the top).
   const [weekSplit, setWeekSplit] = useState<string | null>(null);
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>([]);
+  const [sessionOrder, setSessionOrder] = useState<Record<string, string[][]>>({});
+  const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
   const [doneThisWeek, setDoneThisWeek] = useState(0);
   // A just-deleted session, kept around so it can be undone. The backend DELETE
   // is deferred until the undo window elapses (or the tab unmounts).
@@ -97,11 +99,13 @@ export function FitCalendrier() {
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
     // This week's plan: the active program's split + how far through the week.
-    fitRequest(() => axios.get<{ split: string | null; body_part_order: string[]; done_this_week: number }>('/api/fit/exercises'))
+    fitRequest(() => axios.get<{ split: string | null; body_part_order: string[]; session_order: Record<string, string[][]>; muscle_order: string[]; done_this_week: number }>('/api/fit/exercises'))
       .then(ex => {
         setWeekSplit(ex.data.split);
         setDoneThisWeek(ex.data.done_this_week ?? 0);
         setBodyPartOrder(ex.data.body_part_order ?? []);
+        setSessionOrder(ex.data.session_order ?? {});
+        setMuscleOrder(ex.data.muscle_order ?? []);
       })
       .catch(() => { /* no week plan */ });
   }, []);
@@ -157,7 +161,7 @@ export function FitCalendrier() {
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-center text-2xl font-semibold">Calendrier</h1>
 
-      <FitWeekPlan split={weekSplit} bodyPartOrder={bodyPartOrder} doneThisWeek={doneThisWeek} />
+      <FitWeekPlan split={weekSplit} bodyPartOrder={bodyPartOrder} sessionOrder={sessionOrder} muscleOrder={muscleOrder} doneThisWeek={doneThisWeek} />
 
       {loading ? (
         <div className="mt-10 flex justify-center">

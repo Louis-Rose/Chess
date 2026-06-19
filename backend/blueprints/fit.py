@@ -316,11 +316,34 @@ def _rep_goals_of(row):
     return {c: (val[c] if val.get(c) in REP_GOAL_OPTIONS[c] else REP_GOAL_DEFAULT[c]) for c in REP_GOAL_OPTIONS}
 
 
+def _session_order_of(row):
+    """The program's per-session muscle order, as {split: [[muscle, …], …]}. For a
+    split, each entry is the ordered (and possibly trimmed) list of muscle groups
+    trained in each of its sessions — the user's customisation of that split's
+    default day breakdown. Stored as a JSON object in `session_order`; unknown
+    splits/muscles are dropped defensively."""
+    raw = row['session_order'] if row is not None else None
+    if not raw:
+        return {}
+    try:
+        val = json.loads(raw)
+    except (ValueError, TypeError):
+        return {}
+    if not isinstance(val, dict):
+        return {}
+    out = {}
+    for split, sessions in val.items():
+        if split not in VALID_SPLITS or not isinstance(sessions, list):
+            continue
+        out[split] = [[m for m in day if m in VALID_MUSCLES] for day in sessions if isinstance(day, list)]
+    return out
+
+
 def _active_program(conn):
     """The user's active program row (id, name, split, work_sets), or None.
     Falls back to the most recent program when no explicit active pointer is set."""
     row = conn.execute(
-        """SELECT p.id, p.name, p.split, p.work_sets, p.priorities, p.body_part_order, p.rep_goals, p.muscle_order
+        """SELECT p.id, p.name, p.split, p.work_sets, p.priorities, p.body_part_order, p.rep_goals, p.muscle_order, p.session_order
            FROM fit_programs p
            JOIN fit_profile f ON f.active_program_id = p.id
            WHERE f.user_id = ?""",
@@ -329,7 +352,7 @@ def _active_program(conn):
     if row:
         return row
     return conn.execute(
-        'SELECT id, name, split, work_sets, priorities, body_part_order, rep_goals, muscle_order FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+        'SELECT id, name, split, work_sets, priorities, body_part_order, rep_goals, muscle_order, session_order FROM fit_programs WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
         (request.user_id,)
     ).fetchone()
 
@@ -337,7 +360,7 @@ def _active_program(conn):
 def _owned_program(conn, program_id):
     """Return the program row if it belongs to the current user, else None."""
     return conn.execute(
-        'SELECT id, name, split, work_sets, priorities, body_part_order, rep_goals, muscle_order FROM fit_programs WHERE id = ? AND user_id = ?',
+        'SELECT id, name, split, work_sets, priorities, body_part_order, rep_goals, muscle_order, session_order FROM fit_programs WHERE id = ? AND user_id = ?',
         (program_id, request.user_id)
     ).fetchone()
 
@@ -376,6 +399,7 @@ def get_exercises():
         'body_part_order': _body_part_order_of(prog),
         'rep_goals': _rep_goals_of(prog),
         'muscle_order': _muscle_order_of(prog),
+        'session_order': _session_order_of(prog),
         'unilateral': unilateral,
         'done_this_week': done,
     })
@@ -387,7 +411,7 @@ def list_programs():
     """All of the user's programs (with exercise counts) plus the active one's id."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT p.id, p.name, p.split, p.work_sets, p.priorities, p.body_part_order, p.rep_goals, p.muscle_order,
+            """SELECT p.id, p.name, p.split, p.work_sets, p.priorities, p.body_part_order, p.rep_goals, p.muscle_order, p.session_order,
                       COUNT(e.exercise) AS exercise_count
                FROM fit_programs p
                LEFT JOIN fit_exercises e ON e.program_id = p.id
@@ -401,7 +425,7 @@ def list_programs():
         'programs': [{'id': r['id'], 'name': r['name'], 'split': _split_of(r),
                       'work_sets': r['work_sets'], 'priorities': _priorities_of(r),
                       'body_part_order': _body_part_order_of(r), 'rep_goals': _rep_goals_of(r),
-                      'muscle_order': _muscle_order_of(r),
+                      'muscle_order': _muscle_order_of(r), 'session_order': _session_order_of(r),
                       'exercise_count': r['exercise_count']} for r in rows],
         'active_id': active['id'] if active else None,
     })
@@ -421,7 +445,7 @@ def create_program():
             ).fetchone()['c']
             name = f'Programme {n + 1}'
         row = conn.execute(
-            "INSERT INTO fit_programs (user_id, name) VALUES (?, ?) RETURNING id, name, split, work_sets, priorities, body_part_order, rep_goals, muscle_order",
+            "INSERT INTO fit_programs (user_id, name) VALUES (?, ?) RETURNING id, name, split, work_sets, priorities, body_part_order, rep_goals, muscle_order, session_order",
             (request.user_id, name[:PROGRAM_NAME_MAX])
         ).fetchone()
         # Make it active if the user has no active program yet.
@@ -433,7 +457,7 @@ def create_program():
     return jsonify({'id': row['id'], 'name': row['name'], 'split': _split_of(row),
                     'work_sets': row['work_sets'], 'priorities': _priorities_of(row),
                     'body_part_order': _body_part_order_of(row), 'rep_goals': _rep_goals_of(row),
-                    'muscle_order': _muscle_order_of(row)})
+                    'muscle_order': _muscle_order_of(row), 'session_order': _session_order_of(row)})
 
 
 @fit_bp.route('/api/fit/programs/active', methods=['PUT'])
@@ -491,6 +515,17 @@ def update_program(program_id):
         if not isinstance(order, list) or any(m not in VALID_MUSCLES for m in order):
             return jsonify({'error': 'Invalid muscle_order'}), 400
         updates['muscle_order'] = json.dumps(list(dict.fromkeys(order)))
+    if 'session_order' in data:
+        # {split: [[muscle, …], …]}: per split, the ordered (and possibly trimmed)
+        # muscle groups of each session. Validates splits and muscle names.
+        so = data['session_order']
+        if not isinstance(so, dict) or any(
+            split not in VALID_SPLITS or not isinstance(sessions, list)
+            or any(not isinstance(day, list) or any(m not in VALID_MUSCLES for m in day) for day in sessions)
+            for split, sessions in so.items()
+        ):
+            return jsonify({'error': 'Invalid session_order'}), 400
+        updates['session_order'] = json.dumps(so)
     if 'rep_goals' in data:
         # {upper, lower, isolation}: each one of its category's allowed options.
         rg = data['rep_goals']
@@ -521,6 +556,8 @@ def update_program(program_id):
         resp['rep_goals'] = json.loads(resp['rep_goals'])
     if 'muscle_order' in resp:
         resp['muscle_order'] = json.loads(resp['muscle_order'])
+    if 'session_order' in resp:
+        resp['session_order'] = json.loads(resp['session_order'])
     return jsonify(resp)
 
 
