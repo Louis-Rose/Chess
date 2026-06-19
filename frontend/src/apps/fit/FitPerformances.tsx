@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
@@ -100,6 +100,17 @@ export function FitPerformances() {
 
 const weightLabel = (w: number | null) => (w == null ? 'PdC' : `${w} kg`);
 
+// Cell sizing (px) — used to wrap a too-long weight row into several rows so the
+// table only ever scrolls vertically. Keep in sync with the w-/label classes.
+const LABEL_PX = 72;   // w-[4.5rem]
+const CELL_PX = 112;   // w-28
+
+function chunk<T>(arr: T[], n: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
+}
+
 // Zero-padded day/month (e.g. "02/03").
 const cellDate = (iso: string | null) => {
   if (!iso) return '';
@@ -134,9 +145,22 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
   const weights = Array.from(new Set(cells.map(c => c.rowWeight)))
     .sort((a, b) => lift(b) - lift(a));
 
-  // A row's sessions, oldest first (left) → newest (right), so the grid reads
-  // chronologically bottom-left (oldest, lightest) to top-right (newest, heaviest).
+  // A weight's sessions, oldest first → newest.
   const cellsFor = (w: number | null) => cells.filter(c => c.rowWeight === w);
+
+  // How many session cells fit one row at the current width; a longer weight
+  // wraps onto more rows (same weight) so the table only scrolls vertically.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [cols, setCols] = useState(2);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setCols(Math.max(1, Math.floor((el.clientWidth - LABEL_PX) / CELL_PX)));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -145,38 +169,44 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
       <p className="mt-2 text-center text-sm text-slate-400">Total de répétitions par séance</p>
 
-      {/* Collapsed borders so only real cells are outlined: overhanging cells get
-          a full border, and the empty space past a row's last cell stays bare. */}
-      <div className="mt-8 overflow-x-auto">
+      {/* Collapsed borders so only real cells are outlined. A weight with more
+          sessions than fit one row wraps onto more rows (same weight, via the
+          row-spanning label), so the table only scrolls vertically. */}
+      <div ref={wrapRef} className="mt-8">
         <table className="border-collapse">
           <tbody>
-            {weights.map(w => (
-              <tr key={String(w)}>
-                <th
-                  className="sticky left-0 z-10 h-[4.5rem] w-28 whitespace-nowrap border border-slate-700 bg-slate-800 px-3 text-sm font-semibold text-slate-200"
-                  style={{ boxShadow: '1px 0 0 0 #334155' }}
-                >
-                  {weightLabel(w)}
-                </th>
-                {cellsFor(w).map(e => (
-                  <td key={e.id} className="h-[4.5rem] w-28 border border-slate-700 bg-slate-900 p-0 align-middle">
-                    <button
-                      type="button"
-                      onClick={() => onOpenSession(e.id)}
-                      className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-3 transition-colors active:bg-slate-800"
+            {weights.flatMap(w => {
+              const rows = chunk(cellsFor(w), cols);
+              return rows.map((row, ri) => (
+                <tr key={`${w}-${ri}`}>
+                  {ri === 0 && (
+                    <th
+                      rowSpan={rows.length}
+                      className="h-[4.5rem] w-[4.5rem] whitespace-nowrap border border-slate-700 bg-slate-800 px-2 text-sm font-semibold text-slate-200"
                     >
-                      {e.lower ? (
-                        <span className="whitespace-nowrap text-xs italic text-amber-400/80">Lower weight</span>
-                      ) : (
-                        <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps} reps</span>
-                      )}
-                      {e.number != null && <span className="whitespace-nowrap text-[11px] text-slate-500">Séance {e.number}</span>}
-                      <span className="whitespace-nowrap text-[11px] text-slate-500">{cellDate(e.date)}</span>
-                    </button>
-                  </td>
-                ))}
-              </tr>
-            ))}
+                      {weightLabel(w)}
+                    </th>
+                  )}
+                  {row.map(e => (
+                    <td key={e.id} className="h-[4.5rem] w-28 border border-slate-700 bg-slate-900 p-0 align-middle">
+                      <button
+                        type="button"
+                        onClick={() => onOpenSession(e.id)}
+                        className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-3 transition-colors active:bg-slate-800"
+                      >
+                        {e.lower ? (
+                          <span className="text-center text-xs font-medium leading-tight text-slate-100">Lower<br />weight</span>
+                        ) : (
+                          <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps} reps</span>
+                        )}
+                        {e.number != null && <span className="whitespace-nowrap text-[11px] text-slate-500">Séance {e.number}</span>}
+                        <span className="whitespace-nowrap text-[11px] text-slate-500">{cellDate(e.date)}</span>
+                      </button>
+                    </td>
+                  ))}
+                </tr>
+              ));
+            })}
           </tbody>
         </table>
       </div>
