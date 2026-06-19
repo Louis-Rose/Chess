@@ -114,18 +114,29 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
   onBack: () => void;
   onOpenSession: (id: number) => void;
 }) {
-  // Rows = the distinct working weights, heaviest first (bodyweight last).
-  const weights = Array.from(new Set(perf.sessions.flatMap(s => s.weights.map(w => w.weight))))
-    .sort((a, b) => (a == null ? 1 : b == null ? -1 : b - a));
+  // The working weight only ever climbs: track its running max over the sessions
+  // (oldest → newest). Every session is placed in the row of the working weight
+  // in force at the time; a session whose heaviest set was below it (a down day)
+  // still sits in that row but is flagged "Lower weight" instead of its reps.
+  const lift = (w: number | null) => w ?? 0;   // bodyweight counts as 0
+  let maxLift = -Infinity;
+  let workWeight: number | null = null;
+  const cells = perf.sessions.flatMap(s => {
+    if (s.weights.length === 0) return [];
+    const top = s.weights.reduce((a, b) => (lift(b.weight) > lift(a.weight) ? b : a));
+    let lower = false;
+    if (lift(top.weight) >= maxLift) { maxLift = lift(top.weight); workWeight = top.weight; }
+    else lower = true;
+    return [{ id: s.id, number: s.number, date: s.date, reps: top.reps, rowWeight: workWeight, lower }];
+  });
 
-  // Per weight, only the sessions that used it, oldest first (left) → newest
-  // (right), so the grid reads chronologically: weight climbs over time, hence
-  // bottom-left (oldest, lightest) to top-right (newest, heaviest).
-  const entriesFor = (w: number | null) =>
-    perf.sessions.flatMap(s => {
-      const hit = s.weights.find(x => x.weight === w);
-      return hit ? [{ id: s.id, number: s.number, date: s.date, reps: hit.reps }] : [];
-    });
+  // Rows = the distinct working weights, heaviest first (bodyweight last).
+  const weights = Array.from(new Set(cells.map(c => c.rowWeight)))
+    .sort((a, b) => lift(b) - lift(a));
+
+  // A row's sessions, oldest first (left) → newest (right), so the grid reads
+  // chronologically bottom-left (oldest, lightest) to top-right (newest, heaviest).
+  const cellsFor = (w: number | null) => cells.filter(c => c.rowWeight === w);
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -147,14 +158,18 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
                 >
                   {weightLabel(w)}
                 </th>
-                {entriesFor(w).map(e => (
+                {cellsFor(w).map(e => (
                   <td key={e.id} className="h-[4.5rem] w-28 border border-slate-700 bg-slate-900 p-0 align-middle">
                     <button
                       type="button"
                       onClick={() => onOpenSession(e.id)}
                       className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-3 transition-colors active:bg-slate-800"
                     >
-                      <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps} reps</span>
+                      {e.lower ? (
+                        <span className="whitespace-nowrap text-xs italic text-amber-400/80">Lower weight</span>
+                      ) : (
+                        <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps} reps</span>
+                      )}
                       {e.number != null && <span className="whitespace-nowrap text-[11px] text-slate-500">Séance {e.number}</span>}
                       <span className="whitespace-nowrap text-[11px] text-slate-500">{cellDate(e.date)}</span>
                     </button>
