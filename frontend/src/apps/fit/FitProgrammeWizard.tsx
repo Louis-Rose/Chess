@@ -17,8 +17,8 @@ export function FitProgrammeWizard({ program, onDone }: { program: FitProgram; o
   const [step, setStep] = useState(0);
   const editor = useProgramEditor(program);
 
-  // Steps depend on the chosen splits: a Body part split adds an "order" step.
-  const keys = sectionKeysFor(editor.splits);
+  // Steps depend on the chosen split: a Body part split adds an "order" step.
+  const keys = sectionKeysFor(editor.split);
   const clamped = Math.min(step, keys.length - 1);
   const section = keys[clamped];
   const isFirst = clamped === 0;

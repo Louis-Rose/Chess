@@ -17,11 +17,11 @@ export const WORK_SETS_OPTIONS = [2, 3, 4, 5, 6];
 const NAME_MAX = 60;
 
 // Section keys, in order: name, split, priority, sets, then one per muscle. When
-// the program includes a Body part split, a 'bodypart' step (the day order) is
+// the program uses a Body part split, a 'bodypart' step (the day order) is
 // inserted right after 'split'.
-export const sectionKeysFor = (splits: string[]) => {
+export const sectionKeysFor = (split: string | null) => {
   const base = ['name', 'split', 'priority', 'order', 'sets', 'reps', ...MUSCLES.map(m => m.name)];
-  if (!splits.includes('body_part')) return base;
+  if (split !== 'body_part') return base;
   const i = base.indexOf('split');
   return [...base.slice(0, i + 1), 'bodypart', ...base.slice(i + 1)];
 };
@@ -34,7 +34,7 @@ const musclePhrase = (m: string) => `les ${m.toLowerCase()}`;
 // wizard and the rail editor of an existing program.
 export const sectionQuestion = (section: string) =>
   section === 'name' ? 'Comment veux-tu nommer ce programme ?'
-    : section === 'split' ? 'Quel(s) split(s) veux-tu suivre ? (choix multiples possibles)'
+    : section === 'split' ? 'Quel split veux-tu suivre ?'
     : section === 'priority' ? 'Quels muscles veux-tu prioriser (points faibles) ou non (points forts) ?'
     : section === 'order' ? 'Dans quel ordre veux-tu faire tes exercices ?'
     : section === 'bodypart' ? 'Dans quel ordre veux-tu enchaîner tes séances ? (un groupe musculaire par séance)'
@@ -47,7 +47,7 @@ export function FitProgrammeSection({ section, editor }: {
   editor: ProgramEditor;
 }) {
   const {
-    loading, name, setName, saveName, splits, toggleSplit, workSets, chooseSets,
+    loading, name, setName, saveName, split, chooseSplit, workSets, chooseSets,
     priorities, setPriority,
     orderedMuscles, reorderMuscles,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
@@ -93,8 +93,8 @@ export function FitProgrammeSection({ section, editor }: {
       <div className="flex flex-col gap-2.5">
         {SPLITS.map(s => (
           <Fragment key={s.key}>
-            <Choice active={splits.includes(s.key)} onClick={() => toggleSplit(s.key)}>{s.label}</Choice>
-            {splits.includes(s.key) && <SplitDefinition split={s} />}
+            <Choice active={split === s.key} onClick={() => chooseSplit(s.key)}>{s.label}</Choice>
+            {split === s.key && <SplitDefinition split={s} />}
           </Fragment>
         ))}
       </div>
@@ -145,7 +145,7 @@ export function FitProgrammeSection({ section, editor }: {
         {Object.values(selections).some(a => a.length > 0) && (
           <>
             <div className="h-px w-full bg-slate-700" />
-            <FitVolumeGraph selections={selections} workSets={workSets} splits={splits} bodyPartOrder={bodyPartOrder} />
+            <FitVolumeGraph selections={selections} workSets={workSets} split={split} bodyPartOrder={bodyPartOrder} />
           </>
         )}
       </div>

@@ -49,11 +49,3 @@ export function currentDay(days: WeekDay[], doneThisWeek: number): WeekDay | nul
   if (days.length === 0) return null;
   return days[doneThisWeek % days.length];
 }
-
-// The program's splits that can be picked for a week (a real split, not "Pas de
-// split"), as {key, label} for the picker.
-export function weekSplitOptions(splits: string[]): { key: string; label: string }[] {
-  return splits
-    .filter(k => k !== 'no_split')
-    .map(k => ({ key: k, label: SPLITS.find(s => s.key === k)?.label ?? k }));
-}

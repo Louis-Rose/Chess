@@ -12,8 +12,7 @@ import { FitScreenHeader } from './FitScreenHeader';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
 import { leafLabel, muscleOf, repGoalCategory, MUSCLE_ORDER, REP_GOAL_DEFAULT, type Priorities, type RepGoals } from './programData';
-import { weekSplitOptions, weekDays, currentDay } from './splitDays';
-import { FitWeekSplitPicker } from './FitWeek';
+import { weekDays, currentDay } from './splitDays';
 import { sessionTitle } from './format';
 import { loadSessionNav, saveSessionNav, clearSessionNav } from './fitSessionNav';
 import { startRest, clearRest } from './restTimer';
@@ -60,13 +59,11 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
   const [groupIndex, setGroupIndex] = useState(0);   // current muscle group in the program order
   const groupInit = useRef(false);
-  // The week's split (which one the user follows this week) and the data to
-  // locate today's session within it, so the picker is filtered to the day.
+  // The active program's split and the data to locate today's session within it,
+  // so the exercise picker is filtered to the day's muscles.
   const [weekSplit, setWeekSplit] = useState<string | null>(null);
-  const [weekOptions, setWeekOptions] = useState<{ key: string; label: string }[]>([]);
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>([]);
   const [doneThisWeek, setDoneThisWeek] = useState(0);
-  const [pickingWeek, setPickingWeek] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState(false);
@@ -85,10 +82,9 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     // sets), otherwise starts a fresh empty one.
     Promise.all([
       fitRequest(() => axios.post<SessionPayload>('/api/fit/sessions')),
-      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; splits: string[]; body_part_order: string[]; rep_goals: RepGoals; unilateral: string[]; muscle_order: string[] }>('/api/fit/exercises')),
-      fitRequest(() => axios.get<{ split: string | null; done_this_week: number }>('/api/fit/week-split')),
+      fitRequest(() => axios.get<{ selections: Record<string, string[]>; priorities: Priorities; split: string | null; body_part_order: string[]; rep_goals: RepGoals; unilateral: string[]; muscle_order: string[]; done_this_week: number }>('/api/fit/exercises')),
     ])
-      .then(([sessionRes, exRes, weekRes]) => {
+      .then(([sessionRes, exRes]) => {
         const sid = sessionRes.data.id;
         setSessionId(sid);
         setStartedAt(sessionRes.data.started_at);
@@ -106,20 +102,11 @@ export function FitSession({ onDone }: { onDone: () => void }) {
 
         const grouped = groupSets(sessionRes.data.sets ?? []);
 
-        // Week split: a program with several splits asks which one applies this
-        // week, at the first (fresh) session. One option auto-applies; none does
-        // nothing. The choice then filters the picker to the day's muscles.
-        const options = weekSplitOptions(exRes.data.splits ?? []);
-        setWeekOptions(options);
+        // The active program's split filters the picker to today's muscles, and
+        // doneThisWeek locates today's session within the split's cycle.
+        setWeekSplit(exRes.data.split ?? null);
         setBodyPartOrder(exRes.data.body_part_order ?? []);
-        setDoneThisWeek(weekRes.data.done_this_week ?? 0);
-        if (weekRes.data.split) {
-          setWeekSplit(weekRes.data.split);
-        } else if (options.length === 1) {
-          chooseWeekSplit(options[0].key);
-        } else if (options.length >= 2 && grouped.length === 0) {
-          setPickingWeek(true);
-        }
+        setDoneThisWeek(exRes.data.done_this_week ?? 0);
         // Restore the exact sub-view the user left from (open exercise / picker).
         // An open exercise with no sets yet won't be in `grouped`, so re-add it.
         const nav = loadSessionNav();
@@ -157,14 +144,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   useEffect(() => () => {
     if (!liveRef.current) { clearSession(); clearValidated(); clearSessionNav(); }
   }, []);
-
-  // Set the split for this week (from the picker or auto when there's only one),
-  // and persist it. The day filter then follows from it.
-  function chooseWeekSplit(key: string) {
-    setWeekSplit(key);
-    setPickingWeek(false);
-    fitRequest(() => axios.put('/api/fit/week-split', { split: key })).catch(() => {});
-  }
 
   function addExercise(leaf: string) {
     setPicking(false);
@@ -445,14 +424,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           onNextGroup={() => setGroupIndex(i => Math.min(i + 1, groupSequence.length - 1))}
           onPick={addExercise}
           onClose={() => setPicking(false)}
-        />
-      )}
-
-      {pickingWeek && (
-        <FitWeekSplitPicker
-          options={weekOptions}
-          bodyPartOrder={bodyPartOrder}
-          onChoose={chooseWeekSplit}
         />
       )}
 

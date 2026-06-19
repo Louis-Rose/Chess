@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Check, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
@@ -131,7 +131,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
       <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-4">
         {programs.map(p => {
           const isActive = p.id === activeId;
-          const splitLabels = p.splits.map(splitLabel).filter(Boolean);
+          const label = splitLabel(p.split);
           return (
             <FitSwipeRow
               key={p.id}
@@ -165,17 +165,7 @@ export function FitProgrammeList({ onOpen }: { onOpen: (program: FitProgram, isN
               </div>
 
               <h2 className="truncate text-lg font-semibold text-white">{p.name}</h2>
-              {/* One split per line, with "&" alone on its own line between them. */}
-              {splitLabels.length === 0 ? (
-                <p className="mt-4 text-sm text-white">Split non défini</p>
-              ) : (
-                splitLabels.map((label, i) => (
-                  <Fragment key={i}>
-                    {i > 0 && <p className="text-sm text-white">&</p>}
-                    <p className={`text-sm text-white ${i === 0 ? 'mt-4' : ''}`}>{label}</p>
-                  </Fragment>
-                ))
-              )}
+              <p className="mt-4 text-sm text-white">{label || 'Split non défini'}</p>
               <p className="mt-3 text-sm text-white">
                 {p.exercise_count} exercice{p.exercise_count !== 1 ? 's' : ''}
               </p>

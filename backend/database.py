@@ -646,15 +646,6 @@ def init_db():
             """)
             logger.info("Created fit_exercise_unilateral table")
 
-        # Migration: a program can carry several splits (each week the user picks
-        # which one applies). Stored as a JSON array in fit_programs.splits; the
-        # legacy single `split` column is backfilled into it once, then unused.
-        if not _column_exists(conn, 'fit_programs', 'splits'):
-            conn.execute("ALTER TABLE fit_programs ADD COLUMN splits TEXT")
-            conn.execute("UPDATE fit_programs SET splits = '[\"' || split || '\"]' WHERE split IS NOT NULL")
-            conn.execute("UPDATE fit_programs SET splits = '[]' WHERE splits IS NULL")
-            logger.info("Added fit_programs.splits column")
-
         # Migration: per-muscle training priority within a program. A JSON object
         # mapping a muscle to 'weak' (a weak point — its exercises lead the
         # session) or 'strong' (a strong point — they close it); muscles absent
@@ -683,19 +674,18 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('split_dos_into_dorsaux',))
             logger.info("Split muscle 'Dos' into 'Dorsaux' + 'Trapèzes'")
 
-        # Migration: the split chosen for a given week (Monday-anchored). A program
-        # can carry several splits; each week the user picks which one applies, at
-        # the first session of the week. One row per user per week.
-        if not _table_exists(conn, 'fit_week_splits'):
-            conn.execute("""
-                CREATE TABLE fit_week_splits (
-                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                    week_start DATE NOT NULL,
-                    split TEXT NOT NULL,
-                    PRIMARY KEY (user_id, week_start)
-                )
-            """)
-            logger.info("Created fit_week_splits table")
+        # Migration: revert to a single split per program (the multi-split-per-
+        # program option was removed). Backfill the scalar `split` from the first
+        # element of the now-unused `splits` JSON array, then drop that column and
+        # the fit_week_splits table (which only stored the weekly split choice).
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('revert_to_single_split',)).fetchone():
+            if _column_exists(conn, 'fit_programs', 'splits'):
+                conn.execute("UPDATE fit_programs SET split = (splits::json ->> 0) WHERE splits IS NOT NULL")
+                conn.execute("ALTER TABLE fit_programs DROP COLUMN splits")
+            if _table_exists(conn, 'fit_week_splits'):
+                conn.execute("DROP TABLE fit_week_splits")
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('revert_to_single_split',))
+            logger.info("Reverted fit programs to a single split (dropped splits column + fit_week_splits)")
 
         # Migration: target reps per working set, per exercise category
         # (upper / lower / isolation). A JSON object; the session averages the

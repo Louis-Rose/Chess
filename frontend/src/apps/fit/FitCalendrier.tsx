@@ -96,14 +96,11 @@ export function FitCalendrier() {
       .then(res => setSessions(res.data.sessions ?? []))
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
-    // This week's plan: the chosen split + how far through the week we are.
-    Promise.all([
-      fitRequest(() => axios.get<{ split: string | null; done_this_week: number }>('/api/fit/week-split')),
-      fitRequest(() => axios.get<{ body_part_order: string[] }>('/api/fit/exercises')),
-    ])
-      .then(([week, ex]) => {
-        setWeekSplit(week.data.split);
-        setDoneThisWeek(week.data.done_this_week ?? 0);
+    // This week's plan: the active program's split + how far through the week.
+    fitRequest(() => axios.get<{ split: string | null; body_part_order: string[]; done_this_week: number }>('/api/fit/exercises'))
+      .then(ex => {
+        setWeekSplit(ex.data.split);
+        setDoneThisWeek(ex.data.done_this_week ?? 0);
         setBodyPartOrder(ex.data.body_part_order ?? []);
       })
       .catch(() => { /* no week plan */ });

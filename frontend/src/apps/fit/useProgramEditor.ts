@@ -15,7 +15,7 @@ import type { CustomDraft } from './FitCustomExercises';
 
 export function useProgramEditor(program: FitProgram) {
   const [name, setName] = useState(program.name);
-  const [splits, setSplits] = useState<string[]>(program.splits ?? []);
+  const [split, setSplit] = useState<string | null>(program.split ?? null);
   const [workSets, setWorkSets] = useState<number | null>(program.work_sets);
   const [priorities, setPriorities] = useState<Priorities>(program.priorities ?? {});
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>(program.body_part_order ?? []);
@@ -57,18 +57,10 @@ export function useProgramEditor(program: FitProgram) {
     fitRequest(() => axios.put(base, { name: trimmed })).catch(() => {});
   }
 
-  // A program can carry several splits; tapping one toggles it on/off. "Pas de
-  // split" is mutually exclusive with real splits: choosing it clears the rest,
-  // and choosing any real split clears it.
-  function toggleSplit(s: string) {
-    setSplits(prev => {
-      let next: string[];
-      if (prev.includes(s)) next = prev.filter(x => x !== s);
-      else if (s === 'no_split') next = ['no_split'];
-      else next = [...prev.filter(x => x !== 'no_split'), s];
-      fitRequest(() => axios.put(base, { splits: next })).catch(() => {});
-      return next;
-    });
+  // A program has a single split; tapping one selects it (replacing the previous).
+  function chooseSplit(s: string) {
+    setSplit(s);
+    fitRequest(() => axios.put(base, { split: s })).catch(() => {});
   }
 
   function chooseSets(n: number) {
@@ -184,7 +176,7 @@ export function useProgramEditor(program: FitProgram) {
   return {
     loading,
     name, setName, saveName,
-    splits, toggleSplit,
+    split, chooseSplit,
     workSets, chooseSets,
     priorities, setPriority,
     muscleOrder, orderedMuscles, reorderMuscles,

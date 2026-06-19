@@ -3,14 +3,14 @@
 // saved-state overview. Keep in sync with backend/blueprints/fit.py
 // (VALID_SPLITS / MUSCLE_EXERCISES) — a variant is stored as `"<name> — <variant>"`.
 
-// A training program: its name, splits and working-sets count. A user can have
-// several; one is active (used everywhere in the app). A program may carry
-// several splits (the user picks which one applies each week). Exercises are
-// fetched separately, per program, from /api/fit/programs/<id>/exercises.
+// A training program: its name, split and working-sets count. A user can have
+// several; one is active (used everywhere in the app). A program has a single
+// training split (or none). Exercises are fetched separately, per program, from
+// /api/fit/programs/<id>/exercises.
 export interface FitProgram {
   id: number;
   name: string;
-  splits: string[];
+  split: string | null;
   work_sets: number | null;
   priorities: Priorities;
   // For a Body part split: the user's chosen day order, one muscle group per

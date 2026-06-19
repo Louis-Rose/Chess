@@ -1,14 +1,12 @@
-import { useState } from 'react';
 import { MUSCLE_ORDER, muscleContribution } from './programData';
-import { weekDays, weekSplitOptions } from './splitDays';
+import { weekDays } from './splitDays';
 
 // Weekly training volume the program assigns to each muscle, as a horizontal bar
 // per muscle group. Per selected exercise, the work-set count adds 1 to each of
 // its primary muscles and 0.5 to each secondary (muscleContribution); that
-// "per-passage" volume is then multiplied by how many times the chosen split
-// trains the muscle in the week. With several splits, a toggle switches between
-// them. Reference lines at 10 and 20 sets/week mark the usual hypertrophy range.
-// Shown in the program editor's "Volume" section.
+// "per-passage" volume is then multiplied by how many times the split trains the
+// muscle in the week. Reference lines at 10 and 20 sets/week mark the usual
+// hypertrophy range. Shown in the program editor's "Volume" section.
 
 const REF_LINES = [10, 20];
 const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
@@ -18,17 +16,12 @@ const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 const TRACK_LEFT = '5rem';     // label 4.5rem + gap 0.5rem
 const TRACK_RIGHT = '2.75rem'; // value 2.25rem + gap 0.5rem
 
-export function FitVolumeGraph({ selections, workSets, splits, bodyPartOrder }: {
+export function FitVolumeGraph({ selections, workSets, split, bodyPartOrder }: {
   selections: Record<string, string[]>;
   workSets: number | null;
-  splits: string[];
+  split: string | null;
   bodyPartOrder: string[];
 }) {
-  const options = weekSplitOptions(splits);
-  const [chosen, setChosen] = useState<string | null>(options[0]?.key ?? null);
-  // The selected split, falling back to the first if it was removed.
-  const active = options.some(o => o.key === chosen) ? chosen : (options[0]?.key ?? null);
-
   if (!workSets)
     return (
       <p className="text-center text-sm text-slate-400">
@@ -45,9 +38,9 @@ export function FitVolumeGraph({ selections, workSets, splits, bodyPartOrder }: 
     for (const m of secondary) base[m] = (base[m] ?? 0) + workSets * 0.5;
   }
 
-  // Weekly frequency per muscle from the chosen split (how many of the week's
-  // sessions train it). No split → counted once (per-passage volume).
-  const days = weekDays(active, bodyPartOrder);
+  // Weekly frequency per muscle from the split (how many of the week's sessions
+  // train it). No split → counted once (per-passage volume).
+  const days = weekDays(split, bodyPartOrder);
   const freq = (m: string) => (days.length ? days.filter(d => d.muscles.includes(m)).length : 1);
 
   const vol: Record<string, number> = {};
@@ -59,27 +52,6 @@ export function FitVolumeGraph({ selections, workSets, splits, bodyPartOrder }: 
       <h3 className="text-center text-base font-semibold uppercase tracking-wide text-white">
         Volume hebdomadaire
       </h3>
-
-      {/* Several splits: switch which one the volume is computed for. */}
-      {options.length > 1 && (
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {options.map(o => (
-            <button
-              key={o.key}
-              type="button"
-              aria-pressed={active === o.key}
-              onClick={() => setChosen(o.key)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                active === o.key
-                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
-                  : 'border-slate-700 text-slate-300 active:bg-slate-800'
-              }`}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className="relative mt-4 pt-4">
         {/* Reference lines at 10 and 20 sets, spanning every bar. */}
