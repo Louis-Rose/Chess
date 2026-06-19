@@ -1443,8 +1443,8 @@ def performances():
 
     exercises = [
         {'exercise': exercise, 'sessions': [
-            {'date': sess['date'], 'weights': [{'weight': w, 'reps': reps} for w, reps in sess['by_weight'].items()]}
-            for sess in sessions.values()
+            {'id': sid, 'date': sess['date'], 'weights': [{'weight': w, 'reps': reps} for w, reps in sess['by_weight'].items()]}
+            for sid, sess in sessions.items()
         ]}
         for exercise, sessions in by_exercise.items()
     ]
