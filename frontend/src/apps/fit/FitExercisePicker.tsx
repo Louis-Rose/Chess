@@ -63,9 +63,10 @@ export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNe
   const sequential = group != null;
 
   return (
-    <div className="fixed inset-0 z-20 flex flex-col bg-slate-900 text-slate-100">
-      {/* The picker covers the app's header + sticky chrono, so show them here
-          too, then lay out the back button and title below them. */}
+    <div className="fixed inset-x-0 top-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 flex flex-col bg-slate-900 text-slate-100">
+      {/* Covers the app's header + sticky chrono, but stops above the bottom nav
+          (which stays visible and tappable), so show them here too, then lay out
+          the back button and title below them. */}
       <FitHeader />
       <FitChrono />
       <FitScreenHeader title="Ajouter un exercice" onBack={onClose} />
