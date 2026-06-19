@@ -396,6 +396,7 @@ def get_exercises():
         'selections': selections,
         'priorities': _priorities_of(prog),
         'split': _split_of(prog),
+        'work_sets': prog['work_sets'] if prog else None,
         'body_part_order': _body_part_order_of(prog),
         'rep_goals': _rep_goals_of(prog),
         'muscle_order': _muscle_order_of(prog),

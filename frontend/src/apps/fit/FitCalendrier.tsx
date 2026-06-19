@@ -5,12 +5,14 @@ import { fitRequest } from './fitAuth';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitConfirm } from './FitConfirm';
 import { FitSwipeRow } from './FitSwipeRow';
-import { PerfCounts } from './FitPerf';
-import { FitWeekPlan } from './FitWeek';
+import { sessionLeaves, sortLabels } from './programData';
+import { weekDays } from './splitDays';
 import { sessionTitle } from './format';
+import { useCustomExercises } from './useCustomExercises';
 
-// Calendrier tab: the history of past sessions, newest first. Tap one to see
-// its detail, or swipe left to reveal a Supprimer button.
+// Calendrier tab: the upcoming sessions of the week (from the active program's
+// split) on top, then the full history of past sessions, newest first. Tap a
+// past one to see its detail, or swipe left to reveal a Supprimer button.
 
 interface SessionSummary {
   id: number;
@@ -19,12 +21,11 @@ interface SessionSummary {
   ended_at: string | null;
   set_count: number;
   exercise_count: number;
-  plus: number;
-  equal: number;
-  minus: number;
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
+
+const CARD = 'flex flex-col items-center rounded-2xl border border-slate-700 px-4 py-4 text-center';
 
 interface RowProps {
   session: SessionSummary;
@@ -48,45 +49,25 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
       <span className="mt-0.5 text-sm text-slate-400">
         {plural(session.exercise_count, 'exercice')} - {plural(session.set_count, 'série')}
       </span>
-      <PerfCounts plus={session.plus} equal={session.equal} minus={session.minus} className="mt-1 text-sm" />
       <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
     </FitSwipeRow>
   );
 }
 
-type Period = 'semaine' | 'mois' | 'annee' | 'tout';
-
-const PERIODS: { key: Period; label: string }[] = [
-  { key: 'semaine', label: 'Semaine' },
-  { key: 'mois', label: 'Mois' },
-  { key: 'annee', label: 'Année' },
-  { key: 'tout', label: 'Tout' },
-];
-
-// Start of the selected period (calendar week starting Monday, month, or year),
-// or null for "tout" (no filter).
-function periodStart(period: Period): Date | null {
-  if (period === 'tout') return null;
-  const now = new Date();
-  if (period === 'annee') return new Date(now.getFullYear(), 0, 1);
-  if (period === 'mois') return new Date(now.getFullYear(), now.getMonth(), 1);
-  const day = now.getDay();                      // 0=dimanche … 6=samedi
-  const sinceMonday = day === 0 ? 6 : day - 1;
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - sinceMonday);
-}
-
 export function FitCalendrier() {
+  useCustomExercises();   // so planned exercise counts group custom exercises right
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
-  const [period, setPeriod] = useState<Period>('mois');
-  // This week's plan from the chosen split (shown at the top).
+  // The active program, to lay out this week's upcoming sessions.
   const [weekSplit, setWeekSplit] = useState<string | null>(null);
   const [bodyPartOrder, setBodyPartOrder] = useState<string[]>([]);
   const [sessionOrder, setSessionOrder] = useState<Record<string, string[][]>>({});
   const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [workSets, setWorkSets] = useState<number | null>(null);
   const [doneThisWeek, setDoneThisWeek] = useState(0);
   // A just-deleted session, kept around so it can be undone. The backend DELETE
   // is deferred until the undo window elapses (or the tab unmounts).
@@ -99,9 +80,11 @@ export function FitCalendrier() {
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
     // This week's plan: the active program's split + how far through the week.
-    fitRequest(() => axios.get<{ split: string | null; body_part_order: string[]; session_order: Record<string, string[][]>; muscle_order: string[]; done_this_week: number }>('/api/fit/exercises'))
+    fitRequest(() => axios.get<{ split: string | null; work_sets: number | null; selections: Record<string, string[]>; body_part_order: string[]; session_order: Record<string, string[][]>; muscle_order: string[]; done_this_week: number }>('/api/fit/exercises'))
       .then(ex => {
         setWeekSplit(ex.data.split);
+        setWorkSets(ex.data.work_sets ?? null);
+        setSelections(ex.data.selections ?? {});
         setDoneThisWeek(ex.data.done_this_week ?? 0);
         setBodyPartOrder(ex.data.body_part_order ?? []);
         setSessionOrder(ex.data.session_order ?? {});
@@ -152,16 +135,32 @@ export function FitCalendrier() {
 
   if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
 
-  const start = periodStart(period);
-  const visible = start
-    ? sessions.filter(s => s.started_at && new Date(s.started_at) >= start)
-    : sessions;
+  // Upcoming sessions: the week's not-yet-done split days. Each is numbered
+  // continuing from the latest session, with its planned exercise / série counts
+  // from the program (exercises for the day's muscles × working sets).
+  const days = weekDays(weekSplit, bodyPartOrder, sessionOrder, muscleOrder);
+  const nextNumber = sessions.reduce((mx, s) => Math.max(mx, s.number ?? 0), 0) + 1;
+  const upcoming = days.slice(doneThisWeek).map((d, i) => {
+    const exercises = d.muscles.reduce((n, m) => n + sessionLeaves(sortLabels(selections[m] ?? [])).length, 0);
+    return { number: nextNumber + i, exercises, series: exercises * (workSets ?? 0) };
+  });
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-center text-2xl font-semibold">Calendrier</h1>
 
-      <FitWeekPlan split={weekSplit} bodyPartOrder={bodyPartOrder} sessionOrder={sessionOrder} muscleOrder={muscleOrder} doneThisWeek={doneThisWeek} />
+      {upcoming.length > 0 && (
+        <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-3">
+          {upcoming.map(u => (
+            <div key={u.number} className={`${CARD} bg-[#141c2f]`}>
+              <span className="font-medium text-slate-100">Séance {u.number} (à venir)</span>
+              <span className="mt-0.5 text-sm text-slate-400">
+                {plural(u.exercises, 'exercice')} - {plural(u.series, 'série')}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="mt-10 flex justify-center">
@@ -170,39 +169,18 @@ export function FitCalendrier() {
       ) : sessions.length === 0 ? (
         <p className="mt-10 text-center text-sm text-slate-400">Aucune séance enregistrée pour le moment.</p>
       ) : (
-        <>
-          <div className="mx-auto mt-6 grid w-full max-w-[22rem] grid-cols-4 rounded-lg border border-slate-700 p-0.5 text-sm">
-            {PERIODS.map(p => (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => setPeriod(p.key)}
-                className={`rounded-md py-1.5 font-medium transition-colors ${
-                  period === p.key ? 'bg-emerald-600 text-white' : 'text-slate-400 active:text-slate-200'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {visible.length === 0 ? (
-            <p className="mt-10 text-center text-sm text-slate-400">Aucune séance sur cette période.</p>
-          ) : (
-            <div className="mx-auto mt-6 flex w-full max-w-[22rem] flex-col gap-3">
-              {visible.map(s => (
-                <SwipeableSession
-                  key={s.id}
-                  session={s}
-                  isOpen={openId === s.id}
-                  setOpenId={setOpenId}
-                  onSelect={setSelected}
-                  onDelete={setConfirmId}
-                />
-              ))}
-            </div>
-          )}
-        </>
+        <div className="mx-auto mt-6 flex w-full max-w-[22rem] flex-col gap-3">
+          {sessions.map(s => (
+            <SwipeableSession
+              key={s.id}
+              session={s}
+              isOpen={openId === s.id}
+              setOpenId={setOpenId}
+              onSelect={setSelected}
+              onDelete={setConfirmId}
+            />
+          ))}
+        </div>
       )}
 
       {confirmId != null && (

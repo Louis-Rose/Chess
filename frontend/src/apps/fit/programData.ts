@@ -79,7 +79,7 @@ export interface Split {
 
 // Defined freely; SPLITS exposes them alphabetically with negatives last.
 const SPLITS_RAW: Split[] = [
-  { key: 'full_body', label: 'Full Body x2', sessions: ['Tout le corps', 'Tout le corps'] },
+  { key: 'full_body', label: 'Full Body x2', sessions: ['Full Body', 'Full Body'] },
   { key: 'upper_lower', label: 'Upper / Lower', sessions: ['Haut du corps', 'Bas du corps'] },
   { key: 'upper_lower_upper', label: 'Upper / Lower / Upper', sessions: ['Haut du corps', 'Bas du corps', 'Haut du corps'] },
   // Grouped with the Upper/Lower variants: ordered just before "Upper / Lower".
