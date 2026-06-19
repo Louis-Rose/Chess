@@ -186,13 +186,13 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
                   {ri === 0 && (
                     <th
                       rowSpan={rows.length}
-                      className="h-[4.5rem] w-16 whitespace-nowrap border border-slate-700 bg-slate-800 px-1.5 text-sm font-semibold text-slate-200"
+                      className="h-[4.5rem] w-16 whitespace-nowrap border border-slate-700 border-b-slate-600 bg-slate-800 px-1.5 text-sm font-semibold text-slate-200"
                     >
                       {weightLabel(w)}
                     </th>
                   )}
                   {row.map(e => (
-                    <td key={e.id} className="h-[4.5rem] w-20 border border-slate-700 bg-slate-900 p-0 align-middle">
+                    <td key={e.id} className={`h-[4.5rem] w-20 border border-slate-700 bg-slate-900 p-0 align-middle ${ri === rows.length - 1 ? 'border-b-slate-600' : ''}`}>
                       <button
                         type="button"
                         onClick={() => onOpenSession(e.id)}
