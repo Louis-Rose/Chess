@@ -1336,6 +1336,18 @@ def stats():
                ) t""",
             (request.user_id,)
         ).fetchone()
+        # Total weight lifted this year: weight × reps over every working set (all
+        # exercises, warmups excluded; a unilateral set's reps total both sides;
+        # bodyweight counts as 0).
+        weight_row = conn.execute(
+            """SELECT COALESCE(SUM(COALESCE(ss.weight, 0) * (ss.reps + COALESCE(ss.reps_right, 0))), 0) AS total
+               FROM fit_sessions s
+               JOIN fit_session_sets ss ON ss.session_id = s.id
+               WHERE s.user_id = ? AND s.ended_at IS NOT NULL
+                 AND ss.warmup = FALSE
+                 AND EXTRACT(YEAR FROM s.started_at) = EXTRACT(YEAR FROM CURRENT_DATE)""",
+            (request.user_id,)
+        ).fetchone()
         # Calendar days since the most recent finished session (one with at least
         # one set). Date difference, so it increments at midnight rather than on
         # a rolling 24-hour basis.
@@ -1358,6 +1370,7 @@ def stats():
     return jsonify({
         'sessions_this_year': sessions,
         'work_sets_this_year': work_sets,
+        'weight_lifted_this_year': int(weight_row['total'] or 0),
         'avg_sessions_per_week': round(sessions / float(weeks), 1) if weeks else None,
         'avg_exercises_per_session': round(exercises / sessions, 1) if sessions else None,
         'days_since_last_session': int(days) if days is not None else None,

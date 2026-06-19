@@ -13,6 +13,7 @@ import { setCustomExercises, type CustomExercise } from './programData';
 interface YearStats {
   sessions_this_year: number;
   work_sets_this_year: number;
+  weight_lifted_this_year: number;
   avg_sessions_per_week: number | null;
   avg_exercises_per_session: number | null;
   days_since_last_session: number | null;
@@ -84,6 +85,7 @@ export function FitAccueil() {
               <Stat value={stats.work_sets_this_year} label="Séries de travail" />
               <Stat value={fr1(stats.avg_sessions_per_week)} label="Séances / semaine" />
               <Stat value={fr1(stats.avg_exercises_per_session)} label="Exercices / séance" />
+              <Stat wide value={`${(stats.weight_lifted_this_year ?? 0).toLocaleString('fr-FR')} kg`} label="Poids soulevé" />
             </div>
           </div>
           {stats.days_since_last_session != null && (
@@ -120,9 +122,9 @@ export function FitAccueil() {
   );
 }
 
-function Stat({ value, label }: { value: number | string; label: string }) {
+function Stat({ value, label, wide }: { value: number | string; label: string; wide?: boolean }) {
   return (
-    <div className="flex flex-1 flex-col items-center rounded-2xl border border-slate-700 bg-slate-800/30 px-3 py-5">
+    <div className={`flex flex-1 flex-col items-center rounded-2xl border border-slate-700 bg-slate-800/30 px-3 py-5 ${wide ? 'col-span-2' : ''}`}>
       <span className="text-base font-medium text-white">{label}</span>
       <span className="mt-1 text-4xl font-semibold text-emerald-400 tabular-nums">{value}</span>
     </div>
