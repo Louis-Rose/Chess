@@ -116,15 +116,14 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
   const weights = Array.from(new Set(perf.sessions.flatMap(s => s.weights.map(w => w.weight))))
     .sort((a, b) => (a == null ? 1 : b == null ? -1 : b - a));
 
-  // Per weight, only the sessions that used it, most recent first — so the first
-  // data column is always filled and older entries extend to the right.
+  // Per weight, only the sessions that used it, oldest first (left) → newest
+  // (right), so the grid reads chronologically: weight climbs over time, hence
+  // bottom-left (oldest, lightest) to top-right (newest, heaviest).
   const entriesFor = (w: number | null) =>
-    perf.sessions
-      .flatMap(s => {
-        const hit = s.weights.find(x => x.weight === w);
-        return hit ? [{ id: s.id, date: s.date, reps: hit.reps }] : [];
-      })
-      .reverse();
+    perf.sessions.flatMap(s => {
+      const hit = s.weights.find(x => x.weight === w);
+      return hit ? [{ id: s.id, date: s.date, reps: hit.reps }] : [];
+    });
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
