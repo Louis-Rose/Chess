@@ -314,24 +314,28 @@ function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, s
         </button>
       )}
 
-      {groups.length === 0 ? (
-        <p className="mt-10 text-center text-sm text-slate-400">Aucun exercice prévu pour cette séance.</p>
-      ) : (
-        <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-6">
-          {groups.map(g => (
-            <section key={g.muscle}>
-              <h2 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.muscle}</h2>
-              <ul className="mt-2 flex flex-col gap-2">
-                {g.exercises.map((ex, i) => (
-                  <li key={i} className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-center text-sm text-slate-100">
-                    {ex}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+      {/* The planned content (muscles + exercises) sits in its own box; the
+          start button above stays outside it. */}
+      <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-700 p-4">
+        {groups.length === 0 ? (
+          <p className="text-center text-sm text-slate-400">Aucun exercice prévu pour cette séance.</p>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {groups.map(g => (
+              <section key={g.muscle}>
+                <h2 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.muscle}</h2>
+                <ul className="mt-2 flex flex-col gap-2">
+                  {g.exercises.map((ex, i) => (
+                    <li key={i} className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-center text-sm text-slate-100">
+                      {ex}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
