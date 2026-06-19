@@ -103,7 +103,7 @@ const weightLabel = (w: number | null) => (w == null ? 'PdC' : `${w} kg`);
 // Cell sizing (px) — used to wrap a too-long weight row into several rows so the
 // table only ever scrolls vertically. Keep in sync with the w-/label classes.
 const LABEL_PX = 72;   // w-[4.5rem]
-const CELL_PX = 112;   // w-28
+const CELL_PX = 80;    // w-20
 
 function chunk<T>(arr: T[], n: number): T[][] {
   const out: T[][] = [];
@@ -188,11 +188,11 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
                     </th>
                   )}
                   {row.map(e => (
-                    <td key={e.id} className="h-[4.5rem] w-28 border border-slate-700 bg-slate-900 p-0 align-middle">
+                    <td key={e.id} className="h-[4.5rem] w-20 border border-slate-700 bg-slate-900 p-0 align-middle">
                       <button
                         type="button"
                         onClick={() => onOpenSession(e.id)}
-                        className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-3 transition-colors active:bg-slate-800"
+                        className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-2 transition-colors active:bg-slate-800"
                       >
                         {e.lower ? (
                           <span className="text-center text-xs font-medium leading-tight text-slate-100">Lower<br />weight</span>
