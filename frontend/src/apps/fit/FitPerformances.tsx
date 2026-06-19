@@ -13,7 +13,7 @@ import { useCustomExercises } from './useCustomExercises';
 // a cell to open the session it came from.
 
 interface WeightReps { weight: number | null; reps: number; }
-interface SessionPerf { id: number; date: string | null; weights: WeightReps[]; }
+interface SessionPerf { id: number; number: number | null; date: string | null; weights: WeightReps[]; }
 interface ExercisePerf { exercise: string; sessions: SessionPerf[]; }
 
 export function FitPerformances() {
@@ -100,11 +100,13 @@ export function FitPerformances() {
 
 const weightLabel = (w: number | null) => (w == null ? 'PdC' : `${w} kg`);
 
-// Compact day/month in parentheses (e.g. "(12/6)") so it fits a small cell.
+// Zero-padded day/month (e.g. "02/03").
 const cellDate = (iso: string | null) => {
   if (!iso) return '';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : `(${d.getDate()}/${d.getMonth() + 1})`;
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 };
 
 function PerformanceDetail({ perf, onBack, onOpenSession }: {
@@ -122,7 +124,7 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
   const entriesFor = (w: number | null) =>
     perf.sessions.flatMap(s => {
       const hit = s.weights.find(x => x.weight === w);
-      return hit ? [{ id: s.id, date: s.date, reps: hit.reps }] : [];
+      return hit ? [{ id: s.id, number: s.number, date: s.date, reps: hit.reps }] : [];
     });
 
   return (
@@ -140,20 +142,21 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
             {weights.map(w => (
               <tr key={String(w)}>
                 <th
-                  className="sticky left-0 z-10 h-12 w-[4.5rem] whitespace-nowrap border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-200"
+                  className="sticky left-0 z-10 h-16 w-[4.5rem] whitespace-nowrap border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-200"
                   style={{ boxShadow: '1px 0 0 0 #334155' }}
                 >
                   {weightLabel(w)}
                 </th>
                 {entriesFor(w).map(e => (
-                  <td key={e.id} className="h-12 w-14 border border-slate-700 bg-slate-900 p-0 align-middle">
+                  <td key={e.id} className="h-16 w-20 border border-slate-700 bg-slate-900 p-0 align-middle">
                     <button
                       type="button"
                       onClick={() => onOpenSession(e.id)}
-                      className="flex h-full w-full flex-col items-center justify-center transition-colors active:bg-slate-800"
+                      className="flex h-full w-full flex-col items-center justify-center gap-0.5 transition-colors active:bg-slate-800"
                     >
-                      <span className="text-sm tabular-nums text-slate-100">{e.reps}</span>
-                      <span className="whitespace-nowrap text-[10px] text-slate-500">{cellDate(e.date)}</span>
+                      <span className="text-sm tabular-nums text-slate-100">{e.reps} reps</span>
+                      {e.number != null && <span className="text-[11px] text-slate-500">Séance {e.number}</span>}
+                      <span className="whitespace-nowrap text-[11px] text-slate-500">{cellDate(e.date)}</span>
                     </button>
                   </td>
                 ))}

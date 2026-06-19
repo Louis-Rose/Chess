@@ -1428,6 +1428,15 @@ def performances():
                ORDER BY s.started_at, ss.id""",
             (request.user_id,)
         ).fetchall()
+        # Each session's 1-based chronological number (rank by start among the
+        # user's sessions that have logged sets), matching the rest of the app.
+        num_rows = conn.execute(
+            """SELECT s.id, ROW_NUMBER() OVER (ORDER BY s.started_at ASC, s.id ASC) AS n
+               FROM fit_sessions s
+               WHERE s.user_id = ? AND EXISTS (SELECT 1 FROM fit_session_sets ss WHERE ss.session_id = s.id)""",
+            (request.user_id,)
+        ).fetchall()
+        number_by_id = {r['id']: r['n'] for r in num_rows}
 
     # exercise -> session_id -> {date, by_weight: {weight: total reps}} (insertion
     # order = time order, oldest first).
@@ -1443,7 +1452,8 @@ def performances():
 
     exercises = [
         {'exercise': exercise, 'sessions': [
-            {'id': sid, 'date': sess['date'], 'weights': [{'weight': w, 'reps': reps} for w, reps in sess['by_weight'].items()]}
+            {'id': sid, 'number': number_by_id.get(sid), 'date': sess['date'],
+             'weights': [{'weight': w, 'reps': reps} for w, reps in sess['by_weight'].items()]}
             for sid, sess in sessions.items()
         ]}
         for exercise, sessions in by_exercise.items()
