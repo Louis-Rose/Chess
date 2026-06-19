@@ -18,11 +18,11 @@ import type { ProgramEditor } from './useProgramEditor';
 export const WORK_SETS_OPTIONS = [2, 3, 4, 5, 6];
 const NAME_MAX = 60;
 
-// Section keys, in order: name, split, priority, sets, then one per muscle. When
-// the program uses a Body part split, a 'bodypart' step (the day order) is
-// inserted right after 'split'.
+// Section keys, in order: name, split, priority, order, one per muscle, then the
+// Volume (sets) and Reps steps last. When the program uses a Body part split, a
+// 'bodypart' step (the day order) is inserted right after 'split'.
 export const sectionKeysFor = (split: string | null) => {
-  const base = ['name', 'split', 'priority', 'order', 'sets', 'reps', ...MUSCLES.map(m => m.name)];
+  const base = ['name', 'split', 'priority', 'order', ...MUSCLES.map(m => m.name), 'sets', 'reps'];
   if (split !== 'body_part') return base;
   const i = base.indexOf('split');
   return [...base.slice(0, i + 1), 'bodypart', ...base.slice(i + 1)];

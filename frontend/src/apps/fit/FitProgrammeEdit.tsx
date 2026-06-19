@@ -28,9 +28,9 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
     ...(editor.split === 'body_part' ? [{ key: 'bodypart', label: 'Ordre' }] : []),
     { key: 'priority', label: 'Points Forts / Faibles' },
     { key: 'order', label: 'Ordre' },
+    ...MUSCLES.map(m => ({ key: m.name, label: m.name === 'Ischio-jambiers' ? 'Ischios' : m.name })),
     { key: 'sets', label: 'Volume' },
     { key: 'reps', label: 'Reps' },
-    ...MUSCLES.map(m => ({ key: m.name, label: m.name === 'Ischio-jambiers' ? 'Ischios' : m.name })),
   ];
 
   return (
