@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { leafLabel, muscleOf, MUSCLE_ORDER, sortLabels } from './programData';
-import { formatShortDate } from './format';
 import { FitBackButton } from './FitBackButton';
 import { useCustomExercises } from './useCustomExercises';
 
@@ -93,28 +92,29 @@ export function FitPerformances() {
   );
 }
 
-const weightLabel = (w: number | null) => (w == null ? 'PdC' : `${w} kg`);
+const weightLabel = (w: number | null) => (w == null ? 'PdC' : String(w));
+
+// Compact day/month (e.g. "12/6") so it fits a small uniform cell.
+const cellDate = (iso: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : `${d.getDate()}/${d.getMonth() + 1}`;
+};
 
 function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () => void }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Scroll fully right on open so the most recent sessions show first.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollLeft = el.scrollWidth;
-  }, []);
-
   // Rows = the distinct working weights, heaviest first (bodyweight last).
   const weights = Array.from(new Set(perf.sessions.flatMap(s => s.weights.map(w => w.weight))))
     .sort((a, b) => (a == null ? 1 : b == null ? -1 : b - a));
 
-  // Per weight, only the sessions that used it (oldest → most recent), so every
-  // cell holds a real entry — the reps plus the date it was done.
+  // Per weight, only the sessions that used it, most recent first — so the first
+  // data column is always filled and older entries extend to the right.
   const entriesFor = (w: number | null) =>
-    perf.sessions.flatMap(s => {
-      const hit = s.weights.find(x => x.weight === w);
-      return hit ? [{ date: s.date, reps: hit.reps }] : [];
-    });
+    perf.sessions
+      .flatMap(s => {
+        const hit = s.weights.find(x => x.weight === w);
+        return hit ? [{ date: s.date, reps: hit.reps }] : [];
+      })
+      .reverse();
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -122,30 +122,25 @@ function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () =>
 
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
 
-      <div ref={scrollRef} className="mt-8 overflow-x-auto">
-        <div className="inline-flex min-w-full flex-col gap-1.5">
-          {weights.map(w => (
-            <div key={String(w)} className="flex w-full items-stretch gap-1.5">
-              <div className="sticky left-0 z-10 flex min-w-[3.5rem] shrink-0 items-center justify-end whitespace-nowrap rounded-md border border-slate-700 bg-slate-900 px-2 text-right text-sm font-medium text-slate-200">
-                {weightLabel(w)}
-              </div>
-              <div className="flex-1" />
-              <div className="flex gap-1.5">
+      <div className="mt-8 overflow-x-auto">
+        <table className="border-separate border-spacing-0 border-l border-t border-slate-700">
+          <tbody>
+            {weights.map(w => (
+              <tr key={String(w)}>
+                <th className="sticky left-0 z-10 h-12 w-14 border-b border-r border-slate-700 bg-slate-800 text-sm font-semibold text-slate-200">
+                  {weightLabel(w)}
+                </th>
                 {entriesFor(w).map((e, i) => (
-                  <div key={i} className="flex min-w-[3.5rem] flex-col items-center justify-center rounded-md border border-slate-700 bg-slate-800/40 px-2 py-1">
-                    <span className="text-sm tabular-nums text-slate-100">{e.reps}</span>
-                    <span className="whitespace-nowrap text-[10px] text-slate-500">{formatShortDate(e.date)}</span>
-                  </div>
+                  <td key={i} className="h-12 w-14 overflow-hidden border-b border-r border-slate-700 bg-slate-900 text-center align-middle">
+                    <div className="text-sm tabular-nums text-slate-100">{e.reps}</div>
+                    <div className="whitespace-nowrap text-[10px] text-slate-500">{cellDate(e.date)}</div>
+                  </td>
                 ))}
-              </div>
-            </div>
-          ))}
-        </div>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-
-      <p className="mt-4 text-center text-xs text-slate-500">
-        Répétitions de travail par poids. La séance la plus récente est à droite.
-      </p>
     </div>
   );
 }
