@@ -92,13 +92,14 @@ export function FitVolumeGraph({ selections, workSets, split, bodyPartOrder, ses
                 >
                   <span className="w-[4.5rem] shrink-0 truncate text-right text-[11px] text-slate-400" title={m}>{m}</span>
                   <div className="relative h-4 flex-1 rounded bg-slate-800/60">
-                    {/* In the 10–20 sets/week range = green; below or above = red. */}
+                    {/* In the 10–20 sets/week range = green; below or above = red.
+                        A floor width keeps even 0 visible as a tiny red sliver. */}
                     <div
                       className={`h-full rounded ${v >= 10 && v <= 20 ? 'bg-emerald-500/80' : 'bg-red-500/80'}`}
-                      style={{ width: `${Math.min(100, (v / MAX) * 100)}%` }}
+                      style={{ width: `${Math.max(2, Math.min(100, (v / MAX) * 100))}%` }}
                     />
                   </div>
-                  <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-slate-300">{v > 0 ? fmt(v) : ''}</span>
+                  <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-slate-300">{fmt(v)}</span>
                 </button>
 
                 {/* Per-exercise breakdown of the muscle's weekly sets — an opaque
