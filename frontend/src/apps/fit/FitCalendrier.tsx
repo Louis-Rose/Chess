@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSession } from './FitSession';
 import { FitSessionDetail } from './FitSessionDetail';
@@ -182,7 +182,17 @@ export function FitCalendrier() {
   if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
   if (upcomingSel != null && upcoming[upcomingSel]) {
     const u = upcoming[upcomingSel];
-    return <UpcomingDetail number={u.number} label={u.label} muscles={u.muscles} selections={selections} onBack={() => setUpcomingSel(null)} />;
+    return (
+      <UpcomingDetail
+        number={u.number}
+        label={u.label}
+        muscles={u.muscles}
+        selections={selections}
+        onBack={() => setUpcomingSel(null)}
+        onStart={u.startable ? () => { setUpcomingSel(null); setInSession(true); } : undefined}
+        startLabel={hasActive ? 'Reprendre la séance' : 'Commencer la séance'}
+      />
+    );
   }
 
   return (
@@ -197,7 +207,7 @@ export function FitCalendrier() {
               <button
                 key={u.number}
                 type="button"
-                onClick={() => (u.startable ? setInSession(true) : setUpcomingSel(i))}
+                onClick={() => setUpcomingSel(i)}
                 className={`${CARD} border-slate-700 bg-[#141c2f] active:bg-[#182234]`}
               >
                 <span className="font-medium text-slate-100">
@@ -268,13 +278,16 @@ export function FitCalendrier() {
 }
 
 // Preview of an upcoming session: the program's planned exercises for that day,
-// grouped by muscle in session order.
-function UpcomingDetail({ number, label, muscles, selections, onBack }: {
+// grouped by muscle in session order. The next session also offers a button to
+// start (or resume) it.
+function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, startLabel }: {
   number: number;
   label: string;
   muscles: string[];
   selections: Record<string, string[]>;
   onBack: () => void;
+  onStart?: () => void;
+  startLabel: string;
 }) {
   const groups = muscles
     .map(m => ({ muscle: m, exercises: sessionLeaves(sortLabels(selections[m] ?? [])).map(leafLabel) }))
@@ -304,6 +317,17 @@ function UpcomingDetail({ number, label, muscles, selections, onBack }: {
             </section>
           ))}
         </div>
+      )}
+
+      {onStart && (
+        <button
+          type="button"
+          onClick={onStart}
+          className="mx-auto mt-10 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
+        >
+          <Plus className="h-5 w-5" />
+          {startLabel}
+        </button>
       )}
     </div>
   );
