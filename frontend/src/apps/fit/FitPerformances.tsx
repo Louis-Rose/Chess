@@ -142,17 +142,17 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
             {weights.map(w => (
               <tr key={String(w)}>
                 <th
-                  className="sticky left-0 z-10 h-[4.5rem] w-24 whitespace-nowrap border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-200"
+                  className="sticky left-0 z-10 h-[4.5rem] w-28 whitespace-nowrap border border-slate-700 bg-slate-800 px-3 text-sm font-semibold text-slate-200"
                   style={{ boxShadow: '1px 0 0 0 #334155' }}
                 >
                   {weightLabel(w)}
                 </th>
                 {entriesFor(w).map(e => (
-                  <td key={e.id} className="h-[4.5rem] w-24 border border-slate-700 bg-slate-900 p-0 align-middle">
+                  <td key={e.id} className="h-[4.5rem] w-28 border border-slate-700 bg-slate-900 p-0 align-middle">
                     <button
                       type="button"
                       onClick={() => onOpenSession(e.id)}
-                      className="flex h-full w-full flex-col items-center justify-center gap-0.5 transition-colors active:bg-slate-800"
+                      className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-3 transition-colors active:bg-slate-800"
                     >
                       <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps} reps</span>
                       {e.number != null && <span className="whitespace-nowrap text-[11px] text-slate-500">Séance {e.number}</span>}
