@@ -5,9 +5,10 @@ import { fitRequest } from './fitAuth';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitConfirm } from './FitConfirm';
 import { FitSwipeRow } from './FitSwipeRow';
-import { sessionLeaves, sortLabels } from './programData';
+import { leafLabel, sessionLeaves, sortLabels } from './programData';
 import { weekDays } from './splitDays';
 import { sessionTitle } from './format';
+import { FitBackButton } from './FitBackButton';
 import { useCustomExercises } from './useCustomExercises';
 
 // Calendrier tab: the upcoming sessions of the week (from the active program's
@@ -59,6 +60,7 @@ export function FitCalendrier() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<number | null>(null);
+  const [upcomingSel, setUpcomingSel] = useState<number | null>(null);   // index into `upcoming`
   const [openId, setOpenId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   // The active program, to lay out this week's upcoming sessions.
@@ -133,33 +135,52 @@ export function FitCalendrier() {
     }));
   };
 
-  if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
-
   // Upcoming sessions: the week's not-yet-done split days. Each is numbered
   // continuing from the latest session, with its planned exercise / série counts
-  // from the program (exercises for the day's muscles × working sets).
+  // from the program (exercises for the day's muscles × working sets). Shown
+  // newest-number first (like the past sessions).
   const days = weekDays(weekSplit, bodyPartOrder, sessionOrder, muscleOrder);
   const nextNumber = sessions.reduce((mx, s) => Math.max(mx, s.number ?? 0), 0) + 1;
   const upcoming = days.slice(doneThisWeek).map((d, i) => {
     const exercises = d.muscles.reduce((n, m) => n + sessionLeaves(sortLabels(selections[m] ?? [])).length, 0);
-    return { number: nextNumber + i, exercises, series: exercises * (workSets ?? 0) };
-  });
+    return { number: nextNumber + i, label: d.label, muscles: d.muscles, exercises, series: exercises * (workSets ?? 0) };
+  }).reverse();
+
+  if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
+  if (upcomingSel != null && upcoming[upcomingSel]) {
+    const u = upcoming[upcomingSel];
+    return <UpcomingDetail number={u.number} label={u.label} muscles={u.muscles} selections={selections} onBack={() => setUpcomingSel(null)} />;
+  }
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-center text-2xl font-semibold">Calendrier</h1>
 
       {upcoming.length > 0 && (
-        <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-3">
-          {upcoming.map(u => (
-            <div key={u.number} className={`${CARD} bg-[#141c2f]`}>
-              <span className="font-medium text-slate-100">Séance {u.number} (à venir)</span>
-              <span className="mt-0.5 text-sm text-slate-400">
-                {plural(u.exercises, 'exercice')} - {plural(u.series, 'série')}
-              </span>
-            </div>
-          ))}
-        </div>
+        <>
+          <h2 className="mt-8 text-center text-xs uppercase tracking-wide text-slate-500">À venir</h2>
+          <div className="mx-auto mt-3 flex w-full max-w-[22rem] flex-col gap-3">
+            {upcoming.map((u, i) => (
+              <button
+                key={u.number}
+                type="button"
+                onClick={() => setUpcomingSel(i)}
+                className={`relative ${CARD} bg-[#141c2f] transition-colors active:bg-[#182234]`}
+              >
+                <span className="font-medium text-slate-100">Séance {u.number} (à venir)</span>
+                <span className="mt-0.5 text-sm text-slate-400">
+                  {plural(u.exercises, 'exercice')} - {plural(u.series, 'série')}
+                </span>
+                <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Separator between the two sections. */}
+      {upcoming.length > 0 && !loading && sessions.length > 0 && (
+        <div className="mx-auto mt-8 h-px w-full max-w-[22rem] bg-slate-700" />
       )}
 
       {loading ? (
@@ -169,18 +190,21 @@ export function FitCalendrier() {
       ) : sessions.length === 0 ? (
         <p className="mt-10 text-center text-sm text-slate-400">Aucune séance enregistrée pour le moment.</p>
       ) : (
-        <div className="mx-auto mt-6 flex w-full max-w-[22rem] flex-col gap-3">
-          {sessions.map(s => (
-            <SwipeableSession
-              key={s.id}
-              session={s}
-              isOpen={openId === s.id}
-              setOpenId={setOpenId}
-              onSelect={setSelected}
-              onDelete={setConfirmId}
-            />
-          ))}
-        </div>
+        <>
+          <h2 className="mt-8 text-center text-xs uppercase tracking-wide text-slate-500">Passées</h2>
+          <div className="mx-auto mt-3 flex w-full max-w-[22rem] flex-col gap-3">
+            {sessions.map(s => (
+              <SwipeableSession
+                key={s.id}
+                session={s}
+                isOpen={openId === s.id}
+                setOpenId={setOpenId}
+                onSelect={setSelected}
+                onDelete={setConfirmId}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {confirmId != null && (
@@ -202,6 +226,48 @@ export function FitCalendrier() {
               Annuler
             </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Preview of an upcoming session: the program's planned exercises for that day,
+// grouped by muscle in session order.
+function UpcomingDetail({ number, label, muscles, selections, onBack }: {
+  number: number;
+  label: string;
+  muscles: string[];
+  selections: Record<string, string[]>;
+  onBack: () => void;
+}) {
+  const groups = muscles
+    .map(m => ({ muscle: m, exercises: sessionLeaves(sortLabels(selections[m] ?? [])).map(leafLabel) }))
+    .filter(g => g.exercises.length > 0);
+
+  return (
+    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+      <FitBackButton onClick={onBack} />
+
+      <h1 className="mt-4 text-center text-2xl font-semibold">Séance {number} (à venir)</h1>
+      {label && <p className="mt-2 text-center text-sm text-slate-400">{label}</p>}
+
+      {groups.length === 0 ? (
+        <p className="mt-10 text-center text-sm text-slate-400">Aucun exercice prévu pour cette séance.</p>
+      ) : (
+        <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-6">
+          {groups.map(g => (
+            <section key={g.muscle}>
+              <h2 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.muscle}</h2>
+              <ul className="mt-2 flex flex-col gap-2">
+                {g.exercises.map((ex, i) => (
+                  <li key={i} className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-center text-sm text-slate-100">
+                    {ex}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
         </div>
       )}
     </div>
