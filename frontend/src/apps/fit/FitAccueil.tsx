@@ -85,7 +85,7 @@ export function FitAccueil() {
               <Stat value={stats.work_sets_this_year} label="Séries de travail" />
               <Stat value={fr1(stats.avg_sessions_per_week)} label="Séances / semaine" />
               <Stat value={fr1(stats.avg_exercises_per_session)} label="Exercices / séance" />
-              <Stat wide value={`${(stats.weight_lifted_this_year ?? 0).toLocaleString('fr-FR')} kg`} label="Poids soulevé" />
+              <Stat wide value={`${Math.round((stats.weight_lifted_this_year ?? 0) / 1000).toLocaleString('fr-FR')} t`} label="Poids soulevé" />
             </div>
           </div>
           {stats.days_since_last_session != null && (
