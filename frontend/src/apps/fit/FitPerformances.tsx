@@ -1,18 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { leafLabel, muscleOf, MUSCLE_ORDER, sortLabels } from './programData';
 import { formatShortDate } from './format';
-import { FitProgressChart, type ChartPoint } from './FitProgressChart';
 import { FitBackButton } from './FitBackButton';
 import { useCustomExercises } from './useCustomExercises';
 
-// Performances tab: one entry per exercise the user has worked. Tap an
-// exercise to see its progression graph (top working set per session).
+// Suivi tab: one entry per exercise the user has worked. Tap an exercise to see
+// its tracking table — one row per working weight (heaviest on top), one column
+// per session (most recent on the right), each cell the working reps done at that
+// weight that session.
 
-interface Point { date: string | null; weight: number | null; reps: number; }
-interface ExercisePerf { exercise: string; points: Point[]; }
+interface WeightReps { weight: number | null; reps: number; }
+interface SessionPerf { date: string | null; weights: WeightReps[]; }
+interface ExercisePerf { exercise: string; sessions: SessionPerf[]; }
 
 export function FitPerformances() {
   useCustomExercises();   // so muscleOf groups custom exercises correctly
@@ -91,19 +93,27 @@ export function FitPerformances() {
   );
 }
 
+const weightLabel = (w: number | null) => (w == null ? 'PdC' : `${w} kg`);
+
 function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () => void }) {
-  // Y = total working reps per session. Each point is tagged with the session's
-  // working weight; a step up to a heavier weight is highlighted.
-  let prevWeight: number | null = null;
-  const chartPoints: ChartPoint[] = perf.points.map(p => {
-    const up = p.weight != null && prevWeight != null && p.weight > prevWeight;
-    if (p.weight != null) prevWeight = p.weight;
-    return {
-      label: formatShortDate(p.date),
-      value: p.reps,
-      tag: p.weight != null ? `${p.weight} kg` : undefined,
-      highlight: up,
-    };
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Sessions come oldest-first; columns keep that order so the most recent is on
+  // the right. Scroll the table fully right on open so recent sessions show.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, []);
+
+  // Rows = the distinct working weights, heaviest first (bodyweight last).
+  const weights = Array.from(new Set(perf.sessions.flatMap(s => s.weights.map(w => w.weight))))
+    .sort((a, b) => (a == null ? 1 : b == null ? -1 : b - a));
+
+  // Per session, reps keyed by weight for quick cell lookup.
+  const repsAt = perf.sessions.map(s => {
+    const m = new Map<number | null, number>();
+    for (const w of s.weights) m.set(w.weight, w.reps);
+    return m;
   });
 
   return (
@@ -112,12 +122,46 @@ function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () =>
 
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
 
-      <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-5">
-        <FitProgressChart points={chartPoints} unit="reps" />
-        <p className="mt-3 text-center text-xs text-slate-500">
-          Répétitions totales de travail par séance. Le poids est indiqué à chaque point.
-        </p>
+      <div ref={scrollRef} className="mt-8 overflow-x-auto">
+        <table className="mx-auto border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-10 border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                kg
+              </th>
+              {perf.sessions.map((s, i) => (
+                <th key={i} className="whitespace-nowrap border border-slate-700 px-3 py-2 text-xs font-medium text-slate-400">
+                  {formatShortDate(s.date)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {weights.map(w => (
+              <tr key={String(w)}>
+                <th className="sticky left-0 z-10 whitespace-nowrap border border-slate-700 bg-slate-900 px-3 py-2 text-right font-medium text-slate-200">
+                  {weightLabel(w)}
+                </th>
+                {repsAt.map((m, i) => {
+                  const reps = m.get(w);
+                  return (
+                    <td
+                      key={i}
+                      className={`border border-slate-700 px-3 py-2 text-center tabular-nums ${reps != null ? 'text-slate-100' : 'text-slate-700'}`}
+                    >
+                      {reps != null ? reps : '·'}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      <p className="mt-4 text-center text-xs text-slate-500">
+        Répétitions de travail par poids et par séance. La plus récente est à droite.
+      </p>
     </div>
   );
 }

@@ -1415,9 +1415,10 @@ def exercise_history():
 @fit_bp.route('/api/fit/performances', methods=['GET'])
 @fit_login_required
 def performances():
-    """Per-exercise progression: for each exercise the user has logged working
-    sets on, one data point per session (date + total working reps + the
-    session's working weight), oldest first. Warmup sets are excluded."""
+    """Per-exercise tracking table data: for each exercise the user has logged
+    working sets on, one entry per session (date + the working reps done at each
+    weight), oldest first. Warmup sets are excluded; a unilateral set's reps total
+    both sides; reps at the same weight within a session are summed."""
     with get_db() as conn:
         rows = conn.execute(
             """SELECT s.id AS session_id, s.started_at, ss.exercise, ss.weight, ss.reps, ss.reps_right
@@ -1428,27 +1429,25 @@ def performances():
             (request.user_id,)
         ).fetchall()
 
-    # exercise -> session_id -> {date, sets:[(weight, reps)]} (insertion = time
-    # order; a unilateral set's reps total both sides).
+    # exercise -> session_id -> {date, by_weight: {weight: total reps}} (insertion
+    # order = time order, oldest first).
     by_exercise = {}
     for r in rows:
         sessions = by_exercise.setdefault(r['exercise'], {})
         sess = sessions.get(r['session_id'])
         if sess is None:
-            sess = {'date': r['started_at'].isoformat() if r['started_at'] else None, 'sets': []}
+            sess = {'date': r['started_at'].isoformat() if r['started_at'] else None, 'by_weight': OrderedDict()}
             sessions[r['session_id']] = sess
-        sess['sets'].append((r['weight'], r['reps'] + (r['reps_right'] or 0)))
+        reps = r['reps'] + (r['reps_right'] or 0)
+        sess['by_weight'][r['weight']] = sess['by_weight'].get(r['weight'], 0) + reps
 
-    exercises = []
-    for exercise, sessions in by_exercise.items():
-        points = []
-        for sess in sessions.values():
-            total_reps = sum(reps for (_, reps) in sess['sets'])
-            weights = [w for (w, _) in sess['sets'] if w is not None]
-            weight = max(weights) if weights else None
-            points.append({'date': sess['date'], 'weight': weight, 'reps': total_reps})
-        exercises.append({'exercise': exercise, 'points': points})
-
+    exercises = [
+        {'exercise': exercise, 'sessions': [
+            {'date': sess['date'], 'weights': [{'weight': w, 'reps': reps} for w, reps in sess['by_weight'].items()]}
+            for sess in sessions.values()
+        ]}
+        for exercise, sessions in by_exercise.items()
+    ]
     return jsonify({'exercises': exercises})
 
 
