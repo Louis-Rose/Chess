@@ -210,6 +210,9 @@ export function FitCalendrier() {
                 onClick={() => setUpcomingSel(i)}
                 className={`${CARD} border-slate-700 bg-[#141c2f] active:bg-[#182234]`}
               >
+                {u.startable && (
+                  <span className="mb-1 text-xs uppercase tracking-wide text-emerald-400">Prochaine séance</span>
+                )}
                 <span className="font-medium text-slate-100">
                   Séance {u.number} {u.startable && hasActive ? '(en cours)' : '(à venir)'}
                 </span>
@@ -300,6 +303,17 @@ function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, s
       <h1 className="mt-4 text-center text-2xl font-semibold">Séance {number} (à venir)</h1>
       {label && <p className="mt-2 text-center text-sm text-slate-400">{label}</p>}
 
+      {onStart && (
+        <button
+          type="button"
+          onClick={onStart}
+          className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
+        >
+          <Plus className="h-5 w-5" />
+          {startLabel}
+        </button>
+      )}
+
       {groups.length === 0 ? (
         <p className="mt-10 text-center text-sm text-slate-400">Aucun exercice prévu pour cette séance.</p>
       ) : (
@@ -317,17 +331,6 @@ function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, s
             </section>
           ))}
         </div>
-      )}
-
-      {onStart && (
-        <button
-          type="button"
-          onClick={onStart}
-          className="mx-auto mt-10 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
-        >
-          <Plus className="h-5 w-5" />
-          {startLabel}
-        </button>
       )}
     </div>
   );
