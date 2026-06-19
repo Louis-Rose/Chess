@@ -97,18 +97,29 @@ export function FitVolumeGraph({ selections, workSets, split, bodyPartOrder, ses
                   <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-slate-300">{v > 0 ? fmt(v) : ''}</span>
                 </button>
 
-                {/* Per-exercise breakdown of the muscle's weekly sets. */}
+                {/* Per-exercise breakdown of the muscle's weekly sets — an opaque
+                    table (so the reference lines never show through it). */}
                 {open === m && (
-                  <div className="relative z-10 mb-1 rounded-lg bg-slate-800/40 px-3 py-2" style={{ marginLeft: TRACK_LEFT, marginRight: TRACK_RIGHT }}>
+                  <div className="relative z-10 mb-1" style={{ marginLeft: TRACK_LEFT, marginRight: TRACK_RIGHT }}>
                     {rows.length === 0 ? (
-                      <p className="text-center text-[11px] text-slate-500">Aucun exercice ne sollicite ce muscle.</p>
+                      <p className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-center text-[11px] text-slate-500">
+                        Aucun exercice ne sollicite ce muscle.
+                      </p>
                     ) : (
-                      rows.map(r => (
-                        <div key={r.leaf} className="flex items-center justify-between gap-2 py-0.5">
-                          <span className="min-w-0 truncate text-[11px] text-slate-300">{leafLabel(r.leaf)}</span>
-                          <span className="shrink-0 text-[11px] tabular-nums text-slate-400">{fmt(r.sets)}</span>
-                        </div>
-                      ))
+                      <table className="w-full table-fixed border-collapse bg-slate-900 text-[11px]">
+                        <tbody>
+                          {rows.map(r => (
+                            <tr key={r.leaf}>
+                              <td className="border border-slate-700 px-2 py-1.5 text-center align-middle leading-tight text-slate-200">
+                                {leafLabel(r.leaf)}
+                              </td>
+                              <td className="w-10 border border-slate-700 px-1 py-1.5 text-center align-middle tabular-nums text-slate-300">
+                                {fmt(r.sets)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     )}
                   </div>
                 )}
