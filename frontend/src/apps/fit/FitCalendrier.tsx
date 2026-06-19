@@ -198,7 +198,7 @@ export function FitCalendrier() {
                 key={u.number}
                 type="button"
                 onClick={() => (u.startable ? setInSession(true) : setUpcomingSel(i))}
-                className={`${CARD} ${u.startable ? 'border-emerald-500/60 bg-emerald-500/10 active:bg-emerald-500/15' : 'border-slate-700 bg-[#141c2f] active:bg-[#182234]'}`}
+                className={`${CARD} border-slate-700 bg-[#141c2f] active:bg-[#182234]`}
               >
                 <span className="font-medium text-slate-100">
                   Séance {u.number} {u.startable && hasActive ? '(en cours)' : '(à venir)'}
