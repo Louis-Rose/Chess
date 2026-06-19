@@ -1461,11 +1461,32 @@ def performances():
     return jsonify({'exercises': exercises})
 
 
+def _normalize_working_weight(conn, session_id):
+    """A session has one working weight per exercise: the heaviest used. Demote
+    any working set lighter than that to a warmup (bodyweight counts as 0)."""
+    conn.execute(
+        """
+        WITH maxes AS (
+            SELECT exercise, MAX(COALESCE(weight, 0)) AS maxw
+            FROM fit_session_sets
+            WHERE session_id = ? AND warmup = FALSE
+            GROUP BY exercise
+        )
+        UPDATE fit_session_sets ss
+        SET warmup = TRUE
+        FROM maxes m
+        WHERE ss.session_id = ? AND ss.exercise = m.exercise
+          AND ss.warmup = FALSE AND COALESCE(ss.weight, 0) < m.maxw
+        """,
+        (session_id, session_id)
+    )
+
+
 @fit_bp.route('/api/fit/sessions/<int:session_id>/finish', methods=['POST'])
 @fit_login_required
 def finish_session(session_id):
-    """Mark a session as ended, then refresh the working weight of each exercise
-    it contained from the (now updated) history."""
+    """Mark a session as ended, keep only the heaviest weight per exercise as
+    working sets, then refresh each exercise's working weight from history."""
     with get_db() as conn:
         if not _owned_session(conn, session_id):
             return jsonify({'error': 'Not found'}), 404
@@ -1473,6 +1494,7 @@ def finish_session(session_id):
             'UPDATE fit_sessions SET ended_at = CURRENT_TIMESTAMP WHERE id = ?',
             (session_id,)
         )
+        _normalize_working_weight(conn, session_id)
         exercises = conn.execute(
             'SELECT DISTINCT exercise FROM fit_session_sets WHERE session_id = ?', (session_id,)
         ).fetchall()

@@ -752,6 +752,26 @@ def init_db():
             conn.execute("ALTER TABLE fit_programs ADD COLUMN session_order TEXT NOT NULL DEFAULT '{}'")
             logger.info("Added fit_programs.session_order column")
 
+        # Migration: a session has one working weight per exercise — the heaviest
+        # used. Retroactively demote any working set lighter than its session's
+        # heaviest (per exercise) to a warmup (bodyweight counts as 0).
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('one_working_weight_per_session',)).fetchone():
+            conn.execute("""
+                WITH maxes AS (
+                    SELECT session_id, exercise, MAX(COALESCE(weight, 0)) AS maxw
+                    FROM fit_session_sets
+                    WHERE warmup = FALSE
+                    GROUP BY session_id, exercise
+                )
+                UPDATE fit_session_sets ss
+                SET warmup = TRUE
+                FROM maxes m
+                WHERE ss.session_id = m.session_id AND ss.exercise = m.exercise
+                  AND ss.warmup = FALSE AND COALESCE(ss.weight, 0) < m.maxw
+            """)
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('one_working_weight_per_session',))
+            logger.info("Normalized sessions to one working weight per exercise (lighter working sets -> warmups)")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
