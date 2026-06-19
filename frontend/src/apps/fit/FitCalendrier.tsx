@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronRight, Loader2, Plus } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSession } from './FitSession';
 import { FitSessionDetail } from './FitSessionDetail';
@@ -29,7 +29,7 @@ interface SessionSummary {
 
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
-const CARD = 'flex flex-col items-center rounded-2xl border border-slate-700 px-4 py-4 text-center';
+const CARD = 'relative flex flex-col items-center rounded-2xl border px-4 py-4 text-center transition-colors';
 
 interface RowProps {
   session: SessionSummary;
@@ -152,16 +152,31 @@ export function FitCalendrier() {
     }));
   };
 
-  // Upcoming sessions: the week's not-yet-done split days. Each is numbered
-  // continuing from the latest session, with its planned exercise / série counts
-  // from the program (exercises for the day's muscles × working sets). Shown
-  // newest-number first (like the past sessions).
+  // Upcoming sessions, numbered continuing from the latest, with planned exercise
+  // / série counts from the program (exercises for the day's muscles × working
+  // sets). Only the next one (lowest number) is startable; the rest are previews.
+  // Shown newest-number first (like the past sessions).
   const days = weekDays(weekSplit, bodyPartOrder, sessionOrder, muscleOrder);
   const nextNumber = sessions.reduce((mx, s) => Math.max(mx, s.number ?? 0), 0) + 1;
-  const upcoming = days.slice(doneThisWeek).map((d, i) => {
-    const exercises = d.muscles.reduce((n, m) => n + sessionLeaves(sortLabels(selections[m] ?? [])).length, 0);
-    return { number: nextNumber + i, label: d.label, muscles: d.muscles, exercises, series: exercises * (workSets ?? 0) };
-  }).reverse();
+  const card = (label: string, muscles: string[], number: number, startable: boolean) => {
+    const exercises = muscles.reduce((n, m) => n + sessionLeaves(sortLabels(selections[m] ?? [])).length, 0);
+    return { number, label, muscles, exercises, series: exercises * (workSets ?? 0), startable };
+  };
+  const upcoming: ReturnType<typeof card>[] = [];
+  if (days.length > 0) {
+    // The next session is the current day in the split cycle; the rest of the
+    // week's planned days follow it as previews.
+    const next = days[doneThisWeek % days.length];
+    upcoming.push(card(next.label, next.muscles, nextNumber, true));
+    for (let k = doneThisWeek + 1; k < days.length; k++) {
+      upcoming.push(card(days[k].label, days[k].muscles, nextNumber + (k - doneThisWeek), false));
+    }
+  } else {
+    // No split plan: a single startable next session over every selected muscle.
+    const allMuscles = Object.keys(selections).filter(m => (selections[m]?.length ?? 0) > 0);
+    upcoming.push(card('', allMuscles, nextNumber, true));
+  }
+  upcoming.reverse();
 
   if (inSession) return <FitSession onDone={() => setInSession(false)} />;
   if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
@@ -174,15 +189,6 @@ export function FitCalendrier() {
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-center text-2xl font-semibold">Calendrier</h1>
 
-      <button
-        type="button"
-        onClick={() => setInSession(true)}
-        className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
-      >
-        <Plus className="h-5 w-5" />
-        {hasActive ? 'Reprendre la séance' : 'Commencer la séance'}
-      </button>
-
       {upcoming.length > 0 && (
         <>
           <h2 className="mt-8 text-center text-xs uppercase tracking-wide text-slate-500">À venir</h2>
@@ -191,10 +197,12 @@ export function FitCalendrier() {
               <button
                 key={u.number}
                 type="button"
-                onClick={() => setUpcomingSel(i)}
-                className={`relative ${CARD} bg-[#141c2f] transition-colors active:bg-[#182234]`}
+                onClick={() => (u.startable ? setInSession(true) : setUpcomingSel(i))}
+                className={`${CARD} ${u.startable ? 'border-emerald-500/60 bg-emerald-500/10 active:bg-emerald-500/15' : 'border-slate-700 bg-[#141c2f] active:bg-[#182234]'}`}
               >
-                <span className="font-medium text-slate-100">Séance {u.number} (à venir)</span>
+                <span className="font-medium text-slate-100">
+                  Séance {u.number} {u.startable && hasActive ? '(en cours)' : '(à venir)'}
+                </span>
                 <span className="mt-0.5 text-sm text-slate-400">
                   {plural(u.exercises, 'exercice')} - {plural(u.series, 'série')}
                 </span>
