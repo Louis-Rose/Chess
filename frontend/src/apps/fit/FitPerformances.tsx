@@ -98,8 +98,7 @@ const weightLabel = (w: number | null) => (w == null ? 'PdC' : `${w} kg`);
 function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Sessions come oldest-first; columns keep that order so the most recent is on
-  // the right. Scroll the table fully right on open so recent sessions show.
+  // Scroll fully right on open so the most recent sessions show first.
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
@@ -109,12 +108,13 @@ function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () =>
   const weights = Array.from(new Set(perf.sessions.flatMap(s => s.weights.map(w => w.weight))))
     .sort((a, b) => (a == null ? 1 : b == null ? -1 : b - a));
 
-  // Per session, reps keyed by weight for quick cell lookup.
-  const repsAt = perf.sessions.map(s => {
-    const m = new Map<number | null, number>();
-    for (const w of s.weights) m.set(w.weight, w.reps);
-    return m;
-  });
+  // Per weight, only the sessions that used it (oldest → most recent), so every
+  // cell holds a real entry — the reps plus the date it was done.
+  const entriesFor = (w: number | null) =>
+    perf.sessions.flatMap(s => {
+      const hit = s.weights.find(x => x.weight === w);
+      return hit ? [{ date: s.date, reps: hit.reps }] : [];
+    });
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -123,44 +123,28 @@ function PerformanceDetail({ perf, onBack }: { perf: ExercisePerf; onBack: () =>
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
 
       <div ref={scrollRef} className="mt-8 overflow-x-auto">
-        <table className="mx-auto border-collapse text-sm">
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                kg
-              </th>
-              {perf.sessions.map((s, i) => (
-                <th key={i} className="whitespace-nowrap border border-slate-700 px-3 py-2 text-xs font-medium text-slate-400">
-                  {formatShortDate(s.date)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {weights.map(w => (
-              <tr key={String(w)}>
-                <th className="sticky left-0 z-10 whitespace-nowrap border border-slate-700 bg-slate-900 px-3 py-2 text-right font-medium text-slate-200">
-                  {weightLabel(w)}
-                </th>
-                {repsAt.map((m, i) => {
-                  const reps = m.get(w);
-                  return (
-                    <td
-                      key={i}
-                      className={`border border-slate-700 px-3 py-2 text-center tabular-nums ${reps != null ? 'text-slate-100' : 'text-slate-700'}`}
-                    >
-                      {reps != null ? reps : '·'}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="inline-flex min-w-full flex-col gap-1.5">
+          {weights.map(w => (
+            <div key={String(w)} className="flex w-full items-stretch gap-1.5">
+              <div className="sticky left-0 z-10 flex min-w-[3.5rem] shrink-0 items-center justify-end whitespace-nowrap rounded-md border border-slate-700 bg-slate-900 px-2 text-right text-sm font-medium text-slate-200">
+                {weightLabel(w)}
+              </div>
+              <div className="flex-1" />
+              <div className="flex gap-1.5">
+                {entriesFor(w).map((e, i) => (
+                  <div key={i} className="flex min-w-[3.5rem] flex-col items-center justify-center rounded-md border border-slate-700 bg-slate-800/40 px-2 py-1">
+                    <span className="text-sm tabular-nums text-slate-100">{e.reps}</span>
+                    <span className="whitespace-nowrap text-[10px] text-slate-500">{formatShortDate(e.date)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <p className="mt-4 text-center text-xs text-slate-500">
-        Répétitions de travail par poids et par séance. La plus récente est à droite.
+        Répétitions de travail par poids. La séance la plus récente est à droite.
       </p>
     </div>
   );
