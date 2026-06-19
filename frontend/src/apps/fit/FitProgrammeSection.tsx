@@ -52,7 +52,7 @@ export function FitProgrammeSection({ section, editor }: {
     loading, name, setName, saveName, split, chooseSplit, workSets, chooseSets,
     priorities, setPriority,
     muscleOrder, orderedMuscles, reorderMuscles,
-    sessionOrder, sessions, reorderSession, removeFromSession,
+    sessionOrder, sessions, reorderSession, removeFromSession, addToSession,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise, customExercises, customDraft, setCustomDraft,
@@ -109,7 +109,7 @@ export function FitProgrammeSection({ section, editor }: {
   if (section === 'order')
     // A fixed split orders its muscles per session; otherwise a single flat list.
     return hasFixedSessions(split)
-      ? <FitSessionOrder sessions={sessions} labels={splitSessionLabels(split)} priorities={priorities} onReorder={reorderSession} onRemove={removeFromSession} />
+      ? <FitSessionOrder sessions={sessions} labels={splitSessionLabels(split)} onReorder={reorderSession} onRemove={removeFromSession} onAdd={addToSession} />
       : <MuscleOrderSection order={orderedMuscles()} priorities={priorities} onReorder={reorderMuscles} />;
 
   if (section === 'bodypart')

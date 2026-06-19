@@ -43,16 +43,22 @@ function orderDayMuscles(dayMuscles: string[], muscleOrder: string[]): string[] 
   return [...ordered, ...dayMuscles.filter(m => !ordered.includes(m))];
 }
 
-// A fixed split's default sessions: each day's muscles, arranged by muscleOrder.
+// Muscle groups left out of a split's default sessions (the user can add them
+// back per session). Forearms and calves are usually trained directly enough by
+// the compound work to skip by default.
+const DEFAULT_HIDDEN = new Set(['Avant-bras', 'Mollets']);
+
+// A fixed split's default sessions: each day's muscles (minus the ones hidden by
+// default), arranged by muscleOrder.
 export function defaultSplitSessions(split: string, muscleOrder: string[] = []): string[][] {
   const byDay = SPLIT_DAY_MUSCLES[split];
-  return byDay ? byDay.map(day => orderDayMuscles(day, muscleOrder)) : [];
+  return byDay ? byDay.map(day => orderDayMuscles(day.filter(m => !DEFAULT_HIDDEN.has(m)), muscleOrder)) : [];
 }
 
 // The split's effective sessions: the user's per-session override when present
 // and well-formed (same session count), else the muscleOrder-arranged default.
-// An override is sanitised against each day's allowed muscles, preserving its
-// order and any removals.
+// An override is the user's freely curated list (any valid muscle, added or
+// removed), kept in its stored order and de-duplicated.
 export function effectiveSplitSessions(
   split: string | null,
   sessionOrder: Record<string, string[][]> = {},
@@ -62,9 +68,9 @@ export function effectiveSplitSessions(
   const defaults = defaultSplitSessions(split, muscleOrder);
   const override = sessionOrder[split];
   if (!override || override.length !== defaults.length) return defaults;
-  return defaults.map((day, i) => {
-    const allowed = new Set(day);
-    return (override[i] ?? []).filter(m => allowed.has(m));
+  return defaults.map((_day, i) => {
+    const seen = new Set<string>();
+    return (override[i] ?? []).filter(m => ALL.includes(m) && !seen.has(m) && (seen.add(m), true));
   });
 }
 

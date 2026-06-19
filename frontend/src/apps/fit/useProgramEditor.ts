@@ -149,9 +149,14 @@ export function useProgramEditor(program: FitProgram) {
   function reorderSession(index: number, muscles: string[]) {
     saveSessions(sessions.map((s, i) => (i === index ? muscles : s)));
   }
-  // Drop a muscle group from one session (swipe to delete).
+  // Drop a muscle group from one session.
   function removeFromSession(index: number, muscle: string) {
     saveSessions(sessions.map((s, i) => (i === index ? s.filter(m => m !== muscle) : s)));
+  }
+  // Add a muscle group to one session (appended; no-op if already there).
+  function addToSession(index: number, muscle: string) {
+    if ((sessions[index] ?? []).includes(muscle)) return;
+    saveSessions(sessions.map((s, i) => (i === index ? [...s, muscle] : s)));
   }
 
   function toggleExercise(muscle: string, id: string) {
@@ -207,7 +212,7 @@ export function useProgramEditor(program: FitProgram) {
     workSets, chooseSets,
     priorities, setPriority,
     muscleOrder, orderedMuscles, reorderMuscles,
-    sessionOrder, sessions, reorderSession, removeFromSession,
+    sessionOrder, sessions, reorderSession, removeFromSession, addToSession,
     bodyPartOrder, addBodyPartDay, removeBodyPartDay, moveBodyPartDay,
     repGoals, setRepGoal,
     selections, toggleExercise,

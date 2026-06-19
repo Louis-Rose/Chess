@@ -1,26 +1,19 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
-import { FitSwipeRow } from './FitSwipeRow';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { MUSCLE_ORDER } from './programData';
 import { usePointerDrag, DragOverlay } from './usePointerDrag';
-import type { MusclePriority, Priorities } from './programData';
 
 // "Ordre" step for a fixed split: the split's planned sessions, each opening the
-// ordered list of muscle groups it trains. Within a session, dragging the grip
-// handle reorders the muscles and swiping a row left removes that muscle group
-// from the session. Edits persist per session via the editor (session_order).
+// ordered list of muscle groups it trains. Within a session, the muscle pills are
+// dragged to reorder (same whole-pill drag as the priority step), the × removes a
+// group, and the chips below add any group not already in the session.
 
-function Badge({ p }: { p?: MusclePriority }) {
-  if (p === 'weak') return <span className="ml-2 text-xs text-red-300">point faible</span>;
-  if (p === 'strong') return <span className="ml-2 text-xs text-emerald-300">point fort</span>;
-  return null;
-}
-
-export function FitSessionOrder({ sessions, labels, priorities, onReorder, onRemove }: {
+export function FitSessionOrder({ sessions, labels, onReorder, onRemove, onAdd }: {
   sessions: string[][];
   labels: string[];
-  priorities: Priorities;
   onReorder: (index: number, muscles: string[]) => void;
   onRemove: (index: number, muscle: string) => void;
+  onAdd: (index: number, muscle: string) => void;
 }) {
   const [open, setOpen] = useState<number | null>(null);
 
@@ -30,9 +23,9 @@ export function FitSessionOrder({ sessions, labels, priorities, onReorder, onRem
         index={open}
         label={labels[open] ?? `Séance ${open + 1}`}
         muscles={sessions[open]}
-        priorities={priorities}
         onReorder={onReorder}
         onRemove={onRemove}
+        onAdd={onAdd}
         onBack={() => setOpen(null)}
       />
     );
@@ -62,14 +55,14 @@ export function FitSessionOrder({ sessions, labels, priorities, onReorder, onRem
   );
 }
 
-// One session's muscle groups: drag the grip to reorder, swipe a row to remove.
-function SessionMuscles({ index, label, muscles, priorities, onReorder, onRemove, onBack }: {
+// One session's muscle groups: drag a pill to reorder, × to remove, chips to add.
+function SessionMuscles({ index, label, muscles, onReorder, onRemove, onAdd, onBack }: {
   index: number;
   label: string;
   muscles: string[];
-  priorities: Priorities;
   onReorder: (index: number, muscles: string[]) => void;
   onRemove: (index: number, muscle: string) => void;
+  onAdd: (index: number, muscle: string) => void;
   onBack: () => void;
 }) {
   const [items, setItems] = useState<string[]>(muscles);
@@ -79,9 +72,8 @@ function SessionMuscles({ index, label, muscles, priorities, onReorder, onRemove
   committedRef.current = muscles;
   const rowEls = useRef<Record<string, HTMLLIElement | null>>({});
   const dragging = useRef(false);
-  const [openRow, setOpenRow] = useState<string | null>(null);
 
-  // Resync from outside when not mid-drag (e.g. a removal shrank the session).
+  // Resync from outside when not mid-drag (e.g. an add/remove changed the list).
   useEffect(() => { if (!dragging.current) setItems(muscles); }, [muscles]);
 
   const { drag, bind } = usePointerDrag<string>({
@@ -102,17 +94,12 @@ function SessionMuscles({ index, label, muscles, priorities, onReorder, onRemove
     },
     onDrop: () => {
       dragging.current = false;
-      // Persist only a real reorder (a plain tap on the handle is a no-op).
+      // Persist only a real reorder (a plain tap on a pill is a no-op).
       if (itemsRef.current.join('|') !== committedRef.current.join('|')) onReorder(index, itemsRef.current);
     },
   });
 
-  // The grip handle owns the drag; stop the pointer from also reaching the swipe
-  // row (which would otherwise start a horizontal swipe at the same time).
-  const handle = (m: string) => {
-    const b = bind(m);
-    return { ...b, onPointerDown: (e: ReactPointerEvent) => { e.stopPropagation(); b.onPointerDown(e); } };
-  };
+  const addable = MUSCLE_ORDER.filter(m => !items.includes(m));
 
   return (
     <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4">
@@ -135,37 +122,60 @@ function SessionMuscles({ index, label, muscles, priorities, onReorder, onRemove
           Aucun groupe musculaire pour cette séance.
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col items-center gap-2">
           {items.map(m => (
-            <li key={m} ref={el => { rowEls.current[m] = el; }} style={{ opacity: drag?.item === m ? 0.35 : 1 }}>
-              <FitSwipeRow
-                isOpen={openRow === m}
-                onOpen={() => setOpenRow(m)}
-                onClose={() => setOpenRow(null)}
-                onDelete={() => { setOpenRow(null); onRemove(index, m); }}
-                className={`flex items-center gap-2 px-3 py-2.5 ${drag?.item === m ? 'border-emerald-500' : 'border-slate-700'}`}
-              >
-                <span className="flex-1 text-left text-sm text-slate-100">{m}<Badge p={priorities[m]} /></span>
-                <span
+            <li key={m} ref={el => { rowEls.current[m] = el; }} className="flex w-full justify-center">
+              <div className="relative w-full max-w-[13rem]" style={{ opacity: drag?.item === m ? 0.35 : 1 }}>
+                <button
+                  type="button"
                   aria-label={`Déplacer ${m}`}
-                  {...handle(m)}
+                  {...bind(m)}
                   style={{ touchAction: 'none' }}
-                  className="-mr-1 cursor-grab p-1 text-slate-500 active:cursor-grabbing"
+                  className={`w-full cursor-grab select-none rounded-full border bg-slate-800/50 px-8 py-2 text-center text-sm font-medium text-slate-200 active:cursor-grabbing ${
+                    drag?.item === m ? 'border-emerald-500' : 'border-slate-700'
+                  }`}
                 >
-                  <GripVertical className="h-5 w-5" />
-                </span>
-              </FitSwipeRow>
+                  {m}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Retirer ${m}`}
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => onRemove(index, m)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-500 active:text-slate-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
       )}
 
-      {/* The lifted row following the pointer while dragging. */}
+      {addable.length > 0 && (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xs text-slate-500">Ajouter un groupe musculaire</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {addable.map(m => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => onAdd(index, m)}
+                className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-sm font-medium text-slate-300 transition-colors active:bg-slate-800"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* The lifted pill following the pointer while dragging. */}
       {drag && (
         <DragOverlay x={drag.x} y={drag.y}>
-          <div className="flex w-[18rem] items-center gap-2 rounded-2xl border border-emerald-500 bg-slate-800 px-3 py-2.5">
-            <span className="flex-1 text-left text-sm text-slate-100">{drag.item}<Badge p={priorities[drag.item]} /></span>
-            <GripVertical className="h-5 w-5 text-slate-500" />
+          <div className="rounded-full border border-emerald-500 bg-slate-800 px-8 py-2 text-center text-sm font-medium text-slate-100">
+            {drag.item}
           </div>
         </DragOverlay>
       )}
