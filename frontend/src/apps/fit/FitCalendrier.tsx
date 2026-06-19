@@ -211,7 +211,9 @@ export function FitCalendrier() {
                 className={`${CARD} border-slate-700 bg-[#141c2f] active:bg-[#182234]`}
               >
                 {u.startable && (
-                  <span className="mb-1 text-xs uppercase tracking-wide text-emerald-400">Prochaine séance</span>
+                  <span className="mb-1 text-xs uppercase tracking-wide text-emerald-400">
+                    {hasActive ? 'Séance en cours' : 'Prochaine séance'}
+                  </span>
                 )}
                 <span className="font-medium text-slate-100">
                   Séance {u.number} {u.startable && hasActive ? '(en cours)' : '(à venir)'}
