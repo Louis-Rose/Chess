@@ -35,7 +35,7 @@ const musclePhrase = (m: string) => `les ${m.toLowerCase()}`;
 export const sectionQuestion = (section: string) =>
   section === 'name' ? 'Comment veux-tu nommer ce programme ?'
     : section === 'split' ? 'Quel split veux-tu suivre ?'
-    : section === 'priority' ? 'Quels muscles veux-tu prioriser (points faibles) ou non (points forts) ?'
+    : section === 'priority' ? 'Quels sont tes points forts et points faibles ?'
     : section === 'order' ? 'Dans quel ordre veux-tu faire tes exercices ?'
     : section === 'bodypart' ? 'Dans quel ordre veux-tu enchaîner tes séances ? (un groupe musculaire par séance)'
     : section === 'sets' ? 'Combien de séries de travail par exercice ?'

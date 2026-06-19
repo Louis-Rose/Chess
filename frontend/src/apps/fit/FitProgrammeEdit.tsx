@@ -26,7 +26,7 @@ export function FitProgrammeEdit({ program, onBack }: { program: FitProgram; onB
     { key: 'split', label: 'Split' },
     // The Body part day order, only when that split is selected.
     ...(editor.split === 'body_part' ? [{ key: 'bodypart', label: 'Ordre' }] : []),
-    { key: 'priority', label: 'Priorités' },
+    { key: 'priority', label: 'Forts / Faibles' },
     { key: 'order', label: 'Ordre' },
     { key: 'sets', label: 'Volume' },
     { key: 'reps', label: 'Reps' },
