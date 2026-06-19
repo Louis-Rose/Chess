@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { fitRequest } from './fitAuth';
-import { FitSession } from './FitSession';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitExerciseRecency, buildRecency, type RecencyGroup } from './FitExerciseRecency';
-import { hasResumableNav } from './fitSessionNav';
 import { validatedLeaves } from './validatedExercises';
 import { setCustomExercises, type CustomExercise } from './programData';
-import { getSession, clearSession } from './sessionTimer';
 
-// Accueil tab: start a new workout, with year-to-date totals above the button.
+// Accueil tab: year-to-date totals and recency cards. Sessions are launched and
+// resumed from the Calendrier.
 
 interface YearStats {
   sessions_this_year: number;
@@ -30,32 +28,17 @@ const fr1 = (n: number | string | null) => {
 };
 
 export function FitAccueil() {
-  const [inSession, setInSession] = useState(false);
   const [viewingLast, setViewingLast] = useState(false);
   const [viewingRecency, setViewingRecency] = useState(false);
   const [stats, setStats] = useState<YearStats | null>(null);
-  const [hasActive, setHasActive] = useState(false);
   const [lastSessionId, setLastSessionId] = useState<number | null>(null);
   const [avgDays, setAvgDays] = useState<number | null>(null);
   const [recencyGroups, setRecencyGroups] = useState<RecencyGroup[]>([]);
 
   useEffect(() => {
-    if (inSession) return;
     fitRequest(() => axios.get<YearStats>('/api/fit/stats'))
       .then(res => setStats(res.data))
       .catch(() => { /* hide stats */ });
-    // An in-progress session persists until finished; offer to resume it. It's
-    // resumable either when sets are logged (backend) or when the user left
-    // mid-exercise before logging any (persisted client-side nav spot).
-    fitRequest(() => axios.get<{ active: unknown | null }>('/api/fit/sessions/active'))
-      .then(res => {
-        const resumable = res.data.active != null || hasResumableNav();
-        setHasActive(resumable);
-        // A live chrono with nothing to resume is an abandoned empty session
-        // (e.g. started, then the app was closed) — end it so the chrono stops.
-        if (!resumable && getSession() != null) clearSession();
-      })
-      .catch(() => setHasActive(hasResumableNav()));
     // Most recent finished session, to open from the "days since" card.
     fitRequest(() => axios.get<{ sessions: { id: number }[] }>('/api/fit/sessions'))
       .then(res => setLastSessionId(res.data.sessions?.[0]?.id ?? null))
@@ -78,7 +61,7 @@ export function FitAccueil() {
         setRecencyGroups(groups);
       })
       .catch(() => { setAvgDays(null); setRecencyGroups([]); });
-  }, [inSession]);
+  }, []);
 
   if (viewingLast && lastSessionId != null) {
     return <FitSessionDetail sessionId={lastSessionId} onBack={() => setViewingLast(false)} />;
@@ -87,8 +70,6 @@ export function FitAccueil() {
   if (viewingRecency) {
     return <FitExerciseRecency groups={recencyGroups} onBack={() => setViewingRecency(false)} />;
   }
-
-  if (inSession) return <FitSession onDone={() => setInSession(false)} />;
 
   const year = new Date().getFullYear();
 
@@ -135,15 +116,6 @@ export function FitAccueil() {
           )}
         </div>
       )}
-
-      <button
-        type="button"
-        onClick={() => setInSession(true)}
-        className="my-auto inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-4 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
-      >
-        <Plus className="h-5 w-5" />
-        {hasActive ? 'Reprendre la séance' : 'Nouvelle séance'}
-      </button>
     </div>
   );
 }

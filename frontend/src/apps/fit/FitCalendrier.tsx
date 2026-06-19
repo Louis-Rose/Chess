@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
+import { FitSession } from './FitSession';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitConfirm } from './FitConfirm';
 import { FitSwipeRow } from './FitSwipeRow';
@@ -9,6 +10,8 @@ import { leafLabel, sessionLeaves, sortLabels } from './programData';
 import { weekDays } from './splitDays';
 import { sessionTitle } from './format';
 import { FitBackButton } from './FitBackButton';
+import { hasResumableNav } from './fitSessionNav';
+import { getSession, clearSession } from './sessionTimer';
 import { useCustomExercises } from './useCustomExercises';
 
 // Calendrier tab: the upcoming sessions of the week (from the active program's
@@ -59,6 +62,8 @@ export function FitCalendrier() {
   useCustomExercises();   // so planned exercise counts group custom exercises right
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inSession, setInSession] = useState(false);
+  const [hasActive, setHasActive] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [upcomingSel, setUpcomingSel] = useState<number | null>(null);   // index into `upcoming`
   const [openId, setOpenId] = useState<number | null>(null);
@@ -77,6 +82,7 @@ export function FitCalendrier() {
   const pendingRef = useRef<{ id: number; session: SessionSummary; timer: ReturnType<typeof setTimeout> } | null>(null);
 
   useEffect(() => {
+    if (inSession) return;   // reload once the session is done
     fitRequest(() => axios.get<{ sessions: SessionSummary[] }>('/api/fit/sessions'))
       .then(res => setSessions(res.data.sessions ?? []))
       .catch(() => { /* show empty */ })
@@ -93,7 +99,18 @@ export function FitCalendrier() {
         setMuscleOrder(ex.data.muscle_order ?? []);
       })
       .catch(() => { /* no week plan */ });
-  }, []);
+    // An in-progress session persists until finished; offer to resume it. It's
+    // resumable when sets are logged (backend) or the user left mid-exercise
+    // (persisted client-side nav spot).
+    fitRequest(() => axios.get<{ active: unknown | null }>('/api/fit/sessions/active'))
+      .then(res => {
+        const resumable = res.data.active != null || hasResumableNav();
+        setHasActive(resumable);
+        // A live chrono with nothing to resume is an abandoned empty session — end it.
+        if (!resumable && getSession() != null) clearSession();
+      })
+      .catch(() => setHasActive(hasResumableNav()));
+  }, [inSession]);
 
   // Commit the deferred delete now (timer fired, a new delete arrived, or the
   // tab is unmounting): actually hit the backend and drop the undo banner.
@@ -146,6 +163,7 @@ export function FitCalendrier() {
     return { number: nextNumber + i, label: d.label, muscles: d.muscles, exercises, series: exercises * (workSets ?? 0) };
   }).reverse();
 
+  if (inSession) return <FitSession onDone={() => setInSession(false)} />;
   if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
   if (upcomingSel != null && upcoming[upcomingSel]) {
     const u = upcoming[upcomingSel];
@@ -155,6 +173,15 @@ export function FitCalendrier() {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <h1 className="text-center text-2xl font-semibold">Calendrier</h1>
+
+      <button
+        type="button"
+        onClick={() => setInSession(true)}
+        className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
+      >
+        <Plus className="h-5 w-5" />
+        {hasActive ? 'Reprendre la séance' : 'Commencer la séance'}
+      </button>
 
       {upcoming.length > 0 && (
         <>

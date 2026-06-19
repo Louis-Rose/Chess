@@ -39,7 +39,7 @@ function FitAppInner() {
   const { isLoading, isAuthenticated } = useFitAuth();
   const [active, setActive] = useState('accueil');
   // Bumped whenever a tab is re-tapped while already active, so the content
-  // remounts and resets to its root view (e.g. exits "Nouvelle séance").
+  // remounts and resets to its root view (e.g. exits a session in progress).
   const [navNonce, setNavNonce] = useState(0);
 
   const select = (key: string) => {
