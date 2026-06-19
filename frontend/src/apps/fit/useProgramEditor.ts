@@ -59,10 +59,12 @@ export function useProgramEditor(program: FitProgram) {
     fitRequest(() => axios.put(base, { name: trimmed })).catch(() => {});
   }
 
-  // A program has a single split; tapping one selects it (replacing the previous).
+  // A program has a single split; tapping one selects it (replacing the previous),
+  // and tapping the selected one again clears it.
   function chooseSplit(s: string) {
-    setSplit(s);
-    fitRequest(() => axios.put(base, { split: s })).catch(() => {});
+    const next = split === s ? null : s;
+    setSplit(next);
+    fitRequest(() => axios.put(base, { split: next })).catch(() => {});
   }
 
   function chooseSets(n: number) {
