@@ -18,9 +18,9 @@ import { FitChrono } from './FitChrono';
 const TABS: FitTab[] = [
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
   { key: 'programme', label: 'Programme', Icon: Dumbbell },
-  { key: 'performances', label: 'Progression', Icon: TrendingUp },
-  { key: 'accueil', label: 'Statistiques', Icon: BarChart3 },
+  { key: 'performances', label: 'Progrès', Icon: TrendingUp },
   { key: 'principes', label: 'Principes', Icon: BookOpen },
+  { key: 'accueil', label: 'Stats', Icon: BarChart3 },
 ];
 
 export function FitApp() {
