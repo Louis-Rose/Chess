@@ -35,7 +35,8 @@ export function FitExerciseRecent({ exercise, excludeSessionId }: { exercise: st
 
   return (
     <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-800/20 px-4 py-3">
-      <p className="text-center text-xs uppercase tracking-wide text-white">Dernières séances</p>
+      <p className="text-center text-sm uppercase tracking-wide text-white">Dernières séances</p>
+      <div className="mt-2 h-px w-full bg-slate-700" />
 
       {loading ? (
         <div className="mt-3 flex justify-center">
