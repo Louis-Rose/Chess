@@ -196,7 +196,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   // pad has no minus key.
   const weightField = (
     <label className="flex-1 text-center text-xs text-slate-100">
-      Poids (kg)
+      {negative ? 'Aide (kg)' : 'Poids (kg)'}
       <div className="mt-1 flex items-stretch gap-1">
         <button
           type="button"
@@ -206,7 +206,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
             negative ? 'border-amber-500/60 text-amber-400' : 'border-slate-700 text-slate-300'
           }`}
         >
-          {negative ? '−' : '+'}
+          ±
         </button>
         <input
           value={weight}
