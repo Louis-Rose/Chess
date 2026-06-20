@@ -198,14 +198,38 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   // text-base (16px) is required on the inputs: iOS Safari auto-zooms any
   // focused input whose font-size is under 16px.
-  const inputClass = 'w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-center text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none';
+  const inputBase = 'rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-center text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none';
+  const inputClass = `w-full ${inputBase}`;
 
   // The weight input, its label centered over the field. Assistance-based
   // exercises (showSign) get a +/- toggle to its left — the mobile number pad
   // has no minus key — and the label reads "Aide" while the value is negative.
-  const weightInput = (
+  const weightLabel = negative ? 'Aide (kg)' : 'Poids (kg)';
+  const weightField = showSign ? (
+    <div className="flex-1">
+      {/* pl matches the toggle's width + gap so the label stays centered over
+          the input, not the whole row. */}
+      <p className="pl-8 text-center text-xs text-slate-100">{weightLabel}</p>
+      <div className="mt-1 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={flipSign}
+          aria-label="Inverser le signe : aide (−) ou lest (+)"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/60 text-xs font-semibold text-slate-300 transition-colors active:bg-slate-800"
+        >
+          +/−
+        </button>
+        <input
+          value={weight}
+          onChange={e => setWeight(normSign(e.target.value.replace(',', '.')))}
+          inputMode="decimal"
+          className={`min-w-0 flex-1 ${inputBase}`}
+        />
+      </div>
+    </div>
+  ) : (
     <label className="flex-1 text-center text-xs text-slate-100">
-      {negative ? 'Aide (kg)' : 'Poids (kg)'}
+      {weightLabel}
       <input
         value={weight}
         onChange={e => setWeight(normSign(e.target.value.replace(',', '.')))}
@@ -214,19 +238,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       />
     </label>
   );
-  const weightField = showSign ? (
-    <div className="flex flex-1 items-end gap-1">
-      <button
-        type="button"
-        onClick={flipSign}
-        aria-label="Inverser le signe : aide (−) ou lest (+)"
-        className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/60 text-xs font-semibold text-slate-300 transition-colors active:bg-slate-800"
-      >
-        +/−
-      </button>
-      {weightInput}
-    </div>
-  ) : weightInput;
 
   // The logged sets, split into the two table columns; at least 3 rows so
   // there's always room to fill in (extends past 3 as needed). Same bordered
