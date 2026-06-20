@@ -1088,6 +1088,7 @@ def _close_stale_session(conn):
             'UPDATE fit_sessions SET ended_at = ? WHERE id = ?', (row['last_at'], row['id'])
         )
         _normalize_working_weight(conn, row['id'])
+        _demote_feeler_sets(conn, row['id'])
         for r in conn.execute(
             'SELECT DISTINCT exercise FROM fit_session_sets WHERE session_id = ?', (row['id'],)
         ).fetchall():
@@ -1548,6 +1549,32 @@ def _normalize_working_weight(conn, session_id):
     )
 
 
+def _demote_feeler_sets(conn, session_id):
+    """A heavy single/double opening an exercise is really its last warmup: if the
+    first working set of an exercise has <= 2 reps and the next working set has
+    strictly more, reclassify that first set as a warmup. Run after the weight
+    normalization, on the working sets it leaves."""
+    conn.execute(
+        """
+        WITH ordered AS (
+            SELECT id, exercise, reps,
+                   ROW_NUMBER() OVER (PARTITION BY exercise ORDER BY id) AS rn
+            FROM fit_session_sets
+            WHERE session_id = ? AND warmup = FALSE
+        ),
+        feelers AS (
+            SELECT o1.id
+            FROM ordered o1
+            JOIN ordered o2 ON o2.exercise = o1.exercise AND o2.rn = 2
+            WHERE o1.rn = 1 AND o1.reps <= 2 AND o2.reps > 2
+        )
+        UPDATE fit_session_sets SET warmup = TRUE
+        WHERE id IN (SELECT id FROM feelers)
+        """,
+        (session_id,)
+    )
+
+
 @fit_bp.route('/api/fit/sessions/<int:session_id>/finish', methods=['POST'])
 @fit_login_required
 def finish_session(session_id):
@@ -1561,6 +1588,7 @@ def finish_session(session_id):
             (session_id,)
         )
         _normalize_working_weight(conn, session_id)
+        _demote_feeler_sets(conn, session_id)
         exercises = conn.execute(
             'SELECT DISTINCT exercise FROM fit_session_sets WHERE session_id = ?', (session_id,)
         ).fetchall()

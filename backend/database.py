@@ -813,6 +813,31 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('renormalize_tractions_work_sets',))
             logger.info("Re-normalized Tractions work/warmup tagging after the sign flip")
 
+        # Migration: a heavy single/double opening an exercise is really its last
+        # warmup. Where the first working set of a (session, exercise) has <= 2
+        # reps and the next working set has strictly more, reclassify that first
+        # set as a warmup. Matches _demote_feeler_sets applied going forward.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('demote_feeler_work_sets',)).fetchone():
+            conn.execute("""
+                WITH ordered AS (
+                    SELECT id, session_id, exercise, reps,
+                           ROW_NUMBER() OVER (PARTITION BY session_id, exercise ORDER BY id) AS rn
+                    FROM fit_session_sets
+                    WHERE warmup = FALSE
+                ),
+                feelers AS (
+                    SELECT o1.id
+                    FROM ordered o1
+                    JOIN ordered o2 ON o2.session_id = o1.session_id
+                                   AND o2.exercise = o1.exercise AND o2.rn = 2
+                    WHERE o1.rn = 1 AND o1.reps <= 2 AND o2.reps > 2
+                )
+                UPDATE fit_session_sets SET warmup = TRUE
+                WHERE id IN (SELECT id FROM feelers)
+            """)
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('demote_feeler_work_sets',))
+            logger.info("Demoted opening feeler singles/doubles to warmups")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
