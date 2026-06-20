@@ -1550,10 +1550,11 @@ def _normalize_working_weight(conn, session_id):
 
 
 def _demote_feeler_sets(conn, session_id):
-    """A heavy single/double opening an exercise is really its last warmup: if the
-    first working set of an exercise has <= 2 reps and the next working set has
-    strictly more, reclassify that first set as a warmup. Run after the weight
-    normalization, on the working sets it leaves."""
+    """A heavy opener is really the exercise's last warmup. When a working set is
+    followed by another working set, reclassify that first one as a warmup if it's
+    a single (1 rep), or a double (2 reps) backed off to >= 5 reps next. A 2 then
+    3 stays two working sets. Run after the weight normalization, on the working
+    sets it leaves."""
     conn.execute(
         """
         WITH ordered AS (
@@ -1566,7 +1567,7 @@ def _demote_feeler_sets(conn, session_id):
             SELECT o1.id
             FROM ordered o1
             JOIN ordered o2 ON o2.exercise = o1.exercise AND o2.rn = 2
-            WHERE o1.rn = 1 AND o1.reps <= 2 AND o2.reps > 2
+            WHERE o1.rn = 1 AND (o1.reps = 1 OR (o1.reps = 2 AND o2.reps >= 5))
         )
         UPDATE fit_session_sets SET warmup = TRUE
         WHERE id IN (SELECT id FROM feelers)

@@ -813,10 +813,11 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('renormalize_tractions_work_sets',))
             logger.info("Re-normalized Tractions work/warmup tagging after the sign flip")
 
-        # Migration: a heavy single/double opening an exercise is really its last
-        # warmup. Where the first working set of a (session, exercise) has <= 2
-        # reps and the next working set has strictly more, reclassify that first
-        # set as a warmup. Matches _demote_feeler_sets applied going forward.
+        # Migration: a heavy opener is really the exercise's last warmup. When the
+        # first working set of a (session, exercise) is followed by another, demote
+        # it to a warmup if it's a single (1 rep) or a double (2 reps) backed off
+        # to >= 5 reps next (a 2 then 3 stays two working sets). Matches
+        # _demote_feeler_sets applied going forward.
         if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('demote_feeler_work_sets',)).fetchone():
             conn.execute("""
                 WITH ordered AS (
@@ -830,7 +831,7 @@ def init_db():
                     FROM ordered o1
                     JOIN ordered o2 ON o2.session_id = o1.session_id
                                    AND o2.exercise = o1.exercise AND o2.rn = 2
-                    WHERE o1.rn = 1 AND o1.reps <= 2 AND o2.reps > 2
+                    WHERE o1.rn = 1 AND (o1.reps = 1 OR (o1.reps = 2 AND o2.reps >= 5))
                 )
                 UPDATE fit_session_sets SET warmup = TRUE
                 WHERE id IN (SELECT id FROM feelers)
