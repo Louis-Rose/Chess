@@ -356,7 +356,8 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               <Trash2 className="h-4 w-4" />
             </button>
           )}
-          <p className="text-center text-xs font-medium text-slate-400">
+          {/* Centered on the same line as the close (X) and delete buttons. */}
+          <p className="absolute inset-x-0 top-2 px-8 text-center text-sm font-medium leading-4 text-white">
             {(editingId != null ? (sets.find(s => s.id === editingId)?.warmup ?? false) : warmupMode)
               ? 'Échauffement' : 'Série de travail'}
           </p>
