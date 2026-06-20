@@ -1062,6 +1062,41 @@ def _active_session(conn):
     ).fetchone()
 
 
+def _close_stale_session(conn):
+    """Auto-close the user's in-progress session after an hour of inactivity.
+    Inactivity is measured from the last logged set, or from the start when none
+    were logged yet. A session with sets is finished and saved (like the manual
+    "Terminer la séance"); an empty one is deleted. Call this before reading the
+    active session so abandoned sessions don't linger or keep their chrono."""
+    row = conn.execute(
+        """SELECT s.id,
+                  (SELECT MAX(created_at) FROM fit_session_sets WHERE session_id = s.id) AS last_at
+           FROM fit_sessions s
+           WHERE s.user_id = ? AND s.ended_at IS NULL
+             AND COALESCE(
+                   (SELECT MAX(created_at) FROM fit_session_sets WHERE session_id = s.id),
+                   s.started_at
+                 ) < CURRENT_TIMESTAMP - INTERVAL '1 hour'
+           ORDER BY s.started_at DESC LIMIT 1""",
+        (request.user_id,)
+    ).fetchone()
+    if not row:
+        return
+    if row['last_at'] is not None:
+        # Has logged sets: finish + save, ending it at the last set's time.
+        conn.execute(
+            'UPDATE fit_sessions SET ended_at = ? WHERE id = ?', (row['last_at'], row['id'])
+        )
+        _normalize_working_weight(conn, row['id'])
+        for r in conn.execute(
+            'SELECT DISTINCT exercise FROM fit_session_sets WHERE session_id = ?', (row['id'],)
+        ).fetchall():
+            _recompute_work_weight(conn, request.user_id, r['exercise'])
+    else:
+        # Empty shell: drop it.
+        conn.execute('DELETE FROM fit_sessions WHERE id = ?', (row['id'],))
+
+
 @fit_bp.route('/api/fit/sessions', methods=['POST'])
 @fit_login_required
 def create_session():
@@ -1069,6 +1104,7 @@ def create_session():
     (empty) one. A session stays in progress until it is finished, so leaving
     the page never loses or validates it."""
     with get_db() as conn:
+        _close_stale_session(conn)
         row = _active_session(conn)
         if row:
             # An active session with no sets is just an empty shell from an
@@ -1095,14 +1131,21 @@ def create_session():
 def active_session():
     """Return the in-progress session if it has at least one logged set (worth
     resuming), else {active: null}. An empty started-but-untouched session does
-    not count as something to resume."""
+    not count as something to resume. `in_progress` reports whether ANY session
+    is still open (even setless), so the client can tell a genuinely resumable
+    setless spot from one whose session was auto-closed and drop stale state."""
     with get_db() as conn:
+        _close_stale_session(conn)
         row = _active_session(conn)
-        if row and conn.execute(
+        if not row:
+            return jsonify({'active': None, 'in_progress': False})
+        has_sets = conn.execute(
             'SELECT 1 FROM fit_session_sets WHERE session_id = ? LIMIT 1', (row['id'],)
-        ).fetchone():
-            return jsonify({'active': _session_payload(conn, row)})
-        return jsonify({'active': None})
+        ).fetchone()
+        return jsonify({
+            'active': _session_payload(conn, row) if has_sets else None,
+            'in_progress': True,
+        })
 
 
 @fit_bp.route('/api/fit/sessions', methods=['GET'])
@@ -1111,6 +1154,7 @@ def list_sessions():
     """History: the user's finished sessions that have at least one logged set,
     newest first. In-progress sessions are excluded."""
     with get_db() as conn:
+        _close_stale_session(conn)
         rows = conn.execute(
             """SELECT s.id, s.started_at, s.ended_at,
                       COUNT(ss.id) AS set_count,

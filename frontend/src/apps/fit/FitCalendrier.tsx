@@ -10,7 +10,7 @@ import { leafLabel, sessionLeaves, sortLabels } from './programData';
 import { weekDays } from './splitDays';
 import { sessionTitle } from './format';
 import { FitBackButton } from './FitBackButton';
-import { hasResumableNav } from './fitSessionNav';
+import { hasResumableNav, clearSessionNav } from './fitSessionNav';
 import { getSession, clearSession } from './sessionTimer';
 import { useCustomExercises } from './useCustomExercises';
 
@@ -101,13 +101,18 @@ export function FitCalendrier() {
       .catch(() => { /* no week plan */ });
     // An in-progress session persists until finished; offer to resume it. It's
     // resumable when sets are logged (backend) or the user left mid-exercise
-    // (persisted client-side nav spot).
-    fitRequest(() => axios.get<{ active: unknown | null }>('/api/fit/sessions/active'))
+    // (persisted client-side nav spot, only if a session is still open server-side).
+    fitRequest(() => axios.get<{ active: unknown | null; in_progress?: boolean }>('/api/fit/sessions/active'))
       .then(res => {
-        const resumable = res.data.active != null || hasResumableNav();
+        const inProgress = res.data.in_progress === true;
+        const resumable = res.data.active != null || (inProgress && hasResumableNav());
         setHasActive(resumable);
-        // A live chrono with nothing to resume is an abandoned empty session — end it.
-        if (!resumable && getSession() != null) clearSession();
+        // No session open server-side (none, finished, or auto-closed after an
+        // hour of inactivity): drop any stale client chrono + nav spot.
+        if (!inProgress) {
+          if (getSession() != null) clearSession();
+          clearSessionNav();
+        }
       })
       .catch(() => setHasActive(hasResumableNav()));
   }, [inSession]);
