@@ -102,7 +102,7 @@ export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNe
             onClick={onNextGroup}
             className="mx-auto mt-8 flex w-full max-w-[22rem] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition-colors active:bg-emerald-500"
           >
-            Groupe suivant : {nextGroup}
+            Muscle suivant : {nextGroup}
             <ChevronRight className="h-4 w-4" />
           </button>
         )}
