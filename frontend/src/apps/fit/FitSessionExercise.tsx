@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Plus, Trash2, X } from 'lucide-react';
 import { leafLabel, exerciseEnglish, exerciseSettingsValue, isSignedExercise } from './programData';
-import { ExerciseMuscles } from './FitExerciseMuscles';
 import { formatSet } from './format';
 
 // One exercise card inside a session: its logged sets plus a form to add the
@@ -41,15 +40,14 @@ interface Props {
   onAddSet: (weight: number | null, reps: number, warmup: boolean, repsRight: number | null) => Promise<void>;
   onUpdateSet: (setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) => Promise<void>;
   onDeleteSet: (setId: number) => void;
-  workWeight?: number | null;                             // persisted working weight, pre-fills new working sets
-  onWorkWeightChange?: (weight: number | null) => void;   // persist an edit to it
+  workWeight?: number | null;                             // working weight carried from history (previous sessions)
   setting?: string | null;                                // persisted machine-setting override (per base)
   onSettingChange?: (setting: string | null) => void;     // persist an edit to it
   unilateral?: boolean;                                   // set in the program: log reps per side (Gauche / Droite), shared weight
   onValidate?: () => void;                                // shows a "Valider l'exercice" button inside the card
 }
 
-export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, onWorkWeightChange, setting, onSettingChange, unilateral, onValidate }: Props) {
+export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDeleteSet, workWeight, setting, onSettingChange, unilateral, onValidate }: Props) {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');           // left side when unilateral
   const [repsRight, setRepsRight] = useState(''); // right side, unilateral only
@@ -69,7 +67,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);  // set being edited, else adding a new one
   const [adding, setAdding] = useState(false);                      // add form opened via "Ajouter une série"
-  const [workWeightStr, setWorkWeightStr] = useState(workWeight != null ? String(workWeight) : '');
 
   const baseName = exercise.split(' — ')[0];
   // Only assistance-based exercises (negative weight = aide) get the sign toggle.
@@ -78,18 +75,18 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   const showSettings = defaultSetting !== '' || (setting != null && setting !== '');
   const [settingStr, setSettingStr] = useState(setting ?? defaultSetting);
 
-  // Reflect the persisted values once they load / change (they're the source of truth).
-  useEffect(() => {
-    setWorkWeightStr(workWeight != null ? String(workWeight) : '');
-  }, [workWeight, exercise]);
+  // Reflect the persisted setting once it loads / changes (the source of truth).
   useEffect(() => {
     setSettingStr(setting ?? defaultSetting);
   }, [setting, defaultSetting, exercise]);
 
-  function persistWorkWeight() {
-    const v = workWeightStr.trim() === '' ? null : parseFloat(workWeightStr);
-    onWorkWeightChange?.(v != null && Number.isFinite(v) ? v : null);
-  }
+  // Working weight shown (read-only): the heaviest working set logged so far this
+  // session, or the value carried from history (previous session) if none yet.
+  const liftW = (w: number | null) => w ?? 0;
+  const workSets = sets.filter(s => !s.warmup);
+  const deducedWorkWeight: number | null = workSets.length
+    ? workSets.reduce((best, s) => (liftW(s.weight) > liftW(best.weight) ? s : best)).weight
+    : (workWeight ?? null);
 
   // Store the setting only when it differs from the catalogue default; clearing
   // (or matching the default) falls back to the default.
@@ -134,7 +131,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       // (rounded to the kg), with a suggested rep count. Both stay editable.
       // Pull-ups are a special case: fixed assistance (negative) per warmup set.
       const idx = Math.min(sets.filter(s => s.warmup).length, WARMUP_SETS - 1);
-      const wwBasis = workWeightStr.trim() !== '' ? parseFloat(workWeightStr.replace(',', '.')) : (workWeight ?? NaN);
+      const wwBasis = deducedWorkWeight ?? NaN;
       const w = baseName === 'Tractions'
         ? TRACTIONS_WARMUP_ASSIST[idx]
         : Number.isFinite(wwBasis) ? Math.round(wwBasis * WARMUP_PCT[idx]) : null;
@@ -143,8 +140,8 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       setReps(reps);
       setRepsRight(unilateral ? reps : '');
     } else {
-      // A working set pre-fills the working weight.
-      setWeight(normSign(workWeightStr));
+      // A working set pre-fills from the deduced working weight.
+      setWeight(deducedWorkWeight != null ? normSign(String(deducedWorkWeight)) : '');
       setReps('');
       setRepsRight('');
     }
@@ -235,7 +232,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   // table as the past-session view (FitSetList), but each cell is tappable to
   // edit that set.
   const warmupSets = sets.filter(s => s.warmup);
-  const workSets = sets.filter(s => !s.warmup);
   const setRows = Math.max(3, warmupSets.length, workSets.length);
 
   const cell = 'border border-slate-700 text-center';
@@ -267,7 +263,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     <div className="rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4">
       <p className="text-center font-medium text-slate-100">{leafLabel(exercise)}</p>
       {english && <p className="text-center text-xs text-slate-400">{english}</p>}
-      <ExerciseMuscles leaf={exercise} />
 
       <div className="mt-4 flex flex-col items-center gap-2 text-sm">
         {showSettings && (
@@ -284,17 +279,12 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           </div>
         )}
         <div className="flex items-center justify-center gap-2">
-          <label htmlFor={`ww-${exercise}`} className="text-white">Poids de travail</label>
-          <input
-            id={`ww-${exercise}`}
-            value={workWeightStr}
-            onChange={e => setWorkWeightStr(e.target.value.replace(',', '.'))}
-            onBlur={persistWorkWeight}
-            inputMode="decimal"
-            placeholder="—"
-            className={`w-14 ${fieldInput}`}
-          />
-          <span className="text-white">kg</span>
+          <span className="text-white">Poids de travail</span>
+          <span className="font-medium text-white">
+            {deducedWorkWeight == null
+              ? '—'
+              : `${showSign && deducedWorkWeight > 0 ? '+' : ''}${deducedWorkWeight} kg`}
+          </span>
         </div>
       </div>
 

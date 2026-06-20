@@ -66,7 +66,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   const [picking, setPicking] = useState(false);
   const [program, setProgram] = useState<Record<string, string[]>>({});
   const [confirm, setConfirm] = useState<Confirm | null>(null);
-  const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
+  const { weights: workWeights } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
   const [unilateral, setUnilateral] = useState<Set<string>>(new Set());   // active program's
   const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
@@ -180,7 +180,6 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
             onUpdateSet={(id, w, r, warmup, rr) => askChange(() => updateSet(id, w, r, warmup, rr))}
             onDeleteSet={confirmDeleteSet}
             workWeight={workWeights[editing] ?? null}
-            onWorkWeightChange={w => saveWorkWeight(editing, w)}
             setting={exerciseSettings[editing.split(' — ')[0]] ?? null}
             onSettingChange={s => saveSetting(editing.split(' — ')[0], s)}
             unilateral={unilateral.has(editing.split(' — ')[0])}

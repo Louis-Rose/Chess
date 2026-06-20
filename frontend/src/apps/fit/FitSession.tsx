@@ -73,7 +73,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);   // exercise being edited, else overview
   const [openLeaf, setOpenLeaf] = useState<string | null>(null); // exercise row swiped open in the overview
   const [confirmLeaf, setConfirmLeaf] = useState<string | null>(null);
-  const { weights: workWeights, save: saveWorkWeight } = useWorkWeights();
+  const { weights: workWeights } = useWorkWeights();
   const { settings: exerciseSettings, save: saveSetting } = useExerciseSettings();
   const [unilateral, setUnilateral] = useState<Set<string>>(new Set());   // per active program
 
@@ -347,7 +347,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               onUpdateSet={(id, w, r, warmup, rr) => updateSet(editingEntry.exercise, id, w, r, warmup, rr)}
               onDeleteSet={id => deleteSet(editingEntry.exercise, id)}
               workWeight={workWeights[editingEntry.exercise] ?? null}
-              onWorkWeightChange={w => saveWorkWeight(editingEntry.exercise, w)}
               setting={exerciseSettings[editingEntry.exercise.split(' — ')[0]] ?? null}
               onSettingChange={s => saveSetting(editingEntry.exercise.split(' — ')[0], s)}
               unilateral={unilateral.has(editingEntry.exercise.split(' — ')[0])}
