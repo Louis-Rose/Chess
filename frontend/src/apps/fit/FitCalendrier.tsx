@@ -12,6 +12,7 @@ import { sessionTitle } from './format';
 import { FitBackButton } from './FitBackButton';
 import { hasResumableNav, clearSessionNav } from './fitSessionNav';
 import { getSession, clearSession } from './sessionTimer';
+import { clearRest } from './restTimer';
 import { useCustomExercises } from './useCustomExercises';
 
 // Calendrier tab: the upcoming sessions of the week (from the active program's
@@ -112,6 +113,7 @@ export function FitCalendrier() {
         if (!inProgress) {
           if (getSession() != null) clearSession();
           clearSessionNav();
+          clearRest();
         }
       })
       .catch(() => setHasActive(hasResumableNav()));
