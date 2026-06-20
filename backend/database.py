@@ -839,6 +839,45 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('demote_feeler_work_sets',))
             logger.info("Demoted opening feeler singles/doubles to warmups")
 
+        # Migration: the first demote_feeler_work_sets shipped a looser rule
+        # (2 reps with any next > 2 reps was a feeler) and already ran on prod, so
+        # the refined rule above won't re-run there. Restore the sets it over-
+        # demoted: a 2-rep opener backed off to only 3-4 reps next is now a working
+        # set again. They sit as warmups at the session's working weight, just
+        # before the work block. (No-op on fresh DBs, where the refined rule ran.)
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('restore_overdemoted_feelers',)).fetchone():
+            conn.execute("""
+                WITH work AS (
+                    SELECT session_id, exercise,
+                           MIN(id) AS first_work_id,
+                           MAX(COALESCE(weight, 0)) AS maxw
+                    FROM fit_session_sets
+                    WHERE warmup = FALSE
+                    GROUP BY session_id, exercise
+                ),
+                first_work AS (
+                    SELECT w.session_id, w.exercise, w.first_work_id, w.maxw, ss.reps AS first_reps
+                    FROM work w
+                    JOIN fit_session_sets ss ON ss.id = w.first_work_id
+                ),
+                candidates AS (
+                    SELECT s.id, s.session_id, s.exercise
+                    FROM fit_session_sets s
+                    JOIN first_work fw ON fw.session_id = s.session_id AND fw.exercise = s.exercise
+                    WHERE s.warmup = TRUE AND s.reps = 2
+                      AND COALESCE(s.weight, 0) = fw.maxw
+                      AND s.id < fw.first_work_id
+                      AND fw.first_reps IN (3, 4)
+                ),
+                restore AS (
+                    SELECT MAX(id) AS id FROM candidates GROUP BY session_id, exercise
+                )
+                UPDATE fit_session_sets SET warmup = FALSE
+                WHERE id IN (SELECT id FROM restore)
+            """)
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('restore_overdemoted_feelers',))
+            logger.info("Restored over-demoted 2-rep openers (3-4 reps next) to working sets")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
