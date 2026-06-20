@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { useRestStart } from './restTimer';
 import { useSession } from './sessionTimer';
 
+// The rest timer starts at 0:15 rather than 0:00 to credit the time spent
+// logging the set that just ended (the set's timestamp is when the rest begins).
+const REST_HEAD_START_MS = 15_000;
+
 // "M:SS" (or "H:MM:SS" past an hour) elapsed since a start timestamp.
 function clockLabel(startMs: number, nowMs: number) {
   const secs = Math.max(0, Math.floor((nowMs - startMs) / 1000));
@@ -50,7 +54,7 @@ export function FitChrono({ className, onClick }: { className?: string; onClick?
         {restStart != null && (
           <>
             <span className="text-slate-400">Repos</span>
-            <span className="text-right font-semibold text-emerald-400">{clockLabel(restStart, nowMs)}</span>
+            <span className="text-right font-semibold text-emerald-400">{clockLabel(restStart - REST_HEAD_START_MS, nowMs)}</span>
           </>
         )}
       </Tag>
