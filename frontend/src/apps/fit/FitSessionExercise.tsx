@@ -279,7 +279,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           </div>
         )}
         <div className="flex items-center justify-center gap-2">
-          <span className="text-white">Poids de travail</span>
+          <span className="text-white">Poids de travail :</span>
           <span className="font-medium text-white">
             {deducedWorkWeight == null
               ? '—'

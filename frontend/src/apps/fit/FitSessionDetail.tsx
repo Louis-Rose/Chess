@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
-import { leafLabel, muscleContribution, MUSCLE_ORDER, isSignedExercise, type Priorities } from './programData';
+import { leafLabel, isSignedExercise, type Priorities } from './programData';
 import { sessionTitle } from './format';
 import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
@@ -11,7 +11,7 @@ import { FitExercisePicker } from './FitExercisePicker';
 import { FitConfirm } from './FitConfirm';
 import { FitExerciseRecent } from './FitExerciseRecent';
 import { FitSessionComment } from './FitSessionComment';
-import { PerfBadge, type PerfStatus } from './FitPerf';
+import { type PerfStatus } from './FitPerf';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
 import { useCustomExercises } from './useCustomExercises';
@@ -36,22 +36,6 @@ function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[]
   return groups;
 }
 
-// Weighted work volume per muscle group, in catalogue order. Each working
-// (non-warmup) set counts 1 for the exercise's primary group(s) and 0.5 for
-// each secondary group. Totals are multiples of 0.5.
-function workVolume(sets: SetRow[]): { muscle: string; sets: number }[] {
-  const counts = new Map<string, number>();
-  for (const s of sets) {
-    if (s.warmup) continue;
-    const c = muscleContribution(s.exercise);
-    for (const m of c.primary) counts.set(m, (counts.get(m) ?? 0) + 1);
-    for (const m of c.secondary) counts.set(m, (counts.get(m) ?? 0) + 0.5);
-  }
-  return MUSCLE_ORDER.filter(m => counts.has(m)).map(m => ({ muscle: m, sets: counts.get(m)! }));
-}
-
-// "4", "2.5" — drop the trailing .0 for whole numbers.
-const fmtVolume = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 export function FitSessionDetail({ sessionId, onBack, editable }: {
   sessionId: number;
@@ -161,7 +145,6 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
   }
 
   const groups = session ? groupByExercise(session.sets) : [];
-  const volume = session ? workVolume(session.sets) : [];
 
   const sessionName = sessionTitle(session?.number, session?.started_at ?? null);
 
@@ -268,26 +251,12 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
         </div>
       ) : (
         <>
-          {volume.length > 0 && (
-            <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col items-center rounded-2xl border border-slate-700 bg-slate-800/30 px-4 py-4 text-center">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Volume de travail</p>
-              <ul className="mt-2 flex flex-col gap-1 text-sm text-slate-200">
-                {volume.map(v => (
-                  <li key={v.muscle}>{v.muscle} - {fmtVolume(v.sets)} série{v.sets > 1 ? 's' : ''}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           <div className="mx-auto mt-4 flex w-full max-w-[22rem] flex-col gap-4">
             {groups.map(g => {
-              const status = session?.perf?.[g.exercise] ?? null;
               const inner = (
                 <>
-                  <p className="flex items-center justify-center gap-2 font-medium text-slate-100">
-                    {status && <PerfBadge status={status} />}
-                    {leafLabel(g.exercise)}
-                  </p>
+                  <p className="font-medium text-slate-100">{leafLabel(g.exercise)}</p>
+                  <div className="mt-3 h-px w-full bg-slate-700" />
                   <FitSetList sets={g.sets} signed={isSignedExercise(g.exercise)} />
                   {session?.notes?.[g.exercise] && (
                     <p className="mt-2 whitespace-pre-wrap text-xs italic text-slate-400">{session.notes[g.exercise]}</p>
