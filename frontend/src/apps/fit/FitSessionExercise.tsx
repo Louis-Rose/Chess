@@ -396,9 +396,22 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         </div>
       ) : (
         <div className="mt-4 flex flex-col items-center gap-4">
-          {/* Two steps only: start the warmup, then finish the exercise. The
-              warmup ends on its own after WARMUP_SETS sets; finishing is gated on
-              a working set being logged. */}
+          <div className="h-px w-full bg-slate-700" />
+
+          {/* Logging only opens once the warmup starts. */}
+          <button
+            type="button"
+            onClick={openAdd}
+            disabled={phase === 'start'}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800 disabled:opacity-40 disabled:active:bg-slate-800/50"
+          >
+            <Plus className="h-4 w-4" />
+            Ajouter une série
+          </button>
+
+          {/* Below "Ajouter une série": start the warmup, then finish the
+              exercise. The warmup ends on its own after WARMUP_SETS sets;
+              finishing is gated on a working set being logged. */}
           {(phase === 'start' || (phase === 'work' && onValidate)) && (
             <>
               <div className="h-px w-full bg-slate-700" />
@@ -412,20 +425,6 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
               </button>
             </>
           )}
-
-          {/* Always set off from the step button above. */}
-          <div className="h-px w-full bg-slate-700" />
-
-          {/* Below the step button; logging only opens once the warmup starts. */}
-          <button
-            type="button"
-            onClick={openAdd}
-            disabled={phase === 'start'}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-100 transition-colors active:bg-slate-800 disabled:opacity-40 disabled:active:bg-slate-800/50"
-          >
-            <Plus className="h-4 w-4" />
-            Ajouter une série
-          </button>
         </div>
       )}
     </div>
