@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react';
 // Optional free-text note, saved on blur (only when changed) via the parent's
 // onSave. Used for a session's comment and for a per-exercise note.
 
-export function FitSessionComment({ comment, onSave, id = 'session-comment', placeholder = "Comment s'est passée la séance ?" }: {
+export function FitSessionComment({ comment, onSave, id = 'session-comment', placeholder = "Comment s'est passée la séance ?", centered = false }: {
   comment: string | null;
   onSave: (comment: string | null) => void;
   id?: string;
   placeholder?: string;
+  centered?: boolean;
 }) {
   const [text, setText] = useState(comment ?? '');
 
@@ -31,7 +32,9 @@ export function FitSessionComment({ comment, onSave, id = 'session-comment', pla
         onBlur={save}
         rows={2}
         placeholder={placeholder}
-        className="w-full resize-none rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+        className={`w-full resize-none rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2 text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none ${
+          centered ? 'text-center content-center' : ''
+        }`}
       />
     </div>
   );

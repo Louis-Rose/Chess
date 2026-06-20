@@ -204,6 +204,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
                   onSave={n => saveExerciseNote(validating, n)}
                   id="exercise-note"
                   placeholder="Une note sur cet exercice ?"
+                  centered
                 />
               </div>
               <div className="mt-5 flex gap-3">
