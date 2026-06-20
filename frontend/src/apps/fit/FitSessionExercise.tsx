@@ -111,13 +111,20 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     && (weightNum === null || Number.isFinite(weightNum));
 
   // Negative weight = assistance (aide), positive = added load (lest). The sign
-  // toggle flips it, since the mobile number pad has no minus key.
+  // toggle flips it, since the mobile number pad has no minus key. For signed
+  // exercises a positive value carries an explicit leading "+" (aide vs lest).
   const negative = weight.trim().startsWith('-');
+  function normSign(v: string): string {
+    if (!showSign) return v;
+    const t = v.trim();
+    if (t === '' || t === '+' || t === '-' || t.startsWith('-') || t.startsWith('+')) return t;
+    return `+${t}`;
+  }
   function flipSign() {
     setWeight(w => {
-      const t = w.trim();
-      if (t === '' || t === '-') return t === '-' ? '' : '-';
-      return t.startsWith('-') ? t.slice(1) : `-${t}`;
+      const t = w.trim().replace(/^\+/, '');
+      if (t === '' || t === '-') return t === '-' ? '+' : '-';
+      return t.startsWith('-') ? `+${t.slice(1)}` : `-${t}`;
     });
   }
 
@@ -133,12 +140,12 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         ? TRACTIONS_WARMUP_ASSIST[idx]
         : Number.isFinite(wwBasis) ? Math.round(wwBasis * WARMUP_PCT[idx]) : null;
       const reps = String(WARMUP_REPS[idx]);
-      setWeight(w != null ? String(w) : '');
+      setWeight(w != null ? normSign(String(w)) : '');
       setReps(reps);
       setRepsRight(unilateral ? reps : '');
     } else {
       // A working set pre-fills the working weight.
-      setWeight(workWeightStr);
+      setWeight(normSign(workWeightStr));
       setReps('');
       setRepsRight('');
     }
@@ -155,7 +162,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setEditingId(s.id);
     setReps(String(s.reps));
     setRepsRight(s.reps_right == null ? '' : String(s.reps_right));
-    setWeight(s.weight == null ? '' : String(s.weight));
+    setWeight(s.weight == null ? '' : normSign(String(s.weight)));
   }
 
   function reset() {
@@ -201,7 +208,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       {negative ? 'Aide (kg)' : 'Poids (kg)'}
       <input
         value={weight}
-        onChange={e => setWeight(e.target.value.replace(',', '.'))}
+        onChange={e => setWeight(normSign(e.target.value.replace(',', '.')))}
         inputMode="decimal"
         className={`mt-1 ${inputClass}`}
       />
