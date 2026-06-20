@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Plus, Trash2, X } from 'lucide-react';
-import { leafLabel, exerciseEnglish, exerciseSettingsValue } from './programData';
+import { leafLabel, exerciseEnglish, exerciseSettingsValue, isSignedExercise } from './programData';
 import { ExerciseMuscles } from './FitExerciseMuscles';
 import { formatSet } from './format';
 
@@ -74,7 +74,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   const baseName = exercise.split(' — ')[0];
   // Only assistance-based exercises (negative weight = aide) get the sign toggle.
-  const showSign = baseName === 'Tractions';
+  const showSign = isSignedExercise(exercise);
   const defaultSetting = exerciseSettingsValue(baseName);
   const showSettings = defaultSetting !== '' || (setting != null && setting !== '');
   const [settingStr, setSettingStr] = useState(setting ?? defaultSetting);
@@ -220,7 +220,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
         type="button"
         onClick={flipSign}
         aria-label="Inverser le signe : aide (−) ou lest (+)"
-        className="mb-px flex h-[42px] w-10 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/60 text-sm font-semibold text-slate-300 transition-colors active:bg-slate-800"
+        className="mb-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/60 text-xs font-semibold text-slate-300 transition-colors active:bg-slate-800"
       >
         +/−
       </button>
@@ -262,7 +262,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
             isEditing ? 'text-emerald-400' : dim ? 'text-slate-400' : 'font-medium text-slate-100'
           }`}
         >
-          {formatSet(s.weight, s.reps, false, s.reps_right)}
+          {formatSet(s.weight, s.reps, false, s.reps_right, showSign)}
         </button>
       </td>
     );

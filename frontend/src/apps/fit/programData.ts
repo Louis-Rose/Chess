@@ -206,6 +206,13 @@ export const exerciseSettingsValue = (name: string): string => {
 
 export const variantId = (name: string, variant: string) => `${name} — ${variant}`;
 
+// Exercises whose weight is signed: negative = assistance (aide), positive =
+// added load (lest). These get the +/- toggle in the session form and a leading
+// "+" on positive values in the set tables. Keyed by base name.
+const SIGNED_EXERCISES = new Set<string>(['Tractions']);
+export const isSignedExercise = (leaf: string): boolean =>
+  SIGNED_EXERCISES.has(leaf.split(' — ')[0]);
+
 // Catalogue exercises with variants, by base name (for exclusivity lookups).
 const EXERCISE_BY_BASE: Record<string, { variants: string[][]; exclusive?: boolean }> = {};
 for (const m of MUSCLES) for (const ex of m.exercises) if (typeof ex !== 'string') EXERCISE_BY_BASE[ex.name] = ex;

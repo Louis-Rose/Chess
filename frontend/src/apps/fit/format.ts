@@ -2,9 +2,12 @@
 
 // "8 × 14 kg" (or "8 reps" bodyweight); warmup sets are wrapped in parentheses.
 // A unilateral set (repsRight given) shows both sides: "8/7 × 14 kg".
-export const formatSet = (weight: number | null, reps: number, warmup: boolean, repsRight?: number | null) => {
+// `signed` exercises (assistance / added load) show a leading "+" on positive
+// weights so lest (+) reads distinctly from aide (-).
+export const formatSet = (weight: number | null, reps: number, warmup: boolean, repsRight?: number | null, signed = false) => {
   const r = repsRight != null ? `${reps}/${repsRight}` : `${reps}`;
-  const body = weight != null ? `${r} × ${weight} kg` : `${r} reps`;
+  const w = weight != null && signed && weight > 0 ? `+${weight}` : weight;
+  const body = weight != null ? `${r} × ${w} kg` : `${r} reps`;
   return warmup ? `(${body})` : body;
 };
 

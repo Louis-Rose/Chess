@@ -9,7 +9,7 @@ export interface DisplaySet { reps: number; weight: number | null; warmup: boole
 
 const cell = 'border border-slate-700 px-2 py-1 text-center';
 
-export function FitSetList({ sets }: { sets: DisplaySet[] }) {
+export function FitSetList({ sets, signed = false }: { sets: DisplaySet[]; signed?: boolean }) {
   const warmups = sets.filter(s => s.warmup);
   const work = sets.filter(s => !s.warmup);
   const rows = Math.max(warmups.length, work.length);
@@ -25,10 +25,10 @@ export function FitSetList({ sets }: { sets: DisplaySet[] }) {
         {Array.from({ length: rows }, (_, i) => (
           <tr key={i}>
             <td className={`${cell} text-slate-400`}>
-              {warmups[i] ? formatSet(warmups[i].weight, warmups[i].reps, false, warmups[i].reps_right) : ''}
+              {warmups[i] ? formatSet(warmups[i].weight, warmups[i].reps, false, warmups[i].reps_right, signed) : ''}
             </td>
             <td className={`${cell} font-medium text-slate-100`}>
-              {work[i] ? formatSet(work[i].weight, work[i].reps, false, work[i].reps_right) : ''}
+              {work[i] ? formatSet(work[i].weight, work[i].reps, false, work[i].reps_right, signed) : ''}
             </td>
           </tr>
         ))}

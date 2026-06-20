@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { formatSessionDate } from './format';
+import { isSignedExercise } from './programData';
 import { FitSetList, type DisplaySet } from './FitSetList';
 
 // Read-only "Dernières séances" panel shown under the exercise editor: the past
@@ -50,7 +51,7 @@ export function FitExerciseRecent({ exercise, excludeSessionId }: { exercise: st
               className="flex flex-col items-center rounded-xl border border-slate-700 bg-slate-800/30 px-3 py-2 text-center"
             >
               <p className="text-sm font-medium capitalize text-slate-200">{formatSessionDate(s.date)}</p>
-              <FitSetList sets={s.sets} />
+              <FitSetList sets={s.sets} signed={isSignedExercise(exercise)} />
             </div>
           ))}
         </div>

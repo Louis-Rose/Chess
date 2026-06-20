@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2, Plus } from 'lucide-react';
 import { fitRequest } from './fitAuth';
-import { leafLabel, muscleContribution, MUSCLE_ORDER, type Priorities } from './programData';
+import { leafLabel, muscleContribution, MUSCLE_ORDER, isSignedExercise, type Priorities } from './programData';
 import { sessionTitle } from './format';
 import { FitSetList } from './FitSetList';
 import { FitSessionExercise } from './FitSessionExercise';
@@ -289,7 +289,7 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
                     {status && <PerfBadge status={status} />}
                     {leafLabel(g.exercise)}
                   </p>
-                  <FitSetList sets={g.sets} />
+                  <FitSetList sets={g.sets} signed={isSignedExercise(g.exercise)} />
                   {session?.notes?.[g.exercise] && (
                     <p className="mt-2 whitespace-pre-wrap text-xs italic text-slate-400">{session.notes[g.exercise]}</p>
                   )}
