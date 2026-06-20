@@ -790,6 +790,29 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('tractions_assist_negative',))
             logger.info("Flipped historical Tractions assistance weights to negative")
 
+        # Migration: the one-working-weight normalization ran while Tractions
+        # assistance was still positive, so it tagged the MOST-assisted set (then
+        # the largest number) as the working set — inverted once signs flipped.
+        # Re-derive warmup/work across ALL sets per (session, exercise) for signed
+        # exercises: the working sets are those at the session's heaviest weight
+        # (least assistance / most load), the rest become warmups. Unlike
+        # _normalize_working_weight this also promotes, so it self-corrects.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('renormalize_tractions_work_sets',)).fetchone():
+            conn.execute("""
+                WITH maxes AS (
+                    SELECT session_id, exercise, MAX(COALESCE(weight, 0)) AS maxw
+                    FROM fit_session_sets
+                    WHERE split_part(exercise, ' — ', 1) = 'Tractions'
+                    GROUP BY session_id, exercise
+                )
+                UPDATE fit_session_sets ss
+                SET warmup = (COALESCE(ss.weight, 0) < m.maxw)
+                FROM maxes m
+                WHERE ss.session_id = m.session_id AND ss.exercise = m.exercise
+            """)
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('renormalize_tractions_work_sets',))
+            logger.info("Re-normalized Tractions work/warmup tagging after the sign flip")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
