@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, CalendarDays, Dumbbell, Home, TrendingUp } from 'lucide-react';
+import { BarChart3, BookOpen, CalendarDays, Dumbbell, TrendingUp } from 'lucide-react';
 import { FitAccueil } from './FitAccueil';
 import { FitCalendrier } from './FitCalendrier';
 import { FitPerformances } from './FitPerformances';
@@ -16,10 +16,10 @@ import { FitChrono } from './FitChrono';
 // independent auth session (see fitAuth).
 
 const TABS: FitTab[] = [
-  { key: 'accueil', label: 'Accueil', Icon: Home },
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
-  { key: 'performances', label: 'Suivi', Icon: TrendingUp },
   { key: 'programme', label: 'Programme', Icon: Dumbbell },
+  { key: 'performances', label: 'Progression', Icon: TrendingUp },
+  { key: 'accueil', label: 'Statistiques', Icon: BarChart3 },
   { key: 'principes', label: 'Principes', Icon: BookOpen },
 ];
 
@@ -37,7 +37,7 @@ export function FitApp() {
 
 function FitAppInner() {
   const { isLoading, isAuthenticated } = useFitAuth();
-  const [active, setActive] = useState('accueil');
+  const [active, setActive] = useState(TABS[0].key);
   // Bumped whenever a tab is re-tapped while already active, so the content
   // remounts and resets to its root view (e.g. exits a session in progress).
   const [navNonce, setNavNonce] = useState(0);
