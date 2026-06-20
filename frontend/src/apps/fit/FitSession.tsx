@@ -11,7 +11,7 @@ import { FitConfirm } from './FitConfirm';
 import { FitScreenHeader } from './FitScreenHeader';
 import { useWorkWeights } from './useWorkWeights';
 import { useExerciseSettings } from './useExerciseSettings';
-import { leafLabel, muscleOf, repGoalCategory, MUSCLE_ORDER, REP_GOAL_DEFAULT, type Priorities, type RepGoals } from './programData';
+import { leafLabel, muscleOf, MUSCLE_ORDER, type Priorities, type RepGoals } from './programData';
 import { weekDays, currentDay } from './splitDays';
 import { sessionTitle } from './format';
 import { loadSessionNav, saveSessionNav, clearSessionNav } from './fitSessionNav';
@@ -55,7 +55,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
   const [comment, setComment] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});   // per-exercise notes
   const [program, setProgram] = useState<Record<string, string[]>>({});
-  const [repGoals, setRepGoals] = useState<RepGoals>(REP_GOAL_DEFAULT);
   const [muscleOrder, setMuscleOrder] = useState<string[]>([]);
   const [groupIndex, setGroupIndex] = useState(0);   // current muscle group in the program order
   const groupInit = useRef(false);
@@ -97,7 +96,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         setComment(sessionRes.data.comment);
         setNotes(sessionRes.data.notes ?? {});
         setProgram(exRes.data.selections ?? {});
-        setRepGoals(exRes.data.rep_goals ?? REP_GOAL_DEFAULT);
         setUnilateral(new Set(exRes.data.unilateral ?? []));
         setMuscleOrder(exRes.data.muscle_order ?? []);
 
@@ -353,7 +351,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               setting={exerciseSettings[editingEntry.exercise.split(' — ')[0]] ?? null}
               onSettingChange={s => saveSetting(editingEntry.exercise.split(' — ')[0], s)}
               unilateral={unilateral.has(editingEntry.exercise.split(' — ')[0])}
-              repGoal={repGoals[repGoalCategory(editingEntry.exercise)]}
               onValidate={requestValidate}
             />
             <FitExerciseRecent exercise={editingEntry.exercise} excludeSessionId={sessionId} />
