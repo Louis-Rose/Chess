@@ -11,7 +11,7 @@ import { FitSetList, type DisplaySet } from './FitSetList';
 // scrollable. Matched by base so all variant leaves count. The current session
 // is excluded (its sets are already in the editor above).
 
-interface HistorySession { session_id: number; date: string | null; sets: DisplaySet[]; }
+interface HistorySession { session_id: number; number?: number | null; date: string | null; sets: DisplaySet[]; }
 
 const baseOf = (leaf: string) => {
   const i = leaf.indexOf(' — ');
@@ -35,7 +35,7 @@ export function FitExerciseRecent({ exercise, excludeSessionId }: { exercise: st
 
   return (
     <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-800/20 px-4 py-3">
-      <p className="text-center text-xs uppercase tracking-wide text-slate-500">Dernières séances</p>
+      <p className="text-center text-xs uppercase tracking-wide text-white">Dernières séances</p>
 
       {loading ? (
         <div className="mt-3 flex justify-center">
@@ -50,6 +50,7 @@ export function FitExerciseRecent({ exercise, excludeSessionId }: { exercise: st
               key={s.session_id}
               className="flex flex-col items-center rounded-xl border border-slate-700 bg-slate-800/30 px-3 py-2 text-center"
             >
+              {s.number != null && <p className="text-xs text-slate-400">Séance {s.number}</p>}
               <p className="text-sm font-medium capitalize text-slate-200">{formatSessionDate(s.date)}</p>
               <FitSetList sets={s.sets} signed={isSignedExercise(exercise)} />
             </div>

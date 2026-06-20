@@ -1452,7 +1452,12 @@ def exercise_history():
         return jsonify({'sessions': []})
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT s.id AS session_id, s.started_at, ss.weight, ss.reps, ss.reps_right, ss.warmup
+            """SELECT s.id AS session_id, s.started_at, ss.weight, ss.reps, ss.reps_right, ss.warmup,
+                      (SELECT COUNT(*) FROM fit_sessions s2
+                       WHERE s2.user_id = s.user_id AND s2.ended_at IS NOT NULL
+                             AND s2.started_at < s.started_at
+                             AND EXISTS (SELECT 1 FROM fit_session_sets ss2 WHERE ss2.session_id = s2.id))
+                      + 1 AS number
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
                WHERE s.user_id = ? AND split_part(ss.exercise, ' — ', 1) = ?
@@ -1464,6 +1469,7 @@ def exercise_history():
         sess = by_id.get(r['session_id'])
         if sess is None:
             sess = {'session_id': r['session_id'],
+                    'number': r['number'],
                     'date': r['started_at'].isoformat() if r['started_at'] else None,
                     'sets': []}
             by_id[r['session_id']] = sess
