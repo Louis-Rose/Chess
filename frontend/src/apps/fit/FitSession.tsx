@@ -381,7 +381,7 @@ export function FitSession({ onDone }: { onDone: () => void }) {
                   <span className="font-medium text-slate-100">{leafLabel(e.exercise)}</span>
                   {(() => {
                     const n = e.sets.filter(s => !s.warmup).length;   // working sets only
-                    return <span className="mt-0.5 text-sm text-slate-400">{n} série{n > 1 ? 's' : ''}</span>;
+                    return <span className="mt-0.5 text-sm text-slate-400">{n} série{n !== 1 ? 's' : ''}</span>;
                   })()}
                   {notes[e.exercise] && (
                     <span className="mt-1 whitespace-pre-wrap text-xs italic text-slate-500">{notes[e.exercise]}</span>
