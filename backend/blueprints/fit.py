@@ -858,7 +858,7 @@ def set_work_weight():
                 (request.user_id, exercise)
             )
         else:
-            if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not 0 <= weight <= 1000:
+            if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not -1000 <= weight <= 1000:
                 return jsonify({'error': 'Invalid weight'}), 400
             conn.execute(
                 """INSERT INTO fit_work_weights (user_id, exercise, weight) VALUES (?, ?, ?)
@@ -1270,7 +1270,9 @@ def _validate_set_values(reps, weight, reps_right=None):
     if reps_right is not None and not _valid_reps(reps_right):
         return 'Invalid reps'
     if weight is not None:
-        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not 0 <= weight <= 1000:
+        # Negative weight = assistance (e.g. assisted pull-ups); positive = added
+        # load. Both are valid; bodyweight is null/0.
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)) or not -1000 <= weight <= 1000:
             return 'Invalid weight'
     return None
 

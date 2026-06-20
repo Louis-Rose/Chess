@@ -23,6 +23,10 @@ const WARMUP_SETS = 2;
 const WARMUP_PCT = [0.33, 0.66];
 const WARMUP_REPS = [12, 9];
 
+// Pull-ups warm up with assistance (negative weight = aide), not a fraction of
+// the working weight. Fixed: 14.5 kg of help, then 4.5 kg.
+const TRACTIONS_WARMUP_ASSIST = [-14.5, -4.5];
+
 export interface LoggedSet {
   id: number;
   weight: number | null;
@@ -109,9 +113,12 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     if (warmupMode) {
       // Pre-fill the warmup set from the working weight: set 1 ≈ 33%, set 2 ≈ 66%
       // (rounded to the kg), with a suggested rep count. Both stay editable.
+      // Pull-ups are a special case: fixed assistance (negative) per warmup set.
       const idx = Math.min(sets.filter(s => s.warmup).length, WARMUP_SETS - 1);
       const wwBasis = workWeightStr.trim() !== '' ? parseFloat(workWeightStr.replace(',', '.')) : (workWeight ?? NaN);
-      const w = Number.isFinite(wwBasis) ? Math.round(wwBasis * WARMUP_PCT[idx]) : null;
+      const w = baseName === 'Tractions'
+        ? TRACTIONS_WARMUP_ASSIST[idx]
+        : Number.isFinite(wwBasis) ? Math.round(wwBasis * WARMUP_PCT[idx]) : null;
       const reps = String(WARMUP_REPS[idx]);
       setWeight(w != null ? String(w) : '');
       setReps(reps);

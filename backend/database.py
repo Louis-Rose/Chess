@@ -772,6 +772,24 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('one_working_weight_per_session',))
             logger.info("Normalized sessions to one working weight per exercise (lighter working sets -> warmups)")
 
+        # Migration: pull-ups (Tractions) recorded assistance as a positive
+        # number. Assistance is now modelled as negative weight (added load will
+        # be positive), so flip every non-zero Tractions weight in the history to
+        # negative — both logged sets and the persisted working weight.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('tractions_assist_negative',)).fetchone():
+            conn.execute("""
+                UPDATE fit_session_sets SET weight = -ABS(weight)
+                WHERE weight IS NOT NULL AND weight <> 0
+                  AND split_part(exercise, ' — ', 1) = 'Tractions'
+            """)
+            conn.execute("""
+                UPDATE fit_work_weights SET weight = -ABS(weight)
+                WHERE weight IS NOT NULL AND weight <> 0
+                  AND split_part(exercise, ' — ', 1) = 'Tractions'
+            """)
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('tractions_assist_negative',))
+            logger.info("Flipped historical Tractions assistance weights to negative")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
