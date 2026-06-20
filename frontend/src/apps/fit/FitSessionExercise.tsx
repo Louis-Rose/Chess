@@ -108,6 +108,17 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     && (!unilateral || (Number.isFinite(repsRightNum) && repsRightNum > 0))
     && (weightNum === null || Number.isFinite(weightNum));
 
+  // Negative weight = assistance (aide), positive = added load (lest). The sign
+  // toggle flips it, since the mobile number pad has no minus key.
+  const negative = weight.trim().startsWith('-');
+  function flipSign() {
+    setWeight(w => {
+      const t = w.trim();
+      if (t === '' || t === '-') return t === '-' ? '' : '-';
+      return t.startsWith('-') ? t.slice(1) : `-${t}`;
+    });
+  }
+
   function openAdd() {
     setEditingId(null);
     if (warmupMode) {
@@ -179,6 +190,33 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   // text-base (16px) is required on the inputs: iOS Safari auto-zooms any
   // focused input whose font-size is under 16px.
   const inputClass = 'w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-center text-base text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none';
+
+  // The weight input with its sign toggle (aide − / lest +); shared by the
+  // bilateral and unilateral forms. The toggle exists because the mobile number
+  // pad has no minus key.
+  const weightField = (
+    <label className="flex-1 text-center text-xs text-slate-100">
+      Poids (kg)
+      <div className="mt-1 flex items-stretch gap-1">
+        <button
+          type="button"
+          onClick={flipSign}
+          aria-label="Inverser le signe : aide (−) ou lest (+)"
+          className={`flex w-9 shrink-0 items-center justify-center rounded-lg border bg-slate-800/60 text-lg leading-none transition-colors active:bg-slate-800 ${
+            negative ? 'border-amber-500/60 text-amber-400' : 'border-slate-700 text-slate-300'
+          }`}
+        >
+          {negative ? '−' : '+'}
+        </button>
+        <input
+          value={weight}
+          onChange={e => setWeight(e.target.value.replace(',', '.'))}
+          inputMode="decimal"
+          className={inputClass}
+        />
+      </div>
+    </label>
+  );
 
   // The logged sets, split into the two table columns; at least 3 rows so
   // there's always room to fill in (extends past 3 as needed). Same bordered
@@ -324,10 +362,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                 </label>
               </div>
               <div className="flex items-end gap-2">
-                <label className="flex-1 text-center text-xs text-slate-100">
-                  Poids (kg)
-                  <input value={weight} onChange={e => setWeight(e.target.value.replace(',', '.'))} inputMode="decimal" className={`mt-1 ${inputClass}`} />
-                </label>
+                {weightField}
                 <button
                   type="button"
                   onClick={submit}
@@ -335,7 +370,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                   aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
                   className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
                 >
-                  {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                  <Check className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -350,15 +385,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                   className={`mt-1 ${inputClass}`}
                 />
               </label>
-              <label className="flex-1 text-center text-xs text-slate-100">
-                Poids (kg)
-                <input
-                  value={weight}
-                  onChange={e => setWeight(e.target.value.replace(',', '.'))}
-                  inputMode="decimal"
-                  className={`mt-1 ${inputClass}`}
-                />
-              </label>
+              {weightField}
               <button
                 type="button"
                 onClick={submit}
@@ -366,7 +393,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                 aria-label={editingId != null ? 'Valider la modification' : 'Ajouter la série'}
                 className="mb-px flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white transition-colors active:bg-emerald-500 disabled:opacity-40"
               >
-                {editingId != null ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                <Check className="h-5 w-5" />
               </button>
             </div>
           )}
