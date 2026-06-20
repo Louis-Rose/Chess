@@ -44,14 +44,15 @@ export function FitExerciseRecent({ exercise, excludeSessionId }: { exercise: st
       ) : past.length === 0 ? (
         <p className="mt-3 text-center text-sm text-slate-400">Jamais fait pour le moment.</p>
       ) : (
-        <div className="mt-2 flex max-h-64 flex-col gap-3 overflow-y-auto pr-1">
+        <div className="mt-2 flex max-h-[22rem] flex-col gap-3 overflow-y-auto pr-1">
           {past.map(s => (
             <div
               key={s.session_id}
               className="flex flex-col items-center rounded-xl border border-slate-700 bg-slate-800/30 px-3 py-2 text-center"
             >
-              {s.number != null && <p className="text-xs text-slate-400">Séance {s.number}</p>}
-              <p className="text-sm font-medium capitalize text-slate-200">{formatSessionDate(s.date)}</p>
+              <p className="text-sm font-medium capitalize text-white">
+                {s.number != null ? `Séance ${s.number} (${formatSessionDate(s.date)})` : formatSessionDate(s.date)}
+              </p>
               <FitSetList sets={s.sets} signed={isSignedExercise(exercise)} />
             </div>
           ))}
