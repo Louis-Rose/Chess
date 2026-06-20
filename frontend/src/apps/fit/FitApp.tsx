@@ -10,6 +10,7 @@ import { FitProgramme } from './FitProgramme';
 import { FitLogin } from './FitLogin';
 import { FitAuthProvider, useFitAuth } from './fitAuth';
 import { FitChrono } from './FitChrono';
+import { requestSessionResume } from './sessionResume';
 
 // New native fitness app (replaces the old Notion-synced Gym page).
 // French only, designed primarily for phone. Per-user, with its own
@@ -47,6 +48,13 @@ function FitAppInner() {
     setActive(key);
   };
 
+  // Tapping the session chrono reopens the in-progress session: jump to the tab
+  // that hosts it (Calendrier) and flag it to resume on mount.
+  const openSession = () => {
+    requestSessionResume();
+    select('calendrier');
+  };
+
   if (isLoading) return <div className="min-h-dvh bg-slate-900" />;
   if (!isAuthenticated) return <FitLogin />;
 
@@ -58,7 +66,7 @@ function FitAppInner() {
       {/* `sticky` just under the header: stays visible while scrolling, yet
           (unlike `fixed`) part of the scroll flow, so the iOS keyboard
           auto-scroll on input focus can't displace it. */}
-      <FitChrono className="sticky top-[calc(3.5rem+1px)] z-10" />
+      <FitChrono className="sticky top-[calc(3.5rem+1px)] z-10" onClick={openSession} />
       <main key={`${active}-${navNonce}`}>
         {active === 'programme' ? (
           <FitProgramme />

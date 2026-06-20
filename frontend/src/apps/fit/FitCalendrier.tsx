@@ -14,6 +14,7 @@ import { hasResumableNav, clearSessionNav } from './fitSessionNav';
 import { getSession, clearSession } from './sessionTimer';
 import { clearRest } from './restTimer';
 import { useCustomExercises } from './useCustomExercises';
+import { consumeSessionResume } from './sessionResume';
 
 // Calendrier tab: the upcoming sessions of the week (from the active program's
 // split) on top, then the full history of past sessions, newest first. Tap a
@@ -63,7 +64,8 @@ export function FitCalendrier() {
   useCustomExercises();   // so planned exercise counts group custom exercises right
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [inSession, setInSession] = useState(false);
+  // Open straight into the session when the chrono was tapped (intent set in FitApp).
+  const [inSession, setInSession] = useState(consumeSessionResume);
   const [hasActive, setHasActive] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [upcomingSel, setUpcomingSel] = useState<number | null>(null);   // index into `upcoming`

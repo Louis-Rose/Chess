@@ -16,7 +16,8 @@ function clockLabel(startMs: number, nowMs: number) {
 // logged set. Ticks once a second; returns null when idle. `className` styles
 // the outer row (e.g. sticky positioning); it's reused both under the app
 // header and inside the full-screen exercise picker.
-export function FitChrono({ className }: { className?: string }) {
+// `onClick` (passed only under the app header) reopens the in-progress session.
+export function FitChrono({ className, onClick }: { className?: string; onClick?: () => void }) {
   const session = useSession();
   const restStart = useRestStart();
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -31,9 +32,15 @@ export function FitChrono({ className }: { className?: string }) {
 
   if (!active) return null;
 
+  const Tag = onClick ? 'button' : 'div';
   return (
     <div className={`pointer-events-none flex justify-center px-5 pt-2 pb-1 ${className ?? ''}`}>
-      <div className="pointer-events-auto grid grid-cols-[auto_auto] gap-x-2 gap-y-0.5 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-1.5 text-sm tabular-nums shadow">
+      <Tag
+        {...(onClick ? { type: 'button' as const, onClick } : {})}
+        className={`pointer-events-auto grid grid-cols-[auto_auto] gap-x-2 gap-y-0.5 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-1.5 text-sm tabular-nums shadow ${
+          onClick ? 'transition-colors active:bg-slate-700' : ''
+        }`}
+      >
         {session != null && (
           <>
             <span className="text-slate-400">Séance</span>
@@ -46,7 +53,7 @@ export function FitChrono({ className }: { className?: string }) {
             <span className="text-right font-semibold text-emerald-400">{clockLabel(restStart, nowMs)}</span>
           </>
         )}
-      </div>
+      </Tag>
     </div>
   );
 }
