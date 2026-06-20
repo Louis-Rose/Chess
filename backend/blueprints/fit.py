@@ -1515,12 +1515,14 @@ def performances():
             sess = {'date': r['started_at'].isoformat() if r['started_at'] else None, 'by_weight': OrderedDict()}
             sessions[r['session_id']] = sess
         reps = r['reps'] + (r['reps_right'] or 0)
-        sess['by_weight'][r['weight']] = sess['by_weight'].get(r['weight'], 0) + reps
+        entry = sess['by_weight'].setdefault(r['weight'], {'reps': 0, 'sets': 0})
+        entry['reps'] += reps
+        entry['sets'] += 1
 
     exercises = [
         {'exercise': exercise, 'sessions': [
             {'id': sid, 'number': number_by_id.get(sid), 'date': sess['date'],
-             'weights': [{'weight': w, 'reps': reps} for w, reps in sess['by_weight'].items()]}
+             'weights': [{'weight': w, 'reps': v['reps'], 'sets': v['sets']} for w, v in sess['by_weight'].items()]}
             for sid, sess in sessions.items()
         ]}
         for exercise, sessions in by_exercise.items()

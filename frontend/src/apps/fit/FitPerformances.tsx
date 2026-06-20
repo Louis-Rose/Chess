@@ -12,7 +12,7 @@ import { useCustomExercises } from './useCustomExercises';
 // recent first, each cell the working reps done at that weight that session. Tap
 // a cell to open the session it came from.
 
-interface WeightReps { weight: number | null; reps: number; }
+interface WeightReps { weight: number | null; reps: number; sets: number; }
 interface SessionPerf { id: number; number: number | null; date: string | null; weights: WeightReps[]; }
 interface ExercisePerf { exercise: string; sessions: SessionPerf[]; }
 
@@ -149,7 +149,7 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
     let lower = false;
     if (lift(top.weight) >= maxLift) { maxLift = lift(top.weight); workWeight = lift(top.weight) === 0 ? bodyKey : top.weight; }
     else lower = true;
-    return [{ id: s.id, number: s.number, date: s.date, reps: top.reps, rowWeight: workWeight, lower }];
+    return [{ id: s.id, number: s.number, date: s.date, reps: top.reps, sets: top.sets, rowWeight: workWeight, lower }];
   });
 
   // Rows = the distinct working weights, heaviest first (bodyweight last).
@@ -210,6 +210,7 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
                         ) : (
                           <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps} reps</span>
                         )}
+                        <span className="whitespace-nowrap text-sm text-white">({e.sets} série{e.sets > 1 ? 's' : ''})</span>
                         {e.number != null && <span className="whitespace-nowrap text-[11px] text-slate-500">Séance {e.number}</span>}
                         <span className="whitespace-nowrap text-[11px] text-slate-500">{cellDate(e.date)}</span>
                       </button>
