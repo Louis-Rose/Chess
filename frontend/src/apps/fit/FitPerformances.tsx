@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
-import { leafLabel, muscleOf, MUSCLE_ORDER, sortLabels } from './programData';
+import { leafLabel, muscleOf, MUSCLE_ORDER, sortLabels, isSignedExercise } from './programData';
 import { FitBackButton } from './FitBackButton';
 import { FitSessionDetail } from './FitSessionDetail';
 import { useCustomExercises } from './useCustomExercises';
@@ -98,7 +98,10 @@ export function FitPerformances() {
   );
 }
 
-const weightLabel = (w: number | null) => (w == null ? 'PdC' : `${w} kg`);
+// Bodyweight (null or 0) reads "0 kg" for signed exercises (the reference between
+// aide and lest), else "PdC"; signed positives carry a leading "+".
+const weightLabel = (w: number | null, signed: boolean) =>
+  w == null || w === 0 ? (signed ? '0 kg' : 'PdC') : signed && w > 0 ? `+${w} kg` : `${w} kg`;
 
 // Cell sizing (px) — used to wrap a too-long weight row into several rows so the
 // table only ever scrolls vertically. Keep in sync with the w-/label classes.
@@ -134,13 +137,17 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
   // in force at the time; a session whose heaviest set was below it (a down day)
   // still sits in that row but is flagged "Lower weight" instead of its reps.
   const lift = (w: number | null) => w ?? 0;   // bodyweight counts as 0
+  const signed = isSignedExercise(perf.exercise);
+  // Bodyweight is stored as null on old sets and 0 on newer ones — collapse both
+  // to one row (0 for signed exercises, null otherwise) so it isn't split in two.
+  const bodyKey: number | null = signed ? 0 : null;
   let maxLift = -Infinity;
   let workWeight: number | null = null;
   const cells = perf.sessions.flatMap(s => {
     if (s.weights.length === 0) return [];
     const top = s.weights.reduce((a, b) => (lift(b.weight) > lift(a.weight) ? b : a));
     let lower = false;
-    if (lift(top.weight) >= maxLift) { maxLift = lift(top.weight); workWeight = top.weight; }
+    if (lift(top.weight) >= maxLift) { maxLift = lift(top.weight); workWeight = lift(top.weight) === 0 ? bodyKey : top.weight; }
     else lower = true;
     return [{ id: s.id, number: s.number, date: s.date, reps: top.reps, rowWeight: workWeight, lower }];
   });
@@ -188,7 +195,7 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
                       rowSpan={rows.length}
                       className="h-[4.5rem] w-16 whitespace-nowrap border border-slate-700 border-b-slate-600 bg-slate-800 px-1.5 text-sm font-semibold text-slate-200"
                     >
-                      {weightLabel(w)}
+                      {weightLabel(w, signed)}
                     </th>
                   )}
                   {row.map(e => (
