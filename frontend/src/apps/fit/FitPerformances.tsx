@@ -45,11 +45,10 @@ export function FitPerformances() {
       .finally(() => setLoading(false));
   }, []);
 
-  // A tapped cell opens that session, showing only this exercise's section,
-  // editable so a set can be re-edited or flagged "Higher weight"; "Précédent"
-  // returns to the table.
+  // A tapped cell opens that session, showing only this exercise's section;
+  // "Précédent" returns to the table.
   if (sessionId != null)
-    return <FitSessionDetail sessionId={sessionId} exercise={selected ?? undefined} editable onBack={() => setSessionId(null)} />;
+    return <FitSessionDetail sessionId={sessionId} exercise={selected ?? undefined} onBack={() => setSessionId(null)} />;
 
   const current = selected != null ? exercises.find(e => e.exercise === selected) ?? null : null;
   if (current) return <PerformanceDetail perf={current} workWeight={workWeights[current.exercise] ?? null} onBack={() => setSelected(null)} onOpenSession={setSessionId} />;
