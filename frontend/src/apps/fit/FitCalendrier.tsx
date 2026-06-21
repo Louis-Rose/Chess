@@ -200,6 +200,7 @@ export function FitCalendrier() {
         onBack={() => setUpcomingSel(null)}
         onStart={u.startable ? () => { setUpcomingSel(null); setInSession(true); } : undefined}
         startLabel={hasActive ? 'Reprendre la séance' : 'Commencer la séance'}
+        inProgress={u.startable && hasActive}
       />
     );
   }
@@ -294,7 +295,7 @@ export function FitCalendrier() {
 // Preview of an upcoming session: the program's planned exercises for that day,
 // grouped by muscle in session order. The next session also offers a button to
 // start (or resume) it.
-function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, startLabel }: {
+function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, startLabel, inProgress }: {
   number: number;
   label: string;
   muscles: string[];
@@ -302,6 +303,7 @@ function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, s
   onBack: () => void;
   onStart?: () => void;
   startLabel: string;
+  inProgress?: boolean;   // this is the active, resumable session (not just upcoming)
 }) {
   const groups = muscles
     .map(m => ({ muscle: m, exercises: sessionLeaves(sortLabels(selections[m] ?? [])).map(leafLabel) }))
@@ -311,7 +313,7 @@ function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, s
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <FitBackButton onClick={onBack} />
 
-      <h1 className="mt-4 text-center text-2xl font-semibold">Séance {number} (à venir)</h1>
+      <h1 className="mt-4 text-center text-2xl font-semibold">Séance {number} {inProgress ? '(en cours)' : '(à venir)'}</h1>
       {label && <p className="mt-2 text-center text-sm text-slate-400">{label}</p>}
 
       {onStart && (
