@@ -293,7 +293,7 @@ export function FitSessionDetail({ sessionId, onBack, editable, exercise }: {
             <button
               type="button"
               onClick={() => setPicking(true)}
-              className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 py-3 font-medium text-slate-100 transition-colors active:bg-slate-800"
+              className="mx-auto mt-6 flex w-fit items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 py-3 font-medium text-slate-100 transition-colors active:bg-slate-800"
             >
               <Plus className="h-4 w-4" />
               Ajouter un exercice
