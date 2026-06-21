@@ -151,29 +151,17 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     setEditing(leaf);
   }
 
-  // Leave an exercise's editor. If nothing was logged (a mis-pick), drop it and
-  // reopen the picker so another exercise can be chosen; otherwise go to the overview.
-  function leaveEditing() {
-    const entry = entries.find(e => e.exercise === editing);
-    if (entry && entry.sets.length === 0) {
-      setEntries(prev => prev.filter(e => e.exercise !== editing));
-      setEditing(null);
-      setPicking(true);
-    } else {
+  // "Précédent" steps back to the previous muscle group (mirror of "Muscle
+  // suivant"), leaving any open exercise. On the first group it leaves the
+  // session. An empty mis-pick is dropped on the way out.
+  function goPreviousMuscle() {
+    if (editing != null) {
+      const entry = entries.find(e => e.exercise === editing);
+      if (entry && entry.sets.length === 0) setEntries(prev => prev.filter(e => e.exercise !== editing));
       setEditing(null);
     }
-  }
-
-  // "Précédent" while editing: step to the previous exercise of the session
-  // rather than back to the overview. An empty mis-pick keeps the leaveEditing
-  // behavior (drop it, reopen the picker); the first exercise has no previous,
-  // so it falls back to the overview.
-  function goPreviousExercise() {
-    const idx = entries.findIndex(e => e.exercise === editing);
-    const entry = entries[idx];
-    if (entry && entry.sets.length === 0) { leaveEditing(); return; }
-    if (idx > 0) setEditing(entries[idx - 1].exercise);
-    else setEditing(null);
+    if (clampedGroupIndex > 0) setGroupIndex(clampedGroupIndex - 1);
+    else onDone();
   }
 
   // "Valider l'exercice": go to the overview, but don't keep an exercise with
@@ -335,11 +323,11 @@ export function FitSession({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      {/* Précédent steps to the previous exercise while editing one, else home
-          (the session stays live and resumable). */}
+      {/* Précédent steps back to the previous muscle group (or home on the
+          first); the session stays live and resumable. */}
       <FitScreenHeader
         title={sessionTitle(number, startedAt)}
-        onBack={editingEntry ? goPreviousExercise : onDone}
+        onBack={goPreviousMuscle}
       />
 
       <div className="flex flex-1 flex-col px-5">
