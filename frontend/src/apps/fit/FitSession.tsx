@@ -404,18 +404,20 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               horizontally if the day has too many groups to fit. */}
           {groupSequence.length > 0 && (
             <div className="mt-4 w-full overflow-x-auto">
-              <div className="mx-auto flex w-max overflow-hidden rounded-full border border-slate-700">
+              <div className="mx-auto flex w-max overflow-hidden rounded-lg border border-slate-700">
                 {groupSequence.map((m, i) => (
-                  <span
+                  <button
                     key={m}
-                    className={`whitespace-nowrap px-3 py-1 text-xs font-medium ${i > 0 ? 'border-l border-slate-700' : ''} ${
+                    type="button"
+                    onClick={() => setGroupIndex(i)}
+                    className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium transition-colors ${i > 0 ? 'border-l border-slate-700' : ''} ${
                       i === clampedGroupIndex ? 'bg-emerald-600 text-white'
-                        : i < clampedGroupIndex ? 'bg-slate-800 text-slate-500'
-                        : 'bg-slate-800 text-slate-300'
+                        : i < clampedGroupIndex ? 'bg-slate-800 text-slate-500 active:bg-slate-700'
+                        : 'bg-slate-800 text-slate-300 active:bg-slate-700'
                     }`}
                   >
                     {shortMuscle(m)}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
