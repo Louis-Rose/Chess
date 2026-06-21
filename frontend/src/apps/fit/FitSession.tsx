@@ -463,13 +463,15 @@ export function FitSession({ onDone }: { onDone: () => void }) {
             </div>
           )}
 
-          {/* Only on the last planned muscle group (no "Muscle suivant" left). */}
+          {/* Only on the last planned muscle group (no "Muscle suivant" left).
+              Sits just below the exercises, a touch lower than where "Muscle
+              suivant" would be — not pinned to the bottom of the screen. */}
           {!nextGroup && (
-            <div className="mt-auto flex flex-col items-center pt-8">
+            <div className="mt-12 flex flex-col items-center">
               <button
                 type="button"
                 onClick={() => setConfirmingFinish(true)}
-                className="mb-8 w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+                className="w-full max-w-[22rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
               >
                 Terminer la séance
               </button>
