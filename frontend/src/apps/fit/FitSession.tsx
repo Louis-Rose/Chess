@@ -132,17 +132,37 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     saveSessionNav({ sessionId, editing, picking });
   }, [sessionId, editing, picking]);
 
-  // Whether this session is worth keeping if we leave: it has a logged set, or
-  // the user is mid-pick / mid-exercise (resumable).
+  // A session is worth keeping only once a set is logged. Refs so the
+  // unmount / app-close handlers read the latest values.
   const liveRef = useRef(false);
+  const sessionIdRef = useRef<number | null>(null);
   useEffect(() => {
-    liveRef.current = entries.some(e => e.sets.length > 0) || editing != null || picking;
+    liveRef.current = entries.some(e => e.sets.length > 0);
+    sessionIdRef.current = sessionId;
   });
-  // Leaving an empty, non-resumable session abandons it: end the live session
-  // so the chrono doesn't keep running for a séance Accueil already shows as
-  // gone ("Nouvelle séance").
-  useEffect(() => () => {
-    if (!liveRef.current) { clearSession(); clearValidated(); clearSessionNav(); }
+  // Leaving the session with no set logged (tab switch / Précédent, or the app
+  // being closed) abandons it: delete it server-side so it reverts to "à venir"
+  // rather than lingering as "en cours", and stop the local chrono. On app
+  // close the page is torn down, so use a keepalive fetch that can outlive it.
+  useEffect(() => {
+    const abandon = (beacon: boolean) => {
+      if (liveRef.current) return;
+      const sid = sessionIdRef.current;
+      if (sid != null) {
+        if (beacon) {
+          try { fetch(`/api/fit/sessions/${sid}`, { method: 'DELETE', credentials: 'include', keepalive: true }); } catch { /* best effort */ }
+        } else {
+          fitRequest(() => axios.delete(`/api/fit/sessions/${sid}`)).catch(() => {});
+        }
+      }
+      clearSession(); clearValidated(); clearSessionNav();
+    };
+    const onHide = () => abandon(true);
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      abandon(false);
+    };
   }, []);
 
   function addExercise(leaf: string) {
