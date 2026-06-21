@@ -52,9 +52,8 @@ function SwipeableSession({ session, isOpen, setOpenId, onSelect, onDelete }: Ro
       className="flex flex-col items-center border-slate-700 px-4 py-4 text-center"
     >
       <span className="font-medium text-slate-100">{sessionTitle(session.number, session.started_at)}</span>
-      <span className="mt-0.5 text-sm text-slate-400">
-        {plural(session.exercise_count, 'exercice')} - {plural(session.set_count, 'série')}
-      </span>
+      <span className="mt-0.5 text-sm text-slate-400">{plural(session.exercise_count, 'exercice')}</span>
+      <span className="text-sm text-slate-400">{plural(session.set_count, 'série')}</span>
       <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
     </FitSwipeRow>
   );
@@ -228,9 +227,8 @@ export function FitCalendrier() {
                 <span className="font-medium text-slate-100">
                   Séance {u.number} {u.startable && hasActive ? '(en cours)' : '(à venir)'}
                 </span>
-                <span className="mt-0.5 text-sm text-slate-400">
-                  {plural(u.exercises, 'exercice')} - {plural(u.series, 'série')}
-                </span>
+                <span className="mt-0.5 text-sm text-slate-400">{plural(u.exercises, 'exercice')}</span>
+                <span className="text-sm text-slate-400">{plural(u.series, 'série')}</span>
                 <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
               </button>
             ))}
