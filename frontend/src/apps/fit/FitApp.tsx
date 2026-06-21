@@ -18,8 +18,8 @@ import { requestSessionResume } from './sessionResume';
 
 const TABS: FitTab[] = [
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
-  { key: 'programme', label: 'Programme', Icon: Dumbbell },
   { key: 'performances', label: 'Progrès', Icon: TrendingUp },
+  { key: 'programme', label: 'Programme', Icon: Dumbbell },
   { key: 'principes', label: 'Principes', Icon: BookOpen },
   { key: 'accueil', label: 'Stats', Icon: BarChart3 },
 ];
