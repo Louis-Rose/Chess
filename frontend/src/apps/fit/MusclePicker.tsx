@@ -54,7 +54,7 @@ const recencyLabel = (d: number) =>
 // "<base> — <variant>" shows the variant on its own line under the base name
 // (same size, white, in parentheses) — used by the in-session picker, which
 // offers each program variant as its own card instead of an expandable group.
-function ExLabel({ name, days }: { name: string; days?: number | null }) {
+function ExLabel({ name, days, showMuscles = true }: { name: string; days?: number | null; showMuscles?: boolean }) {
   const i = name.indexOf(' — ');
   const base = i === -1 ? name : name.slice(0, i);
   const variant = i === -1 ? '' : name.slice(i + 3);
@@ -64,7 +64,7 @@ function ExLabel({ name, days }: { name: string; days?: number | null }) {
       <span className="font-medium text-slate-100">{base}</span>
       {variant && <span className="font-medium text-slate-100">({variant})</span>}
       {en && <span className="mt-0.5 text-xs text-slate-400">{en}</span>}
-      <ExerciseMuscles leaf={name} />
+      {showMuscles && <ExerciseMuscles leaf={name} />}
       {days != null && <span className="mt-0.5 text-xs text-emerald-400/80">{recencyLabel(days)}</span>}
     </span>
   );
@@ -81,11 +81,14 @@ const cardBase = 'flex items-center justify-center rounded-xl border px-4 py-3.5
 const cardOn = 'border-emerald-500 bg-emerald-500/10';
 const cardOff = 'border-slate-700 bg-slate-800/50 active:bg-slate-800';
 
-export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency, editableNames, onEdit, onDelete, unilateralNames, onToggleUnilateral }: {
+export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openName, onOpenChange, recency, editableNames, onEdit, onDelete, unilateralNames, onToggleUnilateral, showMuscles = true }: {
   exercises: Exercise[];
   selected: string[];
   onToggle: (id: string) => void;
   ariaLabel?: string;
+  // Show each exercise's worked muscles ("Principal :" / "Secondaire(s) :")
+  // under its name. Useful when building a program; off in the session picker.
+  showMuscles?: boolean;
   // Base names that are custom exercises: when set (with onEdit), those cards
   // show an edit pencil and, when onDelete is given, swipe left to delete.
   // Used only in the program editor, not the session picker. Catalogue (base)
@@ -129,7 +132,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
           const content = (
             <>
               {isCustom && onEdit && <EditPencil onEdit={() => onEdit(ex)} />}
-              <ExLabel name={ex} days={recency?.[ex]} />
+              <ExLabel name={ex} days={recency?.[ex]} showMuscles={showMuscles} />
               {expandable && (
                 <span
                   role="button"
@@ -187,7 +190,7 @@ export function MusclePicker({ exercises, selected, onToggle, ariaLabel, openNam
         const header = (
           <>
             {isCustom && onEdit && <EditPencil onEdit={() => onEdit(ex.name)} />}
-            <ExLabel name={ex.name} days={recency?.[ex.name]} />
+            <ExLabel name={ex.name} days={recency?.[ex.name]} showMuscles={showMuscles} />
             {expanded
               ? <ChevronUp className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               : <ChevronDown className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />}

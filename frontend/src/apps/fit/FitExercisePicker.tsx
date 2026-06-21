@@ -83,6 +83,7 @@ export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNe
                   selected={selected}
                   onToggle={onPick}
                   recency={recency}
+                  showMuscles={false}
                 />
               </div>
             </section>
