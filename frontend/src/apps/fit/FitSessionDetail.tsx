@@ -23,7 +23,7 @@ interface Confirm { title: string; message?: string; confirmLabel?: string; dang
 // sets, and exercises can be added (reached from the Calendrier history); read
 // only when opened as the last session from Accueil.
 
-interface SetRow { id: number; exercise: string; weight: number | null; reps: number; reps_right: number | null; warmup: boolean; }
+interface SetRow { id: number; exercise: string; weight: number | null; reps: number; reps_right: number | null; warmup: boolean; higher_weight: boolean; }
 interface Session { id: number; number: number | null; started_at: string | null; ended_at: string | null; comment: string | null; sets: SetRow[]; perf?: Record<string, PerfStatus | null>; notes?: Record<string, string>; }
 
 function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[] {
@@ -69,16 +69,16 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
       .finally(() => setLoading(false));
   }, [sessionId, editable]);
 
-  async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) {
+  async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean, repsRight: number | null, higher: boolean) {
     const res = await fitRequest(() =>
-      axios.post<SetRow>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup, reps_right: repsRight }));
+      axios.post<SetRow>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup, reps_right: repsRight, higher_weight: higher }));
     setSession(prev => prev && { ...prev, sets: [...prev.sets, res.data] });
   }
 
-  async function updateSet(setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) {
+  async function updateSet(setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null, higher: boolean) {
     await fitRequest(() =>
-      axios.patch(`/api/fit/sessions/${sessionId}/sets/${setId}`, { weight, reps, warmup, reps_right: repsRight }));
-    setSession(prev => prev && { ...prev, sets: prev.sets.map(s => s.id === setId ? { ...s, weight, reps, reps_right: repsRight, warmup } : s) });
+      axios.patch(`/api/fit/sessions/${sessionId}/sets/${setId}`, { weight, reps, warmup, reps_right: repsRight, higher_weight: higher }));
+    setSession(prev => prev && { ...prev, sets: prev.sets.map(s => s.id === setId ? { ...s, weight, reps, reps_right: repsRight, warmup, higher_weight: higher } : s) });
   }
 
   function deleteSet(setId: number) {
@@ -159,8 +159,8 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
             key={editing}
             exercise={editing}
             sets={sets}
-            onAddSet={(w, r, warmup, rr) => askChange(() => addSet(editing, w, r, warmup, rr))}
-            onUpdateSet={(id, w, r, warmup, rr) => askChange(() => updateSet(id, w, r, warmup, rr))}
+            onAddSet={(w, r, warmup, rr, hi) => askChange(() => addSet(editing, w, r, warmup, rr, hi))}
+            onUpdateSet={(id, w, r, warmup, rr, hi) => askChange(() => updateSet(id, w, r, warmup, rr, hi))}
             onDeleteSet={confirmDeleteSet}
             workWeight={workWeights[editing] ?? null}
             setting={exerciseSettings[editing.split(' — ')[0]] ?? null}

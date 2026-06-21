@@ -392,6 +392,7 @@ def init_db():
                     exercise TEXT NOT NULL,
                     weight REAL,
                     reps INTEGER NOT NULL,
+                    higher_weight BOOLEAN NOT NULL DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -401,6 +402,14 @@ def init_db():
         if not _column_exists(conn, 'fit_session_sets', 'warmup'):
             conn.execute("ALTER TABLE fit_session_sets ADD COLUMN warmup BOOLEAN NOT NULL DEFAULT FALSE")
             logger.info("Added fit_session_sets.warmup column")
+
+        # Migration: fit_session_sets — flag a set as a "higher weight" attempt
+        # (heavier than the working weight). Excluded from the working-weight
+        # derivation and the records, never demoted to warmup; shown as
+        # "Higher weight" in Progrès.
+        if not _column_exists(conn, 'fit_session_sets', 'higher_weight'):
+            conn.execute("ALTER TABLE fit_session_sets ADD COLUMN higher_weight BOOLEAN NOT NULL DEFAULT FALSE")
+            logger.info("Added fit_session_sets.higher_weight column")
 
         # Migration: fit_sessions — optional free-text comment on a session
         if not _column_exists(conn, 'fit_sessions', 'comment'):

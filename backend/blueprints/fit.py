@@ -908,8 +908,9 @@ def set_exercise_setting():
 def _recompute_work_weight(conn, user_id, exercise):
     """Derive an exercise's working weight from history and persist it: the
     heaviest weight used on a working set across the three most recent finished
-    sessions in which the exercise was worked (warmups excluded). Leaves the
-    existing value untouched when no session qualifies (never clears it)."""
+    sessions in which the exercise was worked (warmups and higher-weight attempts
+    excluded). Leaves the existing value untouched when no session qualifies
+    (never clears it)."""
     row = conn.execute(
         """
         WITH recent AS (
@@ -917,7 +918,7 @@ def _recompute_work_weight(conn, user_id, exercise):
             FROM fit_sessions s
             JOIN fit_session_sets ss ON ss.session_id = s.id
             WHERE s.user_id = ? AND s.ended_at IS NOT NULL AND ss.exercise = ?
-                  AND ss.warmup = FALSE AND ss.weight IS NOT NULL
+                  AND ss.warmup = FALSE AND ss.higher_weight = FALSE AND ss.weight IS NOT NULL
             GROUP BY s.id, s.started_at
             ORDER BY s.started_at DESC
             LIMIT 3
@@ -925,7 +926,7 @@ def _recompute_work_weight(conn, user_id, exercise):
         SELECT MAX(ss.weight) AS weight
         FROM fit_session_sets ss
         JOIN recent r ON r.id = ss.session_id
-        WHERE ss.exercise = ? AND ss.warmup = FALSE AND ss.weight IS NOT NULL
+        WHERE ss.exercise = ? AND ss.warmup = FALSE AND ss.higher_weight = FALSE AND ss.weight IS NOT NULL
         """,
         (user_id, exercise, exercise)
     ).fetchone()
@@ -935,6 +936,15 @@ def _recompute_work_weight(conn, user_id, exercise):
                ON CONFLICT (user_id, exercise) DO UPDATE SET weight = EXCLUDED.weight""",
             (user_id, exercise, row['weight'])
         )
+
+
+def _recompute_if_finished(conn, user_id, session_id, exercise):
+    """Editing a finished session's sets (e.g. flagging one "higher weight")
+    changes history, so refresh that exercise's working weight. In-progress
+    sessions are skipped — they recompute on finish."""
+    row = conn.execute('SELECT ended_at FROM fit_sessions WHERE id = ?', (session_id,)).fetchone()
+    if row and row['ended_at'] is not None:
+        _recompute_work_weight(conn, user_id, exercise)
 
 
 # ── Sessions (workout logging) ───────────────────────────────────────────────
@@ -980,7 +990,7 @@ def _perf_by_session(conn):
         """SELECT s.id AS session_id, ss.exercise, ss.weight, ss.reps, ss.reps_right
            FROM fit_sessions s
            JOIN fit_session_sets ss ON ss.session_id = s.id
-           WHERE s.user_id = ? AND s.ended_at IS NOT NULL AND ss.warmup = FALSE
+           WHERE s.user_id = ? AND s.ended_at IS NOT NULL AND ss.warmup = FALSE AND ss.higher_weight = FALSE
            ORDER BY s.started_at ASC, s.id ASC, ss.id ASC""",
         (request.user_id,)
     ).fetchall()
@@ -1035,7 +1045,7 @@ def _perf_by_session(conn):
 def _session_payload(conn, row):
     """Serialize a session row together with its logged sets (in order)."""
     sets = conn.execute(
-        'SELECT id, exercise, weight, reps, reps_right, warmup FROM fit_session_sets WHERE session_id = ? ORDER BY id',
+        'SELECT id, exercise, weight, reps, reps_right, warmup, higher_weight FROM fit_session_sets WHERE session_id = ? ORDER BY id',
         (row['id'],)
     ).fetchall()
     notes = conn.execute(
@@ -1049,7 +1059,8 @@ def _session_payload(conn, row):
         'ended_at': row['ended_at'].isoformat() if row['ended_at'] else None,
         'comment': row['comment'],
         'sets': [{'id': s['id'], 'exercise': s['exercise'], 'weight': s['weight'],
-                  'reps': s['reps'], 'reps_right': s['reps_right'], 'warmup': bool(s['warmup'])} for s in sets],
+                  'reps': s['reps'], 'reps_right': s['reps_right'], 'warmup': bool(s['warmup']),
+                  'higher_weight': bool(s['higher_weight'])} for s in sets],
         'notes': {n['exercise']: n['note'] for n in notes},
     }
 
@@ -1288,6 +1299,9 @@ def add_session_set(session_id):
     reps = data.get('reps')
     reps_right = data.get('reps_right')
     warmup = bool(data.get('warmup'))
+    # A "higher weight" attempt (heavier than the working weight) is a working set
+    # with a special status; it can't also be a warmup.
+    higher_weight = bool(data.get('higher_weight')) and not warmup
     err = _validate_set_values(reps, weight, reps_right)
     if err:
         return jsonify({'error': err}), 400
@@ -1298,21 +1312,23 @@ def add_session_set(session_id):
         if exercise not in _user_leaves(conn, request.user_id):
             return jsonify({'error': 'Invalid exercise'}), 400
         row = conn.execute(
-            'INSERT INTO fit_session_sets (session_id, exercise, weight, reps, reps_right, warmup) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
-            (session_id, exercise, weight, reps, reps_right, warmup)
+            'INSERT INTO fit_session_sets (session_id, exercise, weight, reps, reps_right, warmup, higher_weight) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id',
+            (session_id, exercise, weight, reps, reps_right, warmup, higher_weight)
         ).fetchone()
-    return jsonify({'id': row['id'], 'exercise': exercise, 'weight': weight, 'reps': reps, 'reps_right': reps_right, 'warmup': warmup})
+        _recompute_if_finished(conn, request.user_id, session_id, exercise)
+    return jsonify({'id': row['id'], 'exercise': exercise, 'weight': weight, 'reps': reps, 'reps_right': reps_right, 'warmup': warmup, 'higher_weight': higher_weight})
 
 
 @fit_bp.route('/api/fit/sessions/<int:session_id>/sets/<int:set_id>', methods=['PATCH'])
 @fit_login_required
 def update_session_set(session_id, set_id):
-    """Edit an existing set's weight, reps and warmup flag in place."""
+    """Edit an existing set's weight, reps, warmup and higher-weight flags in place."""
     data = request.get_json(silent=True) or {}
     weight = data.get('weight')
     reps = data.get('reps')
     reps_right = data.get('reps_right')
     warmup = bool(data.get('warmup'))
+    higher_weight = bool(data.get('higher_weight')) and not warmup
     err = _validate_set_values(reps, weight, reps_right)
     if err:
         return jsonify({'error': err}), 400
@@ -1321,12 +1337,13 @@ def update_session_set(session_id, set_id):
         if not _owned_session(conn, session_id):
             return jsonify({'error': 'Not found'}), 404
         row = conn.execute(
-            'UPDATE fit_session_sets SET weight = ?, reps = ?, reps_right = ?, warmup = ? WHERE id = ? AND session_id = ? RETURNING id',
-            (weight, reps, reps_right, warmup, set_id, session_id)
+            'UPDATE fit_session_sets SET weight = ?, reps = ?, reps_right = ?, warmup = ?, higher_weight = ? WHERE id = ? AND session_id = ? RETURNING exercise',
+            (weight, reps, reps_right, warmup, higher_weight, set_id, session_id)
         ).fetchone()
         if not row:
             return jsonify({'error': 'Not found'}), 404
-    return jsonify({'id': set_id, 'weight': weight, 'reps': reps, 'reps_right': reps_right, 'warmup': warmup})
+        _recompute_if_finished(conn, request.user_id, session_id, row['exercise'])
+    return jsonify({'id': set_id, 'weight': weight, 'reps': reps, 'reps_right': reps_right, 'warmup': warmup, 'higher_weight': higher_weight})
 
 
 @fit_bp.route('/api/fit/sessions/<int:session_id>/sets/<int:set_id>', methods=['DELETE'])
@@ -1336,10 +1353,12 @@ def delete_session_set(session_id, set_id):
     with get_db() as conn:
         if not _owned_session(conn, session_id):
             return jsonify({'error': 'Not found'}), 404
-        conn.execute(
-            'DELETE FROM fit_session_sets WHERE id = ? AND session_id = ?',
+        row = conn.execute(
+            'DELETE FROM fit_session_sets WHERE id = ? AND session_id = ? RETURNING exercise',
             (set_id, session_id)
-        )
+        ).fetchone()
+        if row:
+            _recompute_if_finished(conn, request.user_id, session_id, row['exercise'])
     return jsonify({'ok': True})
 
 
@@ -1453,7 +1472,7 @@ def exercise_history():
         return jsonify({'sessions': []})
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT s.id AS session_id, s.started_at, ss.weight, ss.reps, ss.reps_right, ss.warmup,
+            """SELECT s.id AS session_id, s.started_at, ss.weight, ss.reps, ss.reps_right, ss.warmup, ss.higher_weight,
                       (SELECT COUNT(*) FROM fit_sessions s2
                        WHERE s2.user_id = s.user_id AND s2.ended_at IS NOT NULL
                              AND s2.started_at < s.started_at
@@ -1475,7 +1494,8 @@ def exercise_history():
                     'sets': []}
             by_id[r['session_id']] = sess
             sessions.append(sess)
-        sess['sets'].append({'weight': r['weight'], 'reps': r['reps'], 'reps_right': r['reps_right'], 'warmup': bool(r['warmup'])})
+        sess['sets'].append({'weight': r['weight'], 'reps': r['reps'], 'reps_right': r['reps_right'],
+                             'warmup': bool(r['warmup']), 'higher_weight': bool(r['higher_weight'])})
     return jsonify({'sessions': sessions})
 
 
@@ -1536,20 +1556,22 @@ def performances():
 
 def _normalize_working_weight(conn, session_id):
     """A session has one working weight per exercise: the heaviest used. Demote
-    any working set lighter than that to a warmup (bodyweight counts as 0)."""
+    any working set lighter than that to a warmup (bodyweight counts as 0).
+    Higher-weight attempts are excluded: they don't set the working weight (so
+    they can't demote the real working sets) and are never demoted themselves."""
     conn.execute(
         """
         WITH maxes AS (
             SELECT exercise, MAX(COALESCE(weight, 0)) AS maxw
             FROM fit_session_sets
-            WHERE session_id = ? AND warmup = FALSE
+            WHERE session_id = ? AND warmup = FALSE AND higher_weight = FALSE
             GROUP BY exercise
         )
         UPDATE fit_session_sets ss
         SET warmup = TRUE
         FROM maxes m
         WHERE ss.session_id = ? AND ss.exercise = m.exercise
-          AND ss.warmup = FALSE AND COALESCE(ss.weight, 0) < m.maxw
+          AND ss.warmup = FALSE AND ss.higher_weight = FALSE AND COALESCE(ss.weight, 0) < m.maxw
         """,
         (session_id, session_id)
     )
@@ -1567,7 +1589,7 @@ def _demote_feeler_sets(conn, session_id):
             SELECT id, exercise, reps,
                    ROW_NUMBER() OVER (PARTITION BY exercise ORDER BY id) AS rn
             FROM fit_session_sets
-            WHERE session_id = ? AND warmup = FALSE
+            WHERE session_id = ? AND warmup = FALSE AND higher_weight = FALSE
         ),
         feelers AS (
             SELECT o1.id

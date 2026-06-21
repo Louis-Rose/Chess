@@ -33,7 +33,7 @@ interface SessionPayload {
   number: number | null;
   started_at: string | null;
   comment: string | null;
-  sets: { id: number; exercise: string; weight: number | null; reps: number; reps_right: number | null; warmup: boolean }[];
+  sets: { id: number; exercise: string; weight: number | null; reps: number; reps_right: number | null; warmup: boolean; higher_weight: boolean }[];
   notes?: Record<string, string>;
 }
 
@@ -43,7 +43,7 @@ function groupSets(sets: SessionPayload['sets']): Entry[] {
   const idx = new Map<string, number>();
   for (const s of sets) {
     if (!idx.has(s.exercise)) { idx.set(s.exercise, groups.length); groups.push({ exercise: s.exercise, sets: [] }); }
-    groups[idx.get(s.exercise)!].sets.push({ id: s.id, weight: s.weight, reps: s.reps, reps_right: s.reps_right, warmup: s.warmup });
+    groups[idx.get(s.exercise)!].sets.push({ id: s.id, weight: s.weight, reps: s.reps, reps_right: s.reps_right, warmup: s.warmup, higher_weight: s.higher_weight });
   }
   return groups;
 }
@@ -206,11 +206,11 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     fitRequest(() => axios.put(`/api/fit/sessions/${sessionId}/comment`, { comment: c })).catch(() => {});
   }
 
-  async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) {
+  async function addSet(exercise: string, weight: number | null, reps: number, warmup: boolean, repsRight: number | null, higher: boolean) {
     if (sessionId == null) return;
     const res = await fitRequest(() =>
-      axios.post<{ id: number }>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup, reps_right: repsRight }));
-    const newSet: LoggedSet = { id: res.data.id, weight, reps, reps_right: repsRight, warmup };
+      axios.post<{ id: number }>(`/api/fit/sessions/${sessionId}/sets`, { exercise, weight, reps, warmup, reps_right: repsRight, higher_weight: higher }));
+    const newSet: LoggedSet = { id: res.data.id, weight, reps, reps_right: repsRight, warmup, higher_weight: higher };
     setEntries(prev => prev.map(e =>
       e.exercise === exercise ? { ...e, sets: [...e.sets, newSet] } : e));
     // A logged set makes the session "live" again — it may have been cleared by
@@ -219,12 +219,12 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     startRest(Date.now());   // (re)start the shared rest timer
   }
 
-  async function updateSet(exercise: string, setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) {
+  async function updateSet(exercise: string, setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null, higher: boolean) {
     if (sessionId == null) return;
     await fitRequest(() =>
-      axios.patch(`/api/fit/sessions/${sessionId}/sets/${setId}`, { weight, reps, warmup, reps_right: repsRight }));
+      axios.patch(`/api/fit/sessions/${sessionId}/sets/${setId}`, { weight, reps, warmup, reps_right: repsRight, higher_weight: higher }));
     setEntries(prev => prev.map(e =>
-      e.exercise === exercise ? { ...e, sets: e.sets.map(s => s.id === setId ? { id: setId, weight, reps, reps_right: repsRight, warmup } : s) } : e));
+      e.exercise === exercise ? { ...e, sets: e.sets.map(s => s.id === setId ? { id: setId, weight, reps, reps_right: repsRight, warmup, higher_weight: higher } : s) } : e));
   }
 
   function deleteSet(exercise: string, setId: number) {
@@ -343,8 +343,8 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               key={editingEntry.exercise}
               exercise={editingEntry.exercise}
               sets={editingEntry.sets}
-              onAddSet={(w, r, warmup, rr) => addSet(editingEntry.exercise, w, r, warmup, rr)}
-              onUpdateSet={(id, w, r, warmup, rr) => updateSet(editingEntry.exercise, id, w, r, warmup, rr)}
+              onAddSet={(w, r, warmup, rr, hi) => addSet(editingEntry.exercise, w, r, warmup, rr, hi)}
+              onUpdateSet={(id, w, r, warmup, rr, hi) => updateSet(editingEntry.exercise, id, w, r, warmup, rr, hi)}
               onDeleteSet={id => deleteSet(editingEntry.exercise, id)}
               workWeight={workWeights[editingEntry.exercise] ?? null}
               setting={exerciseSettings[editingEntry.exercise.split(' — ')[0]] ?? null}

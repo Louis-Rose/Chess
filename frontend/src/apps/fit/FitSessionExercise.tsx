@@ -32,13 +32,14 @@ export interface LoggedSet {
   reps: number;
   reps_right: number | null;   // right-side reps of a unilateral set, else null
   warmup: boolean;
+  higher_weight: boolean;      // a heavier-than-working-weight attempt (excluded from the working weight)
 }
 
 interface Props {
   exercise: string;                                       // stored leaf
   sets: LoggedSet[];
-  onAddSet: (weight: number | null, reps: number, warmup: boolean, repsRight: number | null) => Promise<void>;
-  onUpdateSet: (setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null) => Promise<void>;
+  onAddSet: (weight: number | null, reps: number, warmup: boolean, repsRight: number | null, higher: boolean) => Promise<void>;
+  onUpdateSet: (setId: number, weight: number | null, reps: number, warmup: boolean, repsRight: number | null, higher: boolean) => Promise<void>;
   onDeleteSet: (setId: number) => void;
   workWeight?: number | null;                             // working weight carried from history (previous sessions)
   setting?: string | null;                                // persisted machine-setting override (per base)
@@ -51,6 +52,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');           // left side when unilateral
   const [repsRight, setRepsRight] = useState(''); // right side, unilateral only
+  const [higher, setHigher] = useState(false);    // mark this set as a "higher weight" attempt
   // Guided sequence. The warmup is always exactly WARMUP_SETS sets, then it moves
   // on to the working sets automatically (no "end warmup" step). Resume at the
   // right step: any working set, or the warmup already complete → work; some
@@ -82,10 +84,12 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   // Working weight shown (read-only): the heaviest working set logged so far this
   // session, or the value carried from history (previous session) if none yet.
+  // "Higher weight" attempts are excluded — they don't define the working weight.
   const liftW = (w: number | null) => w ?? 0;
   const workSets = sets.filter(s => !s.warmup);
-  const deducedWorkWeight: number | null = workSets.length
-    ? workSets.reduce((best, s) => (liftW(s.weight) > liftW(best.weight) ? s : best)).weight
+  const realWorkSets = workSets.filter(s => !s.higher_weight);
+  const deducedWorkWeight: number | null = realWorkSets.length
+    ? realWorkSets.reduce((best, s) => (liftW(s.weight) > liftW(best.weight) ? s : best)).weight
     : (workWeight ?? null);
 
   // Store the setting only when it differs from the catalogue default; clearing
@@ -126,6 +130,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
 
   function openAdd() {
     setEditingId(null);
+    setHigher(false);
     if (warmupMode) {
       // Pre-fill the warmup set from the working weight: set 1 ≈ 33%, set 2 ≈ 66%
       // (rounded to the kg), with a suggested rep count. Both stay editable.
@@ -159,6 +164,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setReps(String(s.reps));
     setRepsRight(s.reps_right == null ? '' : String(s.reps_right));
     setWeight(s.weight == null ? '' : normSign(String(s.weight)));
+    setHigher(s.higher_weight);
   }
 
   function reset() {
@@ -167,6 +173,7 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
     setWeight('');
     setReps('');
     setRepsRight('');
+    setHigher(false);
   }
 
   async function submit() {
@@ -176,10 +183,12 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
       ? (sets.find(s => s.id === editingId)?.warmup ?? false)
       : warmupMode;
     const rr = unilateral ? repsRightNum : null;
+    // "Higher weight" only applies to working sets (a warmup can't be one).
+    const hi = !isWarmup && higher;
     setSaving(true);
     try {
-      if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, isWarmup, rr);
-      else await onAddSet(weightNum, repsNum, isWarmup, rr);
+      if (editingId != null) await onUpdateSet(editingId, weightNum, repsNum, isWarmup, rr, hi);
+      else await onAddSet(weightNum, repsNum, isWarmup, rr, hi);
       reset();
       // The warmup is exactly WARMUP_SETS sets: once they're in, move to working.
       if (editingId == null && isWarmup && sets.filter(s => s.warmup).length + 1 >= WARMUP_SETS) {
@@ -250,10 +259,12 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
           type="button"
           onClick={() => (isEditing ? reset() : startEdit(s))}
           className={`w-full px-2 py-1 transition-colors active:bg-slate-800 ${
-            isEditing ? 'text-emerald-400' : dim ? 'text-slate-400' : 'font-medium text-slate-100'
+            isEditing ? 'text-emerald-400'
+              : s.higher_weight ? 'font-medium text-amber-300'
+              : dim ? 'text-slate-400' : 'font-medium text-slate-100'
           }`}
         >
-          {formatSet(s.weight, s.reps, false, s.reps_right, showSign)}
+          {s.higher_weight ? '↑ ' : ''}{formatSet(s.weight, s.reps, false, s.reps_right, showSign)}
         </button>
       </td>
     );
@@ -382,6 +393,24 @@ export function FitSessionExercise({ exercise, sets, onAddSet, onUpdateSet, onDe
                 <Check className="h-5 w-5" />
               </button>
             </div>
+          )}
+
+          {/* A working set can be flagged as a heavier-than-usual attempt: it
+              keeps its place but is excluded from the working-weight calc and
+              shows as "Higher weight" in Progrès. Not offered for warmups. */}
+          {!(editingId != null ? (sets.find(s => s.id === editingId)?.warmup ?? false) : warmupMode) && (
+            <button
+              type="button"
+              onClick={() => setHigher(h => !h)}
+              aria-pressed={higher}
+              className={`mt-3 w-full rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                higher
+                  ? 'border-amber-500/60 bg-amber-500/15 text-amber-300'
+                  : 'border-slate-700 bg-slate-800/60 text-slate-400 active:bg-slate-800'
+              }`}
+            >
+              Higher weight{higher ? ' ✓' : ''}
+            </button>
           )}
         </div>
       ) : (

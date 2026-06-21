@@ -20,22 +20,26 @@ export function FitPerformances() {
   useCustomExercises();   // so muscleOf groups custom exercises correctly
   const [exercises, setExercises] = useState<ExercisePerf[]>([]);
   const [programLeaves, setProgramLeaves] = useState<Set<string>>(new Set());
+  const [workWeights, setWorkWeights] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<number | null>(null);
 
   useEffect(() => {
-    // Show only exercises currently in the program, so fetch both the logged
-    // performances and the program's selected exercises.
+    // Show only exercises currently in the program, so fetch the logged
+    // performances, the program's selected exercises, and the deduced working
+    // weights (the threshold above which a set is a "higher weight" attempt).
     Promise.all([
       fitRequest(() => axios.get<{ exercises: ExercisePerf[] }>('/api/fit/performances')),
       fitRequest(() => axios.get<{ selections: Record<string, string[]> }>('/api/fit/exercises')),
+      fitRequest(() => axios.get<{ weights: Record<string, number> }>('/api/fit/work-weights')),
     ])
-      .then(([perfRes, exRes]) => {
+      .then(([perfRes, exRes, wwRes]) => {
         setExercises(perfRes.data.exercises ?? []);
         const leaves = new Set<string>();
         for (const arr of Object.values(exRes.data.selections ?? {})) for (const l of arr) leaves.add(l);
         setProgramLeaves(leaves);
+        setWorkWeights(wwRes.data.weights ?? {});
       })
       .catch(() => { /* show empty */ })
       .finally(() => setLoading(false));
@@ -46,7 +50,7 @@ export function FitPerformances() {
     return <FitSessionDetail sessionId={sessionId} onBack={() => setSessionId(null)} />;
 
   const current = selected != null ? exercises.find(e => e.exercise === selected) ?? null : null;
-  if (current) return <PerformanceDetail perf={current} onBack={() => setSelected(null)} onOpenSession={setSessionId} />;
+  if (current) return <PerformanceDetail perf={current} workWeight={workWeights[current.exercise] ?? null} onBack={() => setSelected(null)} onOpenSession={setSessionId} />;
 
   // Group worked exercises by muscle, in catalogue order, sorted within.
   // Only exercises currently in the program are shown.
@@ -118,29 +122,38 @@ function wrapRows<T>(arr: T[], n: number): T[][] {
   return groups.reverse();
 }
 
-function PerformanceDetail({ perf, onBack, onOpenSession }: {
+function PerformanceDetail({ perf, workWeight, onBack, onOpenSession }: {
   perf: ExercisePerf;
+  workWeight: number | null;   // deduced working weight; sessions above it are "higher weight" attempts
   onBack: () => void;
   onOpenSession: (id: number) => void;
 }) {
-  // The working weight only ever climbs: track its running max over the sessions
-  // (oldest → newest). Every session is placed in the row of the working weight
-  // in force at the time; a session whose heaviest set was below it (a down day)
-  // still sits in that row but is flagged "Lower weight" instead of its reps.
+  // Below the deduced working weight, the working weight climbs: track its
+  // running max over the sessions (oldest → newest). Every session is placed in
+  // the row of the working weight in force at the time; a session whose heaviest
+  // set was below it (a down day) still sits in that row but is flagged "Lower
+  // weight". A session ABOVE the deduced working weight is a "higher weight"
+  // attempt: it sits in the working-weight row, never raises the running max,
+  // and is flagged "Higher weight" instead of its reps.
   const lift = (w: number | null) => w ?? 0;   // bodyweight counts as 0
   const signed = isSignedExercise(perf.exercise);
   // Bodyweight is stored as null on old sets and 0 on newer ones — collapse both
   // to one row (0 for signed exercises, null otherwise) so it isn't split in two.
   const bodyKey: number | null = signed ? 0 : null;
+  const ceiling = workWeight;                   // null when no working weight known yet
   let maxLift = -Infinity;
-  let workWeight: number | null = null;
+  let curRow: number | null = null;
   const cells = perf.sessions.flatMap(s => {
     if (s.weights.length === 0) return [];
     const top = s.weights.reduce((a, b) => (lift(b.weight) > lift(a.weight) ? b : a));
+    if (ceiling != null && lift(top.weight) > lift(ceiling)) {
+      const rowW = lift(ceiling) === 0 ? bodyKey : ceiling;
+      return [{ id: s.id, number: s.number, reps: top.reps, sets: top.sets, rowWeight: rowW, lower: false, higher: true, higherWeight: top.weight }];
+    }
     let lower = false;
-    if (lift(top.weight) >= maxLift) { maxLift = lift(top.weight); workWeight = lift(top.weight) === 0 ? bodyKey : top.weight; }
+    if (lift(top.weight) >= maxLift) { maxLift = lift(top.weight); curRow = lift(top.weight) === 0 ? bodyKey : top.weight; }
     else lower = true;
-    return [{ id: s.id, number: s.number, reps: top.reps, sets: top.sets, rowWeight: workWeight, lower }];
+    return [{ id: s.id, number: s.number, reps: top.reps, sets: top.sets, rowWeight: curRow, lower, higher: false, higherWeight: null as number | null }];
   });
 
   // Rows = the distinct working weights, heaviest first (bodyweight last).
@@ -196,12 +209,16 @@ function PerformanceDetail({ perf, onBack, onOpenSession }: {
                         onClick={() => onOpenSession(e.id)}
                         className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-2 transition-colors active:bg-slate-800"
                       >
-                        {e.lower ? (
+                        {e.higher ? (
+                          <span className="text-center text-xs font-medium leading-tight text-amber-300">Higher<br />weight</span>
+                        ) : e.lower ? (
                           <span className="text-center text-xs font-medium leading-tight text-slate-100">Lower<br />weight</span>
                         ) : (
                           <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps} reps</span>
                         )}
-                        <span className="whitespace-nowrap text-xs text-white">({e.sets} série{e.sets > 1 ? 's' : ''})</span>
+                        <span className={`whitespace-nowrap text-xs ${e.higher ? 'text-amber-300/80' : 'text-white'}`}>
+                          {e.higher ? weightLabel(e.higherWeight, signed) : `(${e.sets} série${e.sets > 1 ? 's' : ''})`}
+                        </span>
                         {e.number != null && <span className="whitespace-nowrap text-[11px] text-slate-500">Séance {e.number}</span>}
                       </button>
                     </td>
