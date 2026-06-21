@@ -928,6 +928,39 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('latraises_louis_poulie_basse_unilateral',))
             logger.info("Re-filed Louis's Élévations latérales history to Poulie basse + unilateral, recomputed work weight")
 
+        # Migration: the recompute above was added by amending the migration after
+        # its first (re-file-only) version had already run on prod, so the guard
+        # skipped it on the next deploy — leaving the persisted working weight stuck
+        # at the stale orphan (20 kg) even though the re-filed history maxes at 4.5.
+        # Run the recompute under a fresh guard so it actually executes. Heaviest
+        # working set over the 3 most recent finished Poulie basse sessions.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('latraises_louis_recompute_work_weight',)).fetchone():
+            louis = conn.execute("SELECT id FROM users WHERE email = ?", ('rose.louis.mail@gmail.com',)).fetchone()
+            if louis:
+                conn.execute("""
+                    WITH recent AS (
+                        SELECT s.id
+                        FROM fit_sessions s
+                        JOIN fit_session_sets ss ON ss.session_id = s.id
+                        WHERE s.user_id = ? AND s.ended_at IS NOT NULL
+                          AND ss.exercise = 'Élévations latérales — Poulie basse'
+                          AND ss.warmup = FALSE AND ss.weight IS NOT NULL
+                        GROUP BY s.id, s.started_at
+                        ORDER BY s.started_at DESC
+                        LIMIT 3
+                    )
+                    INSERT INTO fit_work_weights (user_id, exercise, weight)
+                    SELECT ?, 'Élévations latérales — Poulie basse', MAX(ss.weight)
+                    FROM fit_session_sets ss
+                    JOIN recent r ON r.id = ss.session_id
+                    WHERE ss.exercise = 'Élévations latérales — Poulie basse'
+                      AND ss.warmup = FALSE AND ss.weight IS NOT NULL
+                    HAVING MAX(ss.weight) IS NOT NULL
+                    ON CONFLICT (user_id, exercise) DO UPDATE SET weight = EXCLUDED.weight
+                """, (louis['id'], louis['id']))
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('latraises_louis_recompute_work_weight',))
+            logger.info("Recomputed Louis's Élévations latérales working weight (fresh-guard fix)")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
