@@ -439,15 +439,18 @@ export function FitSession({ onDone }: { onDone: () => void }) {
             </div>
           )}
 
-          <div className="mt-auto flex flex-col items-center pt-8">
-            <button
-              type="button"
-              onClick={() => setConfirmingFinish(true)}
-              className="mb-8 w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
-            >
-              Terminer la séance
-            </button>
-          </div>
+          {/* Only on the last planned muscle group (no "Muscle suivant" left). */}
+          {!nextGroup && (
+            <div className="mt-auto flex flex-col items-center pt-8">
+              <button
+                type="button"
+                onClick={() => setConfirmingFinish(true)}
+                className="mb-8 w-full max-w-[14rem] rounded-xl bg-emerald-600 px-4 py-3.5 font-semibold text-white transition-colors hover:bg-emerald-500"
+              >
+                Terminer la séance
+              </button>
+            </div>
+          )}
         </>
       )}
       </div>
