@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronRight, Loader2, Plus } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSessionExercise, type LoggedSet } from './FitSessionExercise';
 import { FitExercisePicker } from './FitExercisePicker';
@@ -368,7 +368,9 @@ export function FitSession({ onDone }: { onDone: () => void }) {
           </div>
         </>
       ) : (
-        // Overview: tap an exercise to edit it, or add one / finish the session.
+        // Live session: a banner of the day's muscle groups, then the exercises
+        // to pick for the current group (the session's main view, walked forward
+        // with "Muscle suivant"), then what's already logged and "Terminer".
         <>
           {today && (
             <p className="mt-4 text-center text-sm">
@@ -377,6 +379,40 @@ export function FitSession({ onDone }: { onDone: () => void }) {
               <span className="text-emerald-300">{today.label}</span>
             </p>
           )}
+
+          {/* Banner: every muscle group of the day, the current one highlighted,
+              the ones already passed dimmed. */}
+          {groupSequence.length > 0 && (
+            <div className="mx-auto mt-4 flex w-full max-w-[22rem] flex-wrap justify-center gap-1.5">
+              {groupSequence.map((m, i) => (
+                <span
+                  key={m}
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    i === clampedGroupIndex ? 'bg-emerald-600 text-white'
+                      : i < clampedGroupIndex ? 'bg-slate-800 text-slate-500'
+                      : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  {m}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* The current group's exercises, proposed straight away (no button). */}
+          <div className="mt-6">
+            <FitExercisePicker
+              embedded
+              program={program}
+              muscleOrder={muscleOrder}
+              group={currentGroup}
+              nextGroup={nextGroup}
+              onNextGroup={() => setGroupIndex(i => Math.min(i + 1, groupSequence.length - 1))}
+              onPick={addExercise}
+              onClose={() => {}}
+            />
+          </div>
+
           {entries.length > 0 && (
             <div className="mx-auto mt-8 flex w-full max-w-[22rem] flex-col gap-3">
               {entries.map(e => (
@@ -403,15 +439,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => setPicking(true)}
-            className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 py-3 font-medium text-slate-100 transition-colors active:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            Ajouter un exercice
-          </button>
-
           <div className="mt-auto flex flex-col items-center pt-8">
             <button
               type="button"
@@ -424,18 +451,6 @@ export function FitSession({ onDone }: { onDone: () => void }) {
         </>
       )}
       </div>
-
-      {picking && (
-        <FitExercisePicker
-          program={program}
-          muscleOrder={muscleOrder}
-          group={currentGroup}
-          nextGroup={nextGroup}
-          onNextGroup={() => setGroupIndex(i => Math.min(i + 1, groupSequence.length - 1))}
-          onPick={addExercise}
-          onClose={() => setPicking(false)}
-        />
-      )}
 
       {confirmLeaf != null && (
         <FitConfirm

@@ -17,7 +17,7 @@ import { validatedLeaves } from './validatedExercises';
 // Each program variant is its own card (single tap adds it via onPick); only
 // still-valid exercises are shown.
 
-export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNextGroup, onPick, onClose }: {
+export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNextGroup, onPick, onClose, embedded }: {
   program: Record<string, string[]>;
   // The program's chosen muscle order (from the "Ordre" step).
   muscleOrder?: string[];
@@ -28,6 +28,9 @@ export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNe
   onNextGroup?: () => void;
   onPick: (leaf: string) => void;
   onClose: () => void;
+  // Embedded: render just the picker content inline (no full-screen chrome),
+  // for the live session where the picker is the session's main view.
+  embedded?: boolean;
 }) {
   useCustomExercises();   // warm the custom catalogue so custom leaves stay valid
   // Days since each exercise (per stored leaf) was last done, shown on its card.
@@ -62,6 +65,48 @@ export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNe
 
   const sequential = group != null;
 
+  const body = (
+    <>
+      {groups.length === 0 ? (
+        <p className="mt-8 text-center text-sm text-slate-400">
+          Aucun exercice disponible. Ajoute-en dans ton programme.
+        </p>
+      ) : (
+        <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-6">
+          {groups.map(g => (
+            <section key={g.name}>
+              <h3 className="text-center text-xs uppercase tracking-wide text-white">{g.name}</h3>
+              <div className="mt-2">
+                <MusclePicker
+                  exercises={g.exercises}
+                  ariaLabel={`Exercices ${g.name}`}
+                  selected={selected}
+                  onToggle={onPick}
+                  recency={recency}
+                />
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {/* Walk to the next muscle group (forward only). */}
+      {sequential && nextGroup && (
+        <button
+          type="button"
+          onClick={onNextGroup}
+          className="mx-auto mt-8 flex w-full max-w-[22rem] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition-colors active:bg-emerald-500"
+        >
+          Muscle suivant : {nextGroup}
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </>
+  );
+
+  // Inline in the live session: just the content, the page provides the chrome.
+  if (embedded) return <div>{body}</div>;
+
   return (
     <div className="fixed inset-x-0 top-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 flex flex-col bg-slate-900 text-slate-100">
       {/* Covers the app's header + sticky chrono, but stops above the bottom nav
@@ -72,40 +117,7 @@ export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNe
       <FitScreenHeader title="Ajouter un exercice" onBack={onClose} />
 
       <div className="flex-1 overflow-y-auto px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-5">
-        {groups.length === 0 ? (
-          <p className="mt-8 text-center text-sm text-slate-400">
-            Aucun exercice disponible. Ajoute-en dans ton programme.
-          </p>
-        ) : (
-          <div className="mx-auto flex w-full max-w-[22rem] flex-col gap-6">
-            {groups.map(g => (
-              <section key={g.name}>
-                <h3 className="text-center text-xs uppercase tracking-wide text-white">{g.name}</h3>
-                <div className="mt-2">
-                  <MusclePicker
-                    exercises={g.exercises}
-                    ariaLabel={`Exercices ${g.name}`}
-                    selected={selected}
-                    onToggle={onPick}
-                    recency={recency}
-                  />
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-
-        {/* Walk to the next muscle group (forward only). */}
-        {sequential && nextGroup && (
-          <button
-            type="button"
-            onClick={onNextGroup}
-            className="mx-auto mt-8 flex w-full max-w-[22rem] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition-colors active:bg-emerald-500"
-          >
-            Muscle suivant : {nextGroup}
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        )}
+        {body}
       </div>
     </div>
   );
