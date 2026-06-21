@@ -147,14 +147,16 @@ function PerformanceDetail({ perf, workWeight, onBack, onOpenSession }: {
   const cells = perf.sessions.flatMap(s => {
     if (s.weights.length === 0) return [];
     const top = s.weights.reduce((a, b) => (lift(b.weight) > lift(a.weight) ? b : a));
+    // actualWeight = the session's own top weight (shown on higher/lower cells,
+    // which sit in a row whose header weight differs from what was actually done).
     if (ceiling != null && lift(top.weight) > lift(ceiling)) {
       const rowW = lift(ceiling) === 0 ? bodyKey : ceiling;
-      return [{ id: s.id, number: s.number, reps: top.reps, sets: top.sets, rowWeight: rowW, lower: false, higher: true, higherWeight: top.weight }];
+      return [{ id: s.id, number: s.number, reps: top.reps, sets: top.sets, rowWeight: rowW, lower: false, higher: true, actualWeight: top.weight }];
     }
     let lower = false;
     if (lift(top.weight) >= maxLift) { maxLift = lift(top.weight); curRow = lift(top.weight) === 0 ? bodyKey : top.weight; }
     else lower = true;
-    return [{ id: s.id, number: s.number, reps: top.reps, sets: top.sets, rowWeight: curRow, lower, higher: false, higherWeight: null as number | null }];
+    return [{ id: s.id, number: s.number, reps: top.reps, sets: top.sets, rowWeight: curRow, lower, higher: false, actualWeight: top.weight }];
   });
 
   // Rows = the distinct working weights, heaviest first (bodyweight last).
@@ -212,13 +214,13 @@ function PerformanceDetail({ perf, workWeight, onBack, onOpenSession }: {
                       >
                         {e.higher ? (
                           <>
-                            <span className="whitespace-nowrap text-[11px] tabular-nums text-amber-300">{e.reps} × {weightLabel(e.higherWeight, signed)}</span>
+                            <span className="whitespace-nowrap text-[11px] tabular-nums text-amber-300">{e.reps} × {weightLabel(e.actualWeight, signed)}</span>
                             <span className="whitespace-nowrap text-center text-[10px] font-medium leading-tight text-amber-300">Higher weight</span>
                           </>
                         ) : e.lower ? (
                           <>
-                            <span className="text-center text-xs font-medium leading-tight text-slate-100">Lower<br />weight</span>
-                            <span className="whitespace-nowrap text-xs text-white">({e.sets} série{e.sets > 1 ? 's' : ''})</span>
+                            <span className="whitespace-nowrap text-[11px] tabular-nums text-emerald-400">{e.reps} × {weightLabel(e.actualWeight, signed)}</span>
+                            <span className="whitespace-nowrap text-center text-[10px] font-medium leading-tight text-emerald-400">Lower weight</span>
                           </>
                         ) : (
                           <>
