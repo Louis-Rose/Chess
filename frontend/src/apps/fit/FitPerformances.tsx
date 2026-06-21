@@ -212,7 +212,7 @@ function PerformanceDetail({ perf, workWeight, onBack, onOpenSession }: {
                       >
                         {e.higher ? (
                           <>
-                            <span className="whitespace-nowrap text-sm tabular-nums text-amber-300">{e.reps} × {weightLabel(e.higherWeight, signed)}</span>
+                            <span className="whitespace-nowrap text-[11px] tabular-nums text-amber-300">{e.reps} × {weightLabel(e.higherWeight, signed)}</span>
                             <span className="text-center text-[11px] font-medium leading-tight text-amber-300">Higher weight</span>
                           </>
                         ) : e.lower ? (
