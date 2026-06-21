@@ -37,10 +37,11 @@ function groupByExercise(sets: SetRow[]): { exercise: string; sets: SetRow[] }[]
 }
 
 
-export function FitSessionDetail({ sessionId, onBack, editable }: {
+export function FitSessionDetail({ sessionId, onBack, editable, exercise }: {
   sessionId: number;
   onBack: () => void;
   editable?: boolean;
+  exercise?: string;   // when set (e.g. from Suivi), show only this exercise's section
 }) {
   useCustomExercises();   // so the weighted volume counts custom exercises
   const [session, setSession] = useState<Session | null>(null);
@@ -144,7 +145,10 @@ export function FitSessionDetail({ sessionId, onBack, editable }: {
     });
   }
 
-  const groups = session ? groupByExercise(session.sets) : [];
+  // When opened for a single exercise (from Suivi), show only its section.
+  const groups = session
+    ? groupByExercise(session.sets).filter(g => exercise == null || g.exercise === exercise)
+    : [];
 
   const sessionName = sessionTitle(session?.number, session?.started_at ?? null);
 
