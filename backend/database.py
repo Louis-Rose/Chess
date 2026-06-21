@@ -995,7 +995,7 @@ def init_db():
                         SELECT l.id AS left_id, r.reps AS right_reps
                         FROM la l
                         JOIN la r ON r.session_id = l.session_id AND r.rn = l.rn + 1
-                        WHERE l.cnt = 6 AND l.rn % 2 = 1
+                        WHERE l.cnt = 6 AND MOD(l.rn, 2) = 1
                     )
                     UPDATE fit_session_sets ss
                     SET reps_right = p.right_reps
@@ -1012,7 +1012,7 @@ def init_db():
                         WHERE s.user_id = ? AND ss.exercise = 'Élévations latérales — Poulie basse'
                     )
                     DELETE FROM fit_session_sets
-                    WHERE id IN (SELECT id FROM la WHERE cnt = 6 AND rn % 2 = 0)
+                    WHERE id IN (SELECT id FROM la WHERE cnt = 6 AND MOD(rn, 2) = 0)
                 """, (louis['id'],))
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('latraises_merge_doubled_gym_sessions',))
             logger.info("Merged doubled 6-set Élévations latérales sessions back into 3 unilateral sets")
