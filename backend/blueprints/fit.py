@@ -1484,8 +1484,9 @@ def exercise_history():
 def performances():
     """Per-exercise tracking table data: for each exercise the user has logged
     working sets on, one entry per session (date + the working reps done at each
-    weight), oldest first. Warmup sets are excluded; a unilateral set's reps total
-    both sides; reps at the same weight within a session are summed."""
+    weight), oldest first. Warmup sets are excluded; a unilateral set's reps are
+    averaged across both sides (per-side reps, may be X.5); reps at the same
+    weight within a session are summed."""
     with get_db() as conn:
         rows = conn.execute(
             """SELECT s.id AS session_id, s.started_at, ss.exercise, ss.weight, ss.reps, ss.reps_right
@@ -1514,7 +1515,10 @@ def performances():
         if sess is None:
             sess = {'date': r['started_at'].isoformat() if r['started_at'] else None, 'by_weight': OrderedDict()}
             sessions[r['session_id']] = sess
-        reps = r['reps'] + (r['reps_right'] or 0)
+        # A unilateral set logs reps per side; Progrès shows per-side reps, so
+        # average the two sides (an odd total shows as X.5). Bilateral sets
+        # (reps_right NULL) count their reps as-is.
+        reps = (r['reps'] + r['reps_right']) / 2 if r['reps_right'] is not None else r['reps']
         entry = sess['by_weight'].setdefault(r['weight'], {'reps': 0, 'sets': 0})
         entry['reps'] += reps
         entry['sets'] += 1
