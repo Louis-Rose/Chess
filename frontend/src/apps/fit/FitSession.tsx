@@ -28,6 +28,17 @@ interface Entry {
   sets: LoggedSet[];
 }
 
+// Short muscle labels for the day's-groups banner so it fits one line.
+const SHORT_MUSCLE: Record<string, string> = {
+  Dorsaux: 'Dos',
+  Pectoraux: 'Pecs',
+  Quadriceps: 'Quads',
+  'Ischio-jambiers': 'Ischios',
+  'Avant-bras': 'Av-bras',
+  Trapèzes: 'Traps',
+};
+const shortMuscle = (m: string) => SHORT_MUSCLE[m] ?? m;
+
 interface SessionPayload {
   id: number;
   number: number | null;
@@ -388,22 +399,25 @@ export function FitSession({ onDone }: { onDone: () => void }) {
             </p>
           )}
 
-          {/* Banner: every muscle group of the day, the current one highlighted,
-              the ones already passed dimmed. */}
+          {/* Banner: every muscle group of the day on one joined bar, the
+              current one highlighted, the ones already passed dimmed. Scrolls
+              horizontally if the day has too many groups to fit. */}
           {groupSequence.length > 0 && (
-            <div className="mx-auto mt-4 flex w-full max-w-[22rem] flex-wrap justify-center gap-1.5">
-              {groupSequence.map((m, i) => (
-                <span
-                  key={m}
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    i === clampedGroupIndex ? 'bg-emerald-600 text-white'
-                      : i < clampedGroupIndex ? 'bg-slate-800 text-slate-500'
-                      : 'bg-slate-800 text-slate-300'
-                  }`}
-                >
-                  {m}
-                </span>
-              ))}
+            <div className="mt-4 w-full overflow-x-auto">
+              <div className="mx-auto flex w-max overflow-hidden rounded-full border border-slate-700">
+                {groupSequence.map((m, i) => (
+                  <span
+                    key={m}
+                    className={`whitespace-nowrap px-3 py-1 text-xs font-medium ${i > 0 ? 'border-l border-slate-700' : ''} ${
+                      i === clampedGroupIndex ? 'bg-emerald-600 text-white'
+                        : i < clampedGroupIndex ? 'bg-slate-800 text-slate-500'
+                        : 'bg-slate-800 text-slate-300'
+                    }`}
+                  >
+                    {shortMuscle(m)}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
