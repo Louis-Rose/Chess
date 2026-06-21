@@ -186,6 +186,7 @@ function PerformanceDetail({ perf, workWeight, onBack, onOpenSession }: {
 
       <h1 className="mt-4 text-center text-2xl font-semibold">{leafLabel(perf.exercise)}</h1>
       <p className="mt-2 text-center text-sm text-slate-400">Total de répétitions par séance</p>
+      <div className="mt-4 h-px w-full bg-slate-700" />
 
       {/* Collapsed borders so only real cells are outlined. A weight with more
           sessions than fit one row wraps onto more rows (same weight, via the
