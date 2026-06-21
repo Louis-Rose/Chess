@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronRight, Loader2, Plus } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { fitRequest } from './fitAuth';
 import { FitSession } from './FitSession';
 import { FitSessionDetail } from './FitSessionDetail';
 import { FitConfirm } from './FitConfirm';
 import { FitSwipeRow } from './FitSwipeRow';
-import { leafLabel, sessionLeaves, sortLabels } from './programData';
+import { sessionLeaves, sortLabels } from './programData';
 import { weekDays } from './splitDays';
 import { sessionTitle } from './format';
-import { FitBackButton } from './FitBackButton';
 import { hasResumableNav, clearSessionNav } from './fitSessionNav';
 import { getSession, clearSession } from './sessionTimer';
 import { clearRest } from './restTimer';
@@ -67,7 +66,6 @@ export function FitCalendrier() {
   const [inSession, setInSession] = useState(consumeSessionResume);
   const [hasActive, setHasActive] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
-  const [upcomingSel, setUpcomingSel] = useState<number | null>(null);   // index into `upcoming`
   const [openId, setOpenId] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   // The active program, to lay out this week's upcoming sessions.
@@ -188,21 +186,6 @@ export function FitCalendrier() {
 
   if (inSession) return <FitSession onDone={() => setInSession(false)} />;
   if (selected != null) return <FitSessionDetail sessionId={selected} onBack={() => setSelected(null)} editable />;
-  if (upcomingSel != null && upcoming[upcomingSel]) {
-    const u = upcoming[upcomingSel];
-    return (
-      <UpcomingDetail
-        number={u.number}
-        label={u.label}
-        muscles={u.muscles}
-        selections={selections}
-        onBack={() => setUpcomingSel(null)}
-        onStart={u.startable ? () => { setUpcomingSel(null); setInSession(true); } : undefined}
-        startLabel={hasActive ? 'Reprendre la séance' : 'Commencer la séance'}
-        inProgress={u.startable && hasActive}
-      />
-    );
-  }
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -212,26 +195,39 @@ export function FitCalendrier() {
         <>
           <h2 className="mt-8 text-center text-xs uppercase tracking-wide text-slate-500">À venir</h2>
           <div className="mx-auto mt-3 flex w-full max-w-[22rem] flex-col gap-3">
-            {upcoming.map((u, i) => (
-              <button
-                key={u.number}
-                type="button"
-                onClick={() => setUpcomingSel(i)}
-                className={`${CARD} border-slate-700 bg-[#141c2f] active:bg-[#182234]`}
-              >
-                {u.startable && (
-                  <span className="mb-1 text-xs uppercase tracking-wide text-emerald-400">
-                    {hasActive ? 'Séance en cours' : 'Prochaine séance'}
+            {upcoming.map(u => {
+              const inner = (
+                <>
+                  {u.startable && (
+                    <span className="mb-1 text-xs uppercase tracking-wide text-emerald-400">
+                      {hasActive ? 'Séance en cours' : 'Prochaine séance'}
+                    </span>
+                  )}
+                  <span className="font-medium text-slate-100">
+                    Séance {u.number}{u.startable && hasActive ? '' : ' (à venir)'}
                   </span>
-                )}
-                <span className="font-medium text-slate-100">
-                  Séance {u.number}{u.startable && hasActive ? '' : ' (à venir)'}
-                </span>
-                <span className="mt-0.5 text-sm text-slate-400">{plural(u.exercises, 'exercice')}</span>
-                <span className="text-sm text-slate-400">{plural(u.series, 'série')}</span>
-                <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
-              </button>
-            ))}
+                  <span className="mt-0.5 text-sm text-slate-400">{plural(u.exercises, 'exercice')}</span>
+                  <span className="text-sm text-slate-400">{plural(u.series, 'série')}</span>
+                </>
+              );
+              // Only the next session is actionable: tapping it starts (or resumes)
+              // the session straight away. Future ones are non-interactive previews.
+              return u.startable ? (
+                <button
+                  key={u.number}
+                  type="button"
+                  onClick={() => setInSession(true)}
+                  className={`${CARD} border-slate-700 bg-[#141c2f] active:bg-[#182234]`}
+                >
+                  {inner}
+                  <ChevronRight className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                </button>
+              ) : (
+                <div key={u.number} className={`${CARD} border-slate-700 bg-[#141c2f]`}>
+                  {inner}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -286,68 +282,6 @@ export function FitCalendrier() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// Preview of an upcoming session: the program's planned exercises for that day,
-// grouped by muscle in session order. The next session also offers a button to
-// start (or resume) it.
-function UpcomingDetail({ number, label, muscles, selections, onBack, onStart, startLabel, inProgress }: {
-  number: number;
-  label: string;
-  muscles: string[];
-  selections: Record<string, string[]>;
-  onBack: () => void;
-  onStart?: () => void;
-  startLabel: string;
-  inProgress?: boolean;   // this is the active, resumable session (not just upcoming)
-}) {
-  const groups = muscles
-    .map(m => ({ muscle: m, exercises: sessionLeaves(sortLabels(selections[m] ?? [])).map(leafLabel) }))
-    .filter(g => g.exercises.length > 0);
-
-  return (
-    <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col px-5 pt-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      <FitBackButton onClick={onBack} />
-
-      <h1 className="mt-4 text-center text-2xl font-semibold">Séance {number} {inProgress ? '(en cours)' : '(à venir)'}</h1>
-      {label && <p className="mt-2 text-center text-sm text-slate-400">{label}</p>}
-
-      {onStart && (
-        <button
-          type="button"
-          onClick={onStart}
-          className="mx-auto mt-6 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-lg font-semibold text-white transition-colors hover:bg-emerald-500 active:bg-emerald-500"
-        >
-          <Plus className="h-5 w-5" />
-          {startLabel}
-        </button>
-      )}
-
-      {/* The planned content (muscles + exercises) sits in its own box; the
-          start button above stays outside it. */}
-      <div className="mx-auto mt-8 w-full max-w-[22rem] rounded-2xl border border-slate-700 p-4">
-        <h2 className="text-center text-sm font-semibold text-slate-200">Exercices prévus</h2>
-        {groups.length === 0 ? (
-          <p className="mt-4 text-center text-sm text-slate-400">Aucun exercice prévu pour cette séance.</p>
-        ) : (
-          <div className="mt-4 flex flex-col gap-6">
-            {groups.map(g => (
-              <section key={g.muscle}>
-                <h2 className="text-center text-xs uppercase tracking-wide text-slate-500">{g.muscle}</h2>
-                <ul className="mt-2 flex flex-col gap-2">
-                  {g.exercises.map((ex, i) => (
-                    <li key={i} className="rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-center text-sm text-slate-100">
-                      {ex}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
