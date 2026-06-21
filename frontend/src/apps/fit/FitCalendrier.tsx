@@ -225,7 +225,7 @@ export function FitCalendrier() {
                   </span>
                 )}
                 <span className="font-medium text-slate-100">
-                  Séance {u.number} {u.startable && hasActive ? '(en cours)' : '(à venir)'}
+                  Séance {u.number}{u.startable && hasActive ? '' : ' (à venir)'}
                 </span>
                 <span className="mt-0.5 text-sm text-slate-400">{plural(u.exercises, 'exercice')}</span>
                 <span className="text-sm text-slate-400">{plural(u.series, 'série')}</span>
