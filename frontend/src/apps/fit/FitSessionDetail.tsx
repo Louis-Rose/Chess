@@ -289,7 +289,9 @@ export function FitSessionDetail({ sessionId, onBack, editable, exercise }: {
             })}
           </div>
 
-          {editable && (
+          {/* The session-wide actions (add exercise, comment) are hidden in the
+              single-exercise drill-down from Progrès. */}
+          {editable && exercise == null && (
             <button
               type="button"
               onClick={() => setPicking(true)}
@@ -300,7 +302,7 @@ export function FitSessionDetail({ sessionId, onBack, editable, exercise }: {
             </button>
           )}
 
-          {editable ? (
+          {exercise != null ? null : editable ? (
             <div className="mt-8">
               <FitSessionComment comment={session?.comment ?? null} onSave={saveComment} />
             </div>
