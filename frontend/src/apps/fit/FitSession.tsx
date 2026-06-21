@@ -164,6 +164,18 @@ export function FitSession({ onDone }: { onDone: () => void }) {
     }
   }
 
+  // "Précédent" while editing: step to the previous exercise of the session
+  // rather than back to the overview. An empty mis-pick keeps the leaveEditing
+  // behavior (drop it, reopen the picker); the first exercise has no previous,
+  // so it falls back to the overview.
+  function goPreviousExercise() {
+    const idx = entries.findIndex(e => e.exercise === editing);
+    const entry = entries[idx];
+    if (entry && entry.sets.length === 0) { leaveEditing(); return; }
+    if (idx > 0) setEditing(entries[idx - 1].exercise);
+    else setEditing(null);
+  }
+
   // "Valider l'exercice": go to the overview, but don't keep an exercise with
   // no logged set — nothing to save. Validating an exercise with logged sets
   // marks it done today in the recency views, mid-session.
@@ -323,11 +335,11 @@ export function FitSession({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-3.5rem-1px)] w-full max-w-md flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-      {/* Précédent returns to the exercise overview while editing one, else home
+      {/* Précédent steps to the previous exercise while editing one, else home
           (the session stays live and resumable). */}
       <FitScreenHeader
         title={sessionTitle(number, startedAt)}
-        onBack={editingEntry ? leaveEditing : onDone}
+        onBack={editingEntry ? goPreviousExercise : onDone}
       />
 
       <div className="flex flex-1 flex-col px-5">
