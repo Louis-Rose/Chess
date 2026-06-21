@@ -211,15 +211,21 @@ function PerformanceDetail({ perf, workWeight, onBack, onOpenSession }: {
                         className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-2 transition-colors active:bg-slate-800"
                       >
                         {e.higher ? (
-                          <span className="text-center text-xs font-medium leading-tight text-amber-300">Higher<br />weight</span>
+                          <>
+                            <span className="whitespace-nowrap text-sm tabular-nums text-amber-300">{e.reps} × {weightLabel(e.higherWeight, signed)}</span>
+                            <span className="text-center text-[11px] font-medium leading-tight text-amber-300">Higher weight</span>
+                          </>
                         ) : e.lower ? (
-                          <span className="text-center text-xs font-medium leading-tight text-slate-100">Lower<br />weight</span>
+                          <>
+                            <span className="text-center text-xs font-medium leading-tight text-slate-100">Lower<br />weight</span>
+                            <span className="whitespace-nowrap text-xs text-white">({e.sets} série{e.sets > 1 ? 's' : ''})</span>
+                          </>
                         ) : (
-                          <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps} reps</span>
+                          <>
+                            <span className="whitespace-nowrap text-sm tabular-nums text-slate-100">{e.reps}</span>
+                            <span className="whitespace-nowrap text-xs text-white">({e.sets} série{e.sets > 1 ? 's' : ''})</span>
+                          </>
                         )}
-                        <span className={`whitespace-nowrap text-xs ${e.higher ? 'text-amber-300/80' : 'text-white'}`}>
-                          {e.higher ? weightLabel(e.higherWeight, signed) : `(${e.sets} série${e.sets > 1 ? 's' : ''})`}
-                        </span>
                         {e.number != null && <span className="whitespace-nowrap text-[11px] text-slate-500">Séance {e.number}</span>}
                       </button>
                     </td>
