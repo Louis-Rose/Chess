@@ -46,9 +46,9 @@ export function FitExercisePicker({ program, muscleOrder, group, nextGroup, onNe
       })
       .catch(() => { /* no recency line */ });
   }, []);
-  // Nothing is pre-highlighted: the picker only adds exercises, so showing the
-  // ones already in the session as "selected" was misleading.
-  const selected: string[] = [];
+  // Exercises validated this session ("terminé") are framed green so the user
+  // sees at a glance what's done; tapping one re-opens it to edit.
+  const selected = validatedLeaves();
   // Sequential mode shows just the current group; free mode shows all, in the
   // program's chosen order (fallback anatomical).
   const base = muscleOrder && muscleOrder.length > 0 ? muscleOrder : MUSCLE_ORDER;
