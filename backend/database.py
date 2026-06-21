@@ -885,7 +885,12 @@ def init_db():
         # (so Suivi, which matches the exact leaf, hides them) and as bilateral
         # sets. Re-file every such set to the Poulie basse leaf and mark it
         # unilateral — the logged rep count was per-side, so reps_right = reps.
-        # Scoped to Louis only; other users' lateral-raise variants are untouched.
+        # Then recompute the persisted working weight for the leaf: it was stuck
+        # at a stale orphan value (e.g. 20 kg) because _recompute_work_weight only
+        # ever read the exact "— Poulie basse" leaf (empty until this re-file) and
+        # never clears a value when nothing qualifies. Re-derive it as the heaviest
+        # working set over the 3 most recent finished sessions, matching the live
+        # recompute. Scoped to Louis only; other users' variants are untouched.
         if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('latraises_louis_poulie_basse_unilateral',)).fetchone():
             louis = conn.execute("SELECT id FROM users WHERE email = ?", ('rose.louis.mail@gmail.com',)).fetchone()
             if louis:
@@ -899,8 +904,29 @@ def init_db():
                       AND split_part(ss.exercise, ' — ', 1) = 'Élévations latérales'
                       AND ss.exercise <> 'Élévations latérales — Poulie basse'
                 """, (louis['id'],))
+                conn.execute("""
+                    WITH recent AS (
+                        SELECT s.id
+                        FROM fit_sessions s
+                        JOIN fit_session_sets ss ON ss.session_id = s.id
+                        WHERE s.user_id = ? AND s.ended_at IS NOT NULL
+                          AND ss.exercise = 'Élévations latérales — Poulie basse'
+                          AND ss.warmup = FALSE AND ss.weight IS NOT NULL
+                        GROUP BY s.id, s.started_at
+                        ORDER BY s.started_at DESC
+                        LIMIT 3
+                    )
+                    INSERT INTO fit_work_weights (user_id, exercise, weight)
+                    SELECT ?, 'Élévations latérales — Poulie basse', MAX(ss.weight)
+                    FROM fit_session_sets ss
+                    JOIN recent r ON r.id = ss.session_id
+                    WHERE ss.exercise = 'Élévations latérales — Poulie basse'
+                      AND ss.warmup = FALSE AND ss.weight IS NOT NULL
+                    HAVING MAX(ss.weight) IS NOT NULL
+                    ON CONFLICT (user_id, exercise) DO UPDATE SET weight = EXCLUDED.weight
+                """, (louis['id'], louis['id']))
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('latraises_louis_poulie_basse_unilateral',))
-            logger.info("Re-filed Louis's Élévations latérales history to Poulie basse + unilateral")
+            logger.info("Re-filed Louis's Élévations latérales history to Poulie basse + unilateral, recomputed work weight")
 
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
