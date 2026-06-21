@@ -208,12 +208,12 @@ function PerformanceDetail({ perf, workWeight, onBack, onOpenSession }: {
                       <button
                         type="button"
                         onClick={() => onOpenSession(e.id)}
-                        className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-2 transition-colors active:bg-slate-800"
+                        className="flex h-full w-full flex-col items-center justify-center gap-0.5 px-1 transition-colors active:bg-slate-800"
                       >
                         {e.higher ? (
                           <>
                             <span className="whitespace-nowrap text-[11px] tabular-nums text-amber-300">{e.reps} × {weightLabel(e.higherWeight, signed)}</span>
-                            <span className="text-center text-[11px] font-medium leading-tight text-amber-300">Higher weight</span>
+                            <span className="whitespace-nowrap text-center text-[10px] font-medium leading-tight text-amber-300">Higher weight</span>
                           </>
                         ) : e.lower ? (
                           <>
