@@ -1017,6 +1017,52 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('latraises_merge_doubled_gym_sessions',))
             logger.info("Merged doubled 6-set Élévations latérales sessions back into 3 unilateral sets")
 
+        # Migration: the merge above keyed on 6 TOTAL sets, so it missed doubled
+        # sessions that also have warmup rows (total > 6) — e.g. séances 50/53,
+        # still showing 6 working sets. Re-do it keyed on 6 WORKING sets, pairing
+        # only the working sets (ranked among themselves, warmups left as-is).
+        # Already-fixed sessions now have 3 working sets, so they're untouched.
+        # UPDATE before DELETE. Scoped to Louis.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('latraises_merge_doubled_6working',)).fetchone():
+            louis = conn.execute("SELECT id FROM users WHERE email = ?", ('rose.louis.mail@gmail.com',)).fetchone()
+            if louis:
+                conn.execute("""
+                    WITH la AS (
+                        SELECT ss.id, ss.session_id, ss.reps,
+                               ROW_NUMBER() OVER (PARTITION BY ss.session_id ORDER BY ss.id) AS rn,
+                               COUNT(*) OVER (PARTITION BY ss.session_id) AS cnt
+                        FROM fit_session_sets ss
+                        JOIN fit_sessions s ON s.id = ss.session_id
+                        WHERE s.user_id = ? AND ss.exercise = 'Élévations latérales — Poulie basse'
+                              AND ss.warmup = FALSE
+                    ),
+                    pairs AS (
+                        SELECT l.id AS left_id, r.reps AS right_reps
+                        FROM la l
+                        JOIN la r ON r.session_id = l.session_id AND r.rn = l.rn + 1
+                        WHERE l.cnt = 6 AND MOD(l.rn, 2) = 1
+                    )
+                    UPDATE fit_session_sets ss
+                    SET reps_right = p.right_reps
+                    FROM pairs p
+                    WHERE ss.id = p.left_id
+                """, (louis['id'],))
+                conn.execute("""
+                    WITH la AS (
+                        SELECT ss.id,
+                               ROW_NUMBER() OVER (PARTITION BY ss.session_id ORDER BY ss.id) AS rn,
+                               COUNT(*) OVER (PARTITION BY ss.session_id) AS cnt
+                        FROM fit_session_sets ss
+                        JOIN fit_sessions s ON s.id = ss.session_id
+                        WHERE s.user_id = ? AND ss.exercise = 'Élévations latérales — Poulie basse'
+                              AND ss.warmup = FALSE
+                    )
+                    DELETE FROM fit_session_sets
+                    WHERE id IN (SELECT id FROM la WHERE cnt = 6 AND MOD(rn, 2) = 0)
+                """, (louis['id'],))
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('latraises_merge_doubled_6working',))
+            logger.info("Merged doubled 6-working-set Élévations latérales sessions (warmups present)")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'
