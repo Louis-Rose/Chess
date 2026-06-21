@@ -1445,11 +1445,11 @@ def last_done():
 @fit_bp.route('/api/fit/exercise-history', methods=['GET'])
 @fit_login_required
 def exercise_history():
-    """Every session in which the given base exercise was logged, newest first,
-    each with its sets. Matched by base (the part before ' — '), so all variant
-    leaves of the exercise are included."""
-    base = request.args.get('base', '').strip()
-    if not base:
+    """Every session in which the given exercise leaf was logged, newest first,
+    each with its sets. Matched on the exact leaf, so each variant tracks its
+    own history (e.g. '— Poulie basse' is separate from '— Haltères')."""
+    exercise = request.args.get('exercise', '').strip()
+    if not exercise:
         return jsonify({'sessions': []})
     with get_db() as conn:
         rows = conn.execute(
@@ -1461,9 +1461,9 @@ def exercise_history():
                       + 1 AS number
                FROM fit_sessions s
                JOIN fit_session_sets ss ON ss.session_id = s.id
-               WHERE s.user_id = ? AND split_part(ss.exercise, ' — ', 1) = ?
+               WHERE s.user_id = ? AND ss.exercise = ?
                ORDER BY s.started_at DESC, ss.id""",
-            (request.user_id, base)
+            (request.user_id, exercise)
         ).fetchall()
     sessions, by_id = [], {}
     for r in rows:

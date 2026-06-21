@@ -878,6 +878,30 @@ def init_db():
             conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('restore_overdemoted_feelers',))
             logger.info("Restored over-demoted 2-rep openers (3-4 reps next) to working sets")
 
+        # Migration: Louis's historical Élévations latérales were all done at the
+        # cable (Poulie basse), one arm at a time, but logged before variants /
+        # unilateral existed. They therefore sit under a leaf that no longer
+        # matches the program's "Élévations latérales — Poulie basse" selection
+        # (so Suivi, which matches the exact leaf, hides them) and as bilateral
+        # sets. Re-file every such set to the Poulie basse leaf and mark it
+        # unilateral — the logged rep count was per-side, so reps_right = reps.
+        # Scoped to Louis only; other users' lateral-raise variants are untouched.
+        if not conn.execute("SELECT 1 FROM fit_migrations WHERE name = ?", ('latraises_louis_poulie_basse_unilateral',)).fetchone():
+            louis = conn.execute("SELECT id FROM users WHERE email = ?", ('rose.louis.mail@gmail.com',)).fetchone()
+            if louis:
+                conn.execute("""
+                    UPDATE fit_session_sets ss
+                    SET exercise = 'Élévations latérales — Poulie basse',
+                        reps_right = COALESCE(ss.reps_right, ss.reps)
+                    FROM fit_sessions s
+                    WHERE ss.session_id = s.id
+                      AND s.user_id = ?
+                      AND split_part(ss.exercise, ' — ', 1) = 'Élévations latérales'
+                      AND ss.exercise <> 'Élévations latérales — Poulie basse'
+                """, (louis['id'],))
+            conn.execute("INSERT INTO fit_migrations (name) VALUES (?)", ('latraises_louis_poulie_basse_unilateral',))
+            logger.info("Re-filed Louis's Élévations latérales history to Poulie basse + unilateral")
+
         # Migration: Add phase column to api_usage so we can break diagram timings
         # into locate / judge / read. Backfills existing rows by the rules:
         #   - model_id='gemini-3.1-flash-lite-preview' -> 'judge'

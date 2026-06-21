@@ -7,29 +7,24 @@ import { isSignedExercise } from './programData';
 import { FitSetList, type DisplaySet } from './FitSetList';
 
 // Read-only "Dernières séances" panel shown under the exercise editor: the past
-// sessions in which this exercise was logged (date + set list), newest first,
-// scrollable. Matched by base so all variant leaves count. The current session
-// is excluded (its sets are already in the editor above).
+// sessions in which this exact exercise leaf was logged (date + set list),
+// newest first, scrollable. Matched on the exact leaf, so each variant shows
+// only its own history. The current session is excluded (its sets are already
+// in the editor above).
 
 interface HistorySession { session_id: number; number?: number | null; date: string | null; sets: DisplaySet[]; }
-
-const baseOf = (leaf: string) => {
-  const i = leaf.indexOf(' — ');
-  return i === -1 ? leaf : leaf.slice(0, i);
-};
 
 export function FitExerciseRecent({ exercise, excludeSessionId }: { exercise: string; excludeSessionId?: number | null }) {
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [loading, setLoading] = useState(true);
-  const base = baseOf(exercise);
 
   useEffect(() => {
     setLoading(true);
-    fitRequest(() => axios.get<{ sessions: HistorySession[] }>('/api/fit/exercise-history', { params: { base } }))
+    fitRequest(() => axios.get<{ sessions: HistorySession[] }>('/api/fit/exercise-history', { params: { exercise } }))
       .then(res => setSessions(res.data.sessions ?? []))
       .catch(() => setSessions([]))
       .finally(() => setLoading(false));
-  }, [base]);
+  }, [exercise]);
 
   const past = sessions.filter(s => s.session_id !== excludeSessionId);
 
