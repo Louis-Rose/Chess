@@ -324,7 +324,11 @@ def get_transactions():
         )
         rows = cursor.fetchall()
 
-    transactions = [{
+    return jsonify({'transactions': [_serialize_transaction(row) for row in rows]})
+
+
+def _serialize_transaction(row):
+    return {
         'id': row['id'],
         'stock_ticker': row['stock_ticker'],
         'transaction_type': row['transaction_type'],
@@ -336,5 +340,84 @@ def get_transactions():
         'account_name': row['account_name'],
         'account_type': row['account_type'],
         'bank': row['bank'],
-    } for row in rows]
-    return jsonify({'transactions': transactions})
+    }
+
+
+def _fetch_transaction(conn, tx_id, user_id):
+    """Re-read one of the user's transactions with its account labels joined."""
+    cursor = conn.execute(
+        '''SELECT pt.id, pt.stock_ticker, pt.transaction_type, pt.quantity,
+                  pt.transaction_date, pt.price_per_share, pt.price_currency,
+                  pt.account_id, ia.name AS account_name, ia.account_type, ia.bank
+           FROM portfolio_transactions pt
+           LEFT JOIN investment_accounts ia ON pt.account_id = ia.id
+           WHERE pt.id = ? AND pt.user_id = ?''',
+        (tx_id, user_id)
+    )
+    return cursor.fetchone()
+
+
+@investing_bp.route('/api/investing/transactions', methods=['POST'])
+@login_required
+def add_transaction():
+    """Add a transaction to the logged-in user's portfolio."""
+    data = request.get_json(silent=True) or {}
+
+    ticker = (data.get('stock_ticker') or '').strip().upper()
+    tx_type = (data.get('transaction_type') or '').strip().upper()
+    transaction_date = (data.get('transaction_date') or '').strip()
+    currency = (data.get('price_currency') or 'EUR').strip().upper()
+    account_id = data.get('account_id')
+
+    if not ticker:
+        return jsonify({'error': 'Ticker is required.'}), 400
+    if tx_type not in ('BUY', 'SELL'):
+        return jsonify({'error': 'Type must be BUY or SELL.'}), 400
+    try:
+        quantity = float(data.get('quantity'))
+        price_per_share = float(data.get('price_per_share'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Quantity and price must be numbers.'}), 400
+    if quantity <= 0 or price_per_share < 0:
+        return jsonify({'error': 'Quantity must be positive and price non-negative.'}), 400
+    try:
+        datetime.strptime(transaction_date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'Date must be YYYY-MM-DD.'}), 400
+
+    with get_db() as conn:
+        # If an account is given, it must belong to the caller.
+        if account_id is not None:
+            owns = conn.execute(
+                'SELECT id FROM investment_accounts WHERE id = ? AND user_id = ?',
+                (account_id, request.user_id)
+            ).fetchone()
+            if not owns:
+                return jsonify({'error': 'Unknown account.'}), 400
+
+        new_id = conn.execute(
+            '''INSERT INTO portfolio_transactions
+                 (user_id, account_id, stock_ticker, transaction_type, quantity,
+                  transaction_date, price_per_share, price_currency)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               RETURNING id''',
+            (request.user_id, account_id, ticker, tx_type, quantity,
+             transaction_date, price_per_share, currency)
+        ).fetchone()['id']
+        row = _fetch_transaction(conn, new_id, request.user_id)
+
+    return jsonify({'transaction': _serialize_transaction(row)}), 201
+
+
+@investing_bp.route('/api/investing/transactions/<int:tx_id>', methods=['DELETE'])
+@login_required
+def delete_transaction(tx_id):
+    """Delete one of the logged-in user's transactions."""
+    with get_db() as conn:
+        deleted = conn.execute(
+            'DELETE FROM portfolio_transactions WHERE id = ? AND user_id = ? RETURNING id',
+            (tx_id, request.user_id)
+        ).fetchone()
+    if not deleted:
+        return jsonify({'error': 'Transaction not found.'}), 404
+    return jsonify({'ok': True})
