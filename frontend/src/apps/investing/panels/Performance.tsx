@@ -1,5 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import type { Transaction } from '../types';
+import { useDisplayCurrency } from '../currency';
+import { InvestedCapitalChart } from './InvestedCapitalChart';
 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -37,8 +40,23 @@ function formatAge({ years, months, days }: Age): string {
 }
 
 // "Performance" — high-level stats for the (already account- and toggle-
-// filtered) transactions. Currently the portfolio age since the first buy.
+// filtered) transactions: portfolio age since the first buy, and a chart of
+// invested capital over time.
 export function Performance({ transactions }: { transactions: Transaction[] }) {
+  const { display } = useDisplayCurrency();
+  const [eurusd, setEurusd] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get<{ eurusd: number | null }>('/api/investing/quotes', { params: { tickers: '' } })
+      .then((res) => !cancelled && setEurusd(res.data.eurusd ?? null))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const firstBuy = useMemo(() => {
     let min: string | null = null;
     for (const t of transactions) {
@@ -53,10 +71,14 @@ export function Performance({ transactions }: { transactions: Transaction[] }) {
   }
 
   return (
-    <div className="text-center">
-      <p className="text-sm uppercase tracking-wide text-slate-500">Portfolio age</p>
-      <p className="mt-1 text-lg font-semibold text-slate-100">{formatAge(ageSince(firstBuy))}</p>
-      <p className="mt-1 text-xs text-slate-500">since first buy on {fmtDate(firstBuy)}</p>
+    <div className="space-y-6">
+      <div className="mx-auto max-w-sm rounded-2xl border border-slate-800 bg-slate-800/40 p-5 text-center">
+        <p className="text-sm uppercase tracking-wide text-slate-500">Portfolio age</p>
+        <p className="mt-1 text-xl font-bold text-slate-100">{formatAge(ageSince(firstBuy))}</p>
+        <p className="mt-1 text-xs text-slate-500">since first buy on {fmtDate(firstBuy)}</p>
+      </div>
+
+      <InvestedCapitalChart transactions={transactions} display={display} eurusd={eurusd} />
     </div>
   );
 }
