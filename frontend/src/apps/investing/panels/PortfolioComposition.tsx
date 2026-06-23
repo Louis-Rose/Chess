@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import axios from 'axios';
+import { Eye, EyeOff } from 'lucide-react';
 import type { Transaction } from '../types';
 import { computeHoldings, type Holding } from '../holdings';
 import { useDisplayCurrency } from '../currency';
@@ -43,6 +44,10 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'gainPct', label: 'Gain/Loss (percentage)' },
 ];
 
+// Columns hidden in private mode, and the leading "label" group the TOTAL spans.
+const PRIVATE_HIDDEN = new Set<SortKey>(['shares', 'invested', 'current', 'gainAbs']);
+const LABEL_GROUP = new Set<SortKey>(['stock', 'weight', 'shares']);
+
 interface Row extends Holding {
   investedDisplay: number | null; // cost basis, in the display currency
   currentDisplay: number | null; // market value, in the display currency
@@ -65,7 +70,8 @@ function GainPct({ pct, loading }: { pct: number | null; loading: boolean }) {
 // "Portfolio" — current composition of the open positions in the given
 // (already account-filtered) transactions: invested capital vs current value,
 // per-position gain/loss (absolute and %) from live prices, weighted by amount
-// invested. All money is shown in the app-wide display currency.
+// invested. All money is shown in the app-wide display currency. A "private"
+// toggle hides the money columns for over-the-shoulder discretion.
 export function PortfolioComposition({ transactions }: { transactions: Transaction[] }) {
   const { display } = useDisplayCurrency();
   const holdings = useMemo(() => computeHoldings(transactions), [transactions]);
@@ -83,6 +89,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
   const [loadingQuotes, setLoadingQuotes] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('weight');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [isPrivate, setIsPrivate] = useState(false);
 
   useEffect(() => {
     if (!tickerKey) {
@@ -222,15 +229,81 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     );
   };
 
+  const cellClass = (key: SortKey): string => {
+    if (key === 'invested' || key === 'current') return 'text-center text-slate-200';
+    if (key === 'gainAbs' || key === 'gainPct') return 'text-center font-medium';
+    if (key === 'stock') return 'text-center';
+    return 'text-center text-slate-400';
+  };
+
+  const renderCell = (key: SortKey, h: Row): ReactNode => {
+    switch (key) {
+      case 'stock':
+        return (
+          <span className="flex items-center justify-center gap-2.5">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: colorByTicker.get(h.ticker) }}
+            />
+            <span className="font-bold text-slate-100">{h.ticker}</span>
+          </span>
+        );
+      case 'weight':
+        return `${(h.weight * 100).toFixed(1)}%`;
+      case 'shares':
+        return fmtShares(h.shares);
+      case 'invested':
+        return money(h.investedDisplay);
+      case 'current':
+        return money(h.currentDisplay);
+      case 'gainAbs':
+        return gainAbsCell(h.gainAbs);
+      case 'gainPct':
+        return <GainPct pct={h.gainPct} loading={loadingQuotes} />;
+    }
+  };
+
+  const footerCell = (key: SortKey): ReactNode => {
+    switch (key) {
+      case 'invested':
+        return money(totals.invested);
+      case 'current':
+        return money(totals.current);
+      case 'gainAbs':
+        return gainAbsCell(totals.gainAbs);
+      case 'gainPct':
+        return <GainPct pct={totals.gainPct} loading={loadingQuotes} />;
+      default:
+        return null;
+    }
+  };
+
   if (holdings.length === 0) {
     return <p className="text-center text-slate-500">No open positions in this account.</p>;
   }
 
+  const visibleColumns = COLUMNS.filter((c) => !(isPrivate && PRIVATE_HIDDEN.has(c.key)));
+  const labelCols = visibleColumns.filter((c) => LABEL_GROUP.has(c.key));
+  const dataCols = visibleColumns.filter((c) => !LABEL_GROUP.has(c.key));
+
   return (
     <div>
-      <p className="mb-3 text-center text-sm text-slate-400">
-        {holdings.length} {holdings.length === 1 ? 'position' : 'positions'}
-      </p>
+      <div className="mb-3 flex items-center justify-center gap-3">
+        <p className="text-sm text-slate-400">
+          {holdings.length} {holdings.length === 1 ? 'position' : 'positions'}
+        </p>
+        <button
+          onClick={() => setIsPrivate((p) => !p)}
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+            isPrivate
+              ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300'
+              : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+          }`}
+        >
+          {isPrivate ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          Private
+        </button>
+      </div>
 
       {/* Composition bar (kept in value order) */}
       <div className="mb-5 flex h-3 w-full overflow-hidden rounded-full bg-slate-800">
@@ -250,7 +323,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
-              {COLUMNS.map((c, i) => {
+              {visibleColumns.map((c, i) => {
                 const active = c.key === sortKey;
                 return (
                   <th
@@ -264,7 +337,9 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
                       className="w-full text-center text-xs font-bold uppercase tracking-wide text-white transition-colors hover:text-emerald-300"
                     >
                       {c.label}
-                      {active && <span className="text-emerald-400"> {sortDir === 'asc' ? '▲' : '▼'}</span>}
+                      {active && (
+                        <span className="text-emerald-400"> {sortDir === 'asc' ? '▲' : '▼'}</span>
+                      )}
                     </button>
                   </th>
                 );
@@ -274,53 +349,29 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
           <tbody>
             {sorted.map((h) => (
               <tr key={h.ticker} className="border-b border-slate-800">
-                <td className="px-3 py-2.5 text-center">
-                  <span className="flex items-center justify-center gap-2.5">
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: colorByTicker.get(h.ticker) }}
-                    />
-                    <span className="font-bold text-slate-100">{h.ticker}</span>
-                  </span>
-                </td>
-                <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-400">
-                  {(h.weight * 100).toFixed(1)}%
-                </td>
-                <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-400">
-                  {fmtShares(h.shares)}
-                </td>
-                <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-200">
-                  {money(h.investedDisplay)}
-                </td>
-                <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-200">
-                  {money(h.currentDisplay)}
-                </td>
-                <td className="border-l border-slate-800 px-3 py-2.5 text-center font-medium">
-                  {gainAbsCell(h.gainAbs)}
-                </td>
-                <td className="border-l border-slate-800 px-3 py-2.5 text-center font-medium">
-                  <GainPct pct={h.gainPct} loading={loadingQuotes} />
-                </td>
+                {visibleColumns.map((c, i) => (
+                  <td
+                    key={c.key}
+                    className={`px-3 py-2.5 ${i > 0 ? 'border-l border-slate-800' : ''} ${cellClass(
+                      c.key,
+                    )}`}
+                  >
+                    {renderCell(c.key, h)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="border-t border-slate-700 font-bold text-white">
-              <td colSpan={3} className="px-3 py-2.5 text-center">
+              <td colSpan={labelCols.length} className="px-3 py-2.5 text-center">
                 TOTAL
               </td>
-              <td className="border-l border-slate-800 px-3 py-2.5 text-center">
-                {money(totals.invested)}
-              </td>
-              <td className="border-l border-slate-800 px-3 py-2.5 text-center">
-                {money(totals.current)}
-              </td>
-              <td className="border-l border-slate-800 px-3 py-2.5 text-center">
-                {gainAbsCell(totals.gainAbs)}
-              </td>
-              <td className="border-l border-slate-800 px-3 py-2.5 text-center">
-                <GainPct pct={totals.gainPct} loading={loadingQuotes} />
-              </td>
+              {dataCols.map((c) => (
+                <td key={c.key} className="border-l border-slate-800 px-3 py-2.5 text-center">
+                  {footerCell(c.key)}
+                </td>
+              ))}
             </tr>
           </tfoot>
         </table>
