@@ -1,4 +1,8 @@
-"""Investing sub-app — public.
+"""Investing sub-app.
+
+The correlation endpoint is public. The transactions endpoint is gated behind
+the main Google-auth session and scoped to the logged-in user, so each person
+only ever sees their own portfolio history.
 
 Computes a Pearson correlation matrix of daily returns for a chosen subset of
 the largest US-listed companies, using adjusted close prices from Yahoo Finance.
@@ -20,6 +24,9 @@ import time
 from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
+
+from auth import login_required
+from database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -294,3 +301,40 @@ def correlation():
         'start': _START,
         'observations': int(len(sub)),
     })
+
+
+@investing_bp.route('/api/investing/transactions', methods=['GET'])
+@login_required
+def get_transactions():
+    """The logged-in user's portfolio transaction history, newest first.
+
+    Scoped to request.user_id, so a user only ever sees their own rows. The
+    accounts join is just for human-readable account/bank labels.
+    """
+    with get_db() as conn:
+        cursor = conn.execute(
+            '''SELECT pt.id, pt.stock_ticker, pt.transaction_type, pt.quantity,
+                      pt.transaction_date, pt.price_per_share, pt.price_currency,
+                      pt.account_id, ia.name AS account_name, ia.account_type, ia.bank
+               FROM portfolio_transactions pt
+               LEFT JOIN investment_accounts ia ON pt.account_id = ia.id
+               WHERE pt.user_id = ?
+               ORDER BY pt.transaction_date DESC, pt.id DESC''',
+            (request.user_id,)
+        )
+        rows = cursor.fetchall()
+
+    transactions = [{
+        'id': row['id'],
+        'stock_ticker': row['stock_ticker'],
+        'transaction_type': row['transaction_type'],
+        'quantity': row['quantity'],
+        'transaction_date': row['transaction_date'],
+        'price_per_share': row['price_per_share'],
+        'price_currency': row['price_currency'] or 'EUR',
+        'account_id': row['account_id'],
+        'account_name': row['account_name'],
+        'account_type': row['account_type'],
+        'bank': row['bank'],
+    } for row in rows]
+    return jsonify({'transactions': transactions})
