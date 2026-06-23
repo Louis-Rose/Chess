@@ -2,11 +2,34 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { LineChart, LogOut, Wallet, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDisplayCurrency, type DisplayCurrency } from './currency';
 
 interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
+}
+
+// EUR/USD display-currency switch, shared app-wide via the currency context.
+function CurrencyToggle() {
+  const { display, setDisplay } = useDisplayCurrency();
+  return (
+    <div className="flex overflow-hidden rounded-lg border border-slate-700 text-sm">
+      {(['EUR', 'USD'] as DisplayCurrency[]).map((c) => (
+        <button
+          key={c}
+          onClick={() => setDisplay(c)}
+          className={`px-3 py-1.5 font-semibold transition-colors ${
+            display === c
+              ? 'bg-emerald-500/20 text-emerald-300'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+          }`}
+        >
+          {c}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 const NAV: NavItem[] = [
@@ -95,6 +118,10 @@ export function InvestingLayout() {
               </button>
             </div>
           )}
+        </div>
+
+        <div className="flex justify-end border-b border-slate-800 px-6 py-3">
+          <CurrencyToggle />
         </div>
 
         <main className="min-w-0 flex-1">

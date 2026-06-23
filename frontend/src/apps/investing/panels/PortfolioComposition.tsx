@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import type { Transaction } from '../types';
 import { computeHoldings, type Holding } from '../holdings';
+import { useDisplayCurrency } from '../currency';
 
 // Distinct, readable colors for the composition segments (cycled if exceeded).
 const COLORS = [
@@ -31,18 +32,19 @@ function priceInCurrency(h: Holding, q: Quotes | null): number | null {
   return null;
 }
 
-type SortKey = 'stock' | 'shares' | 'invested' | 'current' | 'gain' | 'weight';
+type SortKey = 'stock' | 'weight' | 'shares' | 'invested' | 'current' | 'gain';
 const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: 'stock', label: 'Stock' },
+  { key: 'stock', label: 'Ticker' },
+  { key: 'weight', label: 'Weight' },
   { key: 'shares', label: 'Shares' },
   { key: 'invested', label: 'Invested capital' },
   { key: 'current', label: 'Current value' },
   { key: 'gain', label: 'Gain/Loss' },
-  { key: 'weight', label: 'Weight' },
 ];
 
 interface Row extends Holding {
-  currentValue: number | null; // in the holding's currency
+  investedDisplay: number | null; // cost basis, in the display currency
+  currentDisplay: number | null; // market value, in the display currency
   gain: number | null;
   weight: number;
 }
@@ -60,8 +62,10 @@ function GainText({ pct, loading }: { pct: number | null; loading: boolean }) {
 
 // "Portfolio" — current composition of the open positions in the given
 // (already account-filtered) transactions: invested capital vs current value,
-// per-position gain/loss from live prices, weighted by amount invested.
+// per-position gain/loss from live prices, weighted by amount invested. All
+// money is shown in the app-wide display currency.
 export function PortfolioComposition({ transactions }: { transactions: Transaction[] }) {
+  const { display } = useDisplayCurrency();
   const holdings = useMemo(() => computeHoldings(transactions), [transactions]);
   const total = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings]);
 
@@ -75,7 +79,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
   const tickerKey = useMemo(() => holdings.map((h) => h.ticker).sort().join(','), [holdings]);
   const [quotes, setQuotes] = useState<Quotes | null>(null);
   const [loadingQuotes, setLoadingQuotes] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>('invested');
+  const [sortKey, setSortKey] = useState<SortKey>('weight');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
@@ -95,39 +99,67 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     };
   }, [tickerKey]);
 
+  // Convert an amount from a recorded currency into the display currency.
+  const conv = useMemo(() => {
+    const rate = quotes?.eurusd ?? null;
+    return (amount: number | null, from: string): number | null => {
+      if (amount == null) return null;
+      if (from === display) return amount;
+      if (!rate) return null;
+      if (from === 'EUR') return amount * rate; // EUR -> USD
+      if (from === 'USD') return amount / rate; // USD -> EUR
+      return null;
+    };
+  }, [quotes, display]);
+
   const rows = useMemo<Row[]>(
     () =>
       holdings.map((h) => {
+        const px = quotes?.prices[h.ticker];
         const price = priceInCurrency(h, quotes);
-        const currentValue = price != null ? price * h.shares : null;
-        const gain = price != null && h.avgCost > 0 ? (price / h.avgCost - 1) * 100 : null;
-        return { ...h, currentValue, gain, weight: h.value / total };
+        return {
+          ...h,
+          investedDisplay: conv(h.value, h.currency),
+          currentDisplay: px != null ? conv(px * h.shares, 'USD') : null,
+          gain: price != null && h.avgCost > 0 ? (price / h.avgCost - 1) * 100 : null,
+          weight: h.value / total,
+        };
       }),
-    [holdings, quotes, total],
+    [holdings, quotes, conv, total],
   );
 
-  // Totals, normalized to EUR (USD cost basis / market value converted at
-  // today's rate). Current-value total covers only the positions we can price.
+  // Totals in the display currency. Invested covers all positions; current and
+  // overall gain cover only the positions we can price.
   const totals = useMemo(() => {
     let invested = 0;
-    let current: number | null = quotes?.eurusd != null ? 0 : null;
+    let investedOk = true;
+    let current = 0;
+    let currentAny = false;
     let investedPriced = 0;
     let currentPriced = 0;
     for (const h of holdings) {
-      const investedEUR =
-        h.currency === 'USD' && quotes?.eurusd ? h.value / quotes.eurusd : h.value;
-      invested += investedEUR;
+      const iv = conv(h.value, h.currency);
+      if (iv == null) investedOk = false;
+      else invested += iv;
       const px = quotes?.prices[h.ticker];
-      if (px != null && quotes?.eurusd) {
-        const valEUR = (px / quotes.eurusd) * h.shares;
-        if (current != null) current += valEUR;
-        currentPriced += valEUR;
-        investedPriced += investedEUR;
+      if (px != null) {
+        const cv = conv(px * h.shares, 'USD');
+        if (cv != null) {
+          current += cv;
+          currentAny = true;
+          if (iv != null) {
+            investedPriced += iv;
+            currentPriced += cv;
+          }
+        }
       }
     }
-    const gain = investedPriced > 0 ? (currentPriced / investedPriced - 1) * 100 : null;
-    return { invested, current, gain };
-  }, [holdings, quotes]);
+    return {
+      invested: investedOk ? invested : null,
+      current: currentAny ? current : null,
+      gain: investedPriced > 0 ? (currentPriced / investedPriced - 1) * 100 : null,
+    };
+  }, [holdings, quotes, conv]);
 
   const sorted = useMemo(() => {
     const arr = [...rows];
@@ -142,14 +174,14 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
       switch (sortKey) {
         case 'stock':
           return a.ticker.localeCompare(b.ticker) * dir;
+        case 'weight':
+          return (a.weight - b.weight) * dir;
         case 'shares':
           return (a.shares - b.shares) * dir;
         case 'invested':
-          return (a.value - b.value) * dir;
-        case 'weight':
-          return (a.weight - b.weight) * dir;
+          return nullable(a.investedDisplay, b.investedDisplay);
         case 'current':
-          return nullable(a.currentValue, b.currentValue);
+          return nullable(a.currentDisplay, b.currentDisplay);
         case 'gain':
           return nullable(a.gain, b.gain);
       }
@@ -165,8 +197,8 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     }
   };
 
-  const money = (v: number | null, currency: string) =>
-    v != null ? `${fmtMoney(v)} ${sym(currency)}` : loadingQuotes ? '…' : '—';
+  const money = (v: number | null) =>
+    v != null ? `${fmtMoney(v)} ${sym(display)}` : loadingQuotes ? '…' : '—';
 
   if (holdings.length === 0) {
     return <p className="text-center text-slate-500">No open positions in this account.</p>;
@@ -230,38 +262,37 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
                   </span>
                 </td>
                 <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-400">
+                  {(h.weight * 100).toFixed(1)}%
+                </td>
+                <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-400">
                   {fmtShares(h.shares)}
                 </td>
                 <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-200">
-                  {money(h.value, h.currency)}
+                  {money(h.investedDisplay)}
                 </td>
                 <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-200">
-                  {money(h.currentValue, h.currency)}
+                  {money(h.currentDisplay)}
                 </td>
                 <td className="border-l border-slate-800 px-3 py-2.5 text-center font-medium">
                   <GainText pct={h.gain} loading={loadingQuotes} />
-                </td>
-                <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-400">
-                  {(h.weight * 100).toFixed(1)}%
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="border-t border-slate-700 font-bold text-white">
-              <td colSpan={2} className="px-3 py-2.5 text-center">
+              <td colSpan={3} className="px-3 py-2.5 text-center">
                 TOTAL
               </td>
               <td className="border-l border-slate-800 px-3 py-2.5 text-center">
-                {fmtMoney(totals.invested)} €
+                {money(totals.invested)}
               </td>
               <td className="border-l border-slate-800 px-3 py-2.5 text-center">
-                {totals.current != null ? `${fmtMoney(totals.current)} €` : loadingQuotes ? '…' : '—'}
+                {money(totals.current)}
               </td>
               <td className="border-l border-slate-800 px-3 py-2.5 text-center">
                 <GainText pct={totals.gain} loading={loadingQuotes} />
               </td>
-              <td className="border-l border-slate-800" />
             </tr>
           </tfoot>
         </table>
