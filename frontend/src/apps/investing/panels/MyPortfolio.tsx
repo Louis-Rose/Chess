@@ -267,13 +267,13 @@ export function MyPortfolio() {
                 className="mx-auto mb-5 flex items-center gap-2.5 text-sm text-slate-400 transition-colors hover:text-slate-200"
               >
                 <span
-                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
                     ownedOnly ? 'bg-emerald-500' : 'bg-slate-700'
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-                      ownedOnly ? 'translate-x-4' : 'translate-x-0.5'
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                      ownedOnly ? 'translate-x-[22px]' : 'translate-x-0.5'
                     }`}
                   />
                 </span>
