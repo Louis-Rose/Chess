@@ -33,9 +33,18 @@ function priceInCurrency(h: Holding, q: Quotes | null): number | null {
   return null;
 }
 
-type SortKey = 'stock' | 'weight' | 'shares' | 'invested' | 'current' | 'gainAbs' | 'gainPct';
+type SortKey =
+  | 'stock'
+  | 'price'
+  | 'weight'
+  | 'shares'
+  | 'invested'
+  | 'current'
+  | 'gainAbs'
+  | 'gainPct';
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'stock', label: 'Ticker' },
+  { key: 'price', label: 'Stock price' },
   { key: 'weight', label: 'Weight' },
   { key: 'shares', label: 'Shares' },
   { key: 'invested', label: 'Invested capital' },
@@ -46,9 +55,10 @@ const COLUMNS: { key: SortKey; label: string }[] = [
 
 // Columns hidden in private mode, and the leading "label" group the TOTAL spans.
 const PRIVATE_HIDDEN = new Set<SortKey>(['shares', 'invested', 'current', 'gainAbs']);
-const LABEL_GROUP = new Set<SortKey>(['stock', 'weight', 'shares']);
+const LABEL_GROUP = new Set<SortKey>(['stock', 'price', 'weight', 'shares']);
 
 interface Row extends Holding {
+  price: number | null; // current market price per share, in the display currency
   investedDisplay: number | null; // cost basis, in the display currency
   currentDisplay: number | null; // market value, in the display currency
   gainAbs: number | null; // current - invested, in the display currency
@@ -130,6 +140,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
         const currentDisplay = px != null ? conv(px * h.shares, 'USD') : null;
         return {
           ...h,
+          price: px != null ? conv(px, 'USD') : null,
           investedDisplay,
           currentDisplay,
           gainAbs:
@@ -190,6 +201,8 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
       switch (sortKey) {
         case 'stock':
           return a.ticker.localeCompare(b.ticker) * dir;
+        case 'price':
+          return nullable(a.price, b.price);
         case 'weight':
           return (a.weight - b.weight) * dir;
         case 'shares':
@@ -229,8 +242,12 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     );
   };
 
+  const priceText = (v: number | null) =>
+    v != null ? `${v.toFixed(2)} ${sym(display)}` : loadingQuotes ? '…' : '—';
+
   const cellClass = (key: SortKey): string => {
-    if (key === 'invested' || key === 'current') return 'text-center text-slate-200';
+    if (key === 'invested' || key === 'current' || key === 'price')
+      return 'text-center text-slate-200';
     if (key === 'gainAbs' || key === 'gainPct') return 'text-center font-medium';
     if (key === 'stock') return 'text-center';
     return 'text-center text-slate-400';
@@ -248,6 +265,8 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
             <span className="font-bold text-slate-100">{h.ticker}</span>
           </span>
         );
+      case 'price':
+        return priceText(h.price);
       case 'weight':
         return `${(h.weight * 100).toFixed(1)}%`;
       case 'shares':
