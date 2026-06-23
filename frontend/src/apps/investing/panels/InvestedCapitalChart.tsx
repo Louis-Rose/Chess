@@ -5,15 +5,11 @@ import type { DisplayCurrency } from '../currency';
 
 const sym = (c: DisplayCurrency) => (c === 'USD' ? '$' : '€');
 const fmtMoney = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-const fmtDate = (d: string) =>
-  new Date(`${d}T00:00:00`).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: '2-digit',
-  });
+const fmtTick = (ts: number) =>
+  new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
 
 interface Point {
-  date: string;
+  t: number; // timestamp (ms) — gives the axis real time spacing
   invested: number;
 }
 
@@ -60,8 +56,14 @@ function buildSeries(
   }
 
   return [...byDate.entries()]
-    .map(([date, invested]) => ({ date, invested }))
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
+    .map(([date, invested]) => ({ t: new Date(`${date}T00:00:00`).getTime(), invested }))
+    .sort((a, b) => a.t - b.t);
+}
+
+// Evenly spaced timestamps across the data range, for regular axis ticks.
+function regularTicks(min: number, max: number, n = 6): number[] {
+  if (min === max) return [min];
+  return Array.from({ length: n }, (_, i) => Math.round(min + (i * (max - min)) / (n - 1)));
 }
 
 export function InvestedCapitalChart({
@@ -74,8 +76,12 @@ export function InvestedCapitalChart({
   eurusd: number | null;
 }) {
   const data = useMemo(
-    () => buildSeries(transactions, display, eurusd).map((d) => ({ ...d, label: fmtDate(d.date) })),
+    () => buildSeries(transactions, display, eurusd),
     [transactions, display, eurusd],
+  );
+  const ticks = useMemo(
+    () => (data.length ? regularTicks(data[0].t, data[data.length - 1].t) : []),
+    [data],
   );
 
   if (data.length === 0) return null;
@@ -85,9 +91,9 @@ export function InvestedCapitalChart({
       <h3 className="mb-3 text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
         Invested capital over time
       </h3>
-      <div className="h-56 w-full">
+      <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 4, right: 8, left: -4, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 4, right: 8, left: -4, bottom: 8 }}>
             <defs>
               <linearGradient id="invFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
@@ -95,12 +101,18 @@ export function InvestedCapitalChart({
               </linearGradient>
             </defs>
             <XAxis
-              dataKey="label"
+              dataKey="t"
+              type="number"
+              scale="time"
+              domain={[data[0].t, data[data.length - 1].t]}
+              ticks={ticks}
+              tickFormatter={fmtTick}
               tick={{ fill: '#64748b', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
-              interval="preserveStartEnd"
-              minTickGap={28}
+              angle={-30}
+              textAnchor="end"
+              height={48}
             />
             <YAxis
               tick={{ fill: '#64748b', fontSize: 11 }}
@@ -118,6 +130,7 @@ export function InvestedCapitalChart({
                 fontSize: 12,
               }}
               labelStyle={{ color: '#94a3b8' }}
+              labelFormatter={(v) => fmtTick(v as number)}
               formatter={(value) => [`${fmtMoney(value as number)} ${sym(display)}`, 'Invested']}
             />
             <Area
