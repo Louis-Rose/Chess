@@ -1,3 +1,11 @@
+// An investment account, as returned by GET /api/investing/accounts.
+export interface Account {
+  id: number;
+  name: string;
+  account_type: string;
+  bank: string;
+}
+
 // A single portfolio transaction, as returned by GET /api/investing/transactions.
 export interface Transaction {
   id: number;

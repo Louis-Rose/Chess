@@ -3,8 +3,9 @@ import axios from 'axios';
 import { Lock, Plus, Trash2, Wallet } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LoginButton } from '../../../components/LoginButton';
-import type { Transaction } from '../types';
+import type { Account, Transaction } from '../types';
 import { PortfolioComposition } from './PortfolioComposition';
+import { AccountBar, type AccountPill } from './AccountBar';
 import {
   AddTransactionForm,
   type AccountChoice,
@@ -16,12 +17,6 @@ const fmtDate = (d: string) =>
 
 // Which account a transaction belongs to, as a stable string key.
 const acctKey = (t: Transaction) => (t.account_id == null ? 'none' : String(t.account_id));
-
-interface AccountOption {
-  key: string;
-  label: string;
-  count: number;
-}
 
 function TransactionRow({ tx, onDelete }: { tx: Transaction; onDelete: (id: number) => void }) {
   const isBuy = tx.transaction_type === 'BUY';
@@ -78,6 +73,7 @@ function TransactionRow({ tx, onDelete }: { tx: Transaction; onDelete: (id: numb
 // and the transaction list reflect that single account.
 export function MyPortfolio() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [accounts, setAccounts] = useState<Account[] | null>(null);
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,46 +87,60 @@ export function MyPortfolio() {
   const reload = useCallback(() => {
     setLoading(true);
     setError(null);
-    return axios
-      .get<{ transactions: Transaction[] }>('/api/investing/transactions')
-      .then((res) => setTransactions(res.data.transactions))
+    return Promise.all([
+      axios.get<{ accounts: Account[] }>('/api/investing/accounts'),
+      axios.get<{ transactions: Transaction[] }>('/api/investing/transactions'),
+    ])
+      .then(([a, t]) => {
+        setAccounts(a.data.accounts);
+        setTransactions(t.data.transactions);
+      })
       .catch((err) => {
+        setAccounts(null);
         setTransactions(null);
-        setError(err?.response?.data?.error ?? 'Could not load your transactions.');
+        setError(err?.response?.data?.error ?? 'Could not load your portfolio.');
       })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
+      setAccounts(null);
       setTransactions(null);
       return;
     }
     reload();
   }, [isAuthenticated, reload]);
 
-  // Distinct accounts present in the data, most-active first.
-  const accounts = useMemo<AccountOption[]>(() => {
-    if (!transactions) return [];
-    const map = new Map<string, AccountOption>();
-    for (const t of transactions) {
-      const key = acctKey(t);
-      const label =
-        t.account_name || (t.account_id == null ? 'Unassigned' : `Account ${t.account_id}`);
-      const existing = map.get(key);
-      if (existing) existing.count += 1;
-      else map.set(key, { key, label, count: 1 });
+  // Account pills come from the accounts list (so empty accounts still show),
+  // with counts from the transactions. An "Unassigned" pill appears only if
+  // some transactions have no account. Most-active first.
+  const pills = useMemo<AccountPill[]>(() => {
+    const counts = new Map<string, number>();
+    for (const t of transactions ?? []) {
+      const k = acctKey(t);
+      counts.set(k, (counts.get(k) ?? 0) + 1);
     }
-    return [...map.values()].sort((a, b) => b.count - a.count);
-  }, [transactions]);
+    const list: AccountPill[] = (accounts ?? []).map((a) => ({
+      key: String(a.id),
+      label: a.name,
+      accountId: a.id,
+      count: counts.get(String(a.id)) ?? 0,
+    }));
+    const noneCount = counts.get('none') ?? 0;
+    if (noneCount > 0) {
+      list.push({ key: 'none', label: 'Unassigned', accountId: null, count: noneCount });
+    }
+    return list.sort((a, b) => b.count - a.count);
+  }, [accounts, transactions]);
 
-  // Default to the most-active account; keep selection valid as data changes.
+  // Default to the first pill; keep selection valid as data changes.
   useEffect(() => {
-    if (accounts.length === 0) return;
-    if (selectedKey === null || !accounts.some((a) => a.key === selectedKey)) {
-      setSelectedKey(accounts[0].key);
+    if (pills.length === 0) return;
+    if (selectedKey === null || !pills.some((p) => p.key === selectedKey)) {
+      setSelectedKey(pills[0].key);
     }
-  }, [accounts, selectedKey]);
+  }, [pills, selectedKey]);
 
   const visible = useMemo(() => {
     if (!transactions) return [];
@@ -139,32 +149,38 @@ export function MyPortfolio() {
   }, [transactions, selectedKey]);
 
   const accountChoices = useMemo<AccountChoice[]>(
-    () =>
-      accounts.map((a) => ({
-        key: a.key,
-        label: a.label,
-        accountId: a.key === 'none' ? null : Number(a.key),
-      })),
+    () => (accounts ?? []).map((a) => ({ key: String(a.id), label: a.name, accountId: a.id })),
     [accounts],
   );
 
-  const handleAdd = useCallback(
-    async (tx: NewTransaction) => {
-      const res = await axios.post<{ transaction: Transaction }>(
-        '/api/investing/transactions',
-        tx,
-      );
-      const created = res.data.transaction;
-      setTransactions((prev) => (prev ? [created, ...prev] : [created]));
-      setSelectedKey(acctKey(created)); // jump to the account it landed in
+  const handleAdd = useCallback(async (tx: NewTransaction) => {
+    const res = await axios.post<{ transaction: Transaction }>('/api/investing/transactions', tx);
+    const created = res.data.transaction;
+    setTransactions((prev) => (prev ? [created, ...prev] : [created]));
+    setSelectedKey(acctKey(created)); // jump to the account it landed in
+  }, []);
+
+  const handleDeleteTx = useCallback(
+    (id: number) => {
+      setTransactions((prev) => (prev ? prev.filter((t) => t.id !== id) : prev));
+      axios.delete(`/api/investing/transactions/${id}`).catch(() => reload());
     },
-    [],
+    [reload],
   );
 
-  const handleDelete = useCallback((id: number) => {
-    setTransactions((prev) => (prev ? prev.filter((t) => t.id !== id) : prev));
-    axios.delete(`/api/investing/transactions/${id}`).catch(() => reload());
-  }, [reload]);
+  const handleCreateAccount = useCallback(async (name: string) => {
+    const res = await axios.post<{ account: Account }>('/api/investing/accounts', { name });
+    const acct = res.data.account;
+    setAccounts((prev) => (prev ? [...prev, acct] : [acct]));
+    setSelectedKey(String(acct.id));
+  }, []);
+
+  const handleDeleteAccount = useCallback(async (accountId: number) => {
+    await axios.delete(`/api/investing/accounts/${accountId}`);
+    setAccounts((prev) => (prev ? prev.filter((a) => a.id !== accountId) : prev));
+    setTransactions((prev) => (prev ? prev.filter((t) => t.account_id !== accountId) : prev));
+    setSelectedKey(null); // selection resets to the first remaining pill
+  }, []);
 
   // Not logged in: prompt for Google sign-in.
   if (!authLoading && !isAuthenticated) {
@@ -182,6 +198,8 @@ export function MyPortfolio() {
     );
   }
 
+  const ready = accounts !== null && transactions !== null;
+
   return (
     <div className="px-6 py-10">
       <div className="mx-auto max-w-3xl">
@@ -190,27 +208,15 @@ export function MyPortfolio() {
           <h1 className="text-2xl font-bold text-slate-100">My Portfolio</h1>
         </div>
 
-        {accounts.length > 1 && (
-          <div className="mb-6 flex flex-wrap gap-2">
-            {accounts.map((a) => {
-              const active = a.key === selectedKey;
-              return (
-                <button
-                  key={a.key}
-                  onClick={() => setSelectedKey(a.key)}
-                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                    active
-                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300'
-                      : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
-                  }`}
-                >
-                  {a.label}
-                  <span className={active ? 'text-emerald-400/70' : 'text-slate-500'}>
-                    {a.count}
-                  </span>
-                </button>
-              );
-            })}
+        {ready && (
+          <div className="mb-6">
+            <AccountBar
+              pills={pills}
+              selectedKey={selectedKey}
+              onSelect={setSelectedKey}
+              onCreate={handleCreateAccount}
+              onDelete={handleDeleteAccount}
+            />
           </div>
         )}
 
@@ -222,7 +228,7 @@ export function MyPortfolio() {
 
         {error && !loading && <p className="text-rose-400">{error}</p>}
 
-        {transactions && !loading && (
+        {ready && !loading && (
           <>
             <hr className="mb-8 border-slate-800" />
             <section className="mb-8">
@@ -253,11 +259,11 @@ export function MyPortfolio() {
               )}
 
               {visible.length === 0 ? (
-                <p className="text-slate-500">No transactions in this account.</p>
+                <p className="text-center text-slate-500">No transactions in this account.</p>
               ) : (
                 <div className="space-y-2">
                   {visible.map((tx) => (
-                    <TransactionRow key={tx.id} tx={tx} onDelete={handleDelete} />
+                    <TransactionRow key={tx.id} tx={tx} onDelete={handleDeleteTx} />
                   ))}
                 </div>
               )}

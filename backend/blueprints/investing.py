@@ -421,3 +421,64 @@ def delete_transaction(tx_id):
     if not deleted:
         return jsonify({'error': 'Transaction not found.'}), 404
     return jsonify({'ok': True})
+
+
+@investing_bp.route('/api/investing/accounts', methods=['GET'])
+@login_required
+def get_accounts():
+    """List the logged-in user's investment accounts."""
+    with get_db() as conn:
+        rows = conn.execute(
+            '''SELECT id, name, account_type, bank
+               FROM investment_accounts WHERE user_id = ?
+               ORDER BY display_order, id''',
+            (request.user_id,)
+        ).fetchall()
+    return jsonify({'accounts': [
+        {'id': r['id'], 'name': r['name'], 'account_type': r['account_type'], 'bank': r['bank']}
+        for r in rows
+    ]})
+
+
+@investing_bp.route('/api/investing/accounts', methods=['POST'])
+@login_required
+def add_account():
+    """Create a new investment account for the logged-in user."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get('name') or '').strip()
+    bank = (data.get('bank') or '').strip()
+    account_type = (data.get('account_type') or '').strip()
+    if not name:
+        return jsonify({'error': 'Account name is required.'}), 400
+
+    with get_db() as conn:
+        new_id = conn.execute(
+            '''INSERT INTO investment_accounts (user_id, name, account_type, bank, display_order)
+               VALUES (?, ?, ?, ?, 0) RETURNING id''',
+            (request.user_id, name, account_type, bank)
+        ).fetchone()['id']
+    return jsonify({
+        'account': {'id': new_id, 'name': name, 'account_type': account_type, 'bank': bank}
+    }), 201
+
+
+@investing_bp.route('/api/investing/accounts/<int:account_id>', methods=['DELETE'])
+@login_required
+def delete_account(account_id):
+    """Delete one of the user's accounts and all of its transactions."""
+    with get_db() as conn:
+        owns = conn.execute(
+            'SELECT id FROM investment_accounts WHERE id = ? AND user_id = ?',
+            (account_id, request.user_id)
+        ).fetchone()
+        if not owns:
+            return jsonify({'error': 'Account not found.'}), 404
+        conn.execute(
+            'DELETE FROM portfolio_transactions WHERE account_id = ? AND user_id = ?',
+            (account_id, request.user_id)
+        )
+        conn.execute(
+            'DELETE FROM investment_accounts WHERE id = ? AND user_id = ?',
+            (account_id, request.user_id)
+        )
+    return jsonify({'ok': True})
