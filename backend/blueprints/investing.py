@@ -255,6 +255,53 @@ def _warm():
 threading.Thread(target=_warm, daemon=True).start()
 
 
+# --- Live quotes (for portfolio gain/loss) ---------------------------------
+# Last close per symbol, cached briefly. Unlike the correlation universe these
+# are arbitrary user-held tickers, so we fetch on demand and cache per symbol.
+_QUOTES_TTL = 600  # seconds
+_quotes: dict = {}  # symbol -> {'price': float, 'ts': float}
+
+
+def _fetch_prices(symbols):
+    """Return {symbol: last_close} for the given yfinance symbols, cached for
+    _QUOTES_TTL. Stale/missing symbols are (re)fetched together in one call."""
+    now = time.time()
+    needed = [s for s in symbols if now - _quotes.get(s, {}).get('ts', 0) >= _QUOTES_TTL]
+    if needed:
+        try:
+            import yfinance as yf
+            data = yf.download(needed, period='5d', auto_adjust=True, progress=False)['Close']
+            if hasattr(data, 'columns'):  # multiple symbols -> DataFrame
+                for s in needed:
+                    if s in data.columns:
+                        series = data[s].dropna()
+                        if len(series):
+                            _quotes[s] = {'price': float(series.iloc[-1]), 'ts': now}
+            else:  # single symbol -> Series
+                series = data.dropna()
+                if len(series):
+                    _quotes[needed[0]] = {'price': float(series.iloc[-1]), 'ts': now}
+        except Exception as e:
+            logger.warning('quotes fetch failed: %s', e)
+    return {s: _quotes[s]['price'] for s in symbols if s in _quotes}
+
+
+@investing_bp.route('/api/investing/quotes', methods=['GET'])
+@login_required
+def quotes():
+    """Latest price for the requested tickers (native currency, USD for US
+    stocks) plus the EURUSD rate (USD per 1 EUR) for currency conversion."""
+    raw = request.args.get('tickers', '')
+    tickers = [t.strip().upper() for t in raw.split(',') if t.strip()]
+    tickers = list(dict.fromkeys(tickers))[:50]  # de-dupe, cap
+    prices = _fetch_prices(tickers + ['EURUSD=X'])
+    eurusd = prices.pop('EURUSD=X', None)
+    return jsonify({
+        'prices': {t: prices[t] for t in tickers if t in prices},
+        'eurusd': eurusd,
+    })
+
+
 @investing_bp.route('/api/investing/correlation', methods=['GET'])
 def correlation():
     """Pearson correlation matrix of daily returns for the requested tickers
