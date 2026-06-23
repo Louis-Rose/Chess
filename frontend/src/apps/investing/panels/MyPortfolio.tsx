@@ -4,6 +4,7 @@ import { Lock, Plus, Trash2, Wallet } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LoginButton } from '../../../components/LoginButton';
 import type { Account, Transaction } from '../types';
+import { ownedTickers } from '../holdings';
 import { PortfolioComposition } from './PortfolioComposition';
 import { AccountBar, type AccountPill } from './AccountBar';
 import {
@@ -79,6 +80,7 @@ export function MyPortfolio() {
   const [error, setError] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [ownedOnly, setOwnedOnly] = useState(false);
 
   useEffect(() => {
     document.title = 'My Portfolio — LUMNA';
@@ -151,6 +153,15 @@ export function MyPortfolio() {
   const accountChoices = useMemo<AccountChoice[]>(
     () => (accounts ?? []).map((a) => ({ key: String(a.id), label: a.name, accountId: a.id })),
     [accounts],
+  );
+
+  // Tickers still held in the selected account. When "owned only" is on, the
+  // transaction list (and the graphs built on top of it) is restricted to
+  // these, dropping transactions for positions that were fully sold.
+  const owned = useMemo(() => ownedTickers(visible), [visible]);
+  const displayTransactions = useMemo(
+    () => (ownedOnly ? visible.filter((t) => owned.has(t.stock_ticker)) : visible),
+    [ownedOnly, visible, owned],
   );
 
   const handleAdd = useCallback(async (tx: NewTransaction) => {
@@ -249,6 +260,26 @@ export function MyPortfolio() {
                 </button>
               </div>
 
+              <button
+                onClick={() => setOwnedOnly((v) => !v)}
+                role="switch"
+                aria-checked={ownedOnly}
+                className="mx-auto mb-5 flex items-center gap-2.5 text-sm text-slate-400 transition-colors hover:text-slate-200"
+              >
+                <span
+                  className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+                    ownedOnly ? 'bg-emerald-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                      ownedOnly ? 'translate-x-4' : 'translate-x-0.5'
+                    }`}
+                  />
+                </span>
+                Only currently owned stocks
+              </button>
+
               {adding && (
                 <AddTransactionForm
                   accounts={accountChoices}
@@ -258,11 +289,15 @@ export function MyPortfolio() {
                 />
               )}
 
-              {visible.length === 0 ? (
-                <p className="text-center text-slate-500">No transactions in this account.</p>
+              {displayTransactions.length === 0 ? (
+                <p className="text-center text-slate-500">
+                  {ownedOnly && visible.length > 0
+                    ? 'No transactions for currently owned stocks.'
+                    : 'No transactions in this account.'}
+                </p>
               ) : (
                 <div className="space-y-2">
-                  {visible.map((tx) => (
+                  {displayTransactions.map((tx) => (
                     <TransactionRow key={tx.id} tx={tx} onDelete={handleDeleteTx} />
                   ))}
                 </div>
