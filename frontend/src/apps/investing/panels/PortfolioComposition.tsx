@@ -87,7 +87,6 @@ function GainPct({ pct, loading }: { pct: number | null; loading: boolean }) {
 export function PortfolioComposition({ transactions }: { transactions: Transaction[] }) {
   const { display, isPrivate, setIsPrivate } = useDisplayCurrency();
   const holdings = useMemo(() => computeHoldings(transactions), [transactions]);
-  const total = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings]);
 
   // Stable color per ticker, by the default value-descending rank.
   const colorByTicker = useMemo(() => {
@@ -132,28 +131,38 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     };
   }, [quotes, display]);
 
-  const rows = useMemo<Row[]>(
-    () =>
-      holdings.map((h) => {
-        const px = quotes?.prices[h.ticker];
-        const price = priceInCurrency(h, quotes);
-        const investedDisplay = conv(h.value, h.currency);
-        const currentDisplay = px != null ? conv(px * h.shares, 'USD') : null;
-        return {
-          ...h,
-          price: px != null ? conv(px, 'USD') : null,
-          investedDisplay,
-          currentDisplay,
-          gainAbs:
-            investedDisplay != null && currentDisplay != null
-              ? currentDisplay - investedDisplay
-              : null,
-          gainPct: price != null && h.avgCost > 0 ? (price / h.avgCost - 1) * 100 : null,
-          weight: h.value / total,
-        };
-      }),
-    [holdings, quotes, conv, total],
-  );
+  const rows = useMemo<Row[]>(() => {
+    const base: Row[] = holdings.map((h) => {
+      const px = quotes?.prices[h.ticker];
+      const price = priceInCurrency(h, quotes);
+      const investedDisplay = conv(h.value, h.currency);
+      const currentDisplay = px != null ? conv(px * h.shares, 'USD') : null;
+      return {
+        ...h,
+        price: px != null ? conv(px, 'USD') : null,
+        investedDisplay,
+        currentDisplay,
+        gainAbs:
+          investedDisplay != null && currentDisplay != null
+            ? currentDisplay - investedDisplay
+            : null,
+        gainPct: price != null && h.avgCost > 0 ? (price / h.avgCost - 1) * 100 : null,
+        weight: 0,
+      };
+    });
+    // Weight by current market value (display currency); fall back to cost basis
+    // for any position we can't price yet, so weights always sum to ~100%.
+    const wval = (r: Row) => r.currentDisplay ?? r.investedDisplay ?? r.value;
+    const totalW = base.reduce((s, r) => s + wval(r), 0);
+    if (totalW > 0) for (const r of base) r.weight = wval(r) / totalW;
+    return base;
+  }, [holdings, quotes, conv]);
+
+  const weightByTicker = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of rows) m.set(r.ticker, r.weight);
+    return m;
+  }, [rows]);
 
   // Totals in the display currency. Invested covers all positions; current,
   // absolute and % gain cover only the positions we can price.
@@ -384,16 +393,16 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
 
       {/* Composition bar (kept in value order) */}
       <div className="mb-5 flex h-3 w-full overflow-hidden rounded-full bg-slate-800">
-        {holdings.map((h) => (
-          <div
-            key={h.ticker}
-            style={{
-              width: `${(h.value / total) * 100}%`,
-              backgroundColor: colorByTicker.get(h.ticker),
-            }}
-            title={`${h.ticker} · ${((h.value / total) * 100).toFixed(1)}%`}
-          />
-        ))}
+        {holdings.map((h) => {
+          const w = weightByTicker.get(h.ticker) ?? 0;
+          return (
+            <div
+              key={h.ticker}
+              style={{ width: `${w * 100}%`, backgroundColor: colorByTicker.get(h.ticker) }}
+              title={`${h.ticker} · ${(w * 100).toFixed(1)}%`}
+            />
+          );
+        })}
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-800">
