@@ -135,6 +135,15 @@ def init_db():
             conn.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'coach'")
             logger.info("Added role column to users")
 
+        # Migration: Add optional transaction_time (HH:MM, Paris time) to
+        # portfolio_transactions. That table only exists where it was carried
+        # over from the investing app, so guard on its presence.
+        if _table_exists(conn, 'portfolio_transactions') and not _column_exists(
+            conn, 'portfolio_transactions', 'transaction_time'
+        ):
+            conn.execute("ALTER TABLE portfolio_transactions ADD COLUMN transaction_time TEXT")
+            logger.info("Added transaction_time column to portfolio_transactions")
+
         # Migration: Add linked_user_id column to coach_students
         if not _column_exists(conn, 'coach_students', 'linked_user_id'):
             conn.execute("ALTER TABLE coach_students ADD COLUMN linked_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL")

@@ -13,8 +13,11 @@ export interface NewTransaction {
   price_per_share: number;
   price_currency: string;
   transaction_date: string;
+  transaction_time: string | null; // HH:MM, Paris time (optional)
   account_id: number | null;
 }
+
+const CURRENCIES = ['EUR', 'USD'];
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -40,6 +43,7 @@ export function AddTransactionForm({
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState('EUR');
   const [date, setDate] = useState(today());
+  const [time, setTime] = useState('');
   const [accountKey, setAccountKey] = useState(defaultAccountKey ?? accounts[0]?.key ?? 'none');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +67,7 @@ export function AddTransactionForm({
         price_per_share: px,
         price_currency: currency.trim().toUpperCase() || 'EUR',
         transaction_date: date,
+        transaction_time: time || null,
         account_id: account ? account.accountId : null,
       });
       onClose();
@@ -123,17 +128,31 @@ export function AddTransactionForm({
           value={price}
           onChange={(e) => setPrice(e.target.value)}
         />
-        <input
+        <select
           className={inputClass}
-          placeholder="Currency"
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
-        />
+          aria-label="Currency"
+        >
+          {CURRENCIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
         <input
           className={inputClass}
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
+        />
+        <input
+          className={inputClass}
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          aria-label="Time (Paris, optional)"
+          title="Time of day in Paris — optional"
         />
         {accounts.length > 0 && (
           <select

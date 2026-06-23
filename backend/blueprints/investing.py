@@ -314,12 +314,13 @@ def get_transactions():
     with get_db() as conn:
         cursor = conn.execute(
             '''SELECT pt.id, pt.stock_ticker, pt.transaction_type, pt.quantity,
-                      pt.transaction_date, pt.price_per_share, pt.price_currency,
-                      pt.account_id, ia.name AS account_name, ia.account_type, ia.bank
+                      pt.transaction_date, pt.transaction_time, pt.price_per_share,
+                      pt.price_currency, pt.account_id, ia.name AS account_name,
+                      ia.account_type, ia.bank
                FROM portfolio_transactions pt
                LEFT JOIN investment_accounts ia ON pt.account_id = ia.id
                WHERE pt.user_id = ?
-               ORDER BY pt.transaction_date DESC, pt.id DESC''',
+               ORDER BY pt.transaction_date DESC, pt.transaction_time DESC NULLS LAST, pt.id DESC''',
             (request.user_id,)
         )
         rows = cursor.fetchall()
@@ -334,6 +335,7 @@ def _serialize_transaction(row):
         'transaction_type': row['transaction_type'],
         'quantity': row['quantity'],
         'transaction_date': row['transaction_date'],
+        'transaction_time': row['transaction_time'],
         'price_per_share': row['price_per_share'],
         'price_currency': row['price_currency'] or 'EUR',
         'account_id': row['account_id'],
@@ -347,8 +349,9 @@ def _fetch_transaction(conn, tx_id, user_id):
     """Re-read one of the user's transactions with its account labels joined."""
     cursor = conn.execute(
         '''SELECT pt.id, pt.stock_ticker, pt.transaction_type, pt.quantity,
-                  pt.transaction_date, pt.price_per_share, pt.price_currency,
-                  pt.account_id, ia.name AS account_name, ia.account_type, ia.bank
+                  pt.transaction_date, pt.transaction_time, pt.price_per_share,
+                  pt.price_currency, pt.account_id, ia.name AS account_name,
+                  ia.account_type, ia.bank
            FROM portfolio_transactions pt
            LEFT JOIN investment_accounts ia ON pt.account_id = ia.id
            WHERE pt.id = ? AND pt.user_id = ?''',
@@ -366,6 +369,7 @@ def add_transaction():
     ticker = (data.get('stock_ticker') or '').strip().upper()
     tx_type = (data.get('transaction_type') or '').strip().upper()
     transaction_date = (data.get('transaction_date') or '').strip()
+    transaction_time = (data.get('transaction_time') or '').strip()
     currency = (data.get('price_currency') or 'EUR').strip().upper()
     account_id = data.get('account_id')
 
@@ -384,6 +388,14 @@ def add_transaction():
         datetime.strptime(transaction_date, '%Y-%m-%d')
     except ValueError:
         return jsonify({'error': 'Date must be YYYY-MM-DD.'}), 400
+    # Optional time of day (Paris time), HH:MM.
+    if transaction_time:
+        try:
+            datetime.strptime(transaction_time, '%H:%M')
+        except ValueError:
+            return jsonify({'error': 'Time must be HH:MM.'}), 400
+    else:
+        transaction_time = None
 
     with get_db() as conn:
         # If an account is given, it must belong to the caller.
@@ -398,11 +410,11 @@ def add_transaction():
         new_id = conn.execute(
             '''INSERT INTO portfolio_transactions
                  (user_id, account_id, stock_ticker, transaction_type, quantity,
-                  transaction_date, price_per_share, price_currency)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                  transaction_date, transaction_time, price_per_share, price_currency)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                RETURNING id''',
             (request.user_id, account_id, ticker, tx_type, quantity,
-             transaction_date, price_per_share, currency)
+             transaction_date, transaction_time, price_per_share, currency)
         ).fetchone()['id']
         row = _fetch_transaction(conn, new_id, request.user_id)
 

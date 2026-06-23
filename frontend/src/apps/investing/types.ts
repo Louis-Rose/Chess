@@ -13,6 +13,7 @@ export interface Transaction {
   transaction_type: 'BUY' | 'SELL';
   quantity: number;
   transaction_date: string; // YYYY-MM-DD
+  transaction_time: string | null; // HH:MM, Paris time (optional)
   price_per_share: number;
   price_currency: string;
   account_id: number | null;

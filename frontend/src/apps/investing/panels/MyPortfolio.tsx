@@ -38,7 +38,12 @@ function TransactionRow({ tx, onDelete }: { tx: Transaction; onDelete: (id: numb
         <span className="text-slate-300">
           {tx.price_currency} {tx.price_per_share.toFixed(2)}
         </span>
-        <span className="ml-auto text-sm text-slate-400">{fmtDate(tx.transaction_date)}</span>
+        <span className="ml-auto text-sm text-slate-400">
+          {fmtDate(tx.transaction_date)}
+          {tx.transaction_time && (
+            <span className="text-slate-500"> · {tx.transaction_time}</span>
+          )}
+        </span>
       </div>
       {confirming ? (
         <div className="flex items-center gap-2 text-xs">
