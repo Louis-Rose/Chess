@@ -85,7 +85,7 @@ function GainPct({ pct, loading }: { pct: number | null; loading: boolean }) {
 // invested. All money is shown in the app-wide display currency. A "private"
 // toggle hides the money columns for over-the-shoulder discretion.
 export function PortfolioComposition({ transactions }: { transactions: Transaction[] }) {
-  const { display } = useDisplayCurrency();
+  const { display, isPrivate, setIsPrivate } = useDisplayCurrency();
   const holdings = useMemo(() => computeHoldings(transactions), [transactions]);
   const total = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings]);
 
@@ -101,7 +101,6 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
   const [loadingQuotes, setLoadingQuotes] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('weight');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [isPrivate, setIsPrivate] = useState(false);
 
   useEffect(() => {
     if (!tickerKey) {
@@ -313,7 +312,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
           {holdings.length} {holdings.length === 1 ? 'position' : 'positions'}
         </p>
         <button
-          onClick={() => setIsPrivate((p) => !p)}
+          onClick={() => setIsPrivate(!isPrivate)}
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
             isPrivate
               ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300'

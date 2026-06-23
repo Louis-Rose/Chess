@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Area, AreaChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Transaction } from '../types';
-import type { DisplayCurrency } from '../currency';
+import { useDisplayCurrency, type DisplayCurrency } from '../currency';
 
 const sym = (c: DisplayCurrency) => (c === 'USD' ? '$' : '€');
 const fmtMoney = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -31,10 +31,7 @@ const byDateTimeId = (a: Transaction, b: Transaction) => {
   return a.id - b.id;
 };
 
-// Build the invested-capital and portfolio-value series over a daily timeline.
-// Invested = cumulative cost basis (average-cost); value = held shares x the
-// day's price. Both in the display currency at today's EUR/USD, matching the
-// table. Prices are forward-filled across non-trading gaps.
+// Build invested-capital and portfolio-value series over a daily timeline.
 function buildSeries(
   txs: Transaction[],
   history: History,
@@ -94,7 +91,6 @@ function buildSeries(
     pts.push({ t: new Date(`${date}T00:00:00`).getTime(), invested: totalCost, value: valueNow() });
   });
 
-  // Apply any trades after the last history date, then a point at today.
   while (ti < sorted.length) apply(sorted[ti++]);
   const now = Date.now();
   if (!pts.length || now > pts[pts.length - 1].t) {
@@ -117,6 +113,7 @@ export function InvestedCapitalChart({
   display: DisplayCurrency;
   eurusd: number | null;
 }) {
+  const { isPrivate } = useDisplayCurrency();
   const [history, setHistory] = useState<History | null>(null);
 
   const tickers = useMemo(
@@ -125,7 +122,8 @@ export function InvestedCapitalChart({
   );
   const start = useMemo(() => {
     let min: string | null = null;
-    for (const t of transactions) if (min === null || t.transaction_date < min) min = t.transaction_date;
+    for (const t of transactions)
+      if (min === null || t.transaction_date < min) min = t.transaction_date;
     return min;
   }, [transactions]);
 
@@ -154,25 +152,73 @@ export function InvestedCapitalChart({
     [data],
   );
 
-  const { yMax, yTicks } = useMemo(() => {
+  // In private mode, normalize both curves to a percentage of the *current*
+  // invested capital (100% = invested today). Otherwise plot absolute amounts.
+  const view = useMemo(() => {
+    const currentInvested = data.length ? data[data.length - 1].invested : 0;
+    const pctMode = isPrivate && currentInvested > 0;
+    const chartData = pctMode
+      ? data.map((p) => ({
+          t: p.t,
+          invested: (p.invested / currentInvested) * 100,
+          value: p.value == null ? null : (p.value / currentInvested) * 100,
+        }))
+      : data;
+
     let m = 0;
-    for (const p of data) m = Math.max(m, p.invested, p.value ?? 0);
-    const top = Math.max(50_000, Math.ceil(m / 50_000) * 50_000);
-    const t: number[] = [];
-    for (let v = 0; v <= top; v += 50_000) t.push(v);
-    return { yMax: top, yTicks: t };
-  }, [data]);
+    for (const p of chartData) m = Math.max(m, p.invested, p.value ?? 0);
+    const step = pctMode ? 25 : 50_000;
+    const top = Math.max(step * (pctMode ? 4 : 1), Math.ceil(m / step) * step);
+    const yTicks: number[] = [];
+    for (let v = 0; v <= top; v += step) yTicks.push(v);
+
+    const lastValue = data.length ? data[data.length - 1].value : null;
+    const valuePct = lastValue != null && currentInvested > 0 ? (lastValue / currentInvested) * 100 : null;
+    const gainPct = valuePct != null ? valuePct - 100 : null;
+
+    return { pctMode, chartData, yMax: top, yTicks, lastValue, valuePct, gainPct };
+  }, [data, isPrivate]);
 
   if (data.length === 0) return null;
 
+  const { pctMode, chartData, yMax, yTicks, lastValue, valuePct, gainPct } = view;
+
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
-      <h3 className="mb-3 text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
+      <h3 className="text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
         Portfolio value over time
       </h3>
+
+      {/* Today's value readout (most recent point). */}
+      <p className="mb-3 mt-1 text-center text-sm">
+        <span className="text-slate-400">Today: </span>
+        {pctMode ? (
+          valuePct != null ? (
+            <span className="font-semibold text-slate-100">
+              {valuePct.toFixed(1)}% of invested
+            </span>
+          ) : (
+            <span className="text-slate-500">—</span>
+          )
+        ) : lastValue != null ? (
+          <span className="font-semibold text-slate-100">
+            {fmtMoney(lastValue)} {sym(display)}
+          </span>
+        ) : (
+          <span className="text-slate-500">—</span>
+        )}
+        {gainPct != null && (
+          <span className={gainPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+            {' '}
+            ({gainPct >= 0 ? '+' : ''}
+            {gainPct.toFixed(1)}%)
+          </span>
+        )}
+      </p>
+
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+          <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
             <defs>
               <linearGradient id="valueFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
@@ -183,7 +229,7 @@ export function InvestedCapitalChart({
               dataKey="t"
               type="number"
               scale="time"
-              domain={[data[0].t, data[data.length - 1].t]}
+              domain={[chartData[0].t, chartData[chartData.length - 1].t]}
               ticks={xTicks}
               tickFormatter={fmtTick}
               tick={{ fill: '#e2e8f0', fontSize: 13 }}
@@ -201,7 +247,7 @@ export function InvestedCapitalChart({
               axisLine={{ stroke: '#e2e8f0' }}
               tickLine={{ stroke: '#e2e8f0' }}
               width={48}
-              tickFormatter={(v) => fmtAxisMoney(v as number)}
+              tickFormatter={(v) => (pctMode ? `${v}%` : fmtAxisMoney(v as number))}
             />
             <Tooltip
               contentStyle={{
@@ -214,7 +260,11 @@ export function InvestedCapitalChart({
               labelStyle={{ color: '#94a3b8' }}
               labelFormatter={(v) => fmtTick(v as number)}
               formatter={(value, name) => [
-                value == null ? '—' : `${fmtMoney(value as number)} ${sym(display)}`,
+                value == null
+                  ? '—'
+                  : pctMode
+                    ? `${(value as number).toFixed(1)}%`
+                    : `${fmtMoney(value as number)} ${sym(display)}`,
                 name,
               ]}
             />
