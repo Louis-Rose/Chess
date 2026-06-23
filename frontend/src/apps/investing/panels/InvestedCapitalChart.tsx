@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Area, AreaChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  Legend,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import type { Transaction } from '../types';
 import { useDisplayCurrency, type DisplayCurrency } from '../currency';
 
@@ -172,49 +181,24 @@ export function InvestedCapitalChart({
     const yTicks: number[] = [];
     for (let v = 0; v <= top; v += step) yTicks.push(v);
 
-    const lastValue = data.length ? data[data.length - 1].value : null;
-    const valuePct = lastValue != null && currentInvested > 0 ? (lastValue / currentInvested) * 100 : null;
-    const gainPct = valuePct != null ? valuePct - 100 : null;
+    // Today's value (last plotted point) and the all-time high, in plot units.
+    const vals = chartData.map((p) => p.value).filter((v): v is number => v != null);
+    const todayY = vals.length ? vals[vals.length - 1] : null;
+    const maxY = vals.length ? Math.max(...vals) : null;
 
-    return { pctMode, chartData, yMax: top, yTicks, lastValue, valuePct, gainPct };
+    return { pctMode, chartData, yMax: top, yTicks, todayY, maxY };
   }, [data, isPrivate]);
 
   if (data.length === 0) return null;
 
-  const { pctMode, chartData, yMax, yTicks, lastValue, valuePct, gainPct } = view;
+  const { pctMode, chartData, yMax, yTicks, todayY, maxY } = view;
+  const fmtRef = (v: number) => (pctMode ? `${v.toFixed(1)}%` : `${fmtMoney(v)} ${sym(display)}`);
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
-      <h3 className="text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
+      <h3 className="mb-3 text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
         Portfolio value over time
       </h3>
-
-      {/* Today's value readout (most recent point). */}
-      <p className="mb-3 mt-1 text-center text-sm">
-        <span className="text-slate-400">Today: </span>
-        {pctMode ? (
-          valuePct != null ? (
-            <span className="font-semibold text-slate-100">
-              {valuePct.toFixed(1)}% of invested
-            </span>
-          ) : (
-            <span className="text-slate-500">—</span>
-          )
-        ) : lastValue != null ? (
-          <span className="font-semibold text-slate-100">
-            {fmtMoney(lastValue)} {sym(display)}
-          </span>
-        ) : (
-          <span className="text-slate-500">—</span>
-        )}
-        {gainPct != null && (
-          <span className={gainPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-            {' '}
-            ({gainPct >= 0 ? '+' : ''}
-            {gainPct.toFixed(1)}%)
-          </span>
-        )}
-      </p>
 
       <div className="h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -269,6 +253,36 @@ export function InvestedCapitalChart({
               ]}
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#e2e8f0' }} />
+            {maxY != null && (
+              <ReferenceLine
+                y={maxY}
+                stroke="#f59e0b"
+                strokeDasharray="3 3"
+                ifOverflow="extendDomain"
+                label={{
+                  value: `ATH ${fmtRef(maxY)}`,
+                  position: 'insideTopLeft',
+                  fill: '#f59e0b',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              />
+            )}
+            {todayY != null && (
+              <ReferenceLine
+                y={todayY}
+                stroke="#10b981"
+                strokeDasharray="3 3"
+                ifOverflow="extendDomain"
+                label={{
+                  value: `Today ${fmtRef(todayY)}`,
+                  position: 'insideBottomRight',
+                  fill: '#10b981',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              />
+            )}
             <Area
               type="linear"
               dataKey="invested"
