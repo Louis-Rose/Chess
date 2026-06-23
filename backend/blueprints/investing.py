@@ -302,6 +302,57 @@ def quotes():
     })
 
 
+# --- Daily price history (for portfolio value over time) -------------------
+_HISTORY_TTL = 3600  # seconds
+_history_cache: dict = {}  # (tickers, start) -> {'data': ..., 'ts': float}
+
+
+def _fetch_history(tickers, start):
+    """Daily closes per ticker from `start` to today, cached for an hour.
+    Returns {dates: [...], prices: {ticker: [close|null, ...]}}."""
+    key = (','.join(sorted(tickers)), start)
+    now = time.time()
+    cached = _history_cache.get(key)
+    if cached and now - cached['ts'] < _HISTORY_TTL:
+        return cached['data']
+
+    data = {'dates': [], 'prices': {}}
+    try:
+        import yfinance as yf
+        end = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        df = yf.download(tickers, start=start, end=end, auto_adjust=True, progress=False)['Close']
+        if not hasattr(df, 'columns'):  # single ticker -> Series
+            df = df.to_frame(name=tickers[0])
+        df = df.dropna(how='all')
+        dates = [d.strftime('%Y-%m-%d') for d in df.index]
+        prices = {}
+        for t in tickers:
+            if t in df.columns:
+                prices[t] = [None if v != v else round(float(v), 4) for v in df[t]]  # v!=v: NaN
+        data = {'dates': dates, 'prices': prices}
+        _history_cache[key] = {'data': data, 'ts': now}
+    except Exception as e:
+        logger.warning('history fetch failed: %s', e)
+    return data
+
+
+@investing_bp.route('/api/investing/history', methods=['GET'])
+@login_required
+def history():
+    """Daily price history for the requested tickers since `start` (YYYY-MM-DD)."""
+    raw = request.args.get('tickers', '')
+    start = request.args.get('start', '').strip()
+    tickers = [t.strip().upper() for t in raw.split(',') if t.strip()]
+    tickers = list(dict.fromkeys(tickers))[:50]
+    try:
+        datetime.strptime(start, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'start must be YYYY-MM-DD'}), 400
+    if not tickers:
+        return jsonify({'dates': [], 'prices': {}})
+    return jsonify(_fetch_history(tickers, start))
+
+
 @investing_bp.route('/api/investing/correlation', methods=['GET'])
 def correlation():
     """Pearson correlation matrix of daily returns for the requested tickers
