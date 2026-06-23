@@ -56,7 +56,7 @@ export function AccountBar({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       {pills.map((p) => {
         const active = p.key === selectedKey;
         return (

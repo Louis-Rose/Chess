@@ -6,6 +6,7 @@ import { LoginButton } from '../../../components/LoginButton';
 import type { Account, Transaction } from '../types';
 import { ownedTickers } from '../holdings';
 import { PortfolioComposition } from './PortfolioComposition';
+import { Performance } from './Performance';
 import { AccountBar, type AccountPill } from './AccountBar';
 import {
   AddTransactionForm,
@@ -219,7 +220,7 @@ export function MyPortfolio() {
   return (
     <div className="px-6 py-10">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-6 flex items-center justify-center gap-3">
           <Wallet className="h-6 w-6 text-emerald-400" />
           <h1 className="text-2xl font-bold text-slate-100">My Portfolio</h1>
         </div>
@@ -250,6 +251,12 @@ export function MyPortfolio() {
             <section className="mb-8">
               <h2 className="mb-5 text-center text-xl font-semibold text-slate-100">Portfolio</h2>
               <PortfolioComposition transactions={visible} />
+            </section>
+
+            <hr className="mb-8 border-slate-800" />
+            <section className="mb-8">
+              <h2 className="mb-5 text-center text-xl font-semibold text-slate-100">Performance</h2>
+              <Performance transactions={displayTransactions} />
             </section>
 
             <hr className="mb-8 border-slate-800" />

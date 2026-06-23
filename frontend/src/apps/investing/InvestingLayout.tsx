@@ -11,6 +11,8 @@ interface NavItem {
 }
 
 // EUR/USD display-currency switch, shared app-wide via the currency context.
+const CCY_SYMBOL: Record<DisplayCurrency, string> = { EUR: '€', USD: '$' };
+
 function CurrencyToggle() {
   const { display, setDisplay } = useDisplayCurrency();
   return (
@@ -25,7 +27,7 @@ function CurrencyToggle() {
               : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
           }`}
         >
-          {c}
+          {c} {CCY_SYMBOL[c]}
         </button>
       ))}
     </div>
