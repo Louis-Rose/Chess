@@ -431,7 +431,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
 
       <div ref={tableRef}>
         <div className="overflow-x-auto rounded-lg border border-slate-800">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full table-fixed border-collapse text-sm">
           <thead>
             <tr>
               {visibleColumns.map((c, i) => {
@@ -439,6 +439,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
                 return (
                   <th
                     key={c.key}
+                    style={{ width: `${100 / visibleColumns.length}%` }}
                     className={`border-b border-slate-800 px-3 py-2.5 align-bottom ${
                       i > 0 ? 'border-l' : ''
                     }`}
