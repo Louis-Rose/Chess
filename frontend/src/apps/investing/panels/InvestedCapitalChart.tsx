@@ -5,6 +5,9 @@ import type { DisplayCurrency } from '../currency';
 
 const sym = (c: DisplayCurrency) => (c === 'USD' ? '$' : '€');
 const fmtMoney = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+// Compact axis labels: 220000 -> "220k". Keeps the y-axis narrow.
+const fmtAxisMoney = (n: number) =>
+  Math.abs(n) >= 1000 ? `${Math.round(n / 1000)}k` : `${Math.round(n)}`;
 const fmtTick = (ts: number) =>
   new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
 
@@ -86,7 +89,7 @@ export function InvestedCapitalChart({
     [transactions, display, eurusd],
   );
   const ticks = useMemo(
-    () => (data.length ? regularTicks(data[0].t, data[data.length - 1].t) : []),
+    () => (data.length ? regularTicks(data[0].t, data[data.length - 1].t, 8) : []),
     [data],
   );
 
@@ -99,7 +102,7 @@ export function InvestedCapitalChart({
       </h3>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 4, right: 8, left: -4, bottom: 8 }}>
+          <AreaChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
             <defs>
               <linearGradient id="invFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
@@ -114,18 +117,18 @@ export function InvestedCapitalChart({
               ticks={ticks}
               tickFormatter={fmtTick}
               tick={{ fill: '#e2e8f0', fontSize: 13 }}
-              axisLine={false}
-              tickLine={false}
+              axisLine={{ stroke: '#e2e8f0' }}
+              tickLine={{ stroke: '#e2e8f0' }}
               angle={-30}
               textAnchor="end"
-              height={52}
+              height={56}
             />
             <YAxis
               tick={{ fill: '#e2e8f0', fontSize: 13 }}
-              axisLine={false}
-              tickLine={false}
-              width={56}
-              tickFormatter={(v) => fmtMoney(v as number)}
+              axisLine={{ stroke: '#e2e8f0' }}
+              tickLine={{ stroke: '#e2e8f0' }}
+              width={48}
+              tickFormatter={(v) => fmtAxisMoney(v as number)}
             />
             <Tooltip
               contentStyle={{
