@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import axios from 'axios';
+import { toPng } from 'html-to-image';
 import { Download, Eye, EyeOff } from 'lucide-react';
 import type { Transaction } from '../types';
 import { computeHoldings, type Holding } from '../holdings';
@@ -58,6 +59,17 @@ const PRIVATE_HIDDEN = new Set<SortKey>(['shares', 'invested', 'current', 'gainA
 const LABEL_GROUP = new Set<SortKey>(['stock', 'price', 'weight', 'shares']);
 // Money columns: the currency symbol goes in the header, not the cells.
 const CURRENCY_COLS = new Set<SortKey>(['price', 'invested', 'current', 'gainAbs']);
+// Short labels for the column show/hide chips.
+const SHORT_LABEL: Record<SortKey, string> = {
+  stock: 'Ticker',
+  price: 'Price',
+  weight: 'Weight',
+  shares: 'Shares',
+  invested: 'Invested',
+  current: 'Current',
+  gainAbs: 'Gain abs',
+  gainPct: 'Gain %',
+};
 
 interface Row extends Holding {
   price: number | null; // current market price per share, in the display currency
@@ -100,6 +112,8 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
   const [loadingQuotes, setLoadingQuotes] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('weight');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [hidden, setHidden] = useState<Set<SortKey>>(new Set());
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!tickerKey) {
@@ -294,55 +308,40 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     }
   };
 
-  // Export the table (full data, regardless of private mode) to CSV.
-  const downloadCsv = () => {
-    const cur = sym(display);
-    const num = (v: number | null, dp = 2) => (v != null ? v.toFixed(dp) : '');
-    const header = [
-      'Ticker',
-      `Stock price (${cur})`,
-      'Weight (%)',
-      'Shares',
-      `Invested capital (${cur})`,
-      `Current value (${cur})`,
-      `Gain/Loss absolute (${cur})`,
-      'Gain/Loss percentage (%)',
-    ];
-    const lines = [header.join(',')];
-    for (const r of sorted) {
-      lines.push(
-        [
-          r.ticker,
-          num(r.price),
-          (r.weight * 100).toFixed(2),
-          r.shares,
-          num(r.investedDisplay),
-          num(r.currentDisplay),
-          num(r.gainAbs),
-          num(r.gainPct, 1),
-        ].join(','),
-      );
-    }
-    lines.push(
-      [
-        'TOTAL',
-        '',
-        '',
-        '',
-        num(totals.invested),
-        num(totals.current),
-        num(totals.gainAbs),
-        num(totals.gainPct, 1),
-      ].join(','),
-    );
+  // Hide/show a single column. Private hides the money group at once.
+  const toggleCol = (key: SortKey) =>
+    setHidden((prev) => {
+      const s = new Set(prev);
+      s.has(key) ? s.delete(key) : s.add(key);
+      return s;
+    });
 
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `portfolio-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const togglePrivate = () => {
+    const next = !isPrivate;
+    setIsPrivate(next);
+    setHidden((prev) => {
+      const s = new Set(prev);
+      for (const k of PRIVATE_HIDDEN) (next ? s.add(k) : s.delete(k));
+      return s;
+    });
+  };
+
+  // Download the table exactly as shown (current columns) as a PNG.
+  const downloadPng = async () => {
+    if (!tableRef.current) return;
+    try {
+      const dataUrl = await toPng(tableRef.current, {
+        backgroundColor: '#0f172a', // slate-900, the app background
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `portfolio-${new Date().toISOString().slice(0, 10)}.png`;
+      a.click();
+    } catch (e) {
+      console.error('PNG export failed', e);
+    }
   };
 
   const footerCell = (key: SortKey): ReactNode => {
@@ -364,7 +363,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     return <p className="text-center text-slate-500">No open positions in this account.</p>;
   }
 
-  const visibleColumns = COLUMNS.filter((c) => !(isPrivate && PRIVATE_HIDDEN.has(c.key)));
+  const visibleColumns = COLUMNS.filter((c) => !hidden.has(c.key));
   const labelCols = visibleColumns.filter((c) => LABEL_GROUP.has(c.key));
   const dataCols = visibleColumns.filter((c) => !LABEL_GROUP.has(c.key));
 
@@ -375,7 +374,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
           {holdings.length} {holdings.length === 1 ? 'position' : 'positions'}
         </p>
         <button
-          onClick={() => setIsPrivate(!isPrivate)}
+          onClick={togglePrivate}
           className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
             isPrivate
               ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300'
@@ -386,12 +385,32 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
           Private
         </button>
         <button
-          onClick={downloadCsv}
+          onClick={downloadPng}
           className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1 text-xs font-medium text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
         >
           <Download className="h-3.5 w-3.5" />
           Download
         </button>
+      </div>
+
+      {/* Per-column show/hide chips */}
+      <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
+        {COLUMNS.map((c) => {
+          const shown = !hidden.has(c.key);
+          return (
+            <button
+              key={c.key}
+              onClick={() => toggleCol(c.key)}
+              className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                shown
+                  ? 'border-slate-600 text-slate-200 hover:border-slate-400'
+                  : 'border-slate-800 text-slate-600 line-through hover:text-slate-400'
+              }`}
+            >
+              {SHORT_LABEL[c.key]}
+            </button>
+          );
+        })}
       </div>
 
       {/* Composition bar (kept in value order) */}
@@ -408,7 +427,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
         })}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-800">
+      <div ref={tableRef} className="overflow-x-auto rounded-lg border border-slate-800">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
@@ -453,11 +472,18 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
           </tbody>
           <tfoot>
             <tr className="border-t border-slate-700 font-bold text-white">
-              <td colSpan={labelCols.length} className="px-3 py-2.5 text-center">
-                TOTAL
-              </td>
-              {dataCols.map((c) => (
-                <td key={c.key} className="border-l border-slate-800 px-3 py-2.5 text-center">
+              {labelCols.length > 0 && (
+                <td colSpan={labelCols.length} className="px-3 py-2.5 text-center">
+                  TOTAL
+                </td>
+              )}
+              {dataCols.map((c, i) => (
+                <td
+                  key={c.key}
+                  className={`px-3 py-2.5 text-center ${
+                    labelCols.length > 0 || i > 0 ? 'border-l border-slate-800' : ''
+                  }`}
+                >
                   {footerCell(c.key)}
                 </td>
               ))}
