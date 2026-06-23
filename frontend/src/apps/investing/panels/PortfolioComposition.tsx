@@ -334,6 +334,8 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
         backgroundColor: '#0f172a', // slate-900, the app background
         pixelRatio: 2,
         cacheBust: true,
+        // Margin around the table in the exported image (applied to the clone).
+        style: { padding: '28px' },
       });
       const a = document.createElement('a');
       a.href = dataUrl;
@@ -427,8 +429,9 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
         })}
       </div>
 
-      <div ref={tableRef} className="overflow-x-auto rounded-lg border border-slate-800">
-        <table className="w-full border-collapse text-sm">
+      <div ref={tableRef}>
+        <div className="overflow-x-auto rounded-lg border border-slate-800">
+          <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
               {visibleColumns.map((c, i) => {
@@ -489,7 +492,8 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
               ))}
             </tr>
           </tfoot>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   );
