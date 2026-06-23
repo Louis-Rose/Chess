@@ -242,8 +242,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     );
   };
 
-  const priceText = (v: number | null) =>
-    v != null ? `${v.toFixed(2)} ${sym(display)}` : loadingQuotes ? '…' : '—';
+  const priceText = (v: number | null) => (v != null ? v.toFixed(2) : loadingQuotes ? '…' : '—');
 
   const cellClass = (key: SortKey): string => {
     if (key === 'invested' || key === 'current' || key === 'price')
@@ -355,7 +354,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
                       onClick={() => toggleSort(c.key)}
                       className="w-full text-center text-xs font-bold uppercase tracking-wide text-white transition-colors hover:text-emerald-300"
                     >
-                      {c.label}
+                      {c.key === 'price' ? `${c.label} (${sym(display)})` : c.label}
                       {active && (
                         <span className="text-emerald-400"> {sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
