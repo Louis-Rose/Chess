@@ -329,13 +329,17 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
   // Download the table exactly as shown (current columns) as a PNG.
   const downloadPng = async () => {
     if (!tableRef.current) return;
+    const node = tableRef.current;
+    const pad = 28; // margin around the table in the exported image
     try {
-      const dataUrl = await toPng(tableRef.current, {
+      const dataUrl = await toPng(node, {
         backgroundColor: '#0f172a', // slate-900, the app background
         pixelRatio: 2,
         cacheBust: true,
-        // Margin around the table in the exported image (applied to the clone).
-        style: { padding: '28px' },
+        // Grow the canvas to fit the padding (content-box) so nothing clips.
+        width: node.offsetWidth + pad * 2,
+        height: node.offsetHeight + pad * 2,
+        style: { padding: `${pad}px`, boxSizing: 'content-box' },
       });
       const a = document.createElement('a');
       a.href = dataUrl;
