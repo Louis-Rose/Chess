@@ -55,9 +55,15 @@ function buildSeries(
     byDate.set(t.transaction_date, totalCost);
   }
 
-  return [...byDate.entries()]
+  const points = [...byDate.entries()]
     .map(([date, invested]) => ({ t: new Date(`${date}T00:00:00`).getTime(), invested }))
     .sort((a, b) => a.t - b.t);
+
+  // Extend flat to today: invested capital doesn't change after the last trade.
+  const now = Date.now();
+  const last = points[points.length - 1];
+  if (last && now > last.t) points.push({ t: now, invested: last.invested });
+  return points;
 }
 
 // Evenly spaced timestamps across the data range, for regular axis ticks.
@@ -107,18 +113,18 @@ export function InvestedCapitalChart({
               domain={[data[0].t, data[data.length - 1].t]}
               ticks={ticks}
               tickFormatter={fmtTick}
-              tick={{ fill: '#64748b', fontSize: 11 }}
+              tick={{ fill: '#e2e8f0', fontSize: 13 }}
               axisLine={false}
               tickLine={false}
               angle={-30}
               textAnchor="end"
-              height={48}
+              height={52}
             />
             <YAxis
-              tick={{ fill: '#64748b', fontSize: 11 }}
+              tick={{ fill: '#e2e8f0', fontSize: 13 }}
               axisLine={false}
               tickLine={false}
-              width={52}
+              width={56}
               tickFormatter={(v) => fmtMoney(v as number)}
             />
             <Tooltip
