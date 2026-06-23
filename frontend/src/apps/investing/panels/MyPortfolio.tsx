@@ -285,6 +285,11 @@ export function MyPortfolio() {
                 Only currently owned stocks
               </button>
 
+              <p className="mb-5 text-center text-sm text-slate-500">
+                {displayTransactions.length}{' '}
+                {displayTransactions.length === 1 ? 'transaction' : 'transactions'} shown
+              </p>
+
               {adding && (
                 <AddTransactionForm
                   accounts={accountChoices}
