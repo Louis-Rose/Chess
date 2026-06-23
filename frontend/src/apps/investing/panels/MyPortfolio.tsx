@@ -85,7 +85,7 @@ export function MyPortfolio() {
   const [error, setError] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [ownedOnly, setOwnedOnly] = useState(false);
+  const [ownedOnly, setOwnedOnly] = useState(true);
 
   useEffect(() => {
     document.title = 'My Portfolio — LUMNA';
