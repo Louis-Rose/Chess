@@ -8,6 +8,15 @@ import type { Transaction } from '../types';
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
+// Which account a transaction belongs to, as a stable string key.
+const acctKey = (t: Transaction) => (t.account_id == null ? 'none' : String(t.account_id));
+
+interface AccountOption {
+  key: string;
+  label: string;
+  count: number;
+}
+
 function TransactionRow({ tx }: { tx: Transaction }) {
   const isBuy = tx.transaction_type === 'BUY';
   return (
@@ -26,11 +35,6 @@ function TransactionRow({ tx }: { tx: Transaction }) {
         <span className="text-slate-300">
           {tx.price_currency} {tx.price_per_share.toFixed(2)}
         </span>
-        {tx.account_name && (
-          <span className="rounded bg-slate-700/50 px-2 py-0.5 text-xs text-slate-400">
-            {tx.account_name}
-          </span>
-        )}
         <span className="ml-auto text-sm text-slate-400">{fmtDate(tx.transaction_date)}</span>
       </div>
     </div>
@@ -39,12 +43,13 @@ function TransactionRow({ tx }: { tx: Transaction }) {
 
 // "My Portfolio" — the logged-in user's own transaction history. Gated behind
 // Google login; the backend scopes the query to the authenticated user, so
-// each person only ever sees their own rows.
+// each person only ever sees their own rows. One account is shown at a time.
 export function MyPortfolio() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = 'My Portfolio — LUMNA';
@@ -76,11 +81,39 @@ export function MyPortfolio() {
     };
   }, [isAuthenticated]);
 
-  const summary = useMemo(() => {
-    if (!transactions) return null;
-    const buys = transactions.filter((t) => t.transaction_type === 'BUY').length;
-    return { total: transactions.length, buys, sells: transactions.length - buys };
+  // Distinct accounts present in the data, most-active first.
+  const accounts = useMemo<AccountOption[]>(() => {
+    if (!transactions) return [];
+    const map = new Map<string, AccountOption>();
+    for (const t of transactions) {
+      const key = acctKey(t);
+      const label =
+        t.account_name || (t.account_id == null ? 'Unassigned' : `Account ${t.account_id}`);
+      const existing = map.get(key);
+      if (existing) existing.count += 1;
+      else map.set(key, { key, label, count: 1 });
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
   }, [transactions]);
+
+  // Default to the most-active account; keep selection valid as data changes.
+  useEffect(() => {
+    if (accounts.length === 0) return;
+    if (selectedKey === null || !accounts.some((a) => a.key === selectedKey)) {
+      setSelectedKey(accounts[0].key);
+    }
+  }, [accounts, selectedKey]);
+
+  const visible = useMemo(() => {
+    if (!transactions) return [];
+    if (selectedKey === null) return transactions;
+    return transactions.filter((t) => acctKey(t) === selectedKey);
+  }, [transactions, selectedKey]);
+
+  const summary = useMemo(() => {
+    const buys = visible.filter((t) => t.transaction_type === 'BUY').length;
+    return { total: visible.length, buys, sells: visible.length - buys };
+  }, [visible]);
 
   // Not logged in: prompt for Google sign-in.
   if (!authLoading && !isAuthenticated) {
@@ -106,7 +139,31 @@ export function MyPortfolio() {
           <h1 className="text-2xl font-bold text-slate-100">My Portfolio</h1>
         </div>
 
-        {summary && (
+        {accounts.length > 1 && (
+          <div className="mb-5 flex flex-wrap gap-2">
+            {accounts.map((a) => {
+              const active = a.key === selectedKey;
+              return (
+                <button
+                  key={a.key}
+                  onClick={() => setSelectedKey(a.key)}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    active
+                      ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300'
+                      : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                  }`}
+                >
+                  {a.label}
+                  <span className={active ? 'text-emerald-400/70' : 'text-slate-500'}>
+                    {a.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {!loading && !error && transactions && (
           <p className="mb-6 text-sm text-slate-400">
             {summary.total} transactions · {summary.buys} buys · {summary.sells} sells
             {user?.email ? ` · ${user.email}` : ''}
@@ -121,13 +178,13 @@ export function MyPortfolio() {
 
         {error && !loading && <p className="text-rose-400">{error}</p>}
 
-        {transactions && !loading && transactions.length === 0 && (
-          <p className="text-slate-500">No transactions yet.</p>
+        {transactions && !loading && visible.length === 0 && (
+          <p className="text-slate-500">No transactions in this account.</p>
         )}
 
-        {transactions && !loading && transactions.length > 0 && (
+        {!loading && visible.length > 0 && (
           <div className="space-y-2">
-            {transactions.map((tx) => (
+            {visible.map((tx) => (
               <TransactionRow key={tx.id} tx={tx} />
             ))}
           </div>
