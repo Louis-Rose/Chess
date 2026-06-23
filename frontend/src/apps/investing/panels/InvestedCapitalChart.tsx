@@ -196,6 +196,7 @@ export function InvestedCapitalChart({
             <YAxis
               domain={[0, yMax]}
               ticks={yTicks}
+              interval={0}
               tick={{ fill: '#e2e8f0', fontSize: 13 }}
               axisLine={{ stroke: '#e2e8f0' }}
               tickLine={{ stroke: '#e2e8f0' }}
