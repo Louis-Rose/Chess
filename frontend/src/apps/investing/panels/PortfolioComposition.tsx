@@ -21,35 +21,28 @@ interface Quotes {
   eurusd: number | null; // USD per 1 EUR
 }
 
-// Unrealized gain/loss of a holding, as a percentage of its average cost.
-// The market price is native (USD); we convert it into the holding's recorded
-// currency before comparing. Returns null when we can't price it.
-function gainPct(h: Holding, q: Quotes | null): number | null {
-  if (!q) return null;
-  const px = q.prices[h.ticker];
-  if (px == null || h.avgCost <= 0) return null;
-  let priceInCcy: number;
-  if (h.currency === 'USD') {
-    priceInCcy = px;
-  } else if (h.currency === 'EUR') {
-    if (!q.eurusd) return null;
-    priceInCcy = px / q.eurusd;
-  } else {
-    return null;
-  }
-  return (priceInCcy / h.avgCost - 1) * 100;
+// Current market price of a holding in its own recorded currency, or null if
+// we can't price it. Native prices are USD; EUR holdings convert via EURUSD.
+function priceInCurrency(h: Holding, q: Quotes | null): number | null {
+  const px = q?.prices[h.ticker];
+  if (px == null) return null;
+  if (h.currency === 'USD') return px;
+  if (h.currency === 'EUR') return q?.eurusd ? px / q.eurusd : null;
+  return null;
 }
 
-type SortKey = 'stock' | 'shares' | 'value' | 'gain' | 'weight';
+type SortKey = 'stock' | 'shares' | 'invested' | 'current' | 'gain' | 'weight';
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'stock', label: 'Stock' },
   { key: 'shares', label: 'Shares' },
-  { key: 'value', label: 'Value' },
+  { key: 'invested', label: 'Invested capital' },
+  { key: 'current', label: 'Current value' },
   { key: 'gain', label: 'Gain/Loss' },
   { key: 'weight', label: 'Weight' },
 ];
 
 interface Row extends Holding {
+  currentValue: number | null; // in the holding's currency
   gain: number | null;
   weight: number;
 }
@@ -66,8 +59,8 @@ function GainText({ pct, loading }: { pct: number | null; loading: boolean }) {
 }
 
 // "Portfolio" — current composition of the open positions in the given
-// (already account-filtered) transactions, weighted by amount invested, with
-// per-position unrealized gain/loss from live prices. Sortable columns.
+// (already account-filtered) transactions: invested capital vs current value,
+// per-position gain/loss from live prices, weighted by amount invested.
 export function PortfolioComposition({ transactions }: { transactions: Transaction[] }) {
   const holdings = useMemo(() => computeHoldings(transactions), [transactions]);
   const total = useMemo(() => holdings.reduce((s, h) => s + h.value, 0), [holdings]);
@@ -82,7 +75,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
   const tickerKey = useMemo(() => holdings.map((h) => h.ticker).sort().join(','), [holdings]);
   const [quotes, setQuotes] = useState<Quotes | null>(null);
   const [loadingQuotes, setLoadingQuotes] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>('value');
+  const [sortKey, setSortKey] = useState<SortKey>('invested');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
@@ -102,36 +95,64 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     };
   }, [tickerKey]);
 
-  // Invested capital, normalized to EUR (USD cost basis converted at today's
-  // rate, matching how gain/loss treats EUR holdings).
-  const investedEUR = useMemo(
-    () =>
-      holdings.reduce((s, h) => {
-        if (h.currency === 'USD' && quotes?.eurusd) return s + h.value / quotes.eurusd;
-        return s + h.value;
-      }, 0),
-    [holdings, quotes],
-  );
-
   const rows = useMemo<Row[]>(
-    () => holdings.map((h) => ({ ...h, gain: gainPct(h, quotes), weight: h.value / total })),
+    () =>
+      holdings.map((h) => {
+        const price = priceInCurrency(h, quotes);
+        const currentValue = price != null ? price * h.shares : null;
+        const gain = price != null && h.avgCost > 0 ? (price / h.avgCost - 1) * 100 : null;
+        return { ...h, currentValue, gain, weight: h.value / total };
+      }),
     [holdings, quotes, total],
   );
+
+  // Totals, normalized to EUR (USD cost basis / market value converted at
+  // today's rate). Current-value total covers only the positions we can price.
+  const totals = useMemo(() => {
+    let invested = 0;
+    let current: number | null = quotes?.eurusd != null ? 0 : null;
+    let investedPriced = 0;
+    let currentPriced = 0;
+    for (const h of holdings) {
+      const investedEUR =
+        h.currency === 'USD' && quotes?.eurusd ? h.value / quotes.eurusd : h.value;
+      invested += investedEUR;
+      const px = quotes?.prices[h.ticker];
+      if (px != null && quotes?.eurusd) {
+        const valEUR = (px / quotes.eurusd) * h.shares;
+        if (current != null) current += valEUR;
+        currentPriced += valEUR;
+        investedPriced += investedEUR;
+      }
+    }
+    const gain = investedPriced > 0 ? (currentPriced / investedPriced - 1) * 100 : null;
+    return { invested, current, gain };
+  }, [holdings, quotes]);
 
   const sorted = useMemo(() => {
     const arr = [...rows];
     const dir = sortDir === 'asc' ? 1 : -1;
+    const nullable = (a: number | null, b: number | null) => {
+      if (a == null && b == null) return 0;
+      if (a == null) return 1; // nulls always last
+      if (b == null) return -1;
+      return (a - b) * dir;
+    };
     arr.sort((a, b) => {
-      if (sortKey === 'stock') return a.ticker.localeCompare(b.ticker) * dir;
-      if (sortKey === 'gain') {
-        if (a.gain == null && b.gain == null) return 0;
-        if (a.gain == null) return 1; // nulls always last
-        if (b.gain == null) return -1;
-        return (a.gain - b.gain) * dir;
+      switch (sortKey) {
+        case 'stock':
+          return a.ticker.localeCompare(b.ticker) * dir;
+        case 'shares':
+          return (a.shares - b.shares) * dir;
+        case 'invested':
+          return (a.value - b.value) * dir;
+        case 'weight':
+          return (a.weight - b.weight) * dir;
+        case 'current':
+          return nullable(a.currentValue, b.currentValue);
+        case 'gain':
+          return nullable(a.gain, b.gain);
       }
-      const pick = (r: Row) =>
-        sortKey === 'shares' ? r.shares : sortKey === 'weight' ? r.weight : r.value;
-      return (pick(a) - pick(b)) * dir;
     });
     return arr;
   }, [rows, sortKey, sortDir]);
@@ -143,6 +164,9 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
       setSortDir(key === 'stock' ? 'asc' : 'desc');
     }
   };
+
+  const money = (v: number | null, currency: string) =>
+    v != null ? `${fmtMoney(v)} ${sym(currency)}` : loadingQuotes ? '…' : '—';
 
   if (holdings.length === 0) {
     return <p className="text-center text-slate-500">No open positions in this account.</p>;
@@ -177,13 +201,11 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
                 return (
                   <th
                     key={c.key}
-                    className={`border-b border-slate-800 px-3 py-2.5 ${
-                      i > 0 ? 'border-l' : ''
-                    }`}
+                    className={`border-b border-slate-800 px-3 py-2.5 ${i > 0 ? 'border-l' : ''}`}
                   >
                     <button
                       onClick={() => toggleSort(c.key)}
-                      className="flex w-full items-center justify-center gap-1 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:text-emerald-300"
+                      className="flex w-full items-center justify-center gap-1 whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white transition-colors hover:text-emerald-300"
                     >
                       {c.label}
                       <span className="text-emerald-400">
@@ -211,7 +233,10 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
                   {fmtShares(h.shares)}
                 </td>
                 <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-200">
-                  {fmtMoney(h.value)} {sym(h.currency)}
+                  {money(h.value, h.currency)}
+                </td>
+                <td className="border-l border-slate-800 px-3 py-2.5 text-center text-slate-200">
+                  {money(h.currentValue, h.currency)}
                 </td>
                 <td className="border-l border-slate-800 px-3 py-2.5 text-center font-medium">
                   <GainText pct={h.gain} loading={loadingQuotes} />
@@ -223,14 +248,19 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t border-slate-700">
-              <td colSpan={2} className="px-3 py-2.5 text-center font-bold text-white">
-                Invested capital
+            <tr className="border-t border-slate-700 font-bold text-white">
+              <td colSpan={2} className="px-3 py-2.5 text-center">
+                TOTAL
               </td>
-              <td className="border-l border-slate-800 px-3 py-2.5 text-center font-bold text-white">
-                {fmtMoney(investedEUR)} €
+              <td className="border-l border-slate-800 px-3 py-2.5 text-center">
+                {fmtMoney(totals.invested)} €
               </td>
-              <td className="border-l border-slate-800" />
+              <td className="border-l border-slate-800 px-3 py-2.5 text-center">
+                {totals.current != null ? `${fmtMoney(totals.current)} €` : loadingQuotes ? '…' : '—'}
+              </td>
+              <td className="border-l border-slate-800 px-3 py-2.5 text-center">
+                <GainText pct={totals.gain} loading={loadingQuotes} />
+              </td>
               <td className="border-l border-slate-800" />
             </tr>
           </tfoot>
