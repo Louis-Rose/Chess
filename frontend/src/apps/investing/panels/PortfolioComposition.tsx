@@ -150,11 +150,10 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
         weight: 0,
       };
     });
-    // Weight by current market value (display currency); fall back to cost basis
-    // for any position we can't price yet, so weights always sum to ~100%.
-    const wval = (r: Row) => r.currentDisplay ?? r.investedDisplay ?? r.value;
-    const totalW = base.reduce((s, r) => s + wval(r), 0);
-    if (totalW > 0) for (const r of base) r.weight = wval(r) / totalW;
+    // Weight by current market value (display currency). Positions not yet
+    // priced get weight 0 (shown as a placeholder) until quotes arrive.
+    const totalW = base.reduce((s, r) => s + (r.currentDisplay ?? 0), 0);
+    if (totalW > 0) for (const r of base) r.weight = (r.currentDisplay ?? 0) / totalW;
     return base;
   }, [holdings, quotes, conv]);
 
@@ -277,7 +276,11 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
       case 'price':
         return priceText(h.price);
       case 'weight':
-        return `${(h.weight * 100).toFixed(1)}%`;
+        return h.currentDisplay != null
+          ? `${(h.weight * 100).toFixed(1)}%`
+          : loadingQuotes
+            ? '…'
+            : '—';
       case 'shares':
         return fmtShares(h.shares);
       case 'invested':
