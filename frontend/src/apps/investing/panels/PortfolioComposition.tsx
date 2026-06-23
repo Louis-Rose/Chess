@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import axios from 'axios';
-import { Eye, EyeOff } from 'lucide-react';
+import { Download, Eye, EyeOff } from 'lucide-react';
 import type { Transaction } from '../types';
 import { computeHoldings, type Holding } from '../holdings';
 import { useDisplayCurrency } from '../currency';
@@ -282,6 +282,57 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     }
   };
 
+  // Export the table (full data, regardless of private mode) to CSV.
+  const downloadCsv = () => {
+    const cur = sym(display);
+    const num = (v: number | null, dp = 2) => (v != null ? v.toFixed(dp) : '');
+    const header = [
+      'Ticker',
+      `Stock price (${cur})`,
+      'Weight (%)',
+      'Shares',
+      `Invested capital (${cur})`,
+      `Current value (${cur})`,
+      `Gain/Loss absolute (${cur})`,
+      'Gain/Loss percentage (%)',
+    ];
+    const lines = [header.join(',')];
+    for (const r of sorted) {
+      lines.push(
+        [
+          r.ticker,
+          num(r.price),
+          (r.weight * 100).toFixed(2),
+          r.shares,
+          num(r.investedDisplay),
+          num(r.currentDisplay),
+          num(r.gainAbs),
+          num(r.gainPct, 1),
+        ].join(','),
+      );
+    }
+    lines.push(
+      [
+        'TOTAL',
+        '',
+        '',
+        '',
+        num(totals.invested),
+        num(totals.current),
+        num(totals.gainAbs),
+        num(totals.gainPct, 1),
+      ].join(','),
+    );
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `portfolio-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const footerCell = (key: SortKey): ReactNode => {
     switch (key) {
       case 'invested':
@@ -321,6 +372,13 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
         >
           {isPrivate ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           Private
+        </button>
+        <button
+          onClick={downloadCsv}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1 text-xs font-medium text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-200"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download
         </button>
       </div>
 
