@@ -56,6 +56,8 @@ const COLUMNS: { key: SortKey; label: string }[] = [
 // Columns hidden in private mode, and the leading "label" group the TOTAL spans.
 const PRIVATE_HIDDEN = new Set<SortKey>(['shares', 'invested', 'current', 'gainAbs']);
 const LABEL_GROUP = new Set<SortKey>(['stock', 'price', 'weight', 'shares']);
+// Money columns: the currency symbol goes in the header, not the cells.
+const CURRENCY_COLS = new Set<SortKey>(['price', 'invested', 'current', 'gainAbs']);
 
 interface Row extends Holding {
   price: number | null; // current market price per share, in the display currency
@@ -229,7 +231,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
   };
 
   const money = (v: number | null) =>
-    v != null ? `${fmtMoney(v)} ${sym(display)}` : loadingQuotes ? '…' : '—';
+    v != null ? fmtMoney(v) : loadingQuotes ? '…' : '—';
 
   const gainAbsCell = (v: number | null) => {
     if (v == null) return <span className="text-slate-600">{loadingQuotes ? '…' : '—'}</span>;
@@ -237,7 +239,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
     return (
       <span className={up ? 'text-emerald-400' : 'text-rose-400'}>
         {up ? '+' : ''}
-        {fmtMoney(v)} {sym(display)}
+        {fmtMoney(v)}
       </span>
     );
   };
@@ -354,7 +356,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
                       onClick={() => toggleSort(c.key)}
                       className="w-full text-center text-xs font-bold uppercase tracking-wide text-white transition-colors hover:text-emerald-300"
                     >
-                      {c.key === 'price' ? `${c.label} (${sym(display)})` : c.label}
+                      {CURRENCY_COLS.has(c.key) ? `${c.label} (${sym(display)})` : c.label}
                       {active && (
                         <span className="text-emerald-400"> {sortDir === 'asc' ? '▲' : '▼'}</span>
                       )}
