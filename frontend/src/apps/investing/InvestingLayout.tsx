@@ -33,10 +33,31 @@ export function InvestingLayout() {
     <div className="flex min-h-dvh bg-slate-900 text-slate-100">
       {/* Desktop sidebar */}
       <aside className="hidden w-56 shrink-0 flex-col border-r border-slate-800 px-3 py-5 md:flex">
-        <NavLink to="/investing" end className="mb-6 flex items-center gap-2 px-2">
+        <NavLink to="/investing" end className="mb-5 flex items-center gap-2 px-2">
           <LumnaLogo className="h-7 w-7" />
           <span className="text-lg font-bold tracking-wide">Investing</span>
         </NavLink>
+
+        {user && (
+          <div className="mb-5 rounded-lg border border-slate-800 bg-slate-800/40 p-3">
+            <div className="flex items-center gap-2">
+              {user.picture && (
+                <img src={user.picture} alt="" className="h-8 w-8 shrink-0 rounded-full" />
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-slate-200">{user.name}</p>
+                <p className="truncate text-xs text-slate-500">{user.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => logout()}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign out
+            </button>
+          </div>
+        )}
 
         <nav className="flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
@@ -46,24 +67,6 @@ export function InvestingLayout() {
             </NavLink>
           ))}
         </nav>
-
-        {user && (
-          <div className="mt-auto border-t border-slate-800 pt-4">
-            <div className="flex items-center gap-2 px-2">
-              {user.picture && (
-                <img src={user.picture} alt="" className="h-7 w-7 rounded-full" />
-              )}
-              <span className="truncate text-sm text-slate-300">{user.name || user.email}</span>
-            </div>
-            <button
-              onClick={() => logout()}
-              className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </button>
-          </div>
-        )}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -79,13 +82,18 @@ export function InvestingLayout() {
             </NavLink>
           ))}
           {user && (
-            <button
-              onClick={() => logout()}
-              className="ml-auto rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-              aria-label="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              {user.picture && (
+                <img src={user.picture} alt="" className="h-7 w-7 rounded-full" title={user.email} />
+              )}
+              <button
+                onClick={() => logout()}
+                className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
 
