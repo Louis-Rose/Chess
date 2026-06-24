@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Crown, Dumbbell, Music, TrendingUp, Rocket } from 'lucide-react';
+import { Crown, Dumbbell, Music, TrendingUp, Rocket, Shirt } from 'lucide-react';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 
-// Root landing: pick a product. Chess -> /chess, Gym -> /fit, Music -> /music, Investing -> /investing, YC Advisor -> /yc.
+// Root landing: pick a product. Chess -> /chess, Gym -> /fit, Music -> /music, Investing -> /investing, YC Advisor -> /yc, Clothing -> /clothing.
 export function ChooserPage() {
   useEffect(() => {
     document.title = 'LUMNA';
@@ -55,6 +55,14 @@ export function ChooserPage() {
         >
           <Rocket className="h-14 w-14 text-emerald-400" strokeWidth={1.5} />
           <span className="text-xl font-semibold">YC Advisor</span>
+        </Link>
+
+        <Link
+          to="/clothing"
+          className="group flex flex-col items-center justify-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 px-6 py-12 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10"
+        >
+          <Shirt className="h-14 w-14 text-emerald-400" strokeWidth={1.5} />
+          <span className="text-xl font-semibold">Clothing</span>
         </Link>
       </div>
     </div>
