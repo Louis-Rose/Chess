@@ -42,6 +42,7 @@ from blueprints.investing import investing_bp
 from blueprints.yc import yc_bp
 from blueprints.workblock import workblock_bp
 from blueprints.notice import notice_bp
+from blueprints.mpp import mpp_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(coaches_bp)
 app.register_blueprint(admin_bp)
@@ -56,6 +57,7 @@ app.register_blueprint(investing_bp)
 app.register_blueprint(yc_bp)
 app.register_blueprint(workblock_bp)
 app.register_blueprint(notice_bp)
+app.register_blueprint(mpp_bp)
 
 migrate_upload_filenames()
 

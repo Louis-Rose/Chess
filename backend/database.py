@@ -1345,3 +1345,17 @@ def init_db():
                 "ON workblock_anon_items(token)"
             )
             logger.info("Created workblock_anon_items table")
+
+        # Migration: MPP (Mon Petit Prono) account — stores the owner's Auth0
+        # refresh token plus a cached access token for the api.mpp.football calls.
+        if not _table_exists(conn, 'mpp_account'):
+            conn.execute("""
+                CREATE TABLE mpp_account (
+                    user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                    refresh_token     TEXT NOT NULL,
+                    access_token      TEXT,
+                    access_expires_at TIMESTAMP,
+                    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            logger.info("Created mpp_account table")
