@@ -127,7 +127,6 @@ function ContestList({ data }: { data: MppData }) {
     return (
       <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center text-slate-400">
         No leagues found on your MPP account yet.
-        <RawPayload raw={data.raw} />
       </div>
     );
   }
@@ -136,26 +135,45 @@ function ContestList({ data }: { data: MppData }) {
       {data.contests.map((c, i) => (
         <div
           key={c.id ?? i}
-          className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-800/40 px-5 py-4"
+          className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-800/40 px-5 py-4"
         >
-          <div className="flex items-center gap-3">
-            <Trophy className="h-5 w-5 text-emerald-400" strokeWidth={1.5} />
-            <div>
-              <p className="font-semibold text-slate-100">{c.title ?? 'League'}</p>
-              {c.participants != null && (
-                <p className="text-xs text-slate-500">{c.participants} players</p>
-              )}
+          <div className="flex min-w-0 items-center gap-3">
+            {c.image_url ? (
+              <img
+                src={c.image_url}
+                alt=""
+                className="h-10 w-10 shrink-0 rounded-lg object-cover"
+              />
+            ) : (
+              <Trophy className="h-6 w-6 shrink-0 text-emerald-400" strokeWidth={1.5} />
+            )}
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 truncate font-semibold text-slate-100">
+                {c.title ?? 'League'}
+                {c.is_live && (
+                  <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
+                    Live
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-slate-500">
+                {c.participants != null && `${c.participants} players`}
+                {c.participants != null && c.season != null && ' . '}
+                {c.season != null && `Season ${c.season}`}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-6 text-right">
+          <div className="flex shrink-0 items-center gap-6 text-right">
             {c.ranking != null && (
-              <Stat label="Rank" value={`#${c.ranking}`} />
+              <Stat
+                label="Rank"
+                value={c.participants != null ? `#${c.ranking}/${c.participants}` : `#${c.ranking}`}
+              />
             )}
             {c.points != null && <Stat label="Points" value={c.points} />}
           </div>
         </div>
       ))}
-      <RawPayload raw={data.raw} />
     </div>
   );
 }
@@ -166,19 +184,6 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <p className="text-lg font-bold text-slate-100">{value}</p>
       <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
     </div>
-  );
-}
-
-// First-pass aid: the raw MPP payload, collapsed, so we can confirm field names
-// and add more (forecasts, matches) once we see real data.
-function RawPayload({ raw }: { raw: unknown }) {
-  return (
-    <details className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-3 text-xs">
-      <summary className="cursor-pointer text-slate-500">Raw MPP response</summary>
-      <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-all text-slate-400">
-        {JSON.stringify(raw, null, 2)}
-      </pre>
-    </details>
   );
 }
 

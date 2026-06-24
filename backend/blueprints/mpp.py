@@ -187,18 +187,14 @@ def mpp_data():
         return jsonify({'error': 'mpp_unavailable', 'status': resp.status_code}), 502
 
     payload = resp.json()
-    return jsonify({
-        'contests': _normalize_contests(payload),
-        'raw': payload,  # surfaced (collapsible) so field shapes can be verified
-    })
+    return jsonify({'contests': _normalize_contests(payload)})
 
 
 # ── Shaping ──────────────────────────────────────────────────────────────────
 
 def _normalize_contests(payload):
-    """Best-effort flatten of contestsCards[] into the fields the UI shows.
-    Falls back gracefully if MPP renames things — the raw payload is also
-    returned so we can correct these keys after first connect."""
+    """Flatten contestsCards[] into the fields the UI shows. Falls back across
+    a couple of key spellings so a minor MPP rename does not blank the card."""
     cards = payload.get('contestsCards') or []
     out = []
     for c in cards:
@@ -207,6 +203,9 @@ def _normalize_contests(payload):
             'title': c.get('title') or c.get('name'),
             'ranking': c.get('userRanking') or c.get('ranking'),
             'points': c.get('userTotalPoints') or c.get('points'),
-            'participants': c.get('participantsCount') or c.get('membersCount'),
+            'participants': c.get('totalUsers') or c.get('participantsCount'),
+            'image_url': c.get('imageUrl') or c.get('championshipLogoUrl'),
+            'season': c.get('season'),
+            'is_live': c.get('isLive'),
         })
     return out
