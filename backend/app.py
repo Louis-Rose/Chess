@@ -40,6 +40,7 @@ from blueprints.demo_gate import demo_gate_bp
 from blueprints.music import music_bp
 from blueprints.investing import investing_bp
 from blueprints.yc import yc_bp
+from blueprints.workblock import workblock_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(coaches_bp)
 app.register_blueprint(admin_bp)
@@ -52,6 +53,7 @@ app.register_blueprint(demo_gate_bp)
 app.register_blueprint(music_bp)
 app.register_blueprint(investing_bp)
 app.register_blueprint(yc_bp)
+app.register_blueprint(workblock_bp)
 
 migrate_upload_filenames()
 

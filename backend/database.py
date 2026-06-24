@@ -1178,3 +1178,17 @@ def init_db():
             conn.execute("CREATE INDEX idx_music_plays_played_at ON music_plays(played_at)")
             conn.execute("CREATE INDEX idx_music_plays_track ON music_plays(track_id)")
             logger.info("Created music_* tables")
+
+        # Migration: Create workblock_state — single-row site-blocking toggle.
+        # The Lumna profile menu flips `blocking`; the local Mac watcher polls
+        # it and closes distracting browser tabs while it's true.
+        if not _table_exists(conn, 'workblock_state'):
+            conn.execute("""
+                CREATE TABLE workblock_state (
+                    id         INTEGER PRIMARY KEY,
+                    blocking   BOOLEAN NOT NULL DEFAULT FALSE,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("INSERT INTO workblock_state (id, blocking) VALUES (1, FALSE)")
+            logger.info("Created workblock_state table")

@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginButton } from './LoginButton';
+import { SiteBlockToggle } from './SiteBlockToggle';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
+
+const OWNER_EMAIL = 'rose.louis.mail@gmail.com';
 
 // Shared top bar for the LUMNA sub-apps. Top-left holds, in order:
 //   - the Google profile picture (click for a logout dropdown), or a sign-in
@@ -60,6 +63,7 @@ export function AppHeader({ title }: { title?: string }) {
                 <p className="truncate text-sm font-medium text-slate-100">{user.name}</p>
                 <p className="truncate text-xs text-slate-400">{user.email}</p>
               </div>
+              {user.email === OWNER_EMAIL && <SiteBlockToggle />}
               <button
                 type="button"
                 role="menuitem"
