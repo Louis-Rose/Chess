@@ -2,7 +2,12 @@
   "manifest_version": 3,
   "name": "LUMNA Focus",
   "version": "0.8.0",
-  "description": "Blocks the sites on your LUMNA Focus list while focus mode is on.",
+  "description": "Block distracting websites in your browser, managed from your LUMNA Focus list.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": ["declarativeNetRequest", "storage", "alarms", "tabs"],
   "host_permissions": ["*://*/*"],
   "background": { "service_worker": "background.js" },
@@ -15,7 +20,12 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "LUMNA Focus"
+    "default_title": "LUMNA Focus",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "web_accessible_resources": [
     {

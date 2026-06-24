@@ -59,3 +59,6 @@ backend/data/scoresheet_uploads/
 # --- Runtime caches ---
 backend/stocks_*_cache.json
 
+
+# Chrome Web Store build artifact
+focus-extension.zip
