@@ -54,6 +54,21 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'gainPct', label: 'Gain/Loss (percentage)' },
 ];
 
+// Relative column widths (any unit; widths are normalised over the visible
+// columns). Weight and Shares hold short values, so they get less room; the
+// long-header money/gain columns get more, which avoids the slight overflow
+// that equal widths caused.
+const COL_WIDTH: Record<SortKey, number> = {
+  stock: 1,
+  price: 1,
+  weight: 0.78,
+  shares: 0.78,
+  invested: 1.15,
+  current: 1.1,
+  gainAbs: 1.15,
+  gainPct: 1.25,
+};
+
 // Columns hidden in private mode, and the leading "label" group the TOTAL spans.
 const PRIVATE_HIDDEN = new Set<SortKey>(['shares', 'invested', 'current', 'gainAbs']);
 const LABEL_GROUP = new Set<SortKey>(['stock', 'price', 'weight', 'shares']);
@@ -370,6 +385,7 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
   }
 
   const visibleColumns = COLUMNS.filter((c) => !hidden.has(c.key));
+  const widthTotal = visibleColumns.reduce((sum, c) => sum + COL_WIDTH[c.key], 0);
   const labelCols = visibleColumns.filter((c) => LABEL_GROUP.has(c.key));
   const dataCols = visibleColumns.filter((c) => !LABEL_GROUP.has(c.key));
 
@@ -443,8 +459,8 @@ export function PortfolioComposition({ transactions }: { transactions: Transacti
                 return (
                   <th
                     key={c.key}
-                    style={{ width: `${100 / visibleColumns.length}%` }}
-                    className={`border-b border-slate-800 px-3 py-2.5 align-bottom ${
+                    style={{ width: `${(COL_WIDTH[c.key] / widthTotal) * 100}%` }}
+                    className={`border-b border-slate-800 px-3 py-2.5 align-middle ${
                       i > 0 ? 'border-l' : ''
                     }`}
                   >
