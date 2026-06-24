@@ -56,9 +56,37 @@ async function sync() {
     addRules,
   });
 
+  // Redirect rules only fire on navigation, so a tab already sitting on a
+  // blocked site wouldn't move until it reloads. Reload matching open tabs so
+  // turning blocking on evicts them immediately.
+  await evictBlockedTabs(sites);
+
   await chrome.storage.local.set({
     lastStatus: { blocking: !!feed.blocking, count: sites.length, at: Date.now() },
   });
+}
+
+async function evictBlockedTabs(sites) {
+  if (!sites.length) return;
+  let tabs;
+  try {
+    tabs = await chrome.tabs.query({ url: ['*://*/*'] });
+  } catch (e) {
+    return; // permission/query issue — the next navigation will be caught anyway
+  }
+  for (const tab of tabs) {
+    if (!tab.id || !tab.url) continue;
+    let host;
+    try {
+      host = new URL(tab.url).hostname.replace(/^www\./, '');
+    } catch {
+      continue;
+    }
+    // Match the same way the rules do: the host itself or any subdomain of it.
+    if (sites.some((s) => host === s || host.endsWith('.' + s))) {
+      chrome.tabs.reload(tab.id);
+    }
+  }
 }
 
 chrome.runtime.onInstalled.addListener(() => {
