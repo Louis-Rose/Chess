@@ -23,7 +23,7 @@ export function ChooserPage() {
         <span className="text-2xl font-bold tracking-wide">LUMNA</span>
       </div>
 
-      <div className="grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid w-full max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isOwner && (
           <Link
             to="/focus"
