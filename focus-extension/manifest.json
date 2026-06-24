@@ -4,11 +4,7 @@
   "version": "0.1.0",
   "description": "Blocks the sites on your LUMNA Focus list while focus mode is on.",
   "permissions": ["declarativeNetRequest", "storage", "alarms"],
-  "host_permissions": [
-    "https://lumna.co/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
-  ],
+  "host_permissions": ["*://*/*"],
   "background": { "service_worker": "background.js" },
   "action": {
     "default_popup": "popup.html",
