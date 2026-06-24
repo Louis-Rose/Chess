@@ -10,6 +10,10 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 // strict module-script MIME checks. A single shared worker serves all documents.
 pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
 
+// Render each page at this fraction of the available width, leaving a margin on
+// each side (0.6 -> 20% margin left and right) so the document isn't oversized.
+const PAGE_WIDTH_RATIO = 0.6;
+
 // Renders a PDF one page at a time onto a canvas, fitting the container width.
 // Prev/next buttons and the arrow keys move between pages.
 export function PdfViewer({ file }: { file: Blob }) {
@@ -86,7 +90,7 @@ export function PdfViewer({ file }: { file: Blob }) {
         const pdfPage = await doc.getPage(page);
         if (cancelled) return;
         const base = pdfPage.getViewport({ scale: 1 });
-        const scale = width / base.width;
+        const scale = (width * PAGE_WIDTH_RATIO) / base.width;
         const viewport = pdfPage.getViewport({ scale });
         const ctx = canvas.getContext('2d');
         if (!ctx) return;

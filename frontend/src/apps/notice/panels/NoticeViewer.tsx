@@ -67,18 +67,19 @@ export function NoticeViewer() {
 
   return (
     <div className="flex min-h-[24rem] flex-1 flex-col px-4 py-4 sm:px-6">
-      {/* Top bar (only when a document is open): name + control to swap files */}
+      {/* Top bar (only when a document is open): name + control to swap files,
+          centered as a stack. */}
       {current && (
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-slate-300">
-            <FileText className="h-4 w-4 shrink-0 text-emerald-400" />
-            <span className="truncate text-sm font-medium">{current.name}</span>
+        <div className="mb-3 flex flex-col items-center gap-2">
+          <div className="flex max-w-full items-center gap-2 text-slate-100">
+            <FileText className="h-5 w-5 shrink-0 text-emerald-400" />
+            <span className="truncate text-xl font-semibold">{current.name}</span>
           </div>
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={busy}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             Upload PDF
