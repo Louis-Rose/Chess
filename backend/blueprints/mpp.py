@@ -94,11 +94,12 @@ def _get_access_token(conn, user_id):
     return _refresh_access_token(conn, user_id, row['refresh_token'])
 
 
-def _api_get(token, path):
+def _api_get(token, path, params=None):
     """GET an MPP API endpoint with the bearer token."""
     return requests.get(
         MPP_API + path,
         headers={'Authorization': f'Bearer {token}', 'Accept': 'application/json'},
+        params=params,
         timeout=20,
     )
 
@@ -190,6 +191,42 @@ def mpp_data():
     return jsonify({'contests': _normalize_contests(payload)})
 
 
+@mpp_bp.route('/api/mpp/standings', methods=['GET'])
+@owner_required
+def mpp_standings():
+    """Full league leaderboard for a challenge, paginating until complete."""
+    user_id = get_current_user()
+    challenge_id = request.args.get('challengeId', '').strip()
+    if not challenge_id:
+        return jsonify({'error': 'missing_challenge'}), 400
+
+    with get_db() as conn:
+        token = _get_access_token(conn, user_id)
+    if token is None:
+        return jsonify({'error': 'not_connected'}), 409
+
+    standings, offset, page = [], 0, 100
+    me_user_id, total = None, None
+    for _ in range(50):  # safety cap (5000 players)
+        resp = _api_get(token, '/challenge-standings/users-standings',
+                        params={'challengeId': challenge_id, 'offset': offset, 'limit': page})
+        if resp.status_code == 401:
+            return jsonify({'error': 'token_expired'}), 409
+        if resp.status_code != 200:
+            logger.warning('MPP standings failed (%s): %s', resp.status_code, resp.text[:200])
+            return jsonify({'error': 'mpp_unavailable', 'status': resp.status_code}), 502
+
+        data = resp.json()
+        total = data.get('usersQuantity')
+        me_user_id = (data.get('userRanking') or {}).get('userId') or me_user_id
+        standings.extend(_normalize_standing(s) for s in data.get('standings', []))
+        if not data.get('hasNext'):
+            break
+        offset += page
+
+    return jsonify({'standings': standings, 'me_user_id': me_user_id, 'total': total})
+
+
 # ── Shaping ──────────────────────────────────────────────────────────────────
 
 def _normalize_contests(payload):
@@ -209,3 +246,19 @@ def _normalize_contests(payload):
             'is_live': c.get('isLive'),
         })
     return out
+
+
+def _normalize_standing(s):
+    """One leaderboard row: the player plus their forecast counters."""
+    u = s.get('user') or {}
+    r = s.get('ranking') or {}
+    return {
+        'user_id': u.get('id'),
+        'username': u.get('username') or u.get('firstName'),
+        'avatar_url': u.get('avatarUrl'),
+        'level': u.get('level'),
+        'rank': r.get('rank'),
+        'points': r.get('points'),
+        'good': r.get('goodForecasts'),
+        'exact': r.get('exactForecasts'),
+    }

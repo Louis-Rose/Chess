@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
-import { RefreshCw, Trophy, LogOut } from 'lucide-react';
+import { RefreshCw, Trophy, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { OWNER_EMAIL } from '../../config';
 import { SidebarLayout } from '../../components/SidebarLayout';
 import { MppConnect } from './MppConnect';
-import type { MppData, MppStatus } from './types';
+import { MppStandingsPanel } from './MppStandings';
+import type { MppContest, MppData, MppStatus } from './types';
 
 // Mon Petit Prono — owner-only. The owner pastes an MPP refresh token once (see
 // MppConnect); the backend then reads their live ranking/points from
@@ -133,47 +134,65 @@ function ContestList({ data }: { data: MppData }) {
   return (
     <div className="space-y-3">
       {data.contests.map((c, i) => (
-        <div
-          key={c.id ?? i}
-          className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-800/40 px-5 py-4"
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            {c.image_url ? (
-              <img
-                src={c.image_url}
-                alt=""
-                className="h-10 w-10 shrink-0 rounded-lg object-cover"
-              />
-            ) : (
-              <Trophy className="h-6 w-6 shrink-0 text-emerald-400" strokeWidth={1.5} />
-            )}
-            <div className="min-w-0">
-              <p className="flex items-center gap-2 truncate font-semibold text-slate-100">
-                {c.title ?? 'League'}
-                {c.is_live && (
-                  <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
-                    Live
-                  </span>
-                )}
-              </p>
-              <p className="text-xs text-slate-500">
-                {c.participants != null && `${c.participants} players`}
-                {c.participants != null && c.season != null && ' . '}
-                {c.season != null && `Season ${c.season}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-6 text-right">
-            {c.ranking != null && (
-              <Stat
-                label="Rank"
-                value={c.participants != null ? `#${c.ranking}/${c.participants}` : `#${c.ranking}`}
-              />
-            )}
-            {c.points != null && <Stat label="Points" value={c.points} />}
+        <ContestCard key={c.id ?? i} contest={c} />
+      ))}
+    </div>
+  );
+}
+
+function ContestCard({ contest: c }: { contest: MppContest }) {
+  const [open, setOpen] = useState(false);
+  const challengeId = c.id != null ? String(c.id) : null;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-800/40">
+      <button
+        onClick={() => challengeId && setOpen((v) => !v)}
+        disabled={!challengeId}
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors enabled:hover:bg-slate-800/60"
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          {c.image_url ? (
+            <img src={c.image_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+          ) : (
+            <Trophy className="h-6 w-6 shrink-0 text-emerald-400" strokeWidth={1.5} />
+          )}
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 truncate font-semibold text-slate-100">
+              {c.title ?? 'League'}
+              {c.is_live && (
+                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
+                  Live
+                </span>
+              )}
+            </p>
+            <p className="text-xs text-slate-500">
+              {c.participants != null && `${c.participants} players`}
+              {c.participants != null && c.season != null && ' . '}
+              {c.season != null && `Season ${c.season}`}
+            </p>
           </div>
         </div>
-      ))}
+        <div className="flex shrink-0 items-center gap-6 text-right">
+          {c.ranking != null && (
+            <Stat
+              label="Rank"
+              value={c.participants != null ? `#${c.ranking}/${c.participants}` : `#${c.ranking}`}
+            />
+          )}
+          {c.points != null && <Stat label="Points" value={c.points} />}
+          {challengeId && (
+            <ChevronDown
+              className={`h-5 w-5 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`}
+            />
+          )}
+        </div>
+      </button>
+      {open && challengeId && (
+        <div className="border-t border-slate-800">
+          <MppStandingsPanel challengeId={challengeId} />
+        </div>
+      )}
     </div>
   );
 }

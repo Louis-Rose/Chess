@@ -17,3 +17,20 @@ export interface MppContest {
 export interface MppData {
   contests: MppContest[];
 }
+
+export interface MppStanding {
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  level: number | null;
+  rank: number;
+  points: number;
+  good: number;
+  exact: number;
+}
+
+export interface MppStandings {
+  standings: MppStanding[];
+  me_user_id: string | null;
+  total: number | null;
+}
