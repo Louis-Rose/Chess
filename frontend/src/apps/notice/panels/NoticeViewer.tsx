@@ -107,9 +107,9 @@ export function NoticeViewer() {
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className={`min-h-0 flex-1 overflow-hidden rounded-2xl border ${
+        className={`overflow-hidden rounded-2xl border ${
           dragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/30'
-        } ${SECTION_WIDTH}`}
+        } ${SECTION_WIDTH} ${current ? 'min-h-0 flex-1' : 'aspect-square'}`}
       >
         {loading ? (
           <div className="flex h-full items-center justify-center text-slate-500">
