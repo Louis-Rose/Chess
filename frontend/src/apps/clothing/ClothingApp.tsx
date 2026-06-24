@@ -6,9 +6,6 @@ const SUMMER_COLORS = [
   { name: 'White', hex: '#FFFFFF', note: 'Reflects the most light. Stays coolest.' },
   { name: 'Sand / beige', hex: '#E4D5B7', note: 'Earthy, breathable, easy to pair.' },
   { name: 'Pale blue', hex: '#BBD7F0', note: 'Cool, calm, goes with anything.' },
-  { name: 'Mint green', hex: '#BFE3CC', note: 'Fresh and light for daytime.' },
-  { name: 'Blush pink', hex: '#F3CFD3', note: 'A soft warm tone, never heavy.' },
-  { name: 'Pale yellow', hex: '#F3E3A3', note: 'Bright and sunny. Pure summer.' },
 ];
 
 export function ClothingApp() {
