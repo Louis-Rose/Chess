@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { LineChart, LogOut, Wallet, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
+import { AppSidebar } from '../../components/AppSidebar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDisplayCurrency, type DisplayCurrency } from './currency';
 
@@ -56,34 +57,8 @@ export function InvestingLayout() {
 
   return (
     <div className="flex min-h-dvh bg-slate-900 text-slate-100">
-      {/* Desktop sidebar */}
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-slate-800 px-3 py-5 md:flex">
-        <NavLink to="/investing" end className="mb-5 flex items-center gap-2 px-2">
-          <LumnaLogo className="h-7 w-7" />
-          <span className="text-lg font-bold tracking-wide">Investing</span>
-        </NavLink>
-
-        {user && (
-          <div className="mb-5 rounded-lg border border-slate-800 bg-slate-800/40 p-3">
-            <div className="flex items-center gap-2">
-              {user.picture && (
-                <img src={user.picture} alt="" className="h-8 w-8 shrink-0 rounded-full" />
-              )}
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-200">{user.name}</p>
-                <p className="truncate text-xs text-slate-500">{user.email}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => logout()}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </button>
-          </div>
-        )}
-
+      {/* Desktop sidebar (shared LUMNA rail + Investing nav) */}
+      <AppSidebar className="sticky top-0 hidden h-dvh md:flex">
         <nav className="flex flex-col gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => navClass(isActive)}>
@@ -92,7 +67,7 @@ export function InvestingLayout() {
             </NavLink>
           ))}
         </nav>
-      </aside>
+      </AppSidebar>
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top nav */}
