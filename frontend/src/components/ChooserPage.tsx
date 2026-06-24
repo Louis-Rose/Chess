@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 import { SidebarLayout } from './SidebarLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { OWNER_EMAIL } from '../config';
@@ -35,11 +34,6 @@ export function ChooserPage() {
   return (
     <SidebarLayout>
       <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-10 md:min-h-full">
-      <div className="mb-10 flex items-center gap-3">
-        <LumnaLogo className="h-9 w-9" />
-        <span className="text-2xl font-bold tracking-wide">LUMNA</span>
-      </div>
-
       <div className="w-full max-w-5xl">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {tiles.map((entry) => (
