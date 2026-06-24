@@ -28,6 +28,11 @@ FOLDER="$(basename "${cwd:-$PWD}")"
 
 GROUP="claude-notify-$SHORT"
 
+# Active banners are tracked here (one empty file per live group) so the focus
+# watcher (notify-focus-watch.sh) knows exactly which groups are ours to clear
+# when you switch back to VS Code.
+STATE_DIR="/tmp/claude-notify-groups"
+
 # terminal-notifier (if installed) makes the banner clickable -> activates VS
 # Code. Plain osascript notifications aren't clickable, so fall back to those.
 TN=""
@@ -38,6 +43,7 @@ done
 # Drop THIS session's banner (leaves other sessions' banners alone).
 clear_nag() {
   [ -n "$TN" ] && "$TN" -remove "$GROUP" >/dev/null 2>&1
+  rm -f "$STATE_DIR/$GROUP" 2>/dev/null
 }
 
 # auto: decide from the Notification event's payload.
@@ -74,6 +80,7 @@ MSG="$FOLDER: $BODY"
 # "answered" case removes it.
 if [ -n "$TN" ]; then
   "$TN" -title "Claude Code" -subtitle "$SUBT" -message "$MSG" -group "$GROUP" -activate com.microsoft.VSCode >/dev/null 2>&1
+  mkdir -p "$STATE_DIR" 2>/dev/null && : > "$STATE_DIR/$GROUP"
 else
   /usr/bin/osascript -e "display notification \"$MSG\" with title \"Claude Code\" subtitle \"$SUBT\"" 2>/dev/null
 fi
