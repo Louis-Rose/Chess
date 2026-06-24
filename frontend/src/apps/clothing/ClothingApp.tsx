@@ -28,7 +28,7 @@ export function ClothingApp() {
           {SUMMER_COLORS.map((c) => (
             <div
               key={c.name}
-              className="flex items-center justify-center gap-3 rounded-xl border border-slate-800 bg-slate-800/40 p-3"
+              className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-800/40 p-3"
             >
               <span
                 className="h-12 w-12 flex-shrink-0 rounded-lg border border-white/10"
