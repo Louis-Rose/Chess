@@ -5,15 +5,14 @@ most often trip up review for an extension with broad host access, so keep them
 specific.
 
 ## declarativeNetRequest
-Used to block the websites the user has chosen by redirecting them to the
-extension's "stay focused" page while blocking is on.
+Used to block the websites the user has chosen while blocking is on, using
+`block` rules. Block rules require no host permission, so the extension does not
+request access to the sites it blocks.
 
-## host_permissions: `*://*/*` (all sites)
-The user can block **any** website they choose, so the extension needs to act on
-any site. declarativeNetRequest **redirect** rules require host access to the
-request's URL, and the extension reads tab URLs to reload tabs already on a
-blocked site. It does not read page content and sends nothing from these sites
-anywhere.
+## host_permissions: `https://lumna.co/*`
+The extension's only host access is to lumna.co, its own backend, to read and
+update the user's block list with the user's token. It does not request access
+to any other site.
 
 ## tabs
 To reload tabs that are already open on a blocked site the moment blocking turns

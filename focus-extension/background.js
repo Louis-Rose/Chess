@@ -1,8 +1,9 @@
 // LUMNA Focus — background service worker.
 //
 // Polls the user's Focus block list from lumna.co (using the token they pasted
-// in the popup) and, while blocking is on, redirects those sites to the
-// extension's "stay focused" page via declarativeNetRequest dynamic rules.
+// in the popup) and, while blocking is on, blocks those sites with
+// declarativeNetRequest block rules. Block rules need no host permission, so the
+// extension only needs access to lumna.co (its own API), not to every site.
 
 const ALARM = 'lumna-focus-poll';
 const POLL_MINUTES = 1;
@@ -16,16 +17,13 @@ async function fetchFeed() {
   return res.json();
 }
 
-// One redirect rule per blocked host. `||host^` matches the domain and its
-// subdomains; main_frame only, so we redirect page loads, not sub-resources.
+// One block rule per host. `||host^` matches the domain and its subdomains;
+// main_frame only, so we block page loads, not sub-resources.
 function buildRules(sites) {
   return sites.map((host, i) => ({
     id: i + 1,
     priority: 1,
-    action: {
-      type: 'redirect',
-      redirect: { extensionPath: `/blocked.html?host=${encodeURIComponent(host)}` },
-    },
+    action: { type: 'block' },
     condition: {
       urlFilter: `||${host}^`,
       resourceTypes: ['main_frame'],
@@ -43,57 +41,42 @@ async function sync() {
     return;
   }
 
-  const sites = (feed.blocking ? feed.sites : []) || [];
-  const addRules = buildRules(sites);
+  const allSites = feed.sites || []; // the user's list, regardless of on/off
+  const blocking = !!feed.blocking;
+  const activeSites = blocking ? allSites : [];
+
+  const addRules = buildRules(activeSites);
   const existing = await chrome.declarativeNetRequest.getDynamicRules();
   await chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds: existing.map((r) => r.id),
     addRules,
   });
 
-  // Redirect rules only fire on navigation, so tabs don't move on their own.
-  // Turning blocking on: reload tabs already sitting on a blocked site so they
-  // get evicted to the "stay focused" page. Turning it off: send any "stay
-  // focused" tabs back to the site they came from.
-  if (feed.blocking) {
-    await evictBlockedTabs(sites);
-  } else {
-    await reviveBlockedTabs();
+  // Block rules only fire on navigation, so a tab already open on a blocked site
+  // wouldn't change on its own. On the on<->off transition, reload tabs whose
+  // host is on the list: turning on reloads them into the block, turning off
+  // reloads them back to the now-reachable site. Only on the transition (not
+  // every poll), so we never reload a tab you're actively using.
+  const { lastStatus } = await chrome.storage.local.get(['lastStatus']);
+  const prevBlocking = lastStatus ? !!lastStatus.blocking : false;
+  if (blocking !== prevBlocking) {
+    await reloadMatchingTabs(allSites);
   }
 
   await chrome.storage.local.set({
-    lastStatus: { blocking: !!feed.blocking, count: sites.length, at: Date.now() },
+    lastStatus: { blocking, count: activeSites.length, at: Date.now() },
   });
 }
 
-async function reviveBlockedTabs() {
-  const base = chrome.runtime.getURL('blocked.html');
+// Reload every open tab whose host is on `sites`. Reads tab URLs via the `tabs`
+// permission, so no host access to those sites is needed.
+async function reloadMatchingTabs(sites) {
+  if (!sites.length) return;
   let tabs;
   try {
     tabs = await chrome.tabs.query({});
   } catch (e) {
     return;
-  }
-  for (const tab of tabs) {
-    if (!tab.id || !tab.url || !tab.url.startsWith(base)) continue;
-    let host;
-    try {
-      host = new URL(tab.url).searchParams.get('host');
-    } catch {
-      continue;
-    }
-    // We only captured the host at block time, so revive to the site homepage.
-    if (host) chrome.tabs.update(tab.id, { url: `https://${host}` });
-  }
-}
-
-async function evictBlockedTabs(sites) {
-  if (!sites.length) return;
-  let tabs;
-  try {
-    tabs = await chrome.tabs.query({ url: ['*://*/*'] });
-  } catch (e) {
-    return; // permission/query issue — the next navigation will be caught anyway
   }
   for (const tab of tabs) {
     if (!tab.id || !tab.url) continue;
@@ -103,7 +86,6 @@ async function evictBlockedTabs(sites) {
     } catch {
       continue;
     }
-    // Match the same way the rules do: the host itself or any subdomain of it.
     if (sites.some((s) => host === s || host.endsWith('.' + s))) {
       chrome.tabs.reload(tab.id);
     }
@@ -121,7 +103,7 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === ALARM) sync();
 });
-// Re-sync immediately when the user saves a new token / API base.
+// Re-sync immediately when the user saves a new token.
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.token) sync();
 });

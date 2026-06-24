@@ -20,9 +20,8 @@ LUMNA Focus blocks a list of distracting websites that the user chooses, to help
 ## Description
 LUMNA Focus blocks the distracting websites you choose, right in your browser.
 
-Flip blocking on and your block list is enforced: visiting one of those sites
-redirects you to a calm "stay focused" page instead. Flip it off and you go
-straight back to where you were.
+Flip blocking on and your block list is enforced: those sites simply won't open
+while you're focused. Flip it off and you go straight back to where you were.
 
 How it works:
 - Connect the extension once with the token from lumna.co/focus.
@@ -36,12 +35,11 @@ lumna.co to sync the same list across devices, or use it anonymously.
 
 ## Screenshots (capture these — 1280×800 or 640×400 PNG, at least one)
 1. The extension popup (Connected state) showing the Blocking toggle and the site list.
-2. The "Stay focused" page shown when a blocked site is opened.
+2. A blocked site showing the browser's "site blocked" page.
 3. The lumna.co/focus connect card with the Connected badge.
 
 ## Privacy policy URL
-Host the text in store/privacy-policy.md at a public URL (e.g.
-https://lumna.co/extension-privacy) and put that URL here.
+https://lumna.co/focus/privacy
 
 ## Support / homepage URL
 https://lumna.co/focus

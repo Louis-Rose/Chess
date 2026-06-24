@@ -1,15 +1,20 @@
 # LUMNA Focus — browser extension
 
-Blocks the sites on your LUMNA Focus list (lumna.co/focus) inside your own
-browser, while focus mode is on. This is the per-user enforcement for people
-who don't run the owner's local Mac watcher.
+Blocks the sites on your LUMNA Focus list inside your own browser while focus
+mode is on. Manage your list and the on/off switch from the extension popup (or
+lumna.co/focus).
 
 ## How it works
 
-- You flip blocking on/off and edit your list at **lumna.co/focus**.
 - This extension polls your list every minute (using your personal token) and,
-  while blocking is on, redirects those sites to a "stay focused" page via
-  Chrome's `declarativeNetRequest` API.
+  while blocking is on, blocks those sites with Chrome's `declarativeNetRequest`
+  block rules. Visiting a blocked site shows the browser's standard "site
+  blocked" page.
+- Block rules need no host permission, so the extension only requests access to
+  **lumna.co** (its own API), not to every site.
+- When you flip blocking on, tabs already open on a blocked site reload into the
+  block; flip it off and they reload back to the site. (Uses the `tabs`
+  permission to read tab URLs locally.)
 - Only **websites** are enforced — a browser extension can't quit macOS apps.
 
 ## Install (unpacked, for now)

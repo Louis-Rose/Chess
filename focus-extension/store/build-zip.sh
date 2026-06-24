@@ -11,7 +11,7 @@ rm -f "$OUT"
 cd "$EXT_DIR"
 zip -r "$OUT" \
   manifest.json background.js bridge.js \
-  popup.html popup.js blocked.html blocked.js \
+  popup.html popup.js \
   icons \
   -x '*.DS_Store' >/dev/null
 
