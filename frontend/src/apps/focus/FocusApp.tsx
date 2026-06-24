@@ -4,7 +4,6 @@ import { Ban, X, Plus, Copy, Check } from 'lucide-react';
 import { SidebarLayout } from '../../components/SidebarLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteBlock, type BlockItem, type BlockKind } from '../../hooks/useSiteBlock';
-import { OWNER_EMAIL } from '../../config';
 import { getFocusToken, focusHeaders } from './focusToken';
 
 // macOS apps that register a URL scheme can be launched from a link. Browsers
@@ -26,26 +25,26 @@ function itemHref(i: BlockItem): string | null {
   return APP_SCHEMES[i.value.toLowerCase()] ?? null;
 }
 
-// Per-user page at /focus: a big switch for blocking, plus editable lists of
-// blocked websites and macOS apps. Each logged-in user owns their own state.
+// Page at /focus: a big switch for blocking, plus editable lists of blocked
+// websites and macOS apps. Same experience for everyone (no owner special case);
+// each user owns their own state, logged in or anonymous.
 export function FocusApp() {
   useEffect(() => {
     document.title = 'Focus | LUMNA';
   }, []);
 
-  const { user, isAuthenticated } = useAuth();
-  const isOwner = user?.email === OWNER_EMAIL;
+  const { isAuthenticated } = useAuth();
 
   return (
     <SidebarLayout title="Focus">
       <div className="mx-auto max-w-xl px-4 py-6 sm:px-6 sm:py-8">
-        <FocusPanel isOwner={isOwner} isAuthenticated={isAuthenticated} />
+        <FocusPanel isAuthenticated={isAuthenticated} />
       </div>
     </SidebarLayout>
   );
 }
 
-function FocusPanel({ isOwner, isAuthenticated }: { isOwner: boolean; isAuthenticated: boolean }) {
+function FocusPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { blocking, busy, toggle, items, addItem, removeItem } = useSiteBlock();
   const sites = items.filter((i) => i.kind === 'site');
   const apps = items.filter((i) => i.kind === 'app');
@@ -56,13 +55,7 @@ function FocusPanel({ isOwner, isAuthenticated }: { isOwner: boolean; isAuthenti
         <div className="relative flex items-center justify-center gap-4">
           <div className="text-center">
             <h2 className="text-lg font-semibold">Blocking</h2>
-            <p className="mt-2 text-sm text-slate-400">
-              {blocking
-                ? isOwner
-                  ? 'On. Distracting tabs and apps are being closed.'
-                  : 'On.'
-                : 'Off.'}
-            </p>
+            <p className="mt-2 text-sm text-slate-400">{blocking ? 'On.' : 'Off.'}</p>
           </div>
           <button
             type="button"
