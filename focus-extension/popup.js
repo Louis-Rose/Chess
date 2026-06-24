@@ -15,7 +15,7 @@ function renderStatus(s) {
   }
   const when = s.at ? new Date(s.at).toLocaleTimeString() : '';
   statusEl.innerHTML = s.blocking
-    ? `<span class="on">Blocking on</span> · ${s.count} site${s.count === 1 ? '' : 's'} · ${when}`
+    ? `<span class="on">Blocking on</span> <span class="on">${s.count} site${s.count === 1 ? '' : 's'}</span> · ${when}`
     : `<span class="off">Blocking off</span> · ${when}`;
 }
 
