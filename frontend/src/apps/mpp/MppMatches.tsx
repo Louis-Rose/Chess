@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw } from 'lucide-react';
 import { MppMatchDetail } from './MppMatchDetail';
+import { TeamCrest } from './TeamCrest';
 import type { MppMatch, MppMatches as MppMatchesData, MppTeam } from './types';
 
 // Matches tab: every match of the owner's competition whose two teams are known,
@@ -220,7 +221,7 @@ function TeamSide({ team, align }: { team: MppTeam; align: 'left' | 'right' }) {
         align === 'right' ? 'flex-row-reverse text-right' : 'text-left'
       }`}
     >
-      <img src={team.crest} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+      <TeamCrest src={team.crest} className="h-7 w-7" />
       <span className="truncate text-sm font-semibold text-slate-100">{team.name}</span>
     </div>
   );

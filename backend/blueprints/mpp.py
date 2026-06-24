@@ -432,9 +432,13 @@ def _resolve_club(token, club_id):
     if not label:
         return None  # placeholder — don't cache; it may resolve later
 
+    # Prefer MPP's own logo URL; some teams (e.g. national sides) aren't at the
+    # constructed {num}.png path, so fall back to that only if none is given.
     num = club_id.rsplit('_', 1)[-1]
-    info = {'name': label, 'short': (data or {}).get('shortName'),
-            'crest': f'{_CREST_BASE}/{num}.png'}
+    logo = ((data or {}).get('defaultAssets') or {}).get('logo') or {}
+    crest = logo.get('small') or logo.get('medium') or logo.get('large') \
+        or f'{_CREST_BASE}/{num}.png'
+    info = {'name': label, 'short': (data or {}).get('shortName'), 'crest': crest}
     with _clubs_lock:
         _clubs_cache[club_id] = info
     return info

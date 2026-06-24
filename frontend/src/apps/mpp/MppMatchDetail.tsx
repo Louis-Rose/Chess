@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { X } from 'lucide-react';
+import { TeamCrest } from './TeamCrest';
 import type { MppMatchDetail as Detail } from './types';
 
 // The "avant-match" detail behind a match click: the MPP prono split
@@ -130,7 +131,7 @@ function Body({ detail }: { detail: Detail }) {
 function TeamHead({ name, crest }: { name: string | null; crest: string | null }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-      {crest && <img src={crest} alt="" className="h-12 w-12 rounded-full object-cover" />}
+      <TeamCrest src={crest} className="h-12 w-12" />
       <span className="truncate text-center text-sm font-semibold text-slate-100">{name}</span>
     </div>
   );
