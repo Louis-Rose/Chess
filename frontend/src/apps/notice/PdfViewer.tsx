@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import PdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, FileText, Loader2, Upload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Loader2 } from 'lucide-react';
 
 // PDF.js renders pages off the main thread. Let Vite bundle and instantiate the
 // worker (?worker) rather than pointing workerSrc at a raw .mjs URL: the latter
@@ -12,18 +12,8 @@ pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
 
 // Renders a PDF one page at a time onto a canvas, filling the container width
 // (margins come from the narrow section the parent places this in). The header
-// shows the file name and an upload control above the page navigation.
-export function PdfViewer({
-  file,
-  name,
-  onUpload,
-  uploading = false,
-}: {
-  file: Blob;
-  name?: string;
-  onUpload?: () => void;
-  uploading?: boolean;
-}) {
+// shows the file name above the page navigation.
+export function PdfViewer({ file, name }: { file: Blob; name?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const docRef = useRef<PDFDocumentProxy | null>(null);
@@ -144,22 +134,9 @@ export function PdfViewer({
       {/* Header: file name + upload control, then page navigation */}
       <div className="border-b border-slate-800 px-4 py-3">
         {name && (
-          <div className="mb-3 flex flex-col items-center gap-2">
-            <div className="flex max-w-full items-center gap-2 text-slate-100">
-              <FileText className="h-5 w-5 shrink-0 text-emerald-400" />
-              <span className="truncate text-xl font-semibold">{name}</span>
-            </div>
-            {onUpload && (
-              <button
-                type="button"
-                onClick={onUpload}
-                disabled={uploading}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
-              >
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                Upload PDF
-              </button>
-            )}
+          <div className="mb-3 flex max-w-full items-center justify-center gap-2 text-slate-100">
+            <FileText className="h-5 w-5 shrink-0 text-emerald-400" />
+            <span className="truncate text-xl font-semibold">{name}</span>
           </div>
         )}
         <div className="flex items-center justify-center gap-4">

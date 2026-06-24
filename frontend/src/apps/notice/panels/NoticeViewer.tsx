@@ -79,6 +79,22 @@ export function NoticeViewer() {
         }}
       />
 
+      {/* Upload control, above and outside the framed viewer (only when a
+          document is open — the empty state has its own button). */}
+      {current && (
+        <div className="mb-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Upload PDF
+          </button>
+        </div>
+      )}
+
       {/* Body: the open document, or a drop zone */}
       <div
         onDragOver={(e) => {
@@ -96,13 +112,7 @@ export function NoticeViewer() {
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : current ? (
-          <PdfViewer
-            key={current.id}
-            file={current.data}
-            name={current.name}
-            onUpload={() => inputRef.current?.click()}
-            uploading={busy}
-          />
+          <PdfViewer key={current.id} file={current.data} name={current.name} />
         ) : id ? (
           <button
             type="button"
