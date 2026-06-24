@@ -57,6 +57,9 @@ function useExtensionPresent(): boolean {
 function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [token, setToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [rotating, setRotating] = useState(false);
+  const [forceShow, setForceShow] = useState(false); // reveal token while connected
+  const [rotated, setRotated] = useState(false); // the shown token is a freshly rotated one
   const extensionPresent = useExtensionPresent();
 
   useEffect(() => {
@@ -70,6 +73,9 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
       .catch(() => undefined);
   }, [isAuthenticated]);
 
+  // Once the extension is detected, the token has done its job, so collapse it.
+  const showToken = !extensionPresent || forceShow;
+
   const copy = async () => {
     if (!token) return;
     try {
@@ -78,6 +84,26 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
       setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard may be blocked; the field is selectable as a fallback.
+    }
+  };
+
+  // Issue a fresh token (logged-in only); the old one stops working, so reveal
+  // the new one to paste into the extension.
+  const rotate = async () => {
+    setRotating(true);
+    try {
+      const r = await axios.post<{ token: string }>(
+        '/api/workblock/token',
+        {},
+        { headers: focusHeaders() },
+      );
+      setToken(r.data.token);
+      setRotated(true);
+      setForceShow(true);
+    } catch {
+      // ignore
+    } finally {
+      setRotating(false);
     }
   };
 
@@ -92,27 +118,72 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
           </span>
         )}
       </div>
-      <p className="mb-4 text-sm text-slate-400">
-        Install the LUMNA Focus browser extension and paste this token into it. You manage
-        blocking and your block list right from the extension.
-      </p>
-      <div className="flex gap-2">
-        <input
-          readOnly
-          value={token ?? 'Loading...'}
-          onFocus={(e) => e.currentTarget.select()}
-          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-1.5 font-mono text-sm text-slate-200"
-        />
-        <button
-          type="button"
-          onClick={copy}
-          disabled={!token}
-          className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
-        >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          {copied ? 'Copied' : 'Copy'}
-        </button>
-      </div>
+
+      {showToken ? (
+        <>
+          <p className="mb-4 text-sm text-slate-400">
+            {rotated
+              ? 'New token generated. Your old one stopped working. Paste this into your extension.'
+              : extensionPresent
+                ? 'Paste this token into your LUMNA Focus extension.'
+                : 'Install the LUMNA Focus browser extension and paste this token into it. You manage blocking and your block list right from the extension.'}
+          </p>
+          <div className="flex gap-2">
+            <input
+              readOnly
+              value={token ?? 'Loading...'}
+              onFocus={(e) => e.currentTarget.select()}
+              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-1.5 font-mono text-sm text-slate-200"
+            />
+            <button
+              type="button"
+              onClick={copy}
+              disabled={!token}
+              className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          {extensionPresent && (
+            <button
+              type="button"
+              onClick={() => {
+                setForceShow(false);
+                setRotated(false);
+              }}
+              className="mt-3 text-sm text-slate-500 transition-colors hover:text-slate-300"
+            >
+              Done
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="mb-4 text-sm text-slate-400">
+            Your extension is connected. Manage blocking and your block list from the extension.
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={rotate}
+                disabled={rotating}
+                className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-60"
+              >
+                {rotating ? 'Generating...' : 'Generate new token'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setForceShow(true)}
+              className="text-sm text-slate-500 transition-colors hover:text-slate-300"
+            >
+              Show token
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
