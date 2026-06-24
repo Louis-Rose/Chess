@@ -67,32 +67,36 @@ export function NoticeViewer() {
 
   return (
     <div className="flex min-h-[24rem] flex-1 flex-col px-4 py-4 sm:px-6">
-      {/* Top bar: current file name + upload control */}
-      <div className="mb-3 flex items-center gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2 text-slate-300">
-          <FileText className="h-4 w-4 shrink-0 text-emerald-400" />
-          <span className="truncate text-sm font-medium">{current ? current.name : 'No document open'}</span>
+      {/* Top bar (only when a document is open): name + control to swap files */}
+      {current && (
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-slate-300">
+            <FileText className="h-4 w-4 shrink-0 text-emerald-400" />
+            <span className="truncate text-sm font-medium">{current.name}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Upload PDF
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={busy}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          Upload PDF
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/pdf"
-          className="hidden"
-          onChange={(e) => {
-            void onPick(e.target.files?.[0]);
-            e.target.value = ''; // allow re-picking the same file
-          }}
-        />
-      </div>
+      )}
+
+      {/* Hidden picker, shared by the top-bar button and the clickable drop zone */}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          void onPick(e.target.files?.[0]);
+          e.target.value = ''; // allow re-picking the same file
+        }}
+      />
 
       {/* Body: the open document, or a drop zone */}
       <div
@@ -113,19 +117,32 @@ export function NoticeViewer() {
         ) : current ? (
           <PdfViewer key={current.id} file={current.data} />
         ) : id ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-slate-500">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex h-full w-full flex-col items-center justify-center gap-2 px-6 text-center text-slate-500 transition-colors hover:bg-emerald-500/5"
+          >
             <FileText className="h-10 w-10" />
-            <p>This document is no longer in your library.</p>
-          </div>
+            <p>This document is no longer in your library. Click to upload a new one.</p>
+          </button>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-            <Upload className="h-10 w-10 text-slate-600" />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center transition-colors hover:bg-emerald-500/5 disabled:opacity-60"
+          >
+            {busy ? (
+              <Loader2 className="h-10 w-10 animate-spin text-slate-500" />
+            ) : (
+              <Upload className="h-10 w-10 text-slate-600" />
+            )}
             <div>
-              <p className="font-medium text-slate-300">Drop a PDF here, or use Upload PDF.</p>
+              <p className="font-medium text-slate-300">Click to upload a PDF, or drop one here.</p>
               <p className="mt-1 text-sm text-slate-500">It's saved in this browser and added to your library.</p>
             </div>
             {rejected && <p className="text-sm text-red-400">Only PDF files are supported for now.</p>}
-          </div>
+          </button>
         )}
       </div>
     </div>
