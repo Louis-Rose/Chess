@@ -38,8 +38,8 @@ function FocusPanel() {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-6 sm:p-8">
-        <div className="flex items-center justify-between gap-4">
-          <div>
+        <div className="relative flex items-center justify-center gap-4">
+          <div className="text-center">
             <h2 className="text-lg font-semibold">Blocking</h2>
             <p className="mt-0.5 text-sm text-slate-400">
               {blocking ? 'On. Distracting tabs and apps are being closed.' : 'Off.'}
@@ -52,7 +52,7 @@ function FocusPanel() {
             role="switch"
             aria-checked={blocking}
             aria-label="Site blocking"
-            className={`relative h-8 w-14 flex-shrink-0 rounded-full transition-colors disabled:opacity-60 ${
+            className={`absolute right-0 top-1/2 h-8 w-14 flex-shrink-0 -translate-y-1/2 rounded-full transition-colors disabled:opacity-60 ${
               blocking ? 'bg-emerald-500' : 'bg-slate-600'
             }`}
           >
@@ -100,7 +100,7 @@ function BlockList({
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-6">
-      <h3 className="mb-4 text-lg font-semibold">Blocked</h3>
+      <h3 className="mb-4 text-center text-lg font-semibold">Blocked</h3>
 
       <form onSubmit={submit} className="mb-5 flex gap-2">
         <input
@@ -138,9 +138,9 @@ function BlockGroup({
 }) {
   return (
     <div>
-      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</h4>
+      <h4 className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</h4>
       {items.length > 0 ? (
-        <ul className="flex flex-wrap gap-2">
+        <ul className="flex flex-wrap justify-center gap-2">
           {items.map((i) => (
             <li
               key={i.id}
@@ -174,7 +174,7 @@ function BlockGroup({
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-slate-500">Nothing yet.</p>
+        <p className="text-center text-sm text-slate-500">Nothing yet.</p>
       )}
     </div>
   );
