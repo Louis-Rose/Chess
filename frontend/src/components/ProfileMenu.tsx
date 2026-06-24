@@ -2,13 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginButton } from './LoginButton';
-import { SiteBlockToggle } from './SiteBlockToggle';
 
-const OWNER_EMAIL = 'rose.louis.mail@gmail.com';
-
-// Clickable avatar that opens a dropdown: name, an owner-only Blocking toggle,
-// and Sign out. Shows a sign-in button when logged out. Shared by the top bar
-// (avatar only) and the sidebar (avatar + name).
+// Clickable avatar that opens a dropdown: name, email, and Sign out. Shows a
+// sign-in button when logged out. Shared by the top bar (avatar only) and the
+// sidebar (avatar + name).
 export function ProfileMenu({ showName = false }: { showName?: boolean }) {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -25,7 +22,6 @@ export function ProfileMenu({ showName = false }: { showName?: boolean }) {
   if (isLoading) return <span className="h-10 w-10 rounded-full bg-slate-800" />;
   if (!isAuthenticated || !user) return <LoginButton size="medium" redirectTo="" />;
 
-  const isOwner = user.email === OWNER_EMAIL;
   const avatar = user.picture ? (
     <img
       src={user.picture}
@@ -63,8 +59,8 @@ export function ProfileMenu({ showName = false }: { showName?: boolean }) {
         >
           <div className="border-b border-slate-700 px-3 py-2.5">
             <p className="truncate text-sm font-medium text-slate-100">{user.name}</p>
+            <p className="truncate text-xs text-slate-400">{user.email}</p>
           </div>
-          {isOwner && <SiteBlockToggle />}
           <button
             type="button"
             role="menuitem"
