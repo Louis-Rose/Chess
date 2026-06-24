@@ -9,6 +9,7 @@ import {
   FileText,
   type LucideIcon,
 } from 'lucide-react';
+import { SoccerBall } from './mpp/SoccerBallIcon';
 
 export interface AppEntry {
   path: string;
@@ -28,6 +29,7 @@ export const APPS: AppEntry[] = [
   { path: '/yc', label: 'YC Advisor', Icon: Rocket },
   { path: '/clothing', label: 'Clothing', Icon: Shirt },
   { path: '/notice', label: 'Notice.ai', Icon: FileText },
+  { path: '/mpp', label: 'MPP', Icon: SoccerBall as LucideIcon, ownerOnly: true },
 ];
 
 export function appByLabel(label?: string): AppEntry | undefined {
