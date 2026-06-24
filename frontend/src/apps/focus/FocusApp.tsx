@@ -3,31 +3,12 @@ import axios from 'axios';
 import { Ban, X, Plus, Copy, Check } from 'lucide-react';
 import { SidebarLayout } from '../../components/SidebarLayout';
 import { useAuth } from '../../contexts/AuthContext';
-import { useSiteBlock, type BlockItem, type BlockKind } from '../../hooks/useSiteBlock';
+import { useSiteBlock, type BlockItem } from '../../hooks/useSiteBlock';
 import { getFocusToken, focusHeaders } from './focusToken';
 
-// macOS apps that register a URL scheme can be launched from a link. Browsers
-// can't open arbitrary native apps, so only the ones listed here are clickable.
-const APP_SCHEMES: Record<string, string> = {
-  whatsapp: 'whatsapp://',
-  messages: 'imessage://',
-  telegram: 'tg://',
-  spotify: 'spotify://',
-  slack: 'slack://',
-  discord: 'discord://',
-  notion: 'notion://',
-};
-
-// Clickable target for a chip: websites open in the browser; apps open via their
-// URL scheme when known, otherwise the chip isn't a link.
-function itemHref(i: BlockItem): string | null {
-  if (i.kind === 'site') return `https://${i.value}`;
-  return APP_SCHEMES[i.value.toLowerCase()] ?? null;
-}
-
-// Page at /focus: a big switch for blocking, plus editable lists of blocked
-// websites and macOS apps. Same experience for everyone (no owner special case);
-// each user owns their own state, logged in or anonymous.
+// Page at /focus: a big switch for blocking, plus an editable list of blocked
+// websites. Same experience for everyone (no owner special case); each user owns
+// their own state, logged in or anonymous.
 export function FocusApp() {
   useEffect(() => {
     document.title = 'Focus | LUMNA';
@@ -46,8 +27,6 @@ export function FocusApp() {
 
 function FocusPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { blocking, busy, toggle, items, addItem, removeItem } = useSiteBlock();
-  const sites = items.filter((i) => i.kind === 'site');
-  const apps = items.filter((i) => i.kind === 'app');
 
   return (
     <div className="space-y-4">
@@ -77,7 +56,7 @@ function FocusPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
         </div>
       </div>
 
-      <BlockList sites={sites} apps={apps} onAdd={addItem} onRemove={removeItem} blocking={blocking} />
+      <BlockList items={items} onAdd={addItem} onRemove={removeItem} blocking={blocking} />
       <ExtensionConnect isAuthenticated={isAuthenticated} />
       {!isAuthenticated && (
         <p className="px-1 text-center text-xs text-slate-500">
@@ -123,7 +102,7 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
       <h3 className="mb-1 text-lg font-semibold">Block in your browser</h3>
       <p className="mb-4 text-sm text-slate-400">
         Install the LUMNA Focus browser extension and paste this token to block these
-        websites in your browser. Websites only. Blocking Mac apps needs the desktop watcher.
+        websites in your browser.
       </p>
       <div className="flex gap-2">
         <input
@@ -147,15 +126,13 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
 }
 
 function BlockList({
-  sites,
-  apps,
+  items,
   onAdd,
   onRemove,
   blocking,
 }: {
-  sites: BlockItem[];
-  apps: BlockItem[];
-  onAdd: (kind: BlockKind, value: string) => Promise<void>;
+  items: BlockItem[];
+  onAdd: (value: string) => Promise<void>;
   onRemove: (id: number) => Promise<void>;
   blocking: boolean;
 }) {
@@ -165,11 +142,9 @@ function BlockList({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!value.trim() || saving) return;
-    // A value with a dot (reddit.com) is a website; anything else is an app.
-    const kind: BlockKind = value.includes('.') ? 'site' : 'app';
     setSaving(true);
     try {
-      await onAdd(kind, value);
+      await onAdd(value);
       setValue('');
     } finally {
       setSaving(false);
@@ -178,13 +153,13 @@ function BlockList({
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-6">
-      <h3 className="mb-4 text-center text-lg font-semibold">Blocked</h3>
+      <h3 className="mb-4 text-center text-lg font-semibold">Blocked websites</h3>
 
       <form onSubmit={submit} className="mb-5 flex gap-2">
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="e.g. reddit.com or whatsapp"
+          placeholder="e.g. reddit.com"
           className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
         />
         <button
@@ -197,65 +172,44 @@ function BlockList({
         </button>
       </form>
 
-      <BlockGroup label="Websites" items={sites} onRemove={onRemove} blocking={blocking} />
-      <div className="mt-5">
-        <BlockGroup label="Mac apps" items={apps} onRemove={onRemove} blocking={blocking} />
-      </div>
-    </div>
-  );
-}
-
-function BlockGroup({
-  label,
-  items,
-  onRemove,
-  blocking,
-}: {
-  label: string;
-  items: BlockItem[];
-  onRemove: (id: number) => Promise<void>;
-  blocking: boolean;
-}) {
-  return (
-    <div>
-      <h4 className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</h4>
       {items.length > 0 ? (
         <ul className="flex flex-wrap justify-center gap-2">
-          {items.map((i) => (
-            <li
-              key={i.id}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/50 py-1 pl-2.5 pr-1 text-sm text-slate-300"
-            >
-              {(() => {
-                const href = blocking ? null : itemHref(i);
-                const inner = (
-                  <>
-                    <Ban className="h-3.5 w-3.5 text-slate-500" />
-                    {i.value}
-                  </>
-                );
-                return href ? (
+          {items.map((i) => {
+            const href = blocking ? null : `https://${i.value}`;
+            const inner = (
+              <>
+                <Ban className="h-3.5 w-3.5 text-slate-500" />
+                {i.value}
+              </>
+            );
+            return (
+              <li
+                key={i.id}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/50 py-1 pl-2.5 pr-1 text-sm text-slate-300"
+              >
+                {href ? (
                   <a
                     href={href}
-                    {...(i.kind === 'site' ? { target: '_blank', rel: 'noreferrer' } : {})}
+                    target="_blank"
+                    rel="noreferrer"
                     className="flex items-center gap-1.5 transition-colors hover:text-emerald-400"
                   >
                     {inner}
                   </a>
                 ) : (
                   <span className="flex items-center gap-1.5">{inner}</span>
-                );
-              })()}
-              <button
-                type="button"
-                onClick={() => onRemove(i.id)}
-                aria-label={`Remove ${i.value}`}
-                className="ml-0.5 rounded p-0.5 text-slate-500 transition-colors hover:bg-slate-700 hover:text-red-400"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </li>
-          ))}
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemove(i.id)}
+                  aria-label={`Remove ${i.value}`}
+                  className="ml-0.5 rounded p-0.5 text-slate-500 transition-colors hover:bg-slate-700 hover:text-red-400"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p className="text-center text-sm text-slate-500">Nothing yet.</p>

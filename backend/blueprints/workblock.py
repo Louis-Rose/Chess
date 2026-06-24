@@ -1,4 +1,4 @@
-"""Work-block sub-app — the site/app-blocking switch behind Lumna's Focus app.
+"""Work-block sub-app — the website-blocking switch behind Lumna's Focus app.
 
 Focus is open to everyone, with optional login:
   - logged-in users are scoped by their account (workblock_state/items, keyed
@@ -7,36 +7,31 @@ Focus is open to everyone, with optional login:
     sends in the X-Focus-Token header (workblock_anon_state/items, keyed by
     token). No login required.
 
-Enforcement lives outside this service: the owner runs a local Mac watcher that
-polls /status, and any user can run a browser extension that polls /feed and
-blocks the sites in their own browser.
+Enforcement is the browser extension: it polls /feed with the user's token and
+blocks the listed sites in their own browser. There is no per-account special
+case anywhere here — every user runs the identical path.
 
 Endpoints:
   GET    /api/workblock              -> {blocking, items:[{id,kind,value}]}
   POST   /api/workblock              -> set {blocking: bool}
-  POST   /api/workblock/items        -> add {kind, value}
+  POST   /api/workblock/items        -> add {value}
   DELETE /api/workblock/items/<id>   -> remove (only own items)
   GET    /api/workblock/token        -> the caller's extension token
   POST   /api/workblock/token        -> rotate the caller's extension token
   GET    /api/workblock/feed         -> token-gated {blocking, sites} for the extension
-  GET    /api/workblock/status       -> token-gated: the owner's {blocking, sites, apps}
 """
 
 import logging
-import os
 import secrets
 
 from flask import Blueprint, jsonify, request
 
 from database import get_db
 from auth import login_optional
-from blueprints.auth_utils import owner_email
 
 logger = logging.getLogger(__name__)
 
 workblock_bp = Blueprint('workblock', __name__)
-
-VALID_KINDS = ('site', 'app')
 
 # Per-identity table sets. A "scope" is (state_table, items_table, key_col, key):
 # logged-in users live in the account tables keyed by user_id, anonymous users in
@@ -65,12 +60,13 @@ def _read_blocking(conn, state_table, key_col, key) -> bool:
     return bool(row['blocking']) if row else False
 
 
-def _read_items(conn, items_table, key_col, key):
+def _read_sites(conn, items_table, key_col, key):
     rows = conn.execute(
-        f"SELECT id, kind, value FROM {items_table} WHERE {key_col} = ? ORDER BY kind, value",
+        f"SELECT id, value FROM {items_table} WHERE {key_col} = ? AND kind = 'site' "
+        f"ORDER BY value",
         (key,),
     ).fetchall()
-    return [{'id': r['id'], 'kind': r['kind'], 'value': r['value']} for r in rows]
+    return [{'id': r['id'], 'kind': 'site', 'value': r['value']} for r in rows]
 
 
 def _normalize_site(value: str) -> str:
@@ -95,7 +91,7 @@ def get_state():
     with get_db() as conn:
         return jsonify({
             'blocking': _read_blocking(conn, state_table, key_col, key),
-            'items': _read_items(conn, items_table, key_col, key),
+            'items': _read_sites(conn, items_table, key_col, key),
         })
 
 
@@ -128,24 +124,20 @@ def add_item():
         return jsonify({'error': 'no identity'}), 400
     _state_table, items_table, key_col, key = scope
     data = request.get_json(silent=True) or {}
-    kind = (data.get('kind') or '').strip().lower()
-    value = (data.get('value') or '').strip()
-    if kind not in VALID_KINDS:
-        return jsonify({'error': 'invalid kind'}), 400
-    value = _normalize_site(value) if kind == 'site' else value.lower()
+    value = _normalize_site(data.get('value') or '')
     if not value:
         return jsonify({'error': 'empty value'}), 400
     with get_db() as conn:
         # Insert if new, else recover the existing id (deduped on the unique
         # (key, kind, value)). RETURNING avoids a second round-trip.
         row = conn.execute(
-            f"""INSERT INTO {items_table} ({key_col}, kind, value) VALUES (?, ?, ?)
+            f"""INSERT INTO {items_table} ({key_col}, kind, value) VALUES (?, 'site', ?)
                 ON CONFLICT ({key_col}, kind, value) DO UPDATE SET value = EXCLUDED.value
                 RETURNING id""",
-            (key, kind, value),
+            (key, value),
         ).fetchone()
         item_id = row['id']
-    return jsonify({'id': item_id, 'kind': kind, 'value': value})
+    return jsonify({'id': item_id, 'kind': 'site', 'value': value})
 
 
 @workblock_bp.route('/api/workblock/items/<int:item_id>', methods=['DELETE'])
@@ -221,8 +213,7 @@ def feed():
     """Per-identity block list for the browser extension, gated by the token.
 
     The token is either a logged-in user's server token (mapped to their
-    account list) or an anonymous browser token (its own anon list). Sites
-    only — a browser extension can't act on the macOS-app entries.
+    account list) or an anonymous browser token (its own anon list).
     """
     token = (request.args.get('token') or '').strip()
     if not token:
@@ -236,35 +227,8 @@ def feed():
         else:
             state_table, items_table, key_col, key = (*_ANON_SCOPE, token)
         blocking = _read_blocking(conn, state_table, key_col, key)
-        items = _read_items(conn, items_table, key_col, key)
+        sites = _read_sites(conn, items_table, key_col, key)
     return jsonify({
         'blocking': blocking,
-        'sites': [i['value'] for i in items if i['kind'] == 'site'],
-    })
-
-
-@workblock_bp.route('/api/workblock/status', methods=['GET'])
-def status():
-    """Read-only state for the owner's Mac watcher, gated by a shared token.
-
-    The watcher is the owner's, so this returns the owner's account list.
-    """
-    expected = os.environ.get('WORKBLOCK_TOKEN', '').strip()
-    token = (request.args.get('token') or '').strip()
-    if not expected or not token or token != expected:
-        return jsonify({'error': 'forbidden'}), 403
-    oe = (owner_email() or '').strip().lower()
-    with get_db() as conn:
-        owner_row = conn.execute(
-            "SELECT id FROM users WHERE lower(email) = ?", (oe,)
-        ).fetchone() if oe else None
-        if not owner_row:
-            return jsonify({'blocking': False, 'sites': [], 'apps': []})
-        state_table, items_table, key_col, key = (*_USER_SCOPE, owner_row['id'])
-        blocking = _read_blocking(conn, state_table, key_col, key)
-        items = _read_items(conn, items_table, key_col, key)
-    return jsonify({
-        'blocking': blocking,
-        'sites': [i['value'] for i in items if i['kind'] == 'site'],
-        'apps': [i['value'] for i in items if i['kind'] == 'app'],
+        'sites': [i['value'] for i in sites],
     })

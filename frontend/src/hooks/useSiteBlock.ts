@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { focusHeaders } from '../apps/focus/focusToken';
 
-export type BlockKind = 'site' | 'app';
 export interface BlockItem {
   id: number;
-  kind: BlockKind;
   value: string;
 }
 
@@ -53,12 +51,12 @@ export function useSiteBlock() {
     }
   };
 
-  const addItem = async (kind: BlockKind, value: string) => {
+  const addItem = async (value: string) => {
     const v = value.trim();
     if (!v) return;
     const r = await axios.post<BlockItem>(
       '/api/workblock/items',
-      { kind, value: v },
+      { value: v },
       { headers: focusHeaders() },
     );
     // Replace any existing entry with the same id (server dedupes), else append.
