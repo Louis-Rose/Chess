@@ -43,15 +43,23 @@ export function MppRules() {
           cote: <strong>the less likely the result, the more it pays</strong>. A favourite win
           earns little; an upset earns a lot.
         </p>
-        <div className="mt-3 overflow-hidden rounded-xl border border-slate-800">
-          <Row head cells={['Example: France vs Senegal', 'Result points']} />
-          <Row cells={['France win (favourite)', '~46']} />
-          <Row cells={['Draw', '~125']} />
-          <Row cells={['Senegal win (upset)', '~150']} />
+        <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
+          Real cotes pulled from an MPP match
+        </p>
+        <div className="mt-2 overflow-hidden rounded-xl border border-slate-800">
+          <Row head cells={['Outcome', 'Players backing it', 'Points']} />
+          <Row cells={['Favourite win', '91%', '31']} />
+          <Row cells={['Draw', '6%', '157']} />
+          <Row cells={['Underdog win', '3%', '184']} />
         </div>
-        <p className="mt-2 text-xs text-slate-500">
-          Illustrative values. The real numbers are set per match from the odds and shown in the app
-          before kickoff.
+        <p className="mt-2 text-slate-400">
+          The 91% who took the favourite all share the same small 31-point reward. The 3% who dared
+          the upset would bank 184. That gap is the whole game.
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Live values per match come from the API (<code className="text-emerald-300">quotations</code>{' '}
+          for the points, <code className="text-emerald-300">stats.bets</code> for the crowd split).
+          See the Matches tab for current fixtures.
         </p>
       </Section>
 
