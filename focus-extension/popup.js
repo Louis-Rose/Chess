@@ -43,4 +43,11 @@ document.getElementById('save').addEventListener('click', async () => {
   }, 1200);
 });
 
+// Reload the extension (re-reads code from disk for an unpacked build), so you
+// don't have to open chrome://extensions after an update. The popup closes as
+// the extension restarts.
+document.getElementById('reload').addEventListener('click', () => {
+  chrome.runtime.reload();
+});
+
 load();

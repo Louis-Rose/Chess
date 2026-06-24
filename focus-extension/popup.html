@@ -24,6 +24,11 @@
         background: #1e293b; color: #e2e8f0; font-weight: 600; cursor: pointer;
       }
       button:hover { border-color: #10b981; }
+      button.secondary {
+        margin-top: 0.6rem; padding: 0.4rem; background: transparent;
+        color: #94a3b8; font-weight: 500; font-size: 0.8rem;
+      }
+      button.secondary:hover { color: #e2e8f0; border-color: #475569; }
       .status { margin-top: 0.9rem; font-size: 0.8rem; color: #94a3b8; }
       .on { color: #34d399; font-weight: 600; }
       .off { color: #94a3b8; }
@@ -42,6 +47,10 @@
     <button id="save">Save &amp; sync</button>
 
     <div class="status" id="status"></div>
+
+    <button id="reload" class="secondary" title="Restart the extension and reload its code from disk">
+      Reload extension
+    </button>
 
     <script src="popup.js"></script>
   </body>
