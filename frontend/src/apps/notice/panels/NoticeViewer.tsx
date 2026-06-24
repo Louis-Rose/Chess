@@ -137,8 +137,10 @@ export function NoticeViewer() {
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
-          className={`mt-12 aspect-square overflow-hidden rounded-2xl border ${
-            dragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/30'
+          className={`mt-12 aspect-square overflow-hidden rounded-2xl border transition-colors ${
+            dragging
+              ? 'border-emerald-500 bg-emerald-500/5'
+              : 'border-slate-800 bg-slate-800/30 hover:border-emerald-500 hover:bg-emerald-500/5'
           } ${SECTION_WIDTH}`}
         >
           {loading ? (
