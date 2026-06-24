@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import PdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 
-// PDF.js renders pages off the main thread; point it at the bundled worker.
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+// PDF.js renders pages off the main thread. Let Vite bundle and instantiate the
+// worker (?worker) rather than pointing workerSrc at a raw .mjs URL: the latter
+// is served as application/octet-stream by static hosts (nginx) and rejected by
+// strict module-script MIME checks. A single shared worker serves all documents.
+pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
 
 // Renders a PDF one page at a time onto a canvas, fitting the container width.
 // Prev/next buttons and the arrow keys move between pages.
