@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import PdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, FileText, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Loader2, X } from 'lucide-react';
 
 // PDF.js renders pages off the main thread. Let Vite bundle and instantiate the
 // worker (?worker) rather than pointing workerSrc at a raw .mjs URL: the latter
@@ -28,12 +28,15 @@ export function PdfViewer({
   const docRef = useRef<PDFDocumentProxy | null>(null);
   const loadRef = useRef<PDFDocumentLoadingTask | null>(null);
   const taskRef = useRef<RenderTask | null>(null);
+  const zoomCanvasRef = useRef<HTMLCanvasElement>(null);
+  const zoomTaskRef = useRef<RenderTask | null>(null);
 
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
   const [width, setWidth] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [zoomed, setZoomed] = useState(false);
 
   // Load (and reload on file change) the document.
   useEffect(() => {
@@ -128,11 +131,12 @@ export function PdfViewer({
     [numPages],
   );
 
-  // Arrow keys page through the document.
+  // Arrow keys page through the document; Escape closes the zoom modal.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') go(-1);
       else if (e.key === 'ArrowRight') go(1);
+      else if (e.key === 'Escape') setZoomed(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -143,6 +147,49 @@ export function PdfViewer({
   useEffect(() => {
     onPageImage?.(() => canvasRef.current?.toDataURL('image/png') ?? null);
   }, [onPageImage]);
+
+  // When zoomed, render the current page large enough to fill the viewport.
+  useEffect(() => {
+    if (!zoomed) return;
+    const doc = docRef.current;
+    const canvas = zoomCanvasRef.current;
+    if (!doc || !canvas) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const pdfPage = await doc.getPage(page);
+        if (cancelled) return;
+        const base = pdfPage.getViewport({ scale: 1 });
+        const scale = Math.min(
+          (window.innerHeight * 0.92) / base.height,
+          (window.innerWidth * 0.92) / base.width,
+        );
+        const viewport = pdfPage.getViewport({ scale });
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * dpr);
+        canvas.height = Math.floor(viewport.height * dpr);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        zoomTaskRef.current?.cancel();
+        const task = pdfPage.render({ canvas, canvasContext: ctx, viewport });
+        zoomTaskRef.current = task;
+        await task.promise;
+      } catch {
+        // Cancelled when closing or paging — ignore.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      zoomTaskRef.current?.cancel();
+    };
+  }, [zoomed, page]);
 
   return (
     <div className="flex h-full flex-col">
@@ -190,10 +237,32 @@ export function PdfViewer({
         {!error && (
           <canvas
             ref={canvasRef}
-            className={`mx-auto max-w-full rounded-lg shadow-lg ${loading ? 'hidden' : ''}`}
+            onClick={() => !loading && numPages > 0 && setZoomed(true)}
+            title="Click to zoom"
+            className={`mx-auto max-w-full cursor-zoom-in rounded-lg shadow-lg ${loading ? 'hidden' : ''}`}
           />
         )}
       </div>
+
+      {/* Zoom modal: click the backdrop (or Escape) to close. */}
+      {zoomed && (
+        <div
+          onClick={() => setZoomed(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+        >
+          <button
+            type="button"
+            onClick={() => setZoomed(false)}
+            aria-label="Close"
+            className="absolute right-4 top-4 rounded-lg border border-slate-600 bg-slate-800/80 p-2 text-slate-200 transition-colors hover:bg-slate-700"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="max-h-full max-w-full overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <canvas ref={zoomCanvasRef} className="rounded-lg shadow-2xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
