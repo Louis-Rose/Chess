@@ -334,6 +334,13 @@ CREATE TABLE IF NOT EXISTS workblock_items (
 );
 CREATE INDEX IF NOT EXISTS idx_workblock_items_user ON workblock_items(user_id);
 
+-- Per-user token for the LUMNA Focus browser extension (polls /api/workblock/feed).
+CREATE TABLE IF NOT EXISTS workblock_tokens (
+    user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    token      TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Correlation tool: a shared, growable universe of tickers (seeded in code from
 -- investing.py _SEED_UNIVERSE) plus each user's extra tickers beyond their
 -- portfolio holdings. A user's correlation list = their holdings + their extras.

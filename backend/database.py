@@ -1305,3 +1305,14 @@ def init_db():
                 )
             """)
             logger.info("Created correlation_extra_tickers table")
+
+        # Migration: per-user token for the LUMNA Focus browser extension.
+        if not _table_exists(conn, 'workblock_tokens'):
+            conn.execute("""
+                CREATE TABLE workblock_tokens (
+                    user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                    token      TEXT NOT NULL UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            logger.info("Created workblock_tokens table")

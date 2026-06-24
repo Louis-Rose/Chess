@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Ban, X, Plus } from 'lucide-react';
+import axios from 'axios';
+import { Ban, X, Plus, Copy, Check } from 'lucide-react';
 import { SidebarLayout } from '../../components/SidebarLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteBlock, type BlockItem, type BlockKind } from '../../hooks/useSiteBlock';
@@ -89,6 +90,60 @@ function FocusPanel({ isOwner }: { isOwner: boolean }) {
       </div>
 
       <BlockList sites={sites} apps={apps} onAdd={addItem} onRemove={removeItem} blocking={blocking} />
+      <ExtensionConnect />
+    </div>
+  );
+}
+
+// Shows the user's personal token for the LUMNA Focus browser extension, which
+// blocks the listed websites in their own browser. Websites only; Mac apps are
+// only enforced by the owner's desktop watcher.
+function ExtensionConnect() {
+  const [token, setToken] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    axios
+      .get<{ token: string }>('/api/workblock/token')
+      .then((r) => setToken(r.data.token))
+      .catch(() => undefined);
+  }, []);
+
+  const copy = async () => {
+    if (!token) return;
+    try {
+      await navigator.clipboard.writeText(token);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard may be blocked; the field is selectable as a fallback.
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-6">
+      <h3 className="mb-1 text-lg font-semibold">Block in your browser</h3>
+      <p className="mb-4 text-sm text-slate-400">
+        Install the LUMNA Focus browser extension and paste this token to block these
+        websites in your browser. Websites only. Blocking Mac apps needs the desktop watcher.
+      </p>
+      <div className="flex gap-2">
+        <input
+          readOnly
+          value={token ?? 'Loading...'}
+          onFocus={(e) => e.currentTarget.select()}
+          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-1.5 font-mono text-sm text-slate-200"
+        />
+        <button
+          type="button"
+          onClick={copy}
+          disabled={!token}
+          className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+        >
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
     </div>
   );
 }

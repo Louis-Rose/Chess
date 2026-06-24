@@ -21,6 +21,7 @@ Endpoints:
 
 import logging
 import os
+import secrets
 
 from flask import Blueprint, jsonify, request
 
@@ -152,4 +153,73 @@ def status():
         'blocking': blocking,
         'sites': [i['value'] for i in items if i['kind'] == 'site'],
         'apps': [i['value'] for i in items if i['kind'] == 'app'],
+    })
+
+
+# --- Browser-extension connection -------------------------------------------
+# Each user has a personal token they paste into the LUMNA Focus browser
+# extension once. The extension polls /api/workblock/feed with it and blocks the
+# user's sites in their own browser (the per-user equivalent of the owner's Mac
+# watcher). The token only authorises reading that user's own block list.
+
+def _get_or_create_token(conn, user_id) -> str:
+    row = conn.execute(
+        "SELECT token FROM workblock_tokens WHERE user_id = ?", (user_id,)
+    ).fetchone()
+    if row:
+        return row['token']
+    conn.execute(
+        "INSERT INTO workblock_tokens (user_id, token) VALUES (?, ?) "
+        "ON CONFLICT (user_id) DO NOTHING",
+        (user_id, secrets.token_urlsafe(24)),
+    )
+    return conn.execute(
+        "SELECT token FROM workblock_tokens WHERE user_id = ?", (user_id,)
+    ).fetchone()['token']
+
+
+@workblock_bp.route('/api/workblock/token', methods=['GET'])
+@login_required
+def get_token():
+    with get_db() as conn:
+        token = _get_or_create_token(conn, request.user_id)
+    return jsonify({'token': token})
+
+
+@workblock_bp.route('/api/workblock/token', methods=['POST'])
+@login_required
+def rotate_token():
+    """Issue a fresh token, invalidating the old one (e.g. if it leaked)."""
+    token = secrets.token_urlsafe(24)
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO workblock_tokens (user_id, token) VALUES (?, ?) "
+            "ON CONFLICT (user_id) DO UPDATE SET token = EXCLUDED.token, "
+            "created_at = CURRENT_TIMESTAMP",
+            (request.user_id, token),
+        )
+    return jsonify({'token': token})
+
+
+@workblock_bp.route('/api/workblock/feed', methods=['GET'])
+def feed():
+    """Per-user block list for the browser extension, gated by the user's token.
+
+    Sites only — a browser extension can't act on the macOS-app entries.
+    """
+    token = (request.args.get('token') or '').strip()
+    if not token:
+        return jsonify({'error': 'forbidden'}), 403
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT user_id FROM workblock_tokens WHERE token = ?", (token,)
+        ).fetchone()
+        if not row:
+            return jsonify({'error': 'forbidden'}), 403
+        user_id = row['user_id']
+        blocking = _read_blocking(conn, user_id)
+        items = _read_items(conn, user_id)
+    return jsonify({
+        'blocking': blocking,
+        'sites': [i['value'] for i in items if i['kind'] == 'site'],
     })
