@@ -17,7 +17,7 @@ if [ "$CASE" = "auto" ]; then
   echo "$(date '+%Y-%m-%d %H:%M:%S') $payload" >> /tmp/claude-notify.log
   msg="$(printf '%s' "$payload" | tr '[:upper:]' '[:lower:]')"
   case "$msg" in
-    *waiting*|*idle*)        CASE="done" ;;        # waiting for your input -> group B
+    *waiting*|*idle*)        CASE="skip" ;;        # idle -> ignore (no re-ping; Stop already covered "done")
     *permission*|*approve*)  CASE="skip" ;;        # tool permission -> PermissionRequest handles it
     *)                       CASE="permission" ;;  # plan approval / question / other -> group A
   esac
