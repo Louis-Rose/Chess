@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
+import { SidebarLayout } from './SidebarLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { OWNER_EMAIL } from '../config';
 import { APPS, type AppEntry } from '../apps/catalog';
@@ -32,7 +33,8 @@ export function ChooserPage() {
   const ownerTiles = isOwner ? APPS.filter((a) => a.ownerOnly) : [];
 
   return (
-    <div className="min-h-dvh bg-slate-900 text-slate-100 flex flex-col items-center justify-center px-6">
+    <SidebarLayout>
+      <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-10 md:min-h-full">
       <div className="mb-10 flex items-center gap-3">
         <LumnaLogo className="h-9 w-9" />
         <span className="text-2xl font-bold tracking-wide">LUMNA</span>
@@ -58,6 +60,7 @@ export function ChooserPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </SidebarLayout>
   );
 }
