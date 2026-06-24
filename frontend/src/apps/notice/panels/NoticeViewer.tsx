@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, Loader2, Upload } from 'lucide-react';
 import { PdfViewer } from '../PdfViewer';
 import { PageQA } from '../PageQA';
+import { SECTION_WIDTH } from '../sectionWidth';
 import { getFile, type NoticeFile } from '../noticeStore';
 import { useNoticeFiles } from '../useNoticeFiles';
 
@@ -108,7 +109,7 @@ export function NoticeViewer() {
         onDrop={onDrop}
         className={`min-h-0 flex-1 overflow-hidden rounded-2xl border ${
           dragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/30'
-        } ${current ? 'w-full md:mx-auto md:w-2/5' : 'w-full'}`}
+        } ${SECTION_WIDTH}`}
       >
         {loading ? (
           <div className="flex h-full items-center justify-center text-slate-500">

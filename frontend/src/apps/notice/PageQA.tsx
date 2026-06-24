@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Loader2, Send, Sparkles } from 'lucide-react';
+import { SECTION_WIDTH } from './sectionWidth';
 
 // Ask a question about the page currently shown in the viewer. The page is
 // captured as a PNG via `getPageImage` and sent to the backend (Gemini) along
@@ -37,7 +38,7 @@ export function PageQA({ getPageImage }: { getPageImage: () => string | null }) 
   };
 
   return (
-    <div className="mt-4 w-full md:mx-auto md:w-2/5">
+    <div className={`mt-4 ${SECTION_WIDTH}`}>
       <form onSubmit={ask} className="flex gap-2">
         <input
           value={question}
