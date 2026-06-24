@@ -67,27 +67,7 @@ export function NoticeViewer() {
 
   return (
     <div className="flex min-h-[24rem] flex-1 flex-col px-4 py-4 sm:px-6">
-      {/* Top bar (only when a document is open): name + control to swap files,
-          centered as a stack. */}
-      {current && (
-        <div className="mb-3 flex flex-col items-center gap-2">
-          <div className="flex max-w-full items-center gap-2 text-slate-100">
-            <FileText className="h-5 w-5 shrink-0 text-emerald-400" />
-            <span className="truncate text-xl font-semibold">{current.name}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Upload PDF
-          </button>
-        </div>
-      )}
-
-      {/* Hidden picker, shared by the top-bar button and the clickable drop zone */}
+      {/* Hidden picker, shared by the viewer's upload button and the drop zone */}
       <input
         ref={inputRef}
         type="file"
@@ -109,14 +89,20 @@ export function NoticeViewer() {
         onDrop={onDrop}
         className={`min-h-0 flex-1 overflow-hidden rounded-2xl border ${
           dragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/30'
-        }`}
+        } ${current ? 'w-full md:mx-auto md:w-2/5' : 'w-full'}`}
       >
         {loading ? (
           <div className="flex h-full items-center justify-center text-slate-500">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : current ? (
-          <PdfViewer key={current.id} file={current.data} />
+          <PdfViewer
+            key={current.id}
+            file={current.data}
+            name={current.name}
+            onUpload={() => inputRef.current?.click()}
+            uploading={busy}
+          />
         ) : id ? (
           <button
             type="button"
