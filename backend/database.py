@@ -1192,3 +1192,20 @@ def init_db():
             """)
             conn.execute("INSERT INTO workblock_state (id, blocking) VALUES (1, FALSE)")
             logger.info("Created workblock_state table")
+
+        # Migration: Create workblock_items — the editable block list. Each row
+        # is either a website ('site', matched against tab URLs) or a macOS app
+        # ('app', quit while blocking). Seeded with the original three sites.
+        if not _table_exists(conn, 'workblock_items'):
+            conn.execute("""
+                CREATE TABLE workblock_items (
+                    id         SERIAL PRIMARY KEY,
+                    kind       TEXT NOT NULL,
+                    value      TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (kind, value)
+                )
+            """)
+            for v in ('youtube.com', 'linkedin.com', 'chess.com'):
+                conn.execute("INSERT INTO workblock_items (kind, value) VALUES (?, ?)", ('site', v))
+            logger.info("Created workblock_items table")
