@@ -126,11 +126,9 @@ export function NoticeViewer() {
             <p>This document is no longer in your library. Click to upload a new one.</p>
           </button>
         ) : (
-          <button
-            type="button"
+          <div
             onClick={() => inputRef.current?.click()}
-            disabled={busy}
-            className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center transition-colors hover:bg-emerald-500/5 disabled:opacity-60"
+            className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-4 px-6 text-center"
           >
             {busy ? (
               <Loader2 className="h-10 w-10 animate-spin text-slate-500" />
@@ -138,11 +136,23 @@ export function NoticeViewer() {
               <Upload className="h-10 w-10 text-slate-600" />
             )}
             <div>
-              <p className="font-medium text-slate-300">Click to upload a PDF, or drop one here.</p>
+              <p className="font-medium text-slate-300">Drop a PDF here, or click to upload.</p>
               <p className="mt-1 text-sm text-slate-500">It's saved in this browser and added to your library.</p>
             </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                inputRef.current?.click();
+              }}
+              disabled={busy}
+              className="flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-300 disabled:opacity-50"
+            >
+              <Upload className="h-4 w-4" />
+              Upload PDF
+            </button>
             {rejected && <p className="text-sm text-red-400">Only PDF files are supported for now.</p>}
-          </button>
+          </div>
         )}
       </div>
     </div>
