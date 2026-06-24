@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { Crown, Dumbbell, Music, TrendingUp, Rocket, Shirt, Focus } from 'lucide-react';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 import { useAuth } from '../contexts/AuthContext';
-
-const OWNER_EMAIL = 'rose.louis.mail@gmail.com';
+import { OWNER_EMAIL } from '../config';
 
 // Root landing: pick a product. Focus (owner) -> /focus, Chess -> /chess, Gym -> /fit,
 // Music -> /music, Investing -> /investing, YC Advisor -> /yc, Clothing -> /clothing.

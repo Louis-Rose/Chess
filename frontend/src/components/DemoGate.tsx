@@ -6,11 +6,11 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
 import { LanguageToggle } from '../apps/chesscoaches/components/LanguageToggle';
+import { OWNER_EMAIL } from '../config';
 
 export const DEMO_GATE_KEY = 'demo-gate-passed';
 
-// This account never sees the password gate.
-const OWNER_EMAIL = 'rose.louis.mail@gmail.com';
+// OWNER_EMAIL never sees the password gate.
 
 const COPY = {
   fr: {

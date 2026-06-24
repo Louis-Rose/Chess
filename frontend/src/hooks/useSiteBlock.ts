@@ -8,14 +8,12 @@ export interface BlockItem {
   value: string;
 }
 
-// Shared state for the site/app-blocking switch and its editable list
-// (owner-only /api/workblock). Used by the profile-menu toggle (blocking only)
-// and the Focus app (toggle + list editing), so they stay in sync.
+// State for the site/app-blocking switch and its editable list
+// (owner-only /api/workblock). Used by the Focus app (/focus).
 export function useSiteBlock() {
   const [blocking, setBlocking] = useState(false);
   const [items, setItems] = useState<BlockItem[]>([]);
   const [busy, setBusy] = useState(false);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -25,9 +23,8 @@ export function useSiteBlock() {
         if (!alive) return;
         setBlocking(r.data.blocking);
         setItems(r.data.items ?? []);
-        setLoaded(true);
       })
-      .catch(() => alive && setLoaded(true));
+      .catch(() => {});
     return () => {
       alive = false;
     };
@@ -65,5 +62,5 @@ export function useSiteBlock() {
     }
   };
 
-  return { blocking, busy, loaded, toggle, items, addItem, removeItem };
+  return { blocking, busy, toggle, items, addItem, removeItem };
 }
