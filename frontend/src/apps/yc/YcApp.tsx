@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { AppHeader } from '../../components/AppHeader';
+import { SidebarLayout } from '../../components/SidebarLayout';
 import type { YcVideo, YcVideosResponse } from './types';
 import { VideoGrid } from './components/VideoGrid';
 import { VideoModal } from './components/VideoModal';
@@ -58,10 +58,8 @@ export function YcApp() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#0f0f0f] text-slate-100">
+    <SidebarLayout title="YC Advisor" contentClassName="bg-[#0f0f0f]">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        <AppHeader title="YC Advisor" />
-
         {videos.length === 0 ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center">
             <p className="text-slate-300">No videos available right now.</p>
@@ -73,6 +71,6 @@ export function YcApp() {
       </div>
 
       {active && <VideoModal video={active} onClose={() => setActive(null)} />}
-    </div>
+    </SidebarLayout>
   );
 }

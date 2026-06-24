@@ -61,7 +61,6 @@ export function AppHeader({ title }: { title?: string }) {
             >
               <div className="border-b border-slate-700 px-3 py-2.5">
                 <p className="truncate text-sm font-medium text-slate-100">{user.name}</p>
-                <p className="truncate text-xs text-slate-400">{user.email}</p>
               </div>
               {user.email === OWNER_EMAIL && <SiteBlockToggle />}
               <button

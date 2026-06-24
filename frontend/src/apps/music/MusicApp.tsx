@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { AppHeader } from '../../components/AppHeader';
+import { SidebarLayout } from '../../components/SidebarLayout';
 import type { MusicOverview } from './types';
 import { StatCards } from './components/StatCards';
 import { ActivityChart } from './components/ActivityChart';
@@ -60,10 +60,8 @@ export function MusicApp() {
   const isEmpty = data.stats.total_plays === 0;
 
   return (
-    <div className="min-h-dvh bg-slate-900 text-slate-100">
+    <SidebarLayout title="Music">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        <AppHeader title="Music" />
-
         {isEmpty ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center">
             <p className="text-slate-300">No listening history yet.</p>
@@ -85,6 +83,6 @@ export function MusicApp() {
           </div>
         )}
       </div>
-    </div>
+    </SidebarLayout>
   );
 }

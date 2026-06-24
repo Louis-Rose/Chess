@@ -4,7 +4,7 @@ import {
   BarChart, Bar, ScatterChart, Scatter, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { AppHeader } from '../../components/AppHeader';
+import { SidebarLayout } from '../../components/SidebarLayout';
 
 interface MonthCount {
   month: string; // 'YYYY-MM'
@@ -220,9 +220,8 @@ export function ChessDashboard() {
   const afterResults = data?.after_results ?? [];
 
   return (
-    <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-6">
-      <div className="max-w-5xl mx-auto">
-        <AppHeader title="Chess" />
+    <SidebarLayout title="Chess">
+      <div className="max-w-5xl mx-auto font-sans p-6">
         <p className="text-slate-400 text-sm mb-6">
           Rapid games on chess.com
           {data && <> for <a
@@ -381,7 +380,7 @@ export function ChessDashboard() {
           <div className="text-slate-500">{tip.total} {tip.total === 1 ? 'game' : 'games'}</div>
         </div>
       )}
-    </div>
+    </SidebarLayout>
   );
 }
 

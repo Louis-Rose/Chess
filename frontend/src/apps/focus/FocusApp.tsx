@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Ban, X, Plus } from 'lucide-react';
-import { AppHeader } from '../../components/AppHeader';
+import { SidebarLayout } from '../../components/SidebarLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteBlock, type BlockItem, type BlockKind } from '../../hooks/useSiteBlock';
 
@@ -17,9 +17,8 @@ export function FocusApp() {
   const isOwner = user?.email === OWNER_EMAIL;
 
   return (
-    <div className="min-h-dvh bg-slate-900 text-slate-100">
+    <SidebarLayout title="Focus">
       <div className="mx-auto max-w-xl px-4 py-6 sm:px-6 sm:py-8">
-        <AppHeader title="Focus" />
         {isOwner ? (
           <FocusPanel />
         ) : (
@@ -28,7 +27,7 @@ export function FocusApp() {
           </p>
         )}
       </div>
-    </div>
+    </SidebarLayout>
   );
 }
 
