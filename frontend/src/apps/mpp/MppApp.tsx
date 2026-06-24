@@ -7,12 +7,11 @@ import { SidebarLayout } from '../../components/SidebarLayout';
 import { MppConnect } from './MppConnect';
 import { MppLayout } from './MppLayout';
 import { MppLeaderboard } from './MppLeaderboard';
-import { MppGraph } from './MppGraph';
 import { MppDocs } from './MppDocs';
 import type { MppStatus } from './types';
 
 // Mon Petit Prono — owner-only. Gates on the owner, then either shows the
-// one-time Connect form or the tabbed app (Leaderboard + Progression).
+// one-time Connect form or the tabbed app (Leaderboard + MPP Docs).
 export function MppApp() {
   const { user, isLoading } = useAuth();
   const [status, setStatus] = useState<MppStatus | null>(null);
@@ -58,7 +57,6 @@ export function MppApp() {
       <Route element={<MppLayout onDisconnect={loadStatus} />}>
         <Route index element={<Navigate to="leaderboard" replace />} />
         <Route path="leaderboard" element={<MppLeaderboard />} />
-        <Route path="graph" element={<MppGraph />} />
         <Route path="docs" element={<MppDocs />} />
         <Route path="*" element={<Navigate to="leaderboard" replace />} />
       </Route>

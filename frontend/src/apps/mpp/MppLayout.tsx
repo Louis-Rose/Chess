@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import axios from 'axios';
-import { ListOrdered, LineChart, BookOpen, LogOut, type LucideIcon } from 'lucide-react';
+import { ListOrdered, BookOpen, LogOut, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
 import { AppTitle } from '../../components/AppTitle';
@@ -13,7 +13,6 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: '/mpp/leaderboard', label: 'Leaderboard', icon: ListOrdered },
-  { to: '/mpp/graph', label: 'Progression', icon: LineChart },
   { to: '/mpp/docs', label: 'MPP Docs', icon: BookOpen },
 ];
 
@@ -27,7 +26,7 @@ function navClass(active: boolean): string {
 }
 
 // Sidebar shell for the MPP section: the shared LUMNA rail plus the app's tabs
-// (Leaderboard, Progression), with a Disconnect control in the top bar.
+// (Leaderboard, MPP Docs), with a Disconnect control in the top bar.
 export function MppLayout({ onDisconnect }: { onDisconnect: () => void }) {
   const disconnect = () => {
     axios.post('/api/mpp/disconnect').then(onDisconnect);

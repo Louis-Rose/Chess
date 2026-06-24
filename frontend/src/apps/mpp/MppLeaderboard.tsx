@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
-import { RefreshCw, Trophy, ChevronDown } from 'lucide-react';
+import { RefreshCw, Trophy } from 'lucide-react';
 import { MppStandingsPanel } from './MppStandings';
+import { MppGraph } from './MppGraph';
 import type { MppContest, MppData } from './types';
 
-// Leaderboard tab: the owner's MPP leagues as cards; expand one to load its
-// full ranking (the MPP "Classement").
+// Leaderboard tab: the owner's MPP leagues as cards, each showing its full
+// ranking (the MPP "Classement") and a points-over-time progression chart.
 export function MppLeaderboard() {
   const [data, setData] = useState<MppData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ export function MppLeaderboard() {
   }, [fetchData]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-4xl space-y-5 px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-100">Leagues</h2>
         <button
@@ -72,16 +73,11 @@ export function MppLeaderboard() {
 }
 
 function ContestCard({ contest: c }: { contest: MppContest }) {
-  const [open, setOpen] = useState(false);
   const challengeId = c.id != null ? String(c.id) : null;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-800/40">
-      <button
-        onClick={() => challengeId && setOpen((v) => !v)}
-        disabled={!challengeId}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors enabled:hover:bg-slate-800/60"
-      >
+      <div className="flex items-center justify-between gap-4 px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           {c.image_url ? (
             <img src={c.image_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
@@ -112,17 +108,17 @@ function ContestCard({ contest: c }: { contest: MppContest }) {
             />
           )}
           {c.points != null && <Stat label="Points" value={c.points} />}
-          {challengeId && (
-            <ChevronDown
-              className={`h-5 w-5 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`}
-            />
-          )}
         </div>
-      </button>
-      {open && challengeId && (
-        <div className="border-t border-slate-800">
-          <MppStandingsPanel challengeId={challengeId} />
-        </div>
+      </div>
+      {challengeId && (
+        <>
+          <div className="border-t border-slate-800">
+            <MppStandingsPanel challengeId={challengeId} />
+          </div>
+          <div className="border-t border-slate-800">
+            <MppGraph challengeId={challengeId} />
+          </div>
+        </>
       )}
     </div>
   );
