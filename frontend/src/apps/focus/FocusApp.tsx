@@ -31,11 +31,8 @@ function FocusPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-6 sm:p-8">
-        <div className="relative flex items-center justify-center gap-4">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold">Blocking</h2>
-            <p className="mt-2 text-sm text-slate-400">{blocking ? 'On.' : 'Off.'}</p>
-          </div>
+        <div className="flex flex-col items-center gap-3">
+          <h2 className="text-lg font-semibold">Blocking</h2>
           <button
             type="button"
             onClick={toggle}
@@ -43,7 +40,7 @@ function FocusPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
             role="switch"
             aria-checked={blocking}
             aria-label="Site blocking"
-            className={`absolute right-0 top-1/2 h-8 w-14 flex-shrink-0 -translate-y-1/2 rounded-full transition-colors disabled:opacity-60 ${
+            className={`relative h-8 w-14 flex-shrink-0 rounded-full transition-colors disabled:opacity-60 ${
               blocking ? 'bg-emerald-500' : 'bg-slate-600'
             }`}
           >
@@ -53,6 +50,7 @@ function FocusPanel({ isAuthenticated }: { isAuthenticated: boolean }) {
               }`}
             />
           </button>
+          <p className="text-sm text-slate-400">{blocking ? 'On.' : 'Off.'}</p>
         </div>
       </div>
 
