@@ -6,7 +6,8 @@
 #
 # A backgrounded "nagger" re-alerts until VS Code is the frontmost app (you're
 # back / came to answer). Sound plays once; re-alerts are silent. If VS Code is
-# already frontmost, it doesn't notify at all.
+# already frontmost, it doesn't notify at all. When you tab back to VS Code the
+# nagger removes the banner automatically (terminal-notifier -remove by group).
 
 CASE="$1"
 NAG_PID_FILE="/tmp/claude-notify-nag.pid"
@@ -47,13 +48,15 @@ done
 # Detached nagger: alert now (with sound), then re-alert silently every few
 # seconds until VS Code is frontmost, capped at ~1h.
 NAG_SUBT="$SUBT" NAG_MSG="$MSG" NAG_SOUND="$SOUND" NAG_TN="$NAG_TN" nohup bash -c '
+  GROUP="claude-notify"
   notify() {
     if [ -n "$NAG_TN" ]; then
-      "$NAG_TN" -title "Claude Code" -subtitle "$NAG_SUBT" -message "$NAG_MSG" -activate com.microsoft.VSCode >/dev/null 2>&1
+      "$NAG_TN" -title "Claude Code" -subtitle "$NAG_SUBT" -message "$NAG_MSG" -group "$GROUP" -activate com.microsoft.VSCode >/dev/null 2>&1
     else
       /usr/bin/osascript -e "display notification \"$NAG_MSG\" with title \"Claude Code\" subtitle \"$NAG_SUBT\"" 2>/dev/null
     fi
   }
+  dismiss() { [ -n "$NAG_TN" ] && "$NAG_TN" -remove "$GROUP" >/dev/null 2>&1; }
   in_vscode() {
     fm="$(/usr/bin/osascript -e "tell application \"System Events\" to name of first process whose frontmost is true" 2>/dev/null)"
     case "$fm" in Code|"Code - Insiders"|Cursor|"Code Helper"|Electron) return 0 ;; *) return 1 ;; esac
@@ -61,10 +64,11 @@ NAG_SUBT="$SUBT" NAG_MSG="$MSG" NAG_SOUND="$SOUND" NAG_TN="$NAG_TN" nohup bash -
   in_vscode && exit 0
   notify
   /usr/bin/afplay "/System/Library/Sounds/$NAG_SOUND.aiff" 2>/dev/null
-  for i in $(seq 1 600); do
-    sleep 6
-    in_vscode && exit 0
-    notify
+  # Poll focus every 2s (snappy auto-dismiss); re-alert every ~6s; cap ~1h.
+  for i in $(seq 1 1800); do
+    sleep 2
+    if in_vscode; then dismiss; exit 0; fi
+    [ $((i % 3)) -eq 0 ] && notify
   done
 ' >/dev/null 2>&1 &
 echo $! > "$NAG_PID_FILE"
