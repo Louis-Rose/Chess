@@ -67,42 +67,24 @@ function FocusPanel() {
         </div>
       </div>
 
-      <BlockList
-        title="Websites"
-        kind="site"
-        placeholder="e.g. reddit.com"
-        items={sites}
-        onAdd={addItem}
-        onRemove={removeItem}
-      />
-      <BlockList
-        title="Mac apps"
-        kind="app"
-        placeholder="e.g. whatsapp"
-        items={apps}
-        onAdd={addItem}
-        onRemove={removeItem}
-      />
+      <BlockList sites={sites} apps={apps} onAdd={addItem} onRemove={removeItem} />
     </div>
   );
 }
 
 function BlockList({
-  title,
-  kind,
-  placeholder,
-  items,
+  sites,
+  apps,
   onAdd,
   onRemove,
 }: {
-  title: string;
-  kind: BlockKind;
-  placeholder: string;
-  items: BlockItem[];
+  sites: BlockItem[];
+  apps: BlockItem[];
   onAdd: (kind: BlockKind, value: string) => Promise<void>;
   onRemove: (id: number) => Promise<void>;
 }) {
   const [value, setValue] = useState('');
+  const [kind, setKind] = useState<BlockKind>('site');
   const [saving, setSaving] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -119,10 +101,61 @@ function BlockList({
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-6">
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">{title}</h3>
+      <h3 className="mb-4 text-lg font-semibold">Blocked</h3>
 
+      <form onSubmit={submit} className="mb-5 flex gap-2">
+        <div className="flex flex-shrink-0 rounded-lg border border-slate-700 bg-slate-900/50 p-0.5">
+          {(['site', 'app'] as BlockKind[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setKind(k)}
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                kind === k ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              {k === 'site' ? 'Site' : 'App'}
+            </button>
+          ))}
+        </div>
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={kind === 'site' ? 'e.g. reddit.com' : 'e.g. whatsapp'}
+          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={!value.trim() || saving}
+          className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" />
+          Add
+        </button>
+      </form>
+
+      <BlockGroup label="Websites" items={sites} onRemove={onRemove} />
+      <div className="mt-5">
+        <BlockGroup label="Mac apps" items={apps} onRemove={onRemove} />
+      </div>
+    </div>
+  );
+}
+
+function BlockGroup({
+  label,
+  items,
+  onRemove,
+}: {
+  label: string;
+  items: BlockItem[];
+  onRemove: (id: number) => Promise<void>;
+}) {
+  return (
+    <div>
+      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</h4>
       {items.length > 0 ? (
-        <ul className="mb-3 flex flex-wrap gap-2">
+        <ul className="flex flex-wrap gap-2">
           {items.map((i) => (
             <li
               key={i.id}
@@ -156,25 +189,8 @@ function BlockList({
           ))}
         </ul>
       ) : (
-        <p className="mb-3 text-sm text-slate-500">Nothing yet.</p>
+        <p className="text-sm text-slate-500">Nothing yet.</p>
       )}
-
-      <form onSubmit={submit} className="flex gap-2">
-        <input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder={placeholder}
-          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!value.trim() || saving}
-          className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
-          Add
-        </button>
-      </form>
     </div>
   );
 }
