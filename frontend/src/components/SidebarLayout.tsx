@@ -21,7 +21,14 @@ export function SidebarLayout({
         <div className="px-4 pt-4 md:hidden">
           <AppHeader title={title} />
         </div>
-        <main className={`min-w-0 flex-1 ${contentClassName}`}>{children}</main>
+        <main className={`min-w-0 flex-1 ${contentClassName}`}>
+          {title && (
+            <div className="hidden border-b border-slate-800 px-6 py-4 md:block">
+              <h1 className="text-center text-lg font-semibold">{title}</h1>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </div>
   );
