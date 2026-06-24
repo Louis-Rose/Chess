@@ -17,6 +17,7 @@ token which we persist. The access token (~24h) is cached to avoid rotating
 the refresh token on every page load. All endpoints are owner-gated.
 """
 
+import concurrent.futures
 import logging
 import threading
 import time
@@ -117,6 +118,18 @@ def _api_get(token, path, params=None):
         params=params,
         timeout=20,
     )
+
+
+def _api_json(token, path):
+    """GET + parse JSON. Returns (data|None, status_code|None)."""
+    try:
+        resp = _api_get(token, path)
+    except requests.RequestException as exc:
+        logger.warning('MPP GET %s failed: %s', path, exc)
+        return None, None
+    if resp.status_code == 200:
+        return resp.json(), 200
+    return None, resp.status_code
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -379,6 +392,167 @@ def _normalize_standing(s):
         'good': r.get('goodForecasts'),
         'exact': r.get('exactForecasts'),
     }
+
+
+# ── Matches & cotes ──────────────────────────────────────────────────────────
+# The "Matches" tab: every competition match whose two teams are known, with the
+# MPP "cote" (the 1/N/2 reward points). MPP exposes no bulk match endpoint, so we
+# expand the championship calendar into per-match detail calls. Those calls are
+# rate-limited (bursts get throttled), so we keep concurrency low, retry, and
+# cache hard: club names and finished matches never change, so in steady state we
+# only re-read the handful of live/upcoming matches.
+
+_CREST_BASE = 'https://s3.eu-west-1.amazonaws.com/image.mpg'
+_FINAL_TTL = 24 * 3600   # a finished match never changes
+_LIVE_TTL = 90           # live/upcoming detail (scores, cotes) — refresh often
+_RESPONSE_TTL = 180      # assembled match list
+
+_clubs_lock = threading.Lock()
+_clubs_cache = {}        # club_id -> {name, short, crest}  (real teams only)
+_match_lock = threading.Lock()
+_match_cache = {}        # match_id -> (raw_detail, fetched_at)
+_matches_lock = threading.Lock()
+_matches_cache = {}      # championship_id -> (payload, fetched_at)
+
+
+def _resolve_club(token, club_id):
+    """A club's {name, short, crest}, or None when it's an unresolved
+    placeholder (e.g. a knockout slot whose team isn't known yet)."""
+    if not club_id:
+        return None
+    with _clubs_lock:
+        if club_id in _clubs_cache:
+            return _clubs_cache[club_id]
+
+    data, _ = _api_json(token, f'/championship-club/{club_id}')
+    name = (data or {}).get('name') or {}
+    label = name.get('fr-FR') or name.get('en-GB')
+    if not label:
+        return None  # placeholder — don't cache; it may resolve later
+
+    num = club_id.rsplit('_', 1)[-1]
+    info = {'name': label, 'short': (data or {}).get('shortName'),
+            'crest': f'{_CREST_BASE}/{num}.png'}
+    with _clubs_lock:
+        _clubs_cache[club_id] = info
+    return info
+
+
+def _fetch_match(token, match_id):
+    """A match's raw detail, cached. Finished matches are cached for a day,
+    others briefly. Retries a few times to ride out rate-limiting."""
+    now = time.time()
+    with _match_lock:
+        cached = _match_cache.get(match_id)
+    if cached:
+        raw, ts = cached
+        ttl = _FINAL_TTL if raw.get('period') == 'fullTime' else _LIVE_TTL
+        if now - ts < ttl:
+            return raw
+
+    for attempt in range(3):
+        data, status = _api_json(token, f'/championship-match/{match_id}')
+        if data is not None:
+            with _match_lock:
+                _match_cache[match_id] = (data, now)
+            return data
+        if status == 401:
+            return None
+        time.sleep(0.3 * (attempt + 1))
+    return None
+
+
+def _normalize_match(token, raw):
+    """Shape one match for the UI, or None if either team is still unknown."""
+    home_raw = raw.get('home') or {}
+    away_raw = raw.get('away') or {}
+    home = _resolve_club(token, home_raw.get('clubId'))
+    away = _resolve_club(token, away_raw.get('clubId'))
+    if not home or not away:
+        return None
+
+    home_score = home_raw.get('score')
+    away_score = away_raw.get('score')
+    period = raw.get('period')
+    if period == 'fullTime':
+        status = 'final'
+    elif home_score is not None or away_score is not None:
+        status = 'live'
+    else:
+        status = 'upcoming'
+
+    q = raw.get('quotations') or {}
+    cote = None
+    if q.get('home') is not None:
+        cote = {'home': q.get('home'), 'draw': q.get('draw'), 'away': q.get('away')}
+
+    return {
+        'id': raw.get('id'),
+        'game_week': raw.get('gameWeekNumber'),
+        'date': raw.get('date'),
+        'status': status,
+        'match_time': raw.get('matchTime'),
+        'home': {**home, 'score': home_score},
+        'away': {**away, 'score': away_score},
+        'cote': cote,
+    }
+
+
+def _championship_id(token):
+    """The championship id behind the owner's contest (e.g. the World Cup)."""
+    contests, _ = _api_json(token, '/user-contests')
+    cards = (contests or {}).get('contestsCards') or []
+    return next((c.get('championshipId') for c in cards if c.get('championshipId')), None)
+
+
+@mpp_bp.route('/api/mpp/matches', methods=['GET'])
+@owner_required
+def mpp_matches():
+    """All known-team matches of the owner's competition, with cotes, as one
+    chronological list (played, live and upcoming)."""
+    user_id = get_current_user()
+    with get_db() as conn:
+        token = _get_access_token(conn, user_id)
+    if token is None:
+        with get_db() as conn:
+            connected = bool(conn.execute(
+                'SELECT 1 FROM mpp_account WHERE user_id = ?', (user_id,)
+            ).fetchone())
+        return jsonify({'error': 'token_expired' if connected else 'not_connected'}), 409
+
+    champ_id = _championship_id(token)
+    if champ_id is None:
+        return jsonify({'matches': [], 'updated_at': None})
+
+    now = time.time()
+    with _matches_lock:
+        cached = _matches_cache.get(champ_id)
+    if cached and now - cached[1] < _RESPONSE_TTL:
+        return jsonify(cached[0])
+
+    cal, status = _api_json(token, f'/championship-calendar/{champ_id}')
+    if cal is None:
+        if status == 401:
+            return jsonify({'error': 'token_expired'}), 409
+        return jsonify({'error': 'mpp_unavailable', 'status': status}), 502
+
+    game_weeks = cal.get('gameWeeks') or {}
+    match_ids = []
+    for key in sorted(game_weeks, key=lambda k: int(k)):
+        match_ids.extend(game_weeks[key].get('matchesIds') or [])
+
+    # Fetch detail + resolve teams per match. Low concurrency to stay under the
+    # rate limit; the cache absorbs everything finished on later loads.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        raws = list(pool.map(lambda mid: _fetch_match(token, mid), match_ids))
+
+    matches = [m for m in (_normalize_match(token, r) for r in raws if r) if m]
+    matches.sort(key=lambda m: (m['date'] is None, m['date'] or ''))
+
+    payload = {'matches': matches, 'updated_at': datetime.utcnow().isoformat()}
+    with _matches_lock:
+        _matches_cache[champ_id] = (payload, now)
+    return jsonify(payload)
 
 
 # ── Daily snapshot scheduler ─────────────────────────────────────────────────

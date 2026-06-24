@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import axios from 'axios';
-import { ListOrdered, ScrollText, BookOpen, LogOut, type LucideIcon } from 'lucide-react';
+import { ListOrdered, CalendarDays, ScrollText, BookOpen, LogOut, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
 import { AppTitle } from '../../components/AppTitle';
@@ -13,6 +13,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: '/mpp/leaderboard', label: 'Leaderboard', icon: ListOrdered },
+  { to: '/mpp/matches', label: 'Matches', icon: CalendarDays },
   { to: '/mpp/rules', label: 'Rules & strategy', icon: ScrollText },
   { to: '/mpp/docs', label: 'MPP Docs', icon: BookOpen },
 ];

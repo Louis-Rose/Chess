@@ -40,3 +40,26 @@ export interface MppHistory {
   users: { id: string; name: string }[];
   me_user_id: string | null;
 }
+
+export interface MppTeam {
+  name: string;
+  short: string | null;
+  crest: string;
+  score: number | null;
+}
+
+export interface MppMatch {
+  id: string;
+  game_week: number | null;
+  date: string | null;
+  status: 'final' | 'live' | 'upcoming';
+  match_time: string | null;
+  home: MppTeam;
+  away: MppTeam;
+  cote: { home: number; draw: number; away: number } | null;
+}
+
+export interface MppMatches {
+  matches: MppMatch[];
+  updated_at: string | null;
+}
