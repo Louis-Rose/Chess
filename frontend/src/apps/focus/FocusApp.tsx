@@ -84,7 +84,7 @@ function FocusPanel() {
         </div>
       </div>
 
-      <BlockList sites={sites} apps={apps} onAdd={addItem} onRemove={removeItem} />
+      <BlockList sites={sites} apps={apps} onAdd={addItem} onRemove={removeItem} blocking={blocking} />
     </div>
   );
 }
@@ -94,11 +94,13 @@ function BlockList({
   apps,
   onAdd,
   onRemove,
+  blocking,
 }: {
   sites: BlockItem[];
   apps: BlockItem[];
   onAdd: (kind: BlockKind, value: string) => Promise<void>;
   onRemove: (id: number) => Promise<void>;
+  blocking: boolean;
 }) {
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
@@ -138,9 +140,9 @@ function BlockList({
         </button>
       </form>
 
-      <BlockGroup label="Websites" items={sites} onRemove={onRemove} />
+      <BlockGroup label="Websites" items={sites} onRemove={onRemove} blocking={blocking} />
       <div className="mt-5">
-        <BlockGroup label="Mac apps" items={apps} onRemove={onRemove} />
+        <BlockGroup label="Mac apps" items={apps} onRemove={onRemove} blocking={blocking} />
       </div>
     </div>
   );
@@ -150,10 +152,12 @@ function BlockGroup({
   label,
   items,
   onRemove,
+  blocking,
 }: {
   label: string;
   items: BlockItem[];
   onRemove: (id: number) => Promise<void>;
+  blocking: boolean;
 }) {
   return (
     <div>
@@ -166,7 +170,7 @@ function BlockGroup({
               className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/50 py-1 pl-2.5 pr-1 text-sm text-slate-300"
             >
               {(() => {
-                const href = itemHref(i);
+                const href = blocking ? null : itemHref(i);
                 const inner = (
                   <>
                     <Ban className="h-3.5 w-3.5 text-slate-500" />
