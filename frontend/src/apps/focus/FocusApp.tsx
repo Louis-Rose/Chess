@@ -5,6 +5,7 @@ import { SidebarLayout } from '../../components/SidebarLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteBlock, type BlockItem, type BlockKind } from '../../hooks/useSiteBlock';
 import { OWNER_EMAIL } from '../../config';
+import { getFocusToken, focusHeaders } from './focusToken';
 
 // macOS apps that register a URL scheme can be launched from a link. Browsers
 // can't open arbitrary native apps, so only the ones listed here are clickable.
@@ -32,25 +33,19 @@ export function FocusApp() {
     document.title = 'Focus | LUMNA';
   }, []);
 
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const isOwner = user?.email === OWNER_EMAIL;
 
   return (
     <SidebarLayout title="Focus">
       <div className="mx-auto max-w-xl px-4 py-6 sm:px-6 sm:py-8">
-        {isLoading ? null : isAuthenticated ? (
-          <FocusPanel isOwner={isOwner} />
-        ) : (
-          <p className="rounded-2xl border border-slate-800 bg-slate-800/40 p-8 text-center text-sm text-slate-400">
-            Sign in to use Focus.
-          </p>
-        )}
+        <FocusPanel isOwner={isOwner} isAuthenticated={isAuthenticated} />
       </div>
     </SidebarLayout>
   );
 }
 
-function FocusPanel({ isOwner }: { isOwner: boolean }) {
+function FocusPanel({ isOwner, isAuthenticated }: { isOwner: boolean; isAuthenticated: boolean }) {
   const { blocking, busy, toggle, items, addItem, removeItem } = useSiteBlock();
   const sites = items.filter((i) => i.kind === 'site');
   const apps = items.filter((i) => i.kind === 'app');
@@ -90,24 +85,34 @@ function FocusPanel({ isOwner }: { isOwner: boolean }) {
       </div>
 
       <BlockList sites={sites} apps={apps} onAdd={addItem} onRemove={removeItem} blocking={blocking} />
-      <ExtensionConnect />
+      <ExtensionConnect isAuthenticated={isAuthenticated} />
+      {!isAuthenticated && (
+        <p className="px-1 text-center text-xs text-slate-500">
+          Your list is saved on this device. Sign in to sync it across devices.
+        </p>
+      )}
     </div>
   );
 }
 
-// Shows the user's personal token for the LUMNA Focus browser extension, which
-// blocks the listed websites in their own browser. Websites only; Mac apps are
+// Shows the caller's token for the LUMNA Focus browser extension, which blocks
+// the listed websites in their own browser. Logged-in users get a stable server
+// token; anonymous users use their browser token. Websites only; Mac apps are
 // only enforced by the owner's desktop watcher.
-function ExtensionConnect() {
+function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [token, setToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setToken(getFocusToken());
+      return;
+    }
     axios
-      .get<{ token: string }>('/api/workblock/token')
+      .get<{ token: string }>('/api/workblock/token', { headers: focusHeaders() })
       .then((r) => setToken(r.data.token))
       .catch(() => undefined);
-  }, []);
+  }, [isAuthenticated]);
 
   const copy = async () => {
     if (!token) return;

@@ -341,6 +341,24 @@ CREATE TABLE IF NOT EXISTS workblock_tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Focus for anonymous (not-logged-in) users: same switch + list, keyed by the
+-- random token the browser generates and sends in the X-Focus-Token header.
+CREATE TABLE IF NOT EXISTS workblock_anon_state (
+    token      TEXT PRIMARY KEY,
+    blocking   BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS workblock_anon_items (
+    id         SERIAL PRIMARY KEY,
+    token      TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    value      TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (token, kind, value)
+);
+CREATE INDEX IF NOT EXISTS idx_workblock_anon_items_token ON workblock_anon_items(token);
+
 -- Correlation tool: a shared, growable universe of tickers (seeded in code from
 -- investing.py _SEED_UNIVERSE) plus each user's extra tickers beyond their
 -- portfolio holdings. A user's correlation list = their holdings + their extras.

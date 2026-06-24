@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { focusHeaders } from '../apps/focus/focusToken';
 
 export type BlockKind = 'site' | 'app';
 export interface BlockItem {
@@ -8,8 +9,9 @@ export interface BlockItem {
   value: string;
 }
 
-// State for the site/app-blocking switch and its editable list
-// (owner-only /api/workblock). Used by the Focus app (/focus).
+// State for the site-blocking switch and its editable list (/api/workblock).
+// Used by the Focus app (/focus). Works logged-in (account-scoped) or anonymous
+// (scoped by the X-Focus-Token header sent on every request).
 export function useSiteBlock() {
   const [blocking, setBlocking] = useState(false);
   const [items, setItems] = useState<BlockItem[]>([]);
@@ -18,7 +20,9 @@ export function useSiteBlock() {
   useEffect(() => {
     let alive = true;
     axios
-      .get<{ blocking: boolean; items: BlockItem[] }>('/api/workblock')
+      .get<{ blocking: boolean; items: BlockItem[] }>('/api/workblock', {
+        headers: focusHeaders(),
+      })
       .then((r) => {
         if (!alive) return;
         setBlocking(r.data.blocking);
@@ -36,7 +40,11 @@ export function useSiteBlock() {
     setBusy(true);
     setBlocking(next); // optimistic
     try {
-      const r = await axios.post<{ blocking: boolean }>('/api/workblock', { blocking: next });
+      const r = await axios.post<{ blocking: boolean }>(
+        '/api/workblock',
+        { blocking: next },
+        { headers: focusHeaders() },
+      );
       setBlocking(r.data.blocking);
     } catch {
       setBlocking(!next); // revert on failure
@@ -48,7 +56,11 @@ export function useSiteBlock() {
   const addItem = async (kind: BlockKind, value: string) => {
     const v = value.trim();
     if (!v) return;
-    const r = await axios.post<BlockItem>('/api/workblock/items', { kind, value: v });
+    const r = await axios.post<BlockItem>(
+      '/api/workblock/items',
+      { kind, value: v },
+      { headers: focusHeaders() },
+    );
     // Replace any existing entry with the same id (server dedupes), else append.
     setItems((prev) => (prev.some((i) => i.id === r.data.id) ? prev : [...prev, r.data]));
   };
@@ -56,7 +68,7 @@ export function useSiteBlock() {
   const removeItem = async (id: number) => {
     setItems((prev) => prev.filter((i) => i.id !== id)); // optimistic
     try {
-      await axios.delete(`/api/workblock/items/${id}`);
+      await axios.delete(`/api/workblock/items/${id}`, { headers: focusHeaders() });
     } catch {
       // best-effort; a reload will resync if it failed
     }

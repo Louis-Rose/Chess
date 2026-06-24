@@ -1316,3 +1316,32 @@ def init_db():
                 )
             """)
             logger.info("Created workblock_tokens table")
+
+        # Migration: Focus for anonymous users (optional login). Same switch +
+        # list, keyed by the browser's X-Focus-Token instead of a user_id.
+        if not _table_exists(conn, 'workblock_anon_state'):
+            conn.execute("""
+                CREATE TABLE workblock_anon_state (
+                    token      TEXT PRIMARY KEY,
+                    blocking   BOOLEAN NOT NULL DEFAULT FALSE,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            logger.info("Created workblock_anon_state table")
+
+        if not _table_exists(conn, 'workblock_anon_items'):
+            conn.execute("""
+                CREATE TABLE workblock_anon_items (
+                    id         SERIAL PRIMARY KEY,
+                    token      TEXT NOT NULL,
+                    kind       TEXT NOT NULL,
+                    value      TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (token, kind, value)
+                )
+            """)
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_workblock_anon_items_token "
+                "ON workblock_anon_items(token)"
+            )
+            logger.info("Created workblock_anon_items table")
