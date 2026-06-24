@@ -170,6 +170,11 @@ function MatchCard({ match: m }: { match: MppMatch }) {
               <span className="rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1 font-mono font-semibold text-sky-300">
                 {m.prono!.home ?? '-'} - {m.prono!.away ?? '-'}
               </span>
+              {m.prono!.cote != null && (
+                <span className="text-slate-500">
+                  Ma cote <span className="font-semibold text-slate-300">{m.prono!.cote}</span>
+                </span>
+              )}
               {played && m.prono!.points != null && (
                 <span className="font-semibold text-amber-300">+{m.prono!.points} pts</span>
               )}

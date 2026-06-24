@@ -464,6 +464,15 @@ def _fetch_match(token, match_id):
     return None
 
 
+def _prono_cote(prono, cote):
+    """The cote of the result the owner predicted (home/draw/away), or None."""
+    home, away = prono.get('home'), prono.get('away')
+    if not cote or home is None or away is None:
+        return None
+    outcome = 'home' if home > away else 'away' if home < away else 'draw'
+    return cote.get(outcome)
+
+
 def _normalize_match(token, raw):
     """Shape one match for the UI, or None if either team is still unknown."""
     home_raw = raw.get('home') or {}
@@ -583,10 +592,15 @@ def mpp_matches():
     matches = [m for m in (_normalize_match(token, r) for r in raws if r) if m]
     matches.sort(key=lambda m: (m['date'] is None, m['date'] or ''))
 
-    # Merge in the owner's own prediction per match.
+    # Merge in the owner's own prediction per match, plus "ma cote" — the cote
+    # of the 1/N/2 result they picked (what they'd score if that result lands).
     pronos = _load_forecasts(token, contest_id, first_gw, last_gw) if contest_id else {}
     for m in matches:
-        m['prono'] = pronos.get(m['id'])
+        p = pronos.get(m['id'])
+        if p is not None:
+            p = dict(p)
+            p['cote'] = _prono_cote(p, m['cote'])
+        m['prono'] = p
 
     payload = {'matches': matches, 'updated_at': datetime.utcnow().isoformat()}
     with _matches_lock:
