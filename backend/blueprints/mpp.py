@@ -608,6 +608,87 @@ def mpp_matches():
     return jsonify(payload)
 
 
+# ── Single match detail (the "avant-match" view) ─────────────────────────────
+
+# MPG real-position code -> short label.
+_POSITION = {1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD'}
+
+
+def _rated_players(side_raw, side):
+    """Players on a side that carry an MPG rating (i.e. the match was played)."""
+    out = []
+    for p in (side_raw.get('players') or {}).values():
+        rating = p.get('mpgRating')
+        if rating is None:
+            continue
+        out.append({
+            'name': p.get('lastName') or p.get('firstName'),
+            'rating': rating,
+            'position': _POSITION.get(p.get('realPosition')),
+            'side': side,
+            'goals': (p.get('stats') or {}).get('goals') or 0,
+        })
+    return out
+
+
+def _match_detail(token, raw):
+    """The richer per-match payload behind a click: the MPP prono split
+    (stats.bets), the cote, and the best-rated players. Reuses the same raw
+    detail the matches list already fetched and cached."""
+    home_raw = raw.get('home') or {}
+    away_raw = raw.get('away') or {}
+    home = _resolve_club(token, home_raw.get('clubId')) or {}
+    away = _resolve_club(token, away_raw.get('clubId')) or {}
+
+    q = raw.get('quotations') or {}
+    cote = {'home': q.get('home'), 'draw': q.get('draw'), 'away': q.get('away')} \
+        if q.get('home') is not None else None
+
+    bets = (raw.get('stats') or {}).get('bets') or {}
+    prono = {'home': bets.get('home'), 'draw': bets.get('draw'), 'away': bets.get('away')} \
+        if bets else None
+
+    players = _rated_players(home_raw, 'home') + _rated_players(away_raw, 'away')
+    players.sort(key=lambda p: p['rating'], reverse=True)
+
+    period = raw.get('period')
+    if period == 'fullTime':
+        status = 'final'
+    elif home_raw.get('score') is not None or away_raw.get('score') is not None:
+        status = 'live'
+    else:
+        status = 'upcoming'
+
+    return {
+        'id': raw.get('id'),
+        'date': raw.get('date'),
+        'game_week': raw.get('gameWeekNumber'),
+        'status': status,
+        'match_time': raw.get('matchTime'),
+        'stadium': raw.get('stadiumName'),
+        'home': {'name': home.get('name'), 'crest': home.get('crest'), 'score': home_raw.get('score')},
+        'away': {'name': away.get('name'), 'crest': away.get('crest'), 'score': away_raw.get('score')},
+        'cote': cote,
+        'bets': prono,            # Stats Prono MPP: share of players on each result
+        'best_players': players[:6],
+    }
+
+
+@mpp_bp.route('/api/mpp/match/<match_id>', methods=['GET'])
+@owner_required
+def mpp_match(match_id):
+    """Detail for one match: prono split + cote + best players."""
+    user_id = get_current_user()
+    with get_db() as conn:
+        token = _get_access_token(conn, user_id)
+    if token is None:
+        return jsonify({'error': 'not_connected'}), 409
+    raw = _fetch_match(token, match_id)
+    if raw is None:
+        return jsonify({'error': 'mpp_unavailable'}), 502
+    return jsonify(_match_detail(token, raw))
+
+
 # ── Daily snapshot scheduler ─────────────────────────────────────────────────
 # MPP has no historical-standings endpoint, so a point only exists for a day if
 # we recorded it. This in-process scheduler snapshots every connected account's

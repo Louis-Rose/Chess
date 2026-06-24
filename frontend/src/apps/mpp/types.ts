@@ -69,3 +69,25 @@ export interface MppMatches {
   matches: MppMatch[];
   updated_at: string | null;
 }
+
+export interface MppPlayerRating {
+  name: string;
+  rating: number;
+  position: string | null;
+  side: 'home' | 'away';
+  goals: number;
+}
+
+export interface MppMatchDetail {
+  id: string;
+  date: string | null;
+  game_week: number | null;
+  status: 'final' | 'live' | 'upcoming';
+  match_time: string | null;
+  stadium: string | null;
+  home: { name: string | null; crest: string | null; score: number | null };
+  away: { name: string | null; crest: string | null; score: number | null };
+  cote: { home: number; draw: number; away: number } | null;
+  bets: { home: number | null; draw: number | null; away: number | null } | null;
+  best_players: MppPlayerRating[];
+}

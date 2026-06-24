@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw } from 'lucide-react';
+import { MppMatchDetail } from './MppMatchDetail';
 import type { MppMatch, MppMatches as MppMatchesData, MppTeam } from './types';
 
 // Matches tab: every match of the owner's competition whose two teams are known,
@@ -14,18 +15,30 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'played', label: 'Played' },
 ];
 
+// Module-level cache so revisiting the tab is instant. Without it the component
+// remounts empty on every navigation and shows the full "reads every fixture"
+// loader again; instead we keep the last result and only refetch when stale.
+let cachedMatches: MppMatchesData | null = null;
+let cachedAt = 0;
+const FRESH_MS = 90_000;
+
 export function MppMatches() {
-  const [data, setData] = useState<MppMatchesData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<MppMatchesData | null>(cachedMatches);
+  const [loading, setLoading] = useState(cachedMatches === null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const fetchData = useCallback(() => {
     setLoading(true);
     setError(null);
     axios
       .get<MppMatchesData>('/api/mpp/matches')
-      .then((r) => setData(r.data))
+      .then((r) => {
+        cachedMatches = r.data;
+        cachedAt = Date.now();
+        setData(r.data);
+      })
       .catch((e) => {
         const code = e?.response?.data?.error;
         setError(
@@ -38,6 +51,9 @@ export function MppMatches() {
   }, []);
 
   useEffect(() => {
+    // Show the cache instantly; only hit the network when it's stale. A manual
+    // Refresh always refetches.
+    if (cachedMatches && Date.now() - cachedAt < FRESH_MS) return;
     fetchData();
   }, [fetchData]);
 
