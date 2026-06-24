@@ -25,11 +25,12 @@
       }
       button:hover { border-color: #10b981; }
       button.secondary {
-        margin-top: 0.6rem; padding: 0.15rem; background: transparent;
+        margin-top: 0.6rem; width: auto; padding: 0.15rem 0.9rem; background: transparent;
         color: #94a3b8; font-weight: 500; font-size: 0.78rem;
       }
       button.secondary:hover { color: #e2e8f0; border-color: #475569; }
       .status { margin-top: 0.9rem; font-size: 0.8rem; color: #94a3b8; }
+      .time { margin-top: 0.15rem; font-size: 0.72rem; color: #64748b; }
       .on { color: #34d399; font-weight: 600; }
       .off { color: #94a3b8; }
       .err { color: #fb7185; }
@@ -40,9 +41,6 @@
 
     <label for="token">Connection token</label>
     <input id="token" type="password" placeholder="Paste from lumna.co/focus" autocomplete="off" />
-
-    <label for="apiBase">Server</label>
-    <input id="apiBase" type="text" placeholder="https://lumna.co" autocomplete="off" />
 
     <button id="save">Save &amp; sync</button>
 

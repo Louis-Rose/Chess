@@ -18,13 +18,12 @@ who don't run the owner's local Mac watcher.
 2. Turn on **Developer mode** (top right).
 3. Click **Load unpacked** and select this `focus-extension/` folder.
 4. Click the LUMNA Focus toolbar icon, paste the **connection token** from
-   lumna.co/focus, leave the server as `https://lumna.co`, and hit **Save & sync**.
+   lumna.co/focus, and hit **Save & sync**.
 
 ## Notes
 
+- The server is hardcoded to `https://lumna.co` (`API_BASE` in background.js).
 - The token only authorises reading your own block list. If it leaks, rotate it
   from lumna.co/focus (issues a new one and invalidates the old).
 - For a one-click Chrome Web Store install we'd add icons and submit for review;
   this unpacked build is functionally complete.
-- For local dev, set the server to `http://localhost:5001` (or wherever the
-  backend runs); the manifest already allows localhost host access.

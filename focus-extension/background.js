@@ -6,17 +6,12 @@
 
 const ALARM = 'lumna-focus-poll';
 const POLL_MINUTES = 1;
-const DEFAULT_API_BASE = 'https://lumna.co';
-
-async function getConfig() {
-  const { token, apiBase } = await chrome.storage.local.get(['token', 'apiBase']);
-  return { token: token || '', apiBase: (apiBase || DEFAULT_API_BASE).replace(/\/+$/, '') };
-}
+const API_BASE = 'https://lumna.co';
 
 async function fetchFeed() {
-  const { token, apiBase } = await getConfig();
+  const { token } = await chrome.storage.local.get(['token']);
   if (!token) return { blocking: false, sites: [] };
-  const res = await fetch(`${apiBase}/api/workblock/feed?token=${encodeURIComponent(token)}`);
+  const res = await fetch(`${API_BASE}/api/workblock/feed?token=${encodeURIComponent(token)}`);
   if (!res.ok) throw new Error(`feed responded ${res.status}`);
   return res.json();
 }
@@ -128,7 +123,7 @@ chrome.alarms.onAlarm.addListener((a) => {
 });
 // Re-sync immediately when the user saves a new token / API base.
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.token || changes.apiBase) sync();
+  if (changes.token) sync();
 });
 // Instant sync: the lumna.co content script relays a "sync" the moment the user
 // toggles blocking on the Focus page, so off/on take effect without the poll.

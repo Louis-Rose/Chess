@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LUMNA Focus",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Blocks the sites on your LUMNA Focus list while focus mode is on.",
   "permissions": ["declarativeNetRequest", "storage", "alarms", "tabs"],
   "host_permissions": ["*://*/*"],

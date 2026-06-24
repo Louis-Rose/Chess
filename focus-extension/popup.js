@@ -1,8 +1,5 @@
 const tokenEl = document.getElementById('token');
-const apiEl = document.getElementById('apiBase');
 const statusEl = document.getElementById('status');
-
-const DEFAULT_API_BASE = 'https://lumna.co';
 
 function renderStatus(s) {
   if (!s) {
@@ -14,27 +11,20 @@ function renderStatus(s) {
     return;
   }
   const when = s.at ? new Date(s.at).toLocaleTimeString() : '';
-  statusEl.innerHTML = s.blocking
-    ? `<span class="on">Blocking on</span> <span class="on">${s.count} site${s.count === 1 ? '' : 's'}</span> · ${when}`
-    : `<span class="off">Blocking off</span> · ${when}`;
+  const main = s.blocking
+    ? `<span class="on">Blocking</span> <span class="on">${s.count} site${s.count === 1 ? '' : 's'}</span>`
+    : `<span class="off">Blocking off</span>`;
+  statusEl.innerHTML = `${main}<div class="time">${when}</div>`;
 }
 
 async function load() {
-  const { token, apiBase, lastStatus } = await chrome.storage.local.get([
-    'token',
-    'apiBase',
-    'lastStatus',
-  ]);
+  const { token, lastStatus } = await chrome.storage.local.get(['token', 'lastStatus']);
   tokenEl.value = token || '';
-  apiEl.value = apiBase || DEFAULT_API_BASE;
   renderStatus(lastStatus);
 }
 
 document.getElementById('save').addEventListener('click', async () => {
-  await chrome.storage.local.set({
-    token: tokenEl.value.trim(),
-    apiBase: (apiEl.value.trim() || DEFAULT_API_BASE).replace(/\/+$/, ''),
-  });
+  await chrome.storage.local.set({ token: tokenEl.value.trim() });
   statusEl.textContent = 'Saved. Syncing…';
   // The background worker re-syncs on storage change; reflect the result shortly.
   setTimeout(async () => {
