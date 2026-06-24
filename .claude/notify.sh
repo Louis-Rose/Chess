@@ -37,10 +37,23 @@ case "$CASE" in
   *)          SUBT="Done";          MSG="Task complete, your turn.";            SOUND="Glass" ;;
 esac
 
+# terminal-notifier (if installed) makes the banner clickable -> activates VS
+# Code. Plain osascript notifications aren't clickable, so fall back to those.
+NAG_TN=""
+for p in /opt/homebrew/bin/terminal-notifier /usr/local/bin/terminal-notifier; do
+  [ -x "$p" ] && NAG_TN="$p" && break
+done
+
 # Detached nagger: alert now (with sound), then re-alert silently every few
 # seconds until VS Code is frontmost, capped at ~1h.
-NAG_SUBT="$SUBT" NAG_MSG="$MSG" NAG_SOUND="$SOUND" nohup bash -c '
-  notify() { /usr/bin/osascript -e "display notification \"$NAG_MSG\" with title \"Claude Code\" subtitle \"$NAG_SUBT\"" 2>/dev/null; }
+NAG_SUBT="$SUBT" NAG_MSG="$MSG" NAG_SOUND="$SOUND" NAG_TN="$NAG_TN" nohup bash -c '
+  notify() {
+    if [ -n "$NAG_TN" ]; then
+      "$NAG_TN" -title "Claude Code" -subtitle "$NAG_SUBT" -message "$NAG_MSG" -activate com.microsoft.VSCode >/dev/null 2>&1
+    else
+      /usr/bin/osascript -e "display notification \"$NAG_MSG\" with title \"Claude Code\" subtitle \"$NAG_SUBT\"" 2>/dev/null
+    fi
+  }
   in_vscode() {
     fm="$(/usr/bin/osascript -e "tell application \"System Events\" to name of first process whose frontmost is true" 2>/dev/null)"
     case "$fm" in Code|"Code - Insiders"|Cursor|"Code Helper"|Electron) return 0 ;; *) return 1 ;; esac
