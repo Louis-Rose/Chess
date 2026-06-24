@@ -17,7 +17,7 @@ export function SiteBlockToggle() {
     >
       <span className="flex items-center gap-2">
         <Ban className="h-4 w-4 text-slate-400" />
-        Site blocking
+        Blocking
       </span>
       <span
         className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${

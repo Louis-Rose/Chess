@@ -42,7 +42,7 @@ function FocusPanel() {
       <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-6 sm:p-8">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Site blocking</h2>
+            <h2 className="text-lg font-semibold">Blocking</h2>
             <p className="mt-0.5 text-sm text-slate-400">
               {blocking ? 'On. Distracting tabs and apps are being closed.' : 'Off.'}
             </p>
