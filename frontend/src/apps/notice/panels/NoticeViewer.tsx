@@ -83,89 +83,108 @@ export function NoticeViewer() {
         }}
       />
 
-      {/* Upload control, above and outside the framed viewer (only when a
-          document is open — the empty state has its own button). */}
-      {current && (
-        <div className="mb-6 flex justify-center">
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Upload PDF
-          </button>
-        </div>
-      )}
-
-      {/* Body: the open document, or a drop zone */}
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-        className={`overflow-hidden rounded-2xl border ${
-          dragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/30'
-        } ${SECTION_WIDTH} ${current ? 'min-h-0 flex-1' : 'aspect-square'}`}
-      >
-        {loading ? (
-          <div className="flex h-full items-center justify-center text-slate-500">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : current ? (
-          <PdfViewer
-            key={current.id}
-            file={current.data}
-            name={current.name}
-            onPageImage={(fn) => {
-              getPageImage.current = fn;
-            }}
-          />
-        ) : id ? (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="flex h-full w-full flex-col items-center justify-center gap-2 px-6 text-center text-slate-500 transition-colors hover:bg-emerald-500/5"
-          >
-            <FileText className="h-10 w-10" />
-            <p>This document is no longer in your library. Click to upload a new one.</p>
-          </button>
-        ) : (
-          <div
-            onClick={() => inputRef.current?.click()}
-            className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-4 px-6 text-center"
-          >
-            {busy ? (
-              <Loader2 className="h-10 w-10 animate-spin text-slate-500" />
-            ) : (
-              <Upload className="h-10 w-10 text-slate-600" />
-            )}
-            <div>
-              <p className="font-medium text-slate-300">Drop a PDF here, or click to upload.</p>
-              <p className="mt-1 text-sm text-slate-500">It's saved in this browser and added to your library.</p>
-            </div>
+      {current ? (
+        // Open document: Upload control, then two columns — document left,
+        // asking window right (stacked on mobile).
+        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col">
+          <div className="mb-4 flex justify-center">
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                inputRef.current?.click();
-              }}
+              onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className="flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-300 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
             >
-              <Upload className="h-4 w-4" />
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               Upload PDF
             </button>
-            {rejected && <p className="text-sm text-red-400">Only PDF files are supported for now.</p>}
           </div>
-        )}
-      </div>
 
-      {/* Ask Gemini about the page currently shown */}
-      {current && <PageQA getPageImage={() => getPageImage.current?.() ?? null} />}
+          <div className="flex min-h-0 flex-1 flex-col gap-6 md:flex-row">
+            {/* Document */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
+              className={`h-[60vh] overflow-hidden rounded-2xl border md:h-auto md:min-h-0 md:min-w-0 md:flex-1 ${
+                dragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/30'
+              }`}
+            >
+              <PdfViewer
+                key={current.id}
+                file={current.data}
+                name={current.name}
+                onPageImage={(fn) => {
+                  getPageImage.current = fn;
+                }}
+              />
+            </div>
+
+            {/* Asking window */}
+            <div className="h-[34rem] md:h-auto md:min-h-0 md:w-96 md:shrink-0">
+              <PageQA getPageImage={() => getPageImage.current?.() ?? null} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        // No document: a square drop zone (loading / not-found / empty).
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+          className={`aspect-square overflow-hidden rounded-2xl border ${
+            dragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/30'
+          } ${SECTION_WIDTH}`}
+        >
+          {loading ? (
+            <div className="flex h-full items-center justify-center text-slate-500">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : id ? (
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="flex h-full w-full flex-col items-center justify-center gap-2 px-6 text-center text-slate-500 transition-colors hover:bg-emerald-500/5"
+            >
+              <FileText className="h-10 w-10" />
+              <p>This document is no longer in your library. Click to upload a new one.</p>
+            </button>
+          ) : (
+            <div
+              onClick={() => inputRef.current?.click()}
+              className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-4 px-6 text-center"
+            >
+              {busy ? (
+                <Loader2 className="h-10 w-10 animate-spin text-slate-500" />
+              ) : (
+                <Upload className="h-10 w-10 text-slate-600" />
+              )}
+              <div>
+                <p className="font-medium text-slate-300">Drop a PDF here, or click to upload.</p>
+                <p className="mt-1 text-sm text-slate-500">It's saved in this browser and added to your library.</p>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  inputRef.current?.click();
+                }}
+                disabled={busy}
+                className="flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-300 disabled:opacity-50"
+              >
+                <Upload className="h-4 w-4" />
+                Upload PDF
+              </button>
+              {rejected && <p className="text-sm text-red-400">Only PDF files are supported for now.</p>}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

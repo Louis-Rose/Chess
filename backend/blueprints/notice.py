@@ -24,8 +24,16 @@ logger = logging.getLogger(__name__)
 
 notice_bp = Blueprint('notice', __name__)
 
-# Multimodal flash model — fast and cheap, reads text and diagrams on a page.
-NOTICE_MODEL = 'gemini-3-flash-preview'
+# Models the user may pick from the dropdown. Kept in sync with the frontend
+# list (apps/notice/models.ts) and the admin GEMINI_PRICING table so usage cost
+# is tracked. Validated server-side so a client can't request an arbitrary model.
+ALLOWED_MODELS = {
+    'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3.1-pro-preview',
+    'gemini-2.0-flash',
+}
+DEFAULT_MODEL = 'gemini-3-flash-preview'
 # Safety cap on the decoded page image (a rendered page is well under this).
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
@@ -43,6 +51,9 @@ def ask():
     data = request.get_json(silent=True) or {}
     question = (data.get('question') or '').strip()
     image_b64 = data.get('image') or ''
+    model = (data.get('model') or '').strip()
+    if model not in ALLOWED_MODELS:
+        model = DEFAULT_MODEL
 
     if not question:
         return jsonify({'error': 'A question is required.'}), 400
@@ -77,12 +88,12 @@ def ask():
     start = time.time()
     try:
         response, billing_tier, retry_info = _gemini_generate(
-            client_free, client_paid, NOTICE_MODEL, contents,
+            client_free, client_paid, model, contents,
         )
     except Exception as e:
         elapsed = round(time.time() - start)
         logger.exception('[notice] Gemini call failed')
-        _log_api_usage('notice', NOTICE_MODEL, 0, 0, elapsed, error=str(e), user_id=user_id)
+        _log_api_usage('notice', model, 0, 0, elapsed, error=str(e), user_id=user_id)
         return jsonify({'error': 'The assistant request failed. Please try again.'}), 502
 
     elapsed = round(time.time() - start)
@@ -90,7 +101,7 @@ def ask():
     in_tok, out_tok, think_tok = _extract_usage_tokens(response)
     retry_info = retry_info or {}
     _log_api_usage(
-        'notice', NOTICE_MODEL, in_tok, out_tok, elapsed,
+        'notice', model, in_tok, out_tok, elapsed,
         thinking_tokens=think_tok, billing_tier=billing_tier, user_id=user_id,
         retry_free_error=retry_info.get('free_error'),
         retry_free_elapsed=retry_info.get('free_elapsed'),
