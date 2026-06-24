@@ -6,6 +6,7 @@ import {
   Rocket,
   Shirt,
   Focus,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -26,6 +27,7 @@ export const APPS: AppEntry[] = [
   { path: '/investing', label: 'Investing', Icon: TrendingUp },
   { path: '/yc', label: 'YC Advisor', Icon: Rocket },
   { path: '/clothing', label: 'Clothing', Icon: Shirt },
+  { path: '/notice', label: 'Notice.ai', Icon: FileText },
 ];
 
 export function appByLabel(label?: string): AppEntry | undefined {

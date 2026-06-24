@@ -1,0 +1,133 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { FileText, Loader2, Upload } from 'lucide-react';
+import { PdfViewer } from '../PdfViewer';
+import { getFile, type NoticeFile } from '../noticeStore';
+import { useNoticeFiles } from '../useNoticeFiles';
+
+// The Viewer page: upload a PDF (button or drag-and-drop) and read it page by
+// page. When the route carries an :id, that stored document is shown.
+export function NoticeViewer() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { add } = useNoticeFiles();
+
+  const [current, setCurrent] = useState<NoticeFile | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [rejected, setRejected] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load the selected document from IndexedDB when the id changes.
+  useEffect(() => {
+    let cancelled = false;
+    if (!id) {
+      setCurrent(null);
+      return;
+    }
+    setLoading(true);
+    getFile(id).then((f) => {
+      if (cancelled) return;
+      setCurrent(f ?? null);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const onPick = useCallback(
+    async (file: File | undefined) => {
+      setRejected(false);
+      if (!file) return;
+      if (file.type !== 'application/pdf') {
+        setRejected(true);
+        return;
+      }
+      setBusy(true);
+      try {
+        const rec = await add(file);
+        navigate(`/notice/view/${rec.id}`);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [add, navigate],
+  );
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragging(false);
+      void onPick(e.dataTransfer.files?.[0]);
+    },
+    [onPick],
+  );
+
+  return (
+    <div className="flex min-h-[24rem] flex-1 flex-col px-4 py-4 sm:px-6">
+      {/* Top bar: current file name + upload control */}
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2 text-slate-300">
+          <FileText className="h-4 w-4 shrink-0 text-emerald-400" />
+          <span className="truncate text-sm font-medium">{current ? current.name : 'No document open'}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          Upload PDF
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            void onPick(e.target.files?.[0]);
+            e.target.value = ''; // allow re-picking the same file
+          }}
+        />
+      </div>
+
+      {/* Body: the open document, or a drop zone */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        className={`min-h-0 flex-1 overflow-hidden rounded-2xl border ${
+          dragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/30'
+        }`}
+      >
+        {loading ? (
+          <div className="flex h-full items-center justify-center text-slate-500">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : current ? (
+          <PdfViewer key={current.id} file={current.data} />
+        ) : id ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-slate-500">
+            <FileText className="h-10 w-10" />
+            <p>This document is no longer in your library.</p>
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+            <Upload className="h-10 w-10 text-slate-600" />
+            <div>
+              <p className="font-medium text-slate-300">Drop a PDF here, or use Upload PDF.</p>
+              <p className="mt-1 text-sm text-slate-500">It's saved in this browser and added to your library.</p>
+            </div>
+            {rejected && <p className="text-sm text-red-400">Only PDF files are supported for now.</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
