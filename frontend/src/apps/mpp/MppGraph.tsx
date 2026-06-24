@@ -56,8 +56,8 @@ export function MppGraph({ challengeId }: { challengeId: string }) {
   }
 
   return (
-    <div className="p-4">
-      <h3 className="mb-3 px-1 text-sm font-semibold uppercase tracking-wide text-slate-400">
+    <div className="px-4 pb-4 pt-8">
+      <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
         Progression
       </h3>
       <div className="h-80 w-full">
