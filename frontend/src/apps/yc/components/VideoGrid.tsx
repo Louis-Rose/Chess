@@ -44,7 +44,7 @@ function VideoCard({ video, onPlay }: { video: YcVideo; onPlay: () => void }) {
       onClick={onPlay}
       className="group flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-800/40 text-left transition-colors hover:border-emerald-500"
     >
-      <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
+      <div className="relative aspect-video w-full overflow-hidden bg-[#0f0f0f]">
         <img
           src={video.thumbnail}
           alt=""

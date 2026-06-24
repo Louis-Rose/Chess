@@ -4,7 +4,7 @@ import {
   BarChart, Bar, ScatterChart, Scatter, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { Crown } from 'lucide-react';
+import { AppHeader } from '../../components/AppHeader';
 
 interface MonthCount {
   month: string; // 'YYYY-MM'
@@ -222,11 +222,8 @@ export function ChessDashboard() {
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100 font-sans p-6">
       <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-center gap-3 mb-1">
-          <Crown className="w-7 h-7 text-emerald-400" />
-          <h1 className="text-2xl font-semibold">Chess</h1>
-        </header>
-        <p className="text-slate-400 text-sm mb-6 text-center">
+        <AppHeader title="Chess" />
+        <p className="text-slate-400 text-sm mb-6">
           Rapid games on chess.com
           {data && <> for <a
             href={`https://www.chess.com/member/${data.username}`}

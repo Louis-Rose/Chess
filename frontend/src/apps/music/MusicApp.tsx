@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import axios from 'axios';
-import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
+import { AppHeader } from '../../components/AppHeader';
 import type { MusicOverview } from './types';
 import { StatCards } from './components/StatCards';
 import { ActivityChart } from './components/ActivityChart';
@@ -63,20 +62,7 @@ export function MusicApp() {
   return (
     <div className="min-h-dvh bg-slate-900 text-slate-100">
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        {/* Header */}
-        <header className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <LumnaLogo className="h-8 w-8" />
-            <h1 className="text-xl font-bold tracking-wide">Music</h1>
-          </div>
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-emerald-400"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            LUMNA
-          </Link>
-        </header>
+        <AppHeader title="Music" />
 
         {isEmpty ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center">
