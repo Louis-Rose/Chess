@@ -84,12 +84,13 @@ function BlockList({
   onRemove: (id: number) => Promise<void>;
 }) {
   const [value, setValue] = useState('');
-  const [kind, setKind] = useState<BlockKind>('site');
   const [saving, setSaving] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!value.trim() || saving) return;
+    // A value with a dot (reddit.com) is a website; anything else is an app.
+    const kind: BlockKind = value.includes('.') ? 'site' : 'app';
     setSaving(true);
     try {
       await onAdd(kind, value);
@@ -104,24 +105,10 @@ function BlockList({
       <h3 className="mb-4 text-lg font-semibold">Blocked</h3>
 
       <form onSubmit={submit} className="mb-5 flex gap-2">
-        <div className="flex flex-shrink-0 rounded-lg border border-slate-700 bg-slate-900/50 p-0.5">
-          {(['site', 'app'] as BlockKind[]).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setKind(k)}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                kind === k ? 'bg-slate-700 text-slate-100' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              {k === 'site' ? 'Site' : 'App'}
-            </button>
-          ))}
-        </div>
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={kind === 'site' ? 'e.g. reddit.com' : 'e.g. whatsapp'}
+          placeholder="e.g. reddit.com or whatsapp"
           className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
         />
         <button
