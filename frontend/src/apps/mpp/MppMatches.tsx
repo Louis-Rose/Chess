@@ -6,10 +6,19 @@ import type { MppMatch, MppMatches as MppMatchesData, MppTeam } from './types';
 // Matches tab: every match of the owner's competition whose two teams are known,
 // in one chronological scroll. Played matches show the score, upcoming ones show
 // the MPP cotes (1 / N / 2 reward points). No day-by-day clicking.
+type Filter = 'all' | 'upcoming' | 'played';
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'played', label: 'Played' },
+];
+
 export function MppMatches() {
   const [data, setData] = useState<MppMatchesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -32,7 +41,14 @@ export function MppMatches() {
     fetchData();
   }, [fetchData]);
 
-  const groups = useMemo(() => groupByDate(data?.matches ?? []), [data]);
+  const filtered = useMemo(() => {
+    const all = data?.matches ?? [];
+    if (filter === 'upcoming') return all.filter((m) => m.status !== 'final');
+    if (filter === 'played') return all.filter((m) => m.status === 'final');
+    return all;
+  }, [data, filter]);
+
+  const groups = useMemo(() => groupByDate(filtered), [filtered]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-4 py-8 sm:px-6">
@@ -41,7 +57,7 @@ export function MppMatches() {
           <h2 className="text-xl font-bold text-slate-100">Matches</h2>
           {data && (
             <p className="text-xs text-slate-500">
-              {data.matches.length} matches with known teams
+              {filtered.length} of {data.matches.length} matches with known teams
             </p>
           )}
         </div>
@@ -53,6 +69,22 @@ export function MppMatches() {
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+      </div>
+
+      <div className="flex gap-1 rounded-xl border border-slate-800 bg-slate-800/40 p-1">
+        {FILTERS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setFilter(key)}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              filter === key
+                ? 'bg-emerald-500/15 text-emerald-300'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -82,7 +114,11 @@ export function MppMatches() {
         </div>
       ) : data ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center text-slate-400">
-          No matches with known teams yet.
+          {filter === 'upcoming'
+            ? 'No upcoming matches with known teams yet.'
+            : filter === 'played'
+              ? 'No played matches yet.'
+              : 'No matches with known teams yet.'}
         </div>
       ) : null}
     </div>
@@ -118,16 +154,35 @@ function MatchCard({ match: m }: { match: MppMatch }) {
         <TeamSide team={m.away} align="left" />
       </div>
 
-      {m.cote && (
-        <div className="mt-3 flex items-center justify-center gap-2 border-t border-slate-800 pt-3 text-xs">
-          <span className="mr-1 text-slate-500">Cote</span>
-          <Cote label="1" value={m.cote.home} />
-          <Cote label="N" value={m.cote.draw} />
-          <Cote label="2" value={m.cote.away} />
+      {(m.cote || hasProno(m)) && (
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-slate-800 pt-3 text-xs">
+          {m.cote && (
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">Cote</span>
+              <Cote label="1" value={m.cote.home} />
+              <Cote label="N" value={m.cote.draw} />
+              <Cote label="2" value={m.cote.away} />
+            </div>
+          )}
+          {hasProno(m) && (
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">Mon prono</span>
+              <span className="rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1 font-mono font-semibold text-sky-300">
+                {m.prono!.home ?? '-'} - {m.prono!.away ?? '-'}
+              </span>
+              {played && m.prono!.points != null && (
+                <span className="font-semibold text-amber-300">+{m.prono!.points} pts</span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function hasProno(m: MppMatch): boolean {
+  return m.prono != null && (m.prono.home != null || m.prono.away != null);
 }
 
 function TeamSide({ team, align }: { team: MppTeam; align: 'left' | 'right' }) {

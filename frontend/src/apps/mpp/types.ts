@@ -57,6 +57,7 @@ export interface MppMatch {
   home: MppTeam;
   away: MppTeam;
   cote: { home: number; draw: number; away: number } | null;
+  prono: { home: number | null; away: number | null; points: number | null } | null;
 }
 
 export interface MppMatches {

@@ -413,6 +413,8 @@ _match_lock = threading.Lock()
 _match_cache = {}        # match_id -> (raw_detail, fetched_at)
 _matches_lock = threading.Lock()
 _matches_cache = {}      # championship_id -> (payload, fetched_at)
+_forecasts_lock = threading.Lock()
+_forecasts_cache = {}    # contest_id -> (match_id -> prono, fetched_at)
 
 
 def _resolve_club(token, club_id):
@@ -498,11 +500,39 @@ def _normalize_match(token, raw):
     }
 
 
-def _championship_id(token):
-    """The championship id behind the owner's contest (e.g. the World Cup)."""
+def _owner_contest(token):
+    """The owner's contest card (championship id, contest id, game-week range)."""
     contests, _ = _api_json(token, '/user-contests')
     cards = (contests or {}).get('contestsCards') or []
-    return next((c.get('championshipId') for c in cards if c.get('championshipId')), None)
+    return next((c for c in cards if c.get('championshipId')), None)
+
+
+def _load_forecasts(token, contest_id, first_gw, last_gw):
+    """The owner's prediction per match: {match_id: {home, away, points}}.
+    One call per game-week; cached briefly so it rides along with the list."""
+    now = time.time()
+    with _forecasts_lock:
+        cached = _forecasts_cache.get(contest_id)
+    if cached and now - cached[1] < _RESPONSE_TTL:
+        return cached[0]
+
+    out = {}
+    for gw in range(first_gw, last_gw + 1):
+        data, _ = _api_json(
+            token, f'/user-match-forecasts/contest/{contest_id}/game-week/{gw}')
+        for match_id, by_contest in ((data or {}).get('forecasts') or {}).items():
+            entry = by_contest.get(contest_id) or next(iter(by_contest.values()), None)
+            if not entry:
+                continue
+            out[match_id] = {
+                'home': entry.get('homeScore'),
+                'away': entry.get('awayScore'),
+                'points': (entry.get('points') or {}).get('total'),
+            }
+
+    with _forecasts_lock:
+        _forecasts_cache[contest_id] = (out, now)
+    return out
 
 
 @mpp_bp.route('/api/mpp/matches', methods=['GET'])
@@ -520,9 +550,13 @@ def mpp_matches():
             ).fetchone())
         return jsonify({'error': 'token_expired' if connected else 'not_connected'}), 409
 
-    champ_id = _championship_id(token)
-    if champ_id is None:
+    card = _owner_contest(token)
+    if not card:
         return jsonify({'matches': [], 'updated_at': None})
+    champ_id = card.get('championshipId')
+    contest_id = card.get('contestId')
+    first_gw = card.get('firstGameWeekNumber') or 1
+    last_gw = card.get('lastGameWeekNumber') or first_gw
 
     now = time.time()
     with _matches_lock:
@@ -548,6 +582,11 @@ def mpp_matches():
 
     matches = [m for m in (_normalize_match(token, r) for r in raws if r) if m]
     matches.sort(key=lambda m: (m['date'] is None, m['date'] or ''))
+
+    # Merge in the owner's own prediction per match.
+    pronos = _load_forecasts(token, contest_id, first_gw, last_gw) if contest_id else {}
+    for m in matches:
+        m['prono'] = pronos.get(m['id'])
 
     payload = {'matches': matches, 'updated_at': datetime.utcnow().isoformat()}
     with _matches_lock:
