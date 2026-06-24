@@ -43,7 +43,9 @@ export function ProfileMenu({ showName = false }: { showName?: boolean }) {
         aria-haspopup="menu"
         aria-expanded={open}
         className={`flex items-center gap-3 focus:outline-none ${
-          showName ? 'w-full rounded-xl p-1 text-left transition-colors hover:bg-slate-800/60' : 'rounded-full'
+          showName
+            ? 'w-full justify-center rounded-xl border border-slate-700 bg-slate-800/60 p-2 transition-colors hover:bg-slate-700/60'
+            : 'rounded-full'
         }`}
       >
         {avatar}
