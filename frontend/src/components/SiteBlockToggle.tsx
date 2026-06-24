@@ -1,39 +1,11 @@
-import { useEffect, useState } from 'react';
 import { Ban } from 'lucide-react';
-import axios from 'axios';
+import { useSiteBlock } from '../hooks/useSiteBlock';
 
 // Owner-only row in the profile dropdown: flips site blocking on/off.
 // Backed by /api/workblock; the Mac watcher polls the status and closes
 // distracting tabs while it's on.
 export function SiteBlockToggle() {
-  const [blocking, setBlocking] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    axios
-      .get<{ blocking: boolean }>('/api/workblock')
-      .then((r) => alive && setBlocking(r.data.blocking))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const toggle = async () => {
-    if (busy) return;
-    const next = !blocking;
-    setBusy(true);
-    setBlocking(next); // optimistic
-    try {
-      const r = await axios.post<{ blocking: boolean }>('/api/workblock', { blocking: next });
-      setBlocking(r.data.blocking);
-    } catch {
-      setBlocking(!next); // revert on failure
-    } finally {
-      setBusy(false);
-    }
-  };
+  const { blocking, busy, toggle } = useSiteBlock();
 
   return (
     <button

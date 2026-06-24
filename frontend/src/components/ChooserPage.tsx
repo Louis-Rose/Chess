@@ -1,10 +1,17 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Crown, Dumbbell, Music, TrendingUp, Rocket, Shirt } from 'lucide-react';
+import { Crown, Dumbbell, Music, TrendingUp, Rocket, Shirt, Focus } from 'lucide-react';
 import { LumnaLogo } from '../apps/chesscoaches/components/LumnaBrand';
+import { useAuth } from '../contexts/AuthContext';
 
-// Root landing: pick a product. Chess -> /chess, Gym -> /fit, Music -> /music, Investing -> /investing, YC Advisor -> /yc, Clothing -> /clothing.
+const OWNER_EMAIL = 'rose.louis.mail@gmail.com';
+
+// Root landing: pick a product. Focus (owner) -> /focus, Chess -> /chess, Gym -> /fit,
+// Music -> /music, Investing -> /investing, YC Advisor -> /yc, Clothing -> /clothing.
 export function ChooserPage() {
+  const { user } = useAuth();
+  const isOwner = user?.email === OWNER_EMAIL;
+
   useEffect(() => {
     document.title = 'LUMNA';
   }, []);
@@ -17,6 +24,16 @@ export function ChooserPage() {
       </div>
 
       <div className="grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
+        {isOwner && (
+          <Link
+            to="/focus"
+            className="group flex flex-col items-center justify-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 px-6 py-12 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10"
+          >
+            <Focus className="h-14 w-14 text-emerald-400" strokeWidth={1.5} />
+            <span className="text-xl font-semibold">Focus</span>
+          </Link>
+        )}
+
         <Link
           to="/chess"
           className="group flex flex-col items-center justify-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 px-6 py-12 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10"
