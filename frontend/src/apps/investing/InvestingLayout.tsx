@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { LineChart, LogOut, Wallet, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
+import { AppTitle } from '../../components/AppTitle';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDisplayCurrency, type DisplayCurrency } from './currency';
 
@@ -95,6 +96,10 @@ export function InvestingLayout() {
               </button>
             </div>
           )}
+        </div>
+
+        <div className="hidden border-b border-slate-800 px-6 py-5 md:block">
+          <AppTitle title="Investing" />
         </div>
 
         <div className="flex justify-end border-b border-slate-800 px-6 py-3">

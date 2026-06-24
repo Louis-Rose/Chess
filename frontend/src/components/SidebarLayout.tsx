@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AppSidebar } from './AppSidebar';
 import { AppHeader } from './AppHeader';
+import { AppTitle } from './AppTitle';
 
 // Shared shell for the LUMNA sub-apps: a fixed left sidebar on desktop, and the
 // compact AppHeader as a top bar on mobile. `contentClassName` sets the main
@@ -23,8 +24,8 @@ export function SidebarLayout({
         </div>
         <main className={`min-w-0 flex-1 ${contentClassName}`}>
           {title && (
-            <div className="hidden border-b border-slate-800 px-6 py-4 md:block">
-              <h1 className="text-center text-lg font-semibold">{title}</h1>
+            <div className="hidden border-b border-slate-800 px-6 py-5 md:block">
+              <AppTitle title={title} />
             </div>
           )}
           {children}
