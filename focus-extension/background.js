@@ -56,14 +56,40 @@ async function sync() {
     addRules,
   });
 
-  // Redirect rules only fire on navigation, so a tab already sitting on a
-  // blocked site wouldn't move until it reloads. Reload matching open tabs so
-  // turning blocking on evicts them immediately.
-  await evictBlockedTabs(sites);
+  // Redirect rules only fire on navigation, so tabs don't move on their own.
+  // Turning blocking on: reload tabs already sitting on a blocked site so they
+  // get evicted to the "stay focused" page. Turning it off: send any "stay
+  // focused" tabs back to the site they came from.
+  if (feed.blocking) {
+    await evictBlockedTabs(sites);
+  } else {
+    await reviveBlockedTabs();
+  }
 
   await chrome.storage.local.set({
     lastStatus: { blocking: !!feed.blocking, count: sites.length, at: Date.now() },
   });
+}
+
+async function reviveBlockedTabs() {
+  const base = chrome.runtime.getURL('blocked.html');
+  let tabs;
+  try {
+    tabs = await chrome.tabs.query({});
+  } catch (e) {
+    return;
+  }
+  for (const tab of tabs) {
+    if (!tab.id || !tab.url || !tab.url.startsWith(base)) continue;
+    let host;
+    try {
+      host = new URL(tab.url).searchParams.get('host');
+    } catch {
+      continue;
+    }
+    // We only captured the host at block time, so revive to the site homepage.
+    if (host) chrome.tabs.update(tab.id, { url: `https://${host}` });
+  }
 }
 
 async function evictBlockedTabs(sites) {
