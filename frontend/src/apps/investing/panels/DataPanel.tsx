@@ -1,120 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronDown, TrendingUp } from 'lucide-react';
+import { ChevronDown, TrendingUp, X, Lock, Plus } from 'lucide-react';
 import { type CorrelationResponse, averageCorrelation, cellColor } from '../shared';
 import { PortfolioStats } from '../PortfolioStats';
+import { ownedTickers } from '../holdings';
+import type { Transaction } from '../types';
 
-// The ~100 largest S&P 500 companies by market cap. Keep in sync with the
-// backend allowlist (UNIVERSE in blueprints/investing.py).
-const UNIVERSE: { ticker: string; name: string }[] = [
-  { ticker: 'NVDA', name: 'Nvidia' },
-  { ticker: 'AAPL', name: 'Apple' },
-  { ticker: 'MSFT', name: 'Microsoft' },
-  { ticker: 'GOOGL', name: 'Alphabet' },
-  { ticker: 'AMZN', name: 'Amazon' },
-  { ticker: 'META', name: 'Meta Platforms' },
-  { ticker: 'AVGO', name: 'Broadcom' },
-  { ticker: 'TSLA', name: 'Tesla' },
-  { ticker: 'BRK-B', name: 'Berkshire Hathaway' },
-  { ticker: 'LLY', name: 'Eli Lilly' },
-  { ticker: 'JPM', name: 'JPMorgan Chase' },
-  { ticker: 'WMT', name: 'Walmart' },
-  { ticker: 'V', name: 'Visa' },
-  { ticker: 'ORCL', name: 'Oracle' },
-  { ticker: 'MA', name: 'Mastercard' },
-  { ticker: 'XOM', name: 'Exxon Mobil' },
-  { ticker: 'NFLX', name: 'Netflix' },
-  { ticker: 'COST', name: 'Costco' },
-  { ticker: 'JNJ', name: 'Johnson & Johnson' },
-  { ticker: 'HD', name: 'Home Depot' },
-  { ticker: 'PG', name: 'Procter & Gamble' },
-  { ticker: 'PLTR', name: 'Palantir' },
-  { ticker: 'BAC', name: 'Bank of America' },
-  { ticker: 'ABBV', name: 'AbbVie' },
-  { ticker: 'CVX', name: 'Chevron' },
-  { ticker: 'KO', name: 'Coca-Cola' },
-  { ticker: 'AMD', name: 'AMD' },
-  { ticker: 'GE', name: 'GE Aerospace' },
-  { ticker: 'TMUS', name: 'T-Mobile US' },
-  { ticker: 'CSCO', name: 'Cisco' },
-  { ticker: 'WFC', name: 'Wells Fargo' },
-  { ticker: 'CRM', name: 'Salesforce' },
-  { ticker: 'PM', name: 'Philip Morris Intl' },
-  { ticker: 'IBM', name: 'IBM' },
-  { ticker: 'UNH', name: 'UnitedHealth' },
-  { ticker: 'MS', name: 'Morgan Stanley' },
-  { ticker: 'ABT', name: 'Abbott' },
-  { ticker: 'GS', name: 'Goldman Sachs' },
-  { ticker: 'LIN', name: 'Linde' },
-  { ticker: 'MCD', name: "McDonald's" },
-  { ticker: 'DIS', name: 'Disney' },
-  { ticker: 'INTU', name: 'Intuit' },
-  { ticker: 'AXP', name: 'American Express' },
-  { ticker: 'NOW', name: 'ServiceNow' },
-  { ticker: 'MRK', name: 'Merck' },
-  { ticker: 'T', name: 'AT&T' },
-  { ticker: 'RTX', name: 'RTX' },
-  { ticker: 'CAT', name: 'Caterpillar' },
-  { ticker: 'PEP', name: 'PepsiCo' },
-  { ticker: 'UBER', name: 'Uber' },
-  { ticker: 'BX', name: 'Blackstone' },
-  { ticker: 'VZ', name: 'Verizon' },
-  { ticker: 'BKNG', name: 'Booking Holdings' },
-  { ticker: 'SCHW', name: 'Charles Schwab' },
-  { ticker: 'TMO', name: 'Thermo Fisher' },
-  { ticker: 'C', name: 'Citigroup' },
-  { ticker: 'BA', name: 'Boeing' },
-  { ticker: 'ISRG', name: 'Intuitive Surgical' },
-  { ticker: 'QCOM', name: 'Qualcomm' },
-  { ticker: 'BLK', name: 'BlackRock' },
-  { ticker: 'TXN', name: 'Texas Instruments' },
-  { ticker: 'AMGN', name: 'Amgen' },
-  { ticker: 'ADBE', name: 'Adobe' },
-  { ticker: 'SPGI', name: 'S&P Global' },
-  { ticker: 'ANET', name: 'Arista Networks' },
-  { ticker: 'NEE', name: 'NextEra Energy' },
-  { ticker: 'GILD', name: 'Gilead Sciences' },
-  { ticker: 'HON', name: 'Honeywell' },
-  { ticker: 'SYK', name: 'Stryker' },
-  { ticker: 'DHR', name: 'Danaher' },
-  { ticker: 'PGR', name: 'Progressive' },
-  { ticker: 'PFE', name: 'Pfizer' },
-  { ticker: 'KKR', name: 'KKR' },
-  { ticker: 'TJX', name: 'TJX Companies' },
-  { ticker: 'LOW', name: "Lowe's" },
-  { ticker: 'UNP', name: 'Union Pacific' },
-  { ticker: 'CMCSA', name: 'Comcast' },
-  { ticker: 'ETN', name: 'Eaton' },
-  { ticker: 'COF', name: 'Capital One' },
-  { ticker: 'ADP', name: 'ADP' },
-  { ticker: 'BSX', name: 'Boston Scientific' },
-  { ticker: 'VRTX', name: 'Vertex Pharma' },
-  { ticker: 'MU', name: 'Micron' },
-  { ticker: 'PANW', name: 'Palo Alto Networks' },
-  { ticker: 'CB', name: 'Chubb' },
-  { ticker: 'ADI', name: 'Analog Devices' },
-  { ticker: 'AMAT', name: 'Applied Materials' },
-  { ticker: 'KLAC', name: 'KLA' },
-  { ticker: 'LRCX', name: 'Lam Research' },
-  { ticker: 'MDT', name: 'Medtronic' },
-  { ticker: 'CRWD', name: 'CrowdStrike' },
-  { ticker: 'DE', name: 'Deere' },
-  { ticker: 'PLD', name: 'Prologis' },
-  { ticker: 'SBUX', name: 'Starbucks' },
-  { ticker: 'INTC', name: 'Intel' },
-  { ticker: 'CME', name: 'CME Group' },
-  { ticker: 'MO', name: 'Altria' },
-  { ticker: 'GEV', name: 'GE Vernova' },
-];
+interface UniverseItem {
+  ticker: string;
+  name: string;
+}
 
-const DEFAULT_SELECTED = ['NVDA', 'GOOGL', 'META', 'AMZN', 'MSFT'];
-
-function CompanyDropdown({
+// Picker to add a company to the correlation list. Searches the shared universe;
+// if the query isn't a known ticker, offers to add it as a new symbol (which the
+// backend validates and folds into the universe permanently).
+function CompanyAdder({
+  universe,
   selected,
-  onToggle,
+  onAdd,
+  adding,
 }: {
+  universe: UniverseItem[];
   selected: string[];
-  onToggle: (ticker: string) => void;
+  onAdd: (ticker: string) => void;
+  adding: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -129,27 +38,38 @@ function CompanyDropdown({
     return () => document.removeEventListener('mousedown', onClick);
   }, [open]);
 
-  const label =
-    selected.length === 0
-      ? 'Select companies'
-      : `${selected.length} compan${selected.length === 1 ? 'y' : 'ies'} selected`;
-
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
   const q = query.trim().toLowerCase();
-  const filtered = q
-    ? UNIVERSE.filter(
+  const filtered = (q
+    ? universe.filter(
         ({ ticker, name }) =>
           ticker.toLowerCase().includes(q) || name.toLowerCase().includes(q),
       )
-    : UNIVERSE;
+    : universe
+  ).filter(({ ticker }) => !selectedSet.has(ticker));
+
+  // Offer to add a free-typed symbol when it isn't already an exact known ticker.
+  const upper = query.trim().toUpperCase();
+  const canAddNew =
+    upper.length > 0 &&
+    !universe.some((u) => u.ticker === upper) &&
+    !selectedSet.has(upper);
+
+  const add = (ticker: string) => {
+    onAdd(ticker);
+    setQuery('');
+    setOpen(false);
+  };
 
   return (
     <div ref={ref} className="relative w-full max-w-sm">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-3 text-left transition-colors hover:border-emerald-500"
+        disabled={adding}
+        className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-3 text-left transition-colors hover:border-emerald-500 disabled:opacity-60"
       >
-        <span className="text-slate-100">{label}</span>
+        <span className="text-slate-100">{adding ? 'Adding…' : 'Add a company'}</span>
         <ChevronDown
           className={`h-5 w-5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
         />
@@ -162,47 +82,85 @@ function CompanyDropdown({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher une entreprise..."
+            placeholder="Search a company or ticker…"
             className="m-2 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
           />
           <div className="overflow-auto pb-1">
-            {filtered.length === 0 && (
-              <p className="px-4 py-3 text-sm text-slate-500">Aucun résultat.</p>
+            {canAddNew && (
+              <button
+                type="button"
+                onClick={() => add(upper)}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-700/60"
+              >
+                <Plus className="h-4 w-4 text-emerald-400" />
+                <span className="font-medium text-slate-100">Add “{upper}”</span>
+                <span className="ml-auto text-sm text-slate-500">new ticker</span>
+              </button>
             )}
-            {filtered.map(({ ticker, name }) => {
-              const checked = selected.includes(ticker);
-              return (
+            {filtered.length === 0 && !canAddNew && (
+              <p className="px-4 py-3 text-sm text-slate-500">No match.</p>
+            )}
+            {filtered.map(({ ticker, name }) => (
               <button
                 key={ticker}
                 type="button"
-                onClick={() => onToggle(ticker)}
+                onClick={() => add(ticker)}
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-700/60"
               >
-                <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
-                    checked ? 'border-emerald-500 bg-emerald-500' : 'border-slate-600'
-                  }`}
-                >
-                  {checked && (
-                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-slate-900" fill="none">
-                      <path
-                        d="M3.5 8.5l3 3 6-6"
-                        stroke="currentColor"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </span>
                 <span className="font-medium text-slate-100">{name}</span>
                 <span className="ml-auto text-sm text-slate-500">{ticker}</span>
               </button>
-              );
-            })}
+            ))}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// The selected companies as chips. Holdings are pinned (they come from the
+// portfolio and can't be removed here); extras carry a remove button.
+function SelectionChips({
+  selected,
+  ownedSet,
+  nameOf,
+  onRemove,
+}: {
+  selected: string[];
+  ownedSet: Set<string>;
+  nameOf: (ticker: string) => string;
+  onRemove: (ticker: string) => void;
+}) {
+  if (selected.length === 0) return null;
+  return (
+    <div className="flex w-full flex-wrap justify-center gap-2">
+      {selected.map((ticker) => {
+        const owned = ownedSet.has(ticker);
+        return (
+          <span
+            key={ticker}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 py-1 pl-2.5 pr-1 text-sm text-slate-200"
+            title={nameOf(ticker)}
+          >
+            {owned ? (
+              <Lock className="h-3 w-3 text-slate-500" />
+            ) : null}
+            <span className="font-medium">{ticker}</span>
+            {owned ? (
+              <span className="px-1 text-xs text-slate-500">holding</span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onRemove(ticker)}
+                aria-label={`Remove ${ticker}`}
+                className="ml-0.5 rounded p-0.5 text-slate-500 transition-colors hover:bg-slate-700 hover:text-rose-400"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -249,22 +207,49 @@ function CorrelationMatrix({ data }: { data: CorrelationResponse }) {
   );
 }
 
-// "Data" — Pearson correlation matrix of daily returns for a chosen subset of
-// the largest US companies.
+// "Data" — Pearson correlation matrix of daily returns. Each user's list defaults
+// to their portfolio holdings and can be extended with extra companies; adding a
+// holding to the portfolio adds it here automatically (but not the other way).
 export function DataPanel() {
-  const [selected, setSelected] = useState<string[]>(DEFAULT_SELECTED);
+  const [universe, setUniverse] = useState<UniverseItem[]>([]);
+  const [owned, setOwned] = useState<string[]>([]);
+  const [extras, setExtras] = useState<string[]>([]);
   const [data, setData] = useState<CorrelationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = 'Investing — LUMNA';
   }, []);
 
-  const toggle = (ticker: string) =>
-    setSelected((prev) =>
-      prev.includes(ticker) ? prev.filter((t) => t !== ticker) : [...prev, ticker],
-    );
+  // Load the shared universe, the user's holdings, and their saved extras.
+  useEffect(() => {
+    axios
+      .get<{ tickers: UniverseItem[] }>('/api/investing/universe')
+      .then((r) => setUniverse(r.data.tickers ?? []))
+      .catch(() => undefined);
+    axios
+      .get<{ transactions: Transaction[] }>('/api/investing/transactions')
+      .then((r) => setOwned([...ownedTickers(r.data.transactions ?? [])]))
+      .catch(() => undefined);
+    axios
+      .get<{ tickers: string[] }>('/api/investing/correlation/extras')
+      .then((r) => setExtras(r.data.tickers ?? []))
+      .catch(() => undefined);
+  }, []);
+
+  // The correlation list: holdings plus extras, de-duplicated.
+  const selected = useMemo(() => [...new Set([...owned, ...extras])], [owned, extras]);
+  const ownedSet = useMemo(() => new Set(owned), [owned]);
+  const nameByTicker = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const u of universe) m.set(u.ticker, u.name);
+    return m;
+  }, [universe]);
+  const nameOf = (ticker: string) =>
+    nameByTicker.get(ticker) ?? data?.names?.[ticker] ?? ticker;
 
   const tickerKey = useMemo(() => [...selected].sort().join(','), [selected]);
 
@@ -299,6 +284,39 @@ export function DataPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickerKey]);
 
+  const addTicker = async (ticker: string) => {
+    const t = ticker.trim().toUpperCase();
+    if (!t || selected.includes(t)) return;
+    setAdding(true);
+    setAddError(null);
+    try {
+      const r = await axios.post<{ ticker: string; name: string }>(
+        '/api/investing/correlation/extras',
+        { ticker: t },
+      );
+      setExtras((prev) => (prev.includes(r.data.ticker) ? prev : [...prev, r.data.ticker]));
+      setUniverse((prev) =>
+        prev.some((u) => u.ticker === r.data.ticker)
+          ? prev
+          : [...prev, { ticker: r.data.ticker, name: r.data.name }],
+      );
+    } catch (err) {
+      const e = err as { response?: { data?: { error?: string } } };
+      setAddError(e?.response?.data?.error ?? 'Could not add that ticker.');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const removeExtra = async (ticker: string) => {
+    setExtras((prev) => prev.filter((t) => t !== ticker)); // optimistic
+    try {
+      await axios.delete(`/api/investing/correlation/extras/${encodeURIComponent(ticker)}`);
+    } catch {
+      // best-effort; a reload will resync if it failed
+    }
+  };
+
   const avg = useMemo(() => (data ? averageCorrelation(data.matrix) : null), [data]);
 
   return (
@@ -309,15 +327,30 @@ export function DataPanel() {
         </div>
         <p className="mb-8 flex items-center gap-2 text-slate-400">
           <TrendingUp className="h-4 w-4 text-emerald-400" />
-          Daily-return correlation of the largest US companies
+          Daily-return correlation of your holdings
         </p>
 
-        <div className="mb-8 flex w-full flex-col items-center">
-          <CompanyDropdown selected={selected} onToggle={toggle} />
+        <div className="mb-6 flex w-full flex-col items-center gap-4">
+          <CompanyAdder
+            universe={universe}
+            selected={selected}
+            onAdd={addTicker}
+            adding={adding}
+          />
+          {addError && <p className="text-sm text-rose-400">{addError}</p>}
+          <SelectionChips
+            selected={selected}
+            ownedSet={ownedSet}
+            nameOf={nameOf}
+            onRemove={removeExtra}
+          />
         </div>
 
         {selected.length < 2 && (
-          <p className="text-slate-500">Select at least two companies to compare.</p>
+          <p className="text-slate-500">
+            Add at least two companies to compare. Your portfolio holdings show up here
+            automatically.
+          </p>
         )}
 
         {loading && (

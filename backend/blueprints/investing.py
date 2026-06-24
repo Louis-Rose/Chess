@@ -1,18 +1,20 @@
 """Investing sub-app.
 
-The correlation endpoint is public. The transactions endpoint is gated behind
-the main Google-auth session and scoped to the logged-in user, so each person
-only ever sees their own portfolio history.
+Every endpoint is gated behind the main Google-auth session and scoped to the
+logged-in user, so each person only ever sees their own portfolio and their own
+correlation selection.
 
-Computes a Pearson correlation matrix of daily returns for a chosen subset of
-the largest US-listed companies, using adjusted close prices from Yahoo Finance.
+The correlation tool computes a Pearson correlation matrix of daily returns,
+using adjusted close prices from Yahoo Finance. We correlate daily returns (pct
+change), never raw prices: price levels trend together over time and would show
+spurious correlation.
 
-We correlate daily returns (pct change), never raw prices: price levels trend
-together over time and would show spurious correlation. Tickers are restricted
-to a fixed allowlist (UNIVERSE) so the public endpoint can't be used to hammer
-Yahoo with arbitrary symbols. The whole universe's returns are downloaded once
-into a disk-backed cache (warmed at startup, refreshed in the background past
-its TTL); each request just slices the columns it needs.
+The set of known tickers (the "universe") is a shared, growable table seeded
+from _SEED_UNIVERSE: whenever any user demands a ticker we don't know yet, we
+fetch it on demand and add it to the universe permanently, so it becomes
+available to everyone. The whole universe's returns are downloaded into a
+disk-backed cache (warmed at startup, refreshed in the background past its TTL);
+each request slices the columns it needs and fetches anything still missing.
 """
 
 import logging
@@ -32,9 +34,10 @@ logger = logging.getLogger(__name__)
 
 investing_bp = Blueprint('investing', __name__)
 
-# The ~100 largest S&P 500 companies by market cap. Keep in sync with the
-# frontend dropdown (UNIVERSE in InvestingApp.tsx).
-UNIVERSE = {
+# Seed for the shared ticker universe (the ~100 largest S&P 500 companies by
+# market cap). Loaded into the correlation_universe table on first use; the live
+# universe grows from there as users demand new tickers, so this is only a seed.
+_SEED_UNIVERSE = {
     'NVDA': 'Nvidia',
     'AAPL': 'Apple',
     'MSFT': 'Microsoft',
@@ -135,6 +138,49 @@ UNIVERSE = {
     'GEV': 'GE Vernova',
 }
 
+# Live, shared ticker universe (correlation_universe table), cached in memory.
+# Seeded from _SEED_UNIVERSE on first use, then grows as users demand tickers.
+_universe_cache = {'data': None}   # {ticker: name}
+_universe_lock = threading.Lock()
+
+
+def _seed_universe(conn):
+    for ticker, name in _SEED_UNIVERSE.items():
+        conn.execute(
+            "INSERT INTO correlation_universe (ticker, name) VALUES (?, ?) "
+            "ON CONFLICT (ticker) DO NOTHING",
+            (ticker, name),
+        )
+
+
+def _universe():
+    """The live {ticker: name} universe, seeded on first use and cached."""
+    if _universe_cache['data'] is not None:
+        return _universe_cache['data']
+    with _universe_lock:
+        if _universe_cache['data'] is not None:
+            return _universe_cache['data']
+        with get_db() as conn:
+            rows = conn.execute("SELECT ticker, name FROM correlation_universe").fetchall()
+            if not rows:
+                _seed_universe(conn)
+                rows = conn.execute("SELECT ticker, name FROM correlation_universe").fetchall()
+        _universe_cache['data'] = {r['ticker']: r['name'] for r in rows}
+    return _universe_cache['data']
+
+
+def _add_to_universe(ticker, name):
+    """Add a ticker to the shared universe permanently (idempotent) and drop the
+    in-memory cache so the next read picks it up."""
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO correlation_universe (ticker, name) VALUES (?, ?) "
+            "ON CONFLICT (ticker) DO NOTHING",
+            (ticker, name),
+        )
+    _universe_cache['data'] = None
+
+
 _START = '2023-01-01'
 _CACHE_TTL = 12 * 3600  # 12h — daily closes only change once a day
 _CACHE_FILE = os.path.join(tempfile.gettempdir(), 'lumna_investing_returns.pkl')
@@ -155,11 +201,82 @@ def _download_returns():
     end = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     # auto_adjust=True returns split/dividend-adjusted prices in the 'Close'
     # field (the modern equivalent of the old 'Adj Close').
-    raw = yf.download(list(UNIVERSE), start=_START, end=end,
+    raw = yf.download(list(_universe()), start=_START, end=end,
                       auto_adjust=True, progress=False)['Close']
     # fill_method=None: don't forward-fill missing prices before differencing
     # (pandas' deprecated default), so gaps stay NA instead of faking 0% returns.
     return raw.pct_change(fill_method=None).dropna(how='all')
+
+
+def _download_returns_for(tickers):
+    """Daily-return frame for an arbitrary list of tickers, fetched directly.
+    Used for tickers not yet in the warm universe cache. Returns None on failure
+    or an empty input."""
+    import pandas as pd
+    import yfinance as yf
+
+    if not tickers:
+        return None
+    end = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    raw = yf.download(tickers, start=_START, end=end,
+                      auto_adjust=True, progress=False)['Close']
+    # yfinance returns a Series (not a frame) for a single ticker.
+    if isinstance(raw, pd.Series):
+        raw = raw.to_frame(tickers[0])
+    return raw.pct_change(fill_method=None).dropna(how='all')
+
+
+def _returns_for(tickers):
+    """Daily-return DataFrame covering `tickers`: served from the warm universe
+    cache where possible, fetching anything still missing on demand."""
+    import pandas as pd
+
+    base = _load_returns()
+    base_cols = set(getattr(base, 'columns', []))
+    frames = {}
+    missing = []
+    for t in tickers:
+        if t in base_cols:
+            frames[t] = base[t]
+        else:
+            missing.append(t)
+    if missing:
+        try:
+            fetched = _download_returns_for(missing)
+        except Exception as e:
+            logger.warning('on-demand returns fetch failed for %s: %s', missing, e)
+            fetched = None
+        if fetched is not None:
+            for t in missing:
+                if t in fetched.columns:
+                    frames[t] = fetched[t]
+    if not frames:
+        return pd.DataFrame()
+    return pd.DataFrame(frames)
+
+
+def _resolve_ticker(ticker):
+    """Validate a ticker on Yahoo and resolve a display name. Returns
+    (name, ok): ok is False if the symbol has no usable price history."""
+    import yfinance as yf
+
+    t = ticker.strip().upper()
+    if not t:
+        return (None, False)
+    try:
+        closes = yf.download(t, start=_START, auto_adjust=True, progress=False)['Close']
+    except Exception as e:
+        logger.warning('ticker validation download failed for %s: %s', t, e)
+        return (None, False)
+    if closes is None or len(closes.dropna()) < 2:
+        return (None, False)
+    name = t
+    try:
+        info = yf.Ticker(t).info
+        name = info.get('shortName') or info.get('longName') or t
+    except Exception:
+        name = t
+    return (name, True)
 
 
 def _store(returns, ts):
@@ -354,22 +471,33 @@ def history():
 
 
 @investing_bp.route('/api/investing/correlation', methods=['GET'])
+@login_required
 def correlation():
     """Pearson correlation matrix of daily returns for the requested tickers
-    (comma-separated `tickers`, restricted to UNIVERSE). Needs at least two."""
+    (comma-separated `tickers`). Needs at least two. Any requested ticker we
+    don't know yet is added to the shared universe so it's known from now on."""
     raw = request.args.get('tickers', '')
     requested = [t.strip().upper() for t in raw.split(',') if t.strip()]
-    # Keep only known tickers, de-duplicated, preserving the requested order.
+    # De-duplicate, preserving the requested order.
     seen = set()
-    tickers = [t for t in requested
-               if t in UNIVERSE and not (t in seen or seen.add(t))]
+    tickers = [t for t in requested if not (t in seen or seen.add(t))]
     if len(tickers) < 2:
         return jsonify({'error': 'Select at least two companies.'}), 400
 
+    # Grow the shared universe with any demanded ticker we don't know yet
+    # (name = symbol for now; explicit adds via /extras resolve a real name).
+    universe = _universe()
+    new_tickers = [t for t in tickers if t not in universe]
+    if new_tickers:
+        for t in new_tickers:
+            _add_to_universe(t, t)
+        universe = _universe()
+        _refresh_async()  # fold the new tickers into the shared returns cache
+
     try:
-        returns = _load_returns()
+        returns = _returns_for(tickers)
     except Exception as e:
-        logger.warning('yfinance download failed: %s', e)
+        logger.warning('returns load failed: %s', e)
         return jsonify({'error': 'Could not fetch market data.'}), 502
 
     # Drop any ticker Yahoo returned no data for (column absent from the frame).
@@ -392,13 +520,75 @@ def correlation():
 
     return jsonify({
         'tickers': tickers,
-        'names': {t: UNIVERSE[t] for t in tickers},
+        'names': {t: universe.get(t, t) for t in tickers},
         'matrix': matrix,
         'volatilities': volatilities,
         'avg_volatility': avg_volatility,
         'start': _START,
         'observations': int(len(sub)),
     })
+
+
+@investing_bp.route('/api/investing/universe', methods=['GET'])
+@login_required
+def universe():
+    """The shared, growable ticker universe as [{ticker, name}], for the picker."""
+    u = _universe()
+    items = [{'ticker': t, 'name': n} for t, n in sorted(u.items())]
+    return jsonify({'tickers': items})
+
+
+@investing_bp.route('/api/investing/correlation/extras', methods=['GET'])
+@login_required
+def get_correlation_extras():
+    """The current user's extra tickers (beyond their portfolio holdings)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT ticker FROM correlation_extra_tickers WHERE user_id = ? ORDER BY ticker",
+            (request.user_id,),
+        ).fetchall()
+    return jsonify({'tickers': [r['ticker'] for r in rows]})
+
+
+@investing_bp.route('/api/investing/correlation/extras', methods=['POST'])
+@login_required
+def add_correlation_extra():
+    """Add a ticker to the user's correlation selection. Validates it on Yahoo,
+    adds it to the shared universe permanently, and stores it for this user.
+    Does NOT touch the portfolio."""
+    data = request.get_json(silent=True) or {}
+    ticker = (data.get('ticker') or '').strip().upper()
+    if not ticker:
+        return jsonify({'error': 'empty ticker'}), 400
+
+    universe = _universe()
+    name = universe.get(ticker)
+    if name is None:
+        name, ok = _resolve_ticker(ticker)
+        if not ok:
+            return jsonify({'error': f'Unknown or untradable ticker: {ticker}'}), 400
+        _add_to_universe(ticker, name)
+        _refresh_async()  # fold the new ticker into the shared returns cache
+
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO correlation_extra_tickers (user_id, ticker) VALUES (?, ?) "
+            "ON CONFLICT (user_id, ticker) DO NOTHING",
+            (request.user_id, ticker),
+        )
+    return jsonify({'ticker': ticker, 'name': name})
+
+
+@investing_bp.route('/api/investing/correlation/extras/<ticker>', methods=['DELETE'])
+@login_required
+def remove_correlation_extra(ticker):
+    """Remove a ticker from the user's extras. The shared universe keeps it."""
+    with get_db() as conn:
+        conn.execute(
+            "DELETE FROM correlation_extra_tickers WHERE user_id = ? AND ticker = ?",
+            (request.user_id, ticker.strip().upper()),
+        )
+    return jsonify({'ok': True})
 
 
 @investing_bp.route('/api/investing/transactions', methods=['GET'])
@@ -515,6 +705,16 @@ def add_transaction():
              transaction_date, transaction_time, price_per_share, currency)
         ).fetchone()['id']
         row = _fetch_transaction(conn, new_id, request.user_id)
+
+    # Adding a holding makes the ticker "demanded": fold it into the shared
+    # correlation universe so it shows in this user's matrix by default. Best
+    # effort, name = symbol; correlation validates/fetches it on first use.
+    try:
+        if ticker not in _universe():
+            _add_to_universe(ticker, ticker)
+            _refresh_async()
+    except Exception as e:
+        logger.warning('universe add for %s failed: %s', ticker, e)
 
     return jsonify({'transaction': _serialize_transaction(row)}), 201
 

@@ -334,6 +334,22 @@ CREATE TABLE IF NOT EXISTS workblock_items (
 );
 CREATE INDEX IF NOT EXISTS idx_workblock_items_user ON workblock_items(user_id);
 
+-- Correlation tool: a shared, growable universe of tickers (seeded in code from
+-- investing.py _SEED_UNIVERSE) plus each user's extra tickers beyond their
+-- portfolio holdings. A user's correlation list = their holdings + their extras.
+CREATE TABLE IF NOT EXISTS correlation_universe (
+    ticker   TEXT PRIMARY KEY,
+    name     TEXT NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS correlation_extra_tickers (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    ticker     TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, ticker)
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_music_plays_played_at ON music_plays(played_at);
 CREATE INDEX IF NOT EXISTS idx_music_plays_track ON music_plays(track_id);

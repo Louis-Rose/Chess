@@ -1281,3 +1281,27 @@ def init_db():
                     "CREATE INDEX IF NOT EXISTS idx_workblock_items_user ON workblock_items(user_id)"
                 )
                 logger.info("Made workblock_items per-user")
+
+        # Migration: correlation tool — shared growable ticker universe + each
+        # user's extra tickers (beyond portfolio holdings). The universe is
+        # seeded from investing.py's _SEED_UNIVERSE on first use, not here.
+        if not _table_exists(conn, 'correlation_universe'):
+            conn.execute("""
+                CREATE TABLE correlation_universe (
+                    ticker   TEXT PRIMARY KEY,
+                    name     TEXT NOT NULL,
+                    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            logger.info("Created correlation_universe table")
+
+        if not _table_exists(conn, 'correlation_extra_tickers'):
+            conn.execute("""
+                CREATE TABLE correlation_extra_tickers (
+                    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    ticker     TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, ticker)
+                )
+            """)
+            logger.info("Created correlation_extra_tickers table")
