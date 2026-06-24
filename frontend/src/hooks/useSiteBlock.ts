@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { focusHeaders } from '../apps/focus/focusToken';
+import { notifyExtensionSync } from '../apps/focus/extensionBridge';
 
 export interface BlockItem {
   id: number;
@@ -44,6 +45,7 @@ export function useSiteBlock() {
         { headers: focusHeaders() },
       );
       setBlocking(r.data.blocking);
+      notifyExtensionSync(); // apply on/off in the extension immediately
     } catch {
       setBlocking(!next); // revert on failure
     } finally {
@@ -61,12 +63,14 @@ export function useSiteBlock() {
     );
     // Replace any existing entry with the same id (server dedupes), else append.
     setItems((prev) => (prev.some((i) => i.id === r.data.id) ? prev : [...prev, r.data]));
+    notifyExtensionSync(); // pick up the new site in the extension immediately
   };
 
   const removeItem = async (id: number) => {
     setItems((prev) => prev.filter((i) => i.id !== id)); // optimistic
     try {
       await axios.delete(`/api/workblock/items/${id}`, { headers: focusHeaders() });
+      notifyExtensionSync();
     } catch {
       // best-effort; a reload will resync if it failed
     }

@@ -76,3 +76,8 @@ chrome.alarms.onAlarm.addListener((a) => {
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.token || changes.apiBase) sync();
 });
+// Instant sync: the lumna.co content script relays a "sync" the moment the user
+// toggles blocking on the Focus page, so off/on take effect without the poll.
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg && msg.type === 'sync') sync();
+});

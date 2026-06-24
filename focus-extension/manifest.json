@@ -1,11 +1,18 @@
 {
   "manifest_version": 3,
   "name": "LUMNA Focus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Blocks the sites on your LUMNA Focus list while focus mode is on.",
   "permissions": ["declarativeNetRequest", "storage", "alarms"],
   "host_permissions": ["*://*/*"],
   "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://lumna.co/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_title": "LUMNA Focus"
