@@ -18,7 +18,10 @@ the refresh token on every page load. All endpoints are owner-gated.
 """
 
 import logging
+import threading
+import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
 from flask import Blueprint, jsonify, request
@@ -38,6 +41,18 @@ CLIENT_ID = 'grX5jWGWWQ4Uq91oe7KPNDZ96FS3jr0X'
 
 # Refresh a little early so a request never races the expiry boundary.
 _EXPIRY_MARGIN = timedelta(seconds=120)
+
+# An "MPP day" runs 04:00 -> 04:00 US Eastern. The 2026 World Cup is played in
+# the US/Canada/Mexico and late kickoffs can finish around 01:00 ET, so cutting
+# at 04:00 ET keeps each day's matches on the day they were played. ZoneInfo
+# handles the EST/EDT switch automatically.
+_EASTERN = ZoneInfo('America/New_York')
+_DAY_CUTOFF_HOURS = 4
+
+
+def _mpp_day():
+    """Today's MPP day as a date, cut at 04:00 US Eastern."""
+    return (datetime.now(_EASTERN) - timedelta(hours=_DAY_CUTOFF_HOURS)).date()
 
 
 # ── Token plumbing ───────────────────────────────────────────────────────────
@@ -215,8 +230,9 @@ def _load_standings(token, challenge_id):
 
 
 def _snapshot_standings(user_id, challenge_id, result):
-    """Record today's points/rank per player (one row per player per day) and
-    remember the owner's own MPP user id for later highlighting."""
+    """Record today's points/rank per player (one row per player per MPP day)
+    and remember the owner's own MPP user id for later highlighting."""
+    day = _mpp_day()
     with get_db() as conn:
         if result['me_user_id']:
             conn.execute('UPDATE mpp_account SET mpp_user_id = ? WHERE user_id = ?',
@@ -227,12 +243,12 @@ def _snapshot_standings(user_id, challenge_id, result):
             conn.execute(
                 """INSERT INTO mpp_standings_history
                        (challenge_id, user_id, snapshot_date, username, points, rank)
-                   VALUES (?, ?, CURRENT_DATE, ?, ?, ?)
+                   VALUES (?, ?, ?, ?, ?, ?)
                    ON CONFLICT (challenge_id, user_id, snapshot_date)
                    DO UPDATE SET username = EXCLUDED.username,
                                  points = EXCLUDED.points,
                                  rank = EXCLUDED.rank""",
-                (challenge_id, s['user_id'], s['username'], s['points'], s['rank']),
+                (challenge_id, s['user_id'], day, s['username'], s['points'], s['rank']),
             )
 
 
@@ -275,8 +291,8 @@ def mpp_history():
         token = _get_access_token(conn, user_id)
         has_today = conn.execute(
             "SELECT 1 FROM mpp_standings_history "
-            "WHERE challenge_id = ? AND snapshot_date = CURRENT_DATE LIMIT 1",
-            (challenge_id,),
+            "WHERE challenge_id = ? AND snapshot_date = ? LIMIT 1",
+            (challenge_id, _mpp_day()),
         ).fetchone()
         mpp_user_id = (conn.execute(
             'SELECT mpp_user_id FROM mpp_account WHERE user_id = ?', (user_id,)
@@ -363,3 +379,58 @@ def _normalize_standing(s):
         'good': r.get('goodForecasts'),
         'exact': r.get('exactForecasts'),
     }
+
+
+# ── Daily snapshot scheduler ─────────────────────────────────────────────────
+# MPP has no historical-standings endpoint, so a point only exists for a day if
+# we recorded it. This in-process scheduler snapshots every connected account's
+# leagues hourly, so each MPP day gets its final standings near the 04:00 ET cut
+# even on days the page isn't opened. Writes are idempotent (upsert keyed by the
+# MPP day), so running across multiple gunicorn workers is harmless.
+
+def _fetch_contest_ids(token):
+    """Challenge ids for the account, from /user-contests."""
+    resp = _api_get(token, '/user-contests')
+    if resp.status_code != 200:
+        return []
+    cards = (resp.json() or {}).get('contestsCards') or []
+    return [c.get('contestId') for c in cards if c.get('contestId')]
+
+
+def run_snapshot_cycle():
+    """Snapshot every connected account's leagues. Safe to call repeatedly."""
+    with get_db() as conn:
+        accounts = [row['user_id'] for row in
+                    conn.execute('SELECT user_id FROM mpp_account').fetchall()]
+
+    for uid in accounts:
+        try:
+            with get_db() as conn:
+                token = _get_access_token(conn, uid)
+            if not token:
+                continue
+            for challenge_id in _fetch_contest_ids(token):
+                result, _ = _load_standings(token, challenge_id)
+                if result is not None:
+                    _snapshot_standings(uid, challenge_id, result)
+        except Exception:
+            logger.exception('MPP snapshot cycle failed for user %s', uid)
+
+
+def _scheduler_loop(interval_seconds):
+    while True:
+        try:
+            run_snapshot_cycle()
+        except Exception:
+            logger.exception('MPP scheduler tick failed')
+        time.sleep(interval_seconds)
+
+
+def start_scheduler(interval_seconds=3600):
+    """Launch the snapshot loop on a daemon thread (call once at startup)."""
+    thread = threading.Thread(
+        target=_scheduler_loop, args=(interval_seconds,),
+        name='mpp-snapshot', daemon=True,
+    )
+    thread.start()
+    logger.info('MPP snapshot scheduler started (every %ss)', interval_seconds)

@@ -59,6 +59,12 @@ app.register_blueprint(workblock_bp)
 app.register_blueprint(notice_bp)
 app.register_blueprint(mpp_bp)
 
+# Background daily snapshot of MPP standings (production only; the dev server's
+# auto-reloader would otherwise start a duplicate thread).
+if os.environ.get('FLASK_ENV') == 'prod':
+    from blueprints.mpp import start_scheduler
+    start_scheduler()
+
 migrate_upload_filenames()
 
 
