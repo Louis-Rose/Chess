@@ -43,14 +43,25 @@ _ANON_SCOPE = ('workblock_anon_state', 'workblock_anon_items', 'token')
 
 def _scope():
     """Resolve the storage scope for this request, or None if anonymous with no
-    token. Requires @login_optional to have set request.user_id."""
+    token. Requires @login_optional to have set request.user_id.
+
+    The X-Focus-Token header may be either a logged-in user's server token (the
+    one the browser extension holds, which maps to their account) or an
+    anonymous browser token (its own list). This lets the extension popup read
+    and edit the same list it enforces, using just its token."""
     user_id = getattr(request, 'user_id', None)
     if user_id is not None:
         return (*_USER_SCOPE, user_id)
     token = (request.headers.get('X-Focus-Token') or '').strip()
-    if token:
-        return (*_ANON_SCOPE, token)
-    return None
+    if not token:
+        return None
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT user_id FROM workblock_tokens WHERE token = ?", (token,)
+        ).fetchone()
+    if row:
+        return (*_USER_SCOPE, row['user_id'])
+    return (*_ANON_SCOPE, token)
 
 
 def _read_blocking(conn, state_table, key_col, key) -> bool:
