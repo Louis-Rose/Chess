@@ -1,18 +1,8 @@
 // Talks to the LUMNA Focus browser extension's content script (injected on
-// lumna.co) over window.postMessage. Used to (1) tell the extension to re-sync
-// the instant blocking is toggled, and (2) detect that it's installed.
+// lumna.co) over window.postMessage. Used to detect that it's installed (drives
+// the "Connected" badge); blocking itself is managed in the extension.
 const PAGE_SOURCE = 'lumna-focus';
 const EXT_SOURCE = 'lumna-focus-ext';
-
-// Ask the extension to re-pull the block list now, so a toggle takes effect
-// immediately instead of waiting for its ~60s poll. No-op if not installed.
-export function notifyExtensionSync(): void {
-  try {
-    window.postMessage({ source: PAGE_SOURCE, type: 'sync' }, window.location.origin);
-  } catch {
-    // ignore
-  }
-}
 
 // Resolve true if the extension's content script answers a ping within the
 // timeout. The content script also announces itself on load, so callers should
