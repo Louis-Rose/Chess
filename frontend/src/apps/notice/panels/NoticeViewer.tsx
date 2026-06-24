@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, Loader2, Upload } from 'lucide-react';
 import { PdfViewer } from '../PdfViewer';
+import { PageQA } from '../PageQA';
 import { getFile, type NoticeFile } from '../noticeStore';
 import { useNoticeFiles } from '../useNoticeFiles';
 
@@ -18,6 +19,8 @@ export function NoticeViewer() {
   const [dragging, setDragging] = useState(false);
   const [rejected, setRejected] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Getter handed up by PdfViewer; returns the current page as a PNG data URL.
+  const getPageImage = useRef<(() => string | null) | null>(null);
 
   // Load the selected document from IndexedDB when the id changes.
   useEffect(() => {
@@ -112,7 +115,14 @@ export function NoticeViewer() {
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : current ? (
-          <PdfViewer key={current.id} file={current.data} name={current.name} />
+          <PdfViewer
+            key={current.id}
+            file={current.data}
+            name={current.name}
+            onPageImage={(fn) => {
+              getPageImage.current = fn;
+            }}
+          />
         ) : id ? (
           <button
             type="button"
@@ -152,6 +162,9 @@ export function NoticeViewer() {
           </div>
         )}
       </div>
+
+      {/* Ask Gemini about the page currently shown */}
+      {current && <PageQA getPageImage={() => getPageImage.current?.() ?? null} />}
     </div>
   );
 }
