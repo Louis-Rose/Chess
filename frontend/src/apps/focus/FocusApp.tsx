@@ -76,7 +76,7 @@ function FocusPanel() {
         onRemove={removeItem}
       />
       <BlockList
-        title="Apps"
+        title="Mac apps"
         kind="app"
         placeholder="e.g. WhatsApp"
         items={apps}
