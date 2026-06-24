@@ -5,6 +5,25 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSiteBlock, type BlockItem, type BlockKind } from '../../hooks/useSiteBlock';
 import { OWNER_EMAIL } from '../../config';
 
+// macOS apps that register a URL scheme can be launched from a link. Browsers
+// can't open arbitrary native apps, so only the ones listed here are clickable.
+const APP_SCHEMES: Record<string, string> = {
+  whatsapp: 'whatsapp://',
+  messages: 'imessage://',
+  telegram: 'tg://',
+  spotify: 'spotify://',
+  slack: 'slack://',
+  discord: 'discord://',
+  notion: 'notion://',
+};
+
+// Clickable target for a chip: websites open in the browser; apps open via their
+// URL scheme when known, otherwise the chip isn't a link.
+function itemHref(i: BlockItem): string | null {
+  if (i.kind === 'site') return `https://${i.value}`;
+  return APP_SCHEMES[i.value.toLowerCase()] ?? null;
+}
+
 // Owner-only page at /focus: a big switch for blocking, plus editable lists of
 // blocked websites and macOS apps.
 export function FocusApp() {
@@ -41,7 +60,7 @@ function FocusPanel() {
         <div className="relative flex items-center justify-center gap-4">
           <div className="text-center">
             <h2 className="text-lg font-semibold">Blocking</h2>
-            <p className="mt-0.5 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-slate-400">
               {blocking ? 'On. Distracting tabs and apps are being closed.' : 'Off.'}
             </p>
           </div>
@@ -146,22 +165,26 @@ function BlockGroup({
               key={i.id}
               className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/50 py-1 pl-2.5 pr-1 text-sm text-slate-300"
             >
-              {i.kind === 'site' ? (
-                <a
-                  href={`https://${i.value}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1.5 transition-colors hover:text-emerald-400"
-                >
-                  <Ban className="h-3.5 w-3.5 text-slate-500" />
-                  {i.value}
-                </a>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  <Ban className="h-3.5 w-3.5 text-slate-500" />
-                  {i.value}
-                </span>
-              )}
+              {(() => {
+                const href = itemHref(i);
+                const inner = (
+                  <>
+                    <Ban className="h-3.5 w-3.5 text-slate-500" />
+                    {i.value}
+                  </>
+                );
+                return href ? (
+                  <a
+                    href={href}
+                    {...(i.kind === 'site' ? { target: '_blank', rel: 'noreferrer' } : {})}
+                    className="flex items-center gap-1.5 transition-colors hover:text-emerald-400"
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  <span className="flex items-center gap-1.5">{inner}</span>
+                );
+              })()}
               <button
                 type="button"
                 onClick={() => onRemove(i.id)}
