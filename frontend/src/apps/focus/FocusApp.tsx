@@ -128,8 +128,22 @@ function BlockList({
               key={i.id}
               className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-900/50 py-1 pl-2.5 pr-1 text-sm text-slate-300"
             >
-              <Ban className="h-3.5 w-3.5 text-slate-500" />
-              {i.value}
+              {i.kind === 'site' ? (
+                <a
+                  href={`https://${i.value}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 transition-colors hover:text-emerald-400"
+                >
+                  <Ban className="h-3.5 w-3.5 text-slate-500" />
+                  {i.value}
+                </a>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <Ban className="h-3.5 w-3.5 text-slate-500" />
+                  {i.value}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => onRemove(i.id)}
