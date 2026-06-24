@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { ExternalLink } from 'lucide-react';
 import { AppHeader } from '../../components/AppHeader';
 
 // Static guide at /clothing: the best colors to wear in summer. No backend.
@@ -45,6 +46,16 @@ export function ClothingApp() {
           <span className="font-semibold text-slate-200">Skip dark shades.</span> Black, navy and charcoal
           absorb heat and feel hotter in the sun.
         </p>
+
+        <a
+          href="https://www.octobre-editions.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10"
+        >
+          Shop at Octobre (Paris)
+          <ExternalLink className="h-4 w-4 text-emerald-400" />
+        </a>
       </div>
     </div>
   );
