@@ -8,6 +8,7 @@ import { MppConnect } from './MppConnect';
 import { MppLayout } from './MppLayout';
 import { MppLeaderboard } from './MppLeaderboard';
 import { MppGraph } from './MppGraph';
+import { MppDocs } from './MppDocs';
 import type { MppStatus } from './types';
 
 // Mon Petit Prono — owner-only. Gates on the owner, then either shows the
@@ -58,6 +59,7 @@ export function MppApp() {
         <Route index element={<Navigate to="leaderboard" replace />} />
         <Route path="leaderboard" element={<MppLeaderboard />} />
         <Route path="graph" element={<MppGraph />} />
+        <Route path="docs" element={<MppDocs />} />
         <Route path="*" element={<Navigate to="leaderboard" replace />} />
       </Route>
     </Routes>
