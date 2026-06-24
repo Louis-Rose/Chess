@@ -1,20 +1,22 @@
 """Work-block sub-app — the site/app-blocking switch behind Lumna's Focus app.
 
-State lives in two tables:
-  - workblock_state : one boolean (`blocking`)
-  - workblock_items : the editable block list — each row is a website ('site')
+State is per logged-in user, in two tables:
+  - workblock_state : one boolean (`blocking`) per user
+  - workblock_items : that user's block list — each row is a website ('site')
                       or a macOS app ('app').
 
-The owner flips the switch and edits the list from Lumna's Focus app; a local
-watcher on the owner's Mac polls the status endpoint and, while blocking is on,
-closes matching browser tabs and quits the listed apps.
+Any logged-in user flips their switch and edits their list from the Focus app.
+Enforcement lives outside this service: the owner runs a local Mac watcher that
+polls /status (closing matching tabs and quitting listed apps), and other users
+can run a browser extension that polls /api/workblock and blocks the sites in
+their own browser.
 
 Endpoints:
-  GET    /api/workblock              -> owner: {blocking, items:[{id,kind,value}]}
-  POST   /api/workblock              -> owner: set {blocking: bool}
-  POST   /api/workblock/items        -> owner: add {kind, value}
-  DELETE /api/workblock/items/<id>   -> owner: remove
-  GET    /api/workblock/status       -> token-gated: {blocking, sites, apps}
+  GET    /api/workblock              -> user: {blocking, items:[{id,kind,value}]}
+  POST   /api/workblock              -> user: set {blocking: bool}
+  POST   /api/workblock/items        -> user: add {kind, value}
+  DELETE /api/workblock/items/<id>   -> user: remove (only own items)
+  GET    /api/workblock/status       -> token-gated: the owner's {blocking, sites, apps}
 """
 
 import logging
@@ -23,7 +25,8 @@ import os
 from flask import Blueprint, jsonify, request
 
 from database import get_db
-from blueprints.auth_utils import owner_required
+from auth import login_required
+from blueprints.auth_utils import owner_email
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +35,17 @@ workblock_bp = Blueprint('workblock', __name__)
 VALID_KINDS = ('site', 'app')
 
 
-def _read_blocking(conn) -> bool:
-    row = conn.execute("SELECT blocking FROM workblock_state WHERE id = 1").fetchone()
+def _read_blocking(conn, user_id) -> bool:
+    row = conn.execute(
+        "SELECT blocking FROM workblock_state WHERE user_id = ?", (user_id,)
+    ).fetchone()
     return bool(row['blocking']) if row else False
 
 
-def _read_items(conn):
+def _read_items(conn, user_id):
     rows = conn.execute(
-        "SELECT id, kind, value FROM workblock_items ORDER BY kind, value"
+        "SELECT id, kind, value FROM workblock_items WHERE user_id = ? ORDER BY kind, value",
+        (user_id,),
     ).fetchall()
     return [{'id': r['id'], 'kind': r['kind'], 'value': r['value']} for r in rows]
 
@@ -57,34 +63,39 @@ def _normalize_site(value: str) -> str:
 
 
 @workblock_bp.route('/api/workblock', methods=['GET'])
-@owner_required
+@login_required
 def get_state():
+    user_id = request.user_id
     with get_db() as conn:
-        return jsonify({'blocking': _read_blocking(conn), 'items': _read_items(conn)})
+        return jsonify({
+            'blocking': _read_blocking(conn, user_id),
+            'items': _read_items(conn, user_id),
+        })
 
 
 @workblock_bp.route('/api/workblock', methods=['POST'])
-@owner_required
+@login_required
 def set_state():
+    user_id = request.user_id
     data = request.get_json(silent=True) or {}
     blocking = bool(data.get('blocking'))
     with get_db() as conn:
-        # Upsert so a missing sentinel row (e.g. after a DB reset) is created
-        # rather than silently no-op'd.
+        # Upsert so the user's row is created on first toggle.
         conn.execute(
-            """INSERT INTO workblock_state (id, blocking, updated_at)
-               VALUES (1, ?, CURRENT_TIMESTAMP)
-               ON CONFLICT (id) DO UPDATE
+            """INSERT INTO workblock_state (user_id, blocking, updated_at)
+               VALUES (?, ?, CURRENT_TIMESTAMP)
+               ON CONFLICT (user_id) DO UPDATE
                  SET blocking = EXCLUDED.blocking,
                      updated_at = EXCLUDED.updated_at""",
-            (blocking,),
+            (user_id, blocking),
         )
     return jsonify({'blocking': blocking})
 
 
 @workblock_bp.route('/api/workblock/items', methods=['POST'])
-@owner_required
+@login_required
 def add_item():
+    user_id = request.user_id
     data = request.get_json(silent=True) or {}
     kind = (data.get('kind') or '').strip().lower()
     value = (data.get('value') or '').strip()
@@ -95,35 +106,48 @@ def add_item():
         return jsonify({'error': 'empty value'}), 400
     with get_db() as conn:
         # Insert if new, else recover the existing id (the list dedupes on
-        # UNIQUE(kind, value)). RETURNING avoids a second round-trip.
+        # UNIQUE(user_id, kind, value)). RETURNING avoids a second round-trip.
         row = conn.execute(
-            """INSERT INTO workblock_items (kind, value) VALUES (?, ?)
-               ON CONFLICT (kind, value) DO UPDATE SET value = EXCLUDED.value
+            """INSERT INTO workblock_items (user_id, kind, value) VALUES (?, ?, ?)
+               ON CONFLICT (user_id, kind, value) DO UPDATE SET value = EXCLUDED.value
                RETURNING id""",
-            (kind, value),
+            (user_id, kind, value),
         ).fetchone()
         item_id = row['id']
     return jsonify({'id': item_id, 'kind': kind, 'value': value})
 
 
 @workblock_bp.route('/api/workblock/items/<int:item_id>', methods=['DELETE'])
-@owner_required
+@login_required
 def remove_item(item_id):
+    user_id = request.user_id
     with get_db() as conn:
-        conn.execute("DELETE FROM workblock_items WHERE id = ?", (item_id,))
+        conn.execute(
+            "DELETE FROM workblock_items WHERE id = ? AND user_id = ?", (item_id, user_id)
+        )
     return jsonify({'ok': True})
 
 
 @workblock_bp.route('/api/workblock/status', methods=['GET'])
 def status():
-    """Read-only state for the Mac watcher, gated by a shared token."""
+    """Read-only state for the owner's Mac watcher, gated by a shared token.
+
+    The watcher is the owner's, so this returns the owner's list specifically.
+    """
     expected = os.environ.get('WORKBLOCK_TOKEN', '').strip()
     token = (request.args.get('token') or '').strip()
     if not expected or not token or token != expected:
         return jsonify({'error': 'forbidden'}), 403
+    oe = (owner_email() or '').strip().lower()
     with get_db() as conn:
-        blocking = _read_blocking(conn)
-        items = _read_items(conn)
+        owner_row = conn.execute(
+            "SELECT id FROM users WHERE lower(email) = ?", (oe,)
+        ).fetchone() if oe else None
+        if not owner_row:
+            return jsonify({'blocking': False, 'sites': [], 'apps': []})
+        owner_id = owner_row['id']
+        blocking = _read_blocking(conn, owner_id)
+        items = _read_items(conn, owner_id)
     return jsonify({
         'blocking': blocking,
         'sites': [i['value'] for i in items if i['kind'] == 'site'],

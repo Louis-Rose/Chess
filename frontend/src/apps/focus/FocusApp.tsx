@@ -24,24 +24,24 @@ function itemHref(i: BlockItem): string | null {
   return APP_SCHEMES[i.value.toLowerCase()] ?? null;
 }
 
-// Owner-only page at /focus: a big switch for blocking, plus editable lists of
-// blocked websites and macOS apps.
+// Per-user page at /focus: a big switch for blocking, plus editable lists of
+// blocked websites and macOS apps. Each logged-in user owns their own state.
 export function FocusApp() {
   useEffect(() => {
     document.title = 'Focus | LUMNA';
   }, []);
 
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const isOwner = user?.email === OWNER_EMAIL;
 
   return (
     <SidebarLayout title="Focus">
       <div className="mx-auto max-w-xl px-4 py-6 sm:px-6 sm:py-8">
-        {isOwner ? (
-          <FocusPanel />
+        {isLoading ? null : isAuthenticated ? (
+          <FocusPanel isOwner={isOwner} />
         ) : (
           <p className="rounded-2xl border border-slate-800 bg-slate-800/40 p-8 text-center text-sm text-slate-400">
-            This is a private tool. Sign in as the owner to use it.
+            Sign in to use Focus.
           </p>
         )}
       </div>
@@ -49,7 +49,7 @@ export function FocusApp() {
   );
 }
 
-function FocusPanel() {
+function FocusPanel({ isOwner }: { isOwner: boolean }) {
   const { blocking, busy, toggle, items, addItem, removeItem } = useSiteBlock();
   const sites = items.filter((i) => i.kind === 'site');
   const apps = items.filter((i) => i.kind === 'app');
@@ -61,7 +61,11 @@ function FocusPanel() {
           <div className="text-center">
             <h2 className="text-lg font-semibold">Blocking</h2>
             <p className="mt-2 text-sm text-slate-400">
-              {blocking ? 'On. Distracting tabs and apps are being closed.' : 'Off.'}
+              {blocking
+                ? isOwner
+                  ? 'On. Distracting tabs and apps are being closed.'
+                  : 'On.'
+                : 'Off.'}
             </p>
           </div>
           <button

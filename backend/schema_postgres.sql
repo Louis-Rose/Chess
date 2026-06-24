@@ -315,27 +315,24 @@ CREATE TABLE IF NOT EXISTS music_plays (
     committed_reason  TEXT NOT NULL
 );
 
--- Focus app (workblock): single-row blocking switch + editable block list.
--- The Focus app (/focus) edits these; the local Mac watcher polls /status.
+-- Focus app (workblock): per-user blocking switch + editable block list.
+-- The Focus app (/focus) edits these. The owner's local Mac watcher polls
+-- /status for the owner's list; browser extensions poll per logged-in user.
 CREATE TABLE IF NOT EXISTS workblock_state (
-    id         INTEGER PRIMARY KEY,
+    user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     blocking   BOOLEAN NOT NULL DEFAULT FALSE,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO workblock_state (id, blocking) VALUES (1, FALSE) ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS workblock_items (
     id         SERIAL PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     kind       TEXT NOT NULL,
     value      TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (kind, value)
+    UNIQUE (user_id, kind, value)
 );
-INSERT INTO workblock_items (kind, value) VALUES
-    ('site', 'youtube.com'),
-    ('site', 'linkedin.com'),
-    ('site', 'chess.com')
-ON CONFLICT (kind, value) DO NOTHING;
+CREATE INDEX IF NOT EXISTS idx_workblock_items_user ON workblock_items(user_id);
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_music_plays_played_at ON music_plays(played_at);

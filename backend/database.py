@@ -1219,3 +1219,65 @@ def init_db():
                 WHERE a.id > b.id AND a.kind = b.kind AND lower(a.value) = lower(b.value)
             """)
             conn.execute("UPDATE workblock_items SET value = lower(value) WHERE value <> lower(value)")
+
+        # Migration: make Focus (workblock) per-user. The tables started as
+        # global singletons (state keyed on id=1, items unique on kind+value);
+        # the Focus app is now open to any logged-in user, so each owns their
+        # own switch and list. Existing global rows belong to the owner — whose
+        # local Mac watcher still polls /status for them — so backfill them to
+        # the owner's user_id before re-keying.
+        state_needs = _table_exists(conn, 'workblock_state') and not _column_exists(
+            conn, 'workblock_state', 'user_id'
+        )
+        items_needs = _table_exists(conn, 'workblock_items') and not _column_exists(
+            conn, 'workblock_items', 'user_id'
+        )
+        if state_needs or items_needs:
+            from blueprints.auth_utils import owner_email
+            oe = (owner_email() or '').strip().lower()
+            owner_row = conn.execute(
+                "SELECT id FROM users WHERE lower(email) = ?", (oe,)
+            ).fetchone() if oe else None
+            owner_id = owner_row['id'] if owner_row else None
+
+            if state_needs:
+                conn.execute(
+                    "ALTER TABLE workblock_state ADD COLUMN user_id INTEGER "
+                    "REFERENCES users(id) ON DELETE CASCADE"
+                )
+                if owner_id is not None:
+                    conn.execute(
+                        "UPDATE workblock_state SET user_id = ? WHERE user_id IS NULL",
+                        (owner_id,),
+                    )
+                # Drop any rows we couldn't attribute (e.g. owner not yet
+                # provisioned), then re-key the table on user_id.
+                conn.execute("DELETE FROM workblock_state WHERE user_id IS NULL")
+                conn.execute("ALTER TABLE workblock_state DROP CONSTRAINT workblock_state_pkey")
+                conn.execute("ALTER TABLE workblock_state DROP COLUMN id")
+                conn.execute("ALTER TABLE workblock_state ADD PRIMARY KEY (user_id)")
+                logger.info("Made workblock_state per-user")
+
+            if items_needs:
+                conn.execute(
+                    "ALTER TABLE workblock_items ADD COLUMN user_id INTEGER "
+                    "REFERENCES users(id) ON DELETE CASCADE"
+                )
+                if owner_id is not None:
+                    conn.execute(
+                        "UPDATE workblock_items SET user_id = ? WHERE user_id IS NULL",
+                        (owner_id,),
+                    )
+                conn.execute("DELETE FROM workblock_items WHERE user_id IS NULL")
+                conn.execute("ALTER TABLE workblock_items ALTER COLUMN user_id SET NOT NULL")
+                conn.execute(
+                    "ALTER TABLE workblock_items DROP CONSTRAINT IF EXISTS workblock_items_kind_value_key"
+                )
+                conn.execute(
+                    "ALTER TABLE workblock_items ADD CONSTRAINT workblock_items_user_kind_value_key "
+                    "UNIQUE (user_id, kind, value)"
+                )
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_workblock_items_user ON workblock_items(user_id)"
+                )
+                logger.info("Made workblock_items per-user")
