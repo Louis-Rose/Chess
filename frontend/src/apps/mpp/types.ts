@@ -34,3 +34,9 @@ export interface MppStandings {
   me_user_id: string | null;
   total: number | null;
 }
+
+export interface MppHistory {
+  rows: Array<{ date: string } & Record<string, number | null>>;
+  users: { id: string; name: string }[];
+  me_user_id: string | null;
+}

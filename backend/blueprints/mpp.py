@@ -191,10 +191,55 @@ def mpp_data():
     return jsonify({'contests': _normalize_contests(payload)})
 
 
+def _load_standings(token, challenge_id):
+    """Fetch the full league leaderboard, paginating until complete.
+    Returns ({standings, me_user_id, total}, 200) or (None, status_code)."""
+    standings, offset, page = [], 0, 100
+    me_user_id, total = None, None
+    for _ in range(50):  # safety cap (5000 players)
+        resp = _api_get(token, '/challenge-standings/users-standings',
+                        params={'challengeId': challenge_id, 'offset': offset, 'limit': page})
+        if resp.status_code != 200:
+            logger.warning('MPP standings failed (%s): %s', resp.status_code, resp.text[:200])
+            return None, resp.status_code
+
+        data = resp.json()
+        total = data.get('usersQuantity')
+        me_user_id = (data.get('userRanking') or {}).get('userId') or me_user_id
+        standings.extend(_normalize_standing(s) for s in data.get('standings', []))
+        if not data.get('hasNext'):
+            break
+        offset += page
+
+    return {'standings': standings, 'me_user_id': me_user_id, 'total': total}, 200
+
+
+def _snapshot_standings(user_id, challenge_id, result):
+    """Record today's points/rank per player (one row per player per day) and
+    remember the owner's own MPP user id for later highlighting."""
+    with get_db() as conn:
+        if result['me_user_id']:
+            conn.execute('UPDATE mpp_account SET mpp_user_id = ? WHERE user_id = ?',
+                         (result['me_user_id'], user_id))
+        for s in result['standings']:
+            if s['user_id'] is None:
+                continue
+            conn.execute(
+                """INSERT INTO mpp_standings_history
+                       (challenge_id, user_id, snapshot_date, username, points, rank)
+                   VALUES (?, ?, CURRENT_DATE, ?, ?, ?)
+                   ON CONFLICT (challenge_id, user_id, snapshot_date)
+                   DO UPDATE SET username = EXCLUDED.username,
+                                 points = EXCLUDED.points,
+                                 rank = EXCLUDED.rank""",
+                (challenge_id, s['user_id'], s['username'], s['points'], s['rank']),
+            )
+
+
 @mpp_bp.route('/api/mpp/standings', methods=['GET'])
 @owner_required
 def mpp_standings():
-    """Full league leaderboard for a challenge, paginating until complete."""
+    """Full league leaderboard for a challenge."""
     user_id = get_current_user()
     challenge_id = request.args.get('challengeId', '').strip()
     if not challenge_id:
@@ -205,26 +250,82 @@ def mpp_standings():
     if token is None:
         return jsonify({'error': 'not_connected'}), 409
 
-    standings, offset, page = [], 0, 100
-    me_user_id, total = None, None
-    for _ in range(50):  # safety cap (5000 players)
-        resp = _api_get(token, '/challenge-standings/users-standings',
-                        params={'challengeId': challenge_id, 'offset': offset, 'limit': page})
-        if resp.status_code == 401:
-            return jsonify({'error': 'token_expired'}), 409
-        if resp.status_code != 200:
-            logger.warning('MPP standings failed (%s): %s', resp.status_code, resp.text[:200])
-            return jsonify({'error': 'mpp_unavailable', 'status': resp.status_code}), 502
+    result, status = _load_standings(token, challenge_id)
+    if status == 401:
+        return jsonify({'error': 'token_expired'}), 409
+    if result is None:
+        return jsonify({'error': 'mpp_unavailable', 'status': status}), 502
 
-        data = resp.json()
-        total = data.get('usersQuantity')
-        me_user_id = (data.get('userRanking') or {}).get('userId') or me_user_id
-        standings.extend(_normalize_standing(s) for s in data.get('standings', []))
-        if not data.get('hasNext'):
-            break
-        offset += page
+    _snapshot_standings(user_id, challenge_id, result)
+    return jsonify(result)
 
-    return jsonify({'standings': standings, 'me_user_id': me_user_id, 'total': total})
+
+@mpp_bp.route('/api/mpp/history', methods=['GET'])
+@owner_required
+def mpp_history():
+    """Daily points-per-player series for charting. We only have data from the
+    first day this was viewed onward (MPP exposes no historical standings), so
+    each visit snapshots today and the series grows one tick per day."""
+    user_id = get_current_user()
+    challenge_id = request.args.get('challengeId', '').strip()
+    if not challenge_id:
+        return jsonify({'error': 'missing_challenge'}), 400
+
+    with get_db() as conn:
+        token = _get_access_token(conn, user_id)
+        has_today = conn.execute(
+            "SELECT 1 FROM mpp_standings_history "
+            "WHERE challenge_id = ? AND snapshot_date = CURRENT_DATE LIMIT 1",
+            (challenge_id,),
+        ).fetchone()
+        mpp_user_id = (conn.execute(
+            'SELECT mpp_user_id FROM mpp_account WHERE user_id = ?', (user_id,)
+        ).fetchone() or {}).get('mpp_user_id')
+
+    # Make sure today has a data point even if the leaderboard wasn't opened.
+    if not has_today and token is not None:
+        result, status = _load_standings(token, challenge_id)
+        if result is not None:
+            _snapshot_standings(user_id, challenge_id, result)
+            mpp_user_id = result['me_user_id'] or mpp_user_id
+
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT user_id, username, snapshot_date, points
+               FROM mpp_standings_history
+               WHERE challenge_id = ?
+               ORDER BY snapshot_date ASC""",
+            (challenge_id,),
+        ).fetchall()
+
+    return jsonify(_build_history(rows, mpp_user_id))
+
+
+def _build_history(rows, me_user_id):
+    """Pivot snapshot rows into recharts-friendly data: one row per date with a
+    column per player, plus the player list ordered by their latest points."""
+    by_date = {}        # date -> {user_id: points}
+    names = {}          # user_id -> latest username
+    latest_points = {}  # user_id -> most recent points (rows are date-ascending)
+    for r in rows:
+        d = r['snapshot_date'].isoformat()
+        by_date.setdefault(d, {})[r['user_id']] = r['points']
+        names[r['user_id']] = r['username']
+        latest_points[r['user_id']] = r['points']
+
+    users = sorted(names, key=lambda u: latest_points.get(u) or 0, reverse=True)
+    data_rows = []
+    for d in sorted(by_date):
+        row = {'date': d}
+        for u in users:
+            row[u] = by_date[d].get(u)
+        data_rows.append(row)
+
+    return {
+        'rows': data_rows,
+        'users': [{'id': u, 'name': names[u]} for u in users],
+        'me_user_id': me_user_id,
+    }
 
 
 # ── Shaping ──────────────────────────────────────────────────────────────────

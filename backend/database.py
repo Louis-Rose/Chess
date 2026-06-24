@@ -1359,3 +1359,29 @@ def init_db():
                 )
             """)
             logger.info("Created mpp_account table")
+
+        # The owner's own MPP user id, so their line/row can be highlighted.
+        if not _column_exists(conn, 'mpp_account', 'mpp_user_id'):
+            conn.execute("ALTER TABLE mpp_account ADD COLUMN mpp_user_id TEXT")
+            logger.info("Added mpp_user_id to mpp_account")
+
+        # Daily snapshot of each player's points/rank — MPP has no historical
+        # standings endpoint, so we accumulate one row per player per day to
+        # draw the progression chart.
+        if not _table_exists(conn, 'mpp_standings_history'):
+            conn.execute("""
+                CREATE TABLE mpp_standings_history (
+                    challenge_id  TEXT NOT NULL,
+                    user_id       TEXT NOT NULL,
+                    snapshot_date DATE NOT NULL,
+                    username      TEXT,
+                    points        INTEGER,
+                    rank          INTEGER,
+                    PRIMARY KEY (challenge_id, user_id, snapshot_date)
+                )
+            """)
+            conn.execute(
+                "CREATE INDEX idx_mpp_history_challenge "
+                "ON mpp_standings_history(challenge_id, snapshot_date)"
+            )
+            logger.info("Created mpp_standings_history table")
