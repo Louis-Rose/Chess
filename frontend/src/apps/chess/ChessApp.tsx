@@ -2,9 +2,9 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-const ChessDashboard = lazy(() => import('./ChessDashboard').then(m => ({ default: m.ChessDashboard })));
+import { OWNER_EMAIL } from '../../config';
 
-const OWNER_EMAIL = 'rose.louis.mail@gmail.com';
+const ChessDashboard = lazy(() => import('./ChessDashboard').then(m => ({ default: m.ChessDashboard })));
 
 export function ChessApp() {
   const { user, isLoading } = useAuth();

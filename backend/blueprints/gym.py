@@ -1,6 +1,6 @@
 """Gym sub-app — syncs a Notion gym log and serves dashboard data.
 
-Private to a single owner, gated by email match against GYM_OWNER_EMAIL.
+Private to a single owner (see blueprints.auth_utils.owner_required).
 Notion page layout: first table block on the page; column headers are dates
 (DD/MM/YY), rows alternate between muscle-group labels and exercise rows.
 """
@@ -9,13 +9,13 @@ import logging
 import os
 import re
 from datetime import date, datetime, timedelta
-from functools import wraps
 
 import requests as http_requests
 from flask import Blueprint, jsonify, request
 
 from auth import get_current_user
 from database import get_db
+from blueprints.auth_utils import is_owner, owner_required
 
 logger = logging.getLogger(__name__)
 
@@ -30,24 +30,6 @@ MUSCLE_HEADERS = {
 }
 
 SKIP_ROW_LABELS = {'RESULTS', 'BODY WEIGHT'}
-
-
-def owner_required(f):
-    """Restrict to the configured gym owner email."""
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        owner_email = os.environ.get('GYM_OWNER_EMAIL', '').strip().lower()
-        if not owner_email:
-            return jsonify({'error': 'Gym app not configured'}), 500
-        user_id = get_current_user()
-        if user_id is None:
-            return jsonify({'error': 'Authentication required'}), 401
-        with get_db() as conn:
-            row = conn.execute('SELECT email FROM users WHERE id = ?', (user_id,)).fetchone()
-        if not row or (row['email'] or '').strip().lower() != owner_email:
-            return jsonify({'error': 'Forbidden'}), 403
-        return f(*args, **kwargs)
-    return wrapper
 
 
 # ── Notion fetch ─────────────────────────────────────────────────────────────
@@ -257,14 +239,7 @@ def _parse_table(rows: list[list[str]]) -> list[dict]:
 @gym_bp.route('/api/gym/access', methods=['GET'])
 def gym_access():
     """Lightweight probe: does the current user own the gym app?"""
-    owner_email = os.environ.get('GYM_OWNER_EMAIL', '').strip().lower()
-    user_id = get_current_user()
-    if not owner_email or user_id is None:
-        return jsonify({'allowed': False})
-    with get_db() as conn:
-        row = conn.execute('SELECT email FROM users WHERE id = ?', (user_id,)).fetchone()
-    allowed = bool(row and (row['email'] or '').strip().lower() == owner_email)
-    return jsonify({'allowed': allowed})
+    return jsonify({'allowed': is_owner(get_current_user())})
 
 
 def resync_gym_sets():

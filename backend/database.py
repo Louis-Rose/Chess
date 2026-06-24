@@ -1180,7 +1180,7 @@ def init_db():
             logger.info("Created music_* tables")
 
         # Migration: Create workblock_state — single-row site-blocking toggle.
-        # The Lumna profile menu flips `blocking`; the local Mac watcher polls
+        # The Focus app (/focus) flips `blocking`; the local Mac watcher polls
         # it and closes distracting browser tabs while it's true.
         if not _table_exists(conn, 'workblock_state'):
             conn.execute("""

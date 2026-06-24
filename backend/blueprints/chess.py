@@ -7,24 +7,21 @@ Fetches the owner's chess.com rapid games and serves these in one pass:
   - win rate after a win/draw/loss for consecutive same-day games (table),
   - wait time vs. result for same-day games — all, and after a win/loss (scatter).
 
-Gated to the site owner via GYM_OWNER_EMAIL (reused as the single owner email).
+Gated to the site owner (see blueprints.auth_utils.owner_required).
 """
 
 import logging
-import os
 import re
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from functools import wraps
 from zoneinfo import ZoneInfo
 
 import requests as http_requests
 from flask import Blueprint, jsonify, request
 
-from auth import get_current_user
-from database import get_db
+from blueprints.auth_utils import owner_required
 
 logger = logging.getLogger(__name__)
 
@@ -32,25 +29,6 @@ chess_bp = Blueprint('chess', __name__)
 
 CHESS_USERNAME = 'akyrosu'
 _USER_AGENT = 'LUMNA/1.0 (https://lumna.co; rose.louis.mail@gmail.com)'
-
-
-# ── Owner gate ───────────────────────────────────────────────────────────────
-
-def owner_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        owner_email = os.environ.get('GYM_OWNER_EMAIL', '').strip().lower()
-        if not owner_email:
-            return jsonify({'error': 'Owner not configured'}), 500
-        user_id = get_current_user()
-        if user_id is None:
-            return jsonify({'error': 'Authentication required'}), 401
-        with get_db() as conn:
-            row = conn.execute('SELECT email FROM users WHERE id = ?', (user_id,)).fetchone()
-        if not row or (row['email'] or '').strip().lower() != owner_email:
-            return jsonify({'error': 'Forbidden'}), 403
-        return f(*args, **kwargs)
-    return wrapper
 
 
 def _fetch_json(url):

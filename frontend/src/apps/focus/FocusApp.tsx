@@ -3,11 +3,10 @@ import { Ban, X, Plus } from 'lucide-react';
 import { SidebarLayout } from '../../components/SidebarLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSiteBlock, type BlockItem, type BlockKind } from '../../hooks/useSiteBlock';
-
-const OWNER_EMAIL = 'rose.louis.mail@gmail.com';
+import { OWNER_EMAIL } from '../../config';
 
 // Owner-only page at /focus: a big switch for blocking, plus editable lists of
-// blocked websites and macOS apps. Same state as the profile-menu toggle.
+// blocked websites and macOS apps.
 export function FocusApp() {
   useEffect(() => {
     document.title = 'Focus | LUMNA';

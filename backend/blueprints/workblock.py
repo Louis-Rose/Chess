@@ -23,7 +23,7 @@ import os
 from flask import Blueprint, jsonify, request
 
 from database import get_db
-from blueprints.chess import owner_required  # reuse the single owner gate
+from blueprints.auth_utils import owner_required
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def _normalize_site(value: str) -> str:
             v = v[len(pre):]
     if v.startswith('www.'):
         v = v[4:]
-    v = v.split('/')[0]  # drop any path
+    v = v.split('/')[0].split('?')[0]  # drop any path and query string
     return v
 
 
@@ -69,8 +69,14 @@ def set_state():
     data = request.get_json(silent=True) or {}
     blocking = bool(data.get('blocking'))
     with get_db() as conn:
+        # Upsert so a missing sentinel row (e.g. after a DB reset) is created
+        # rather than silently no-op'd.
         conn.execute(
-            "UPDATE workblock_state SET blocking = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1",
+            """INSERT INTO workblock_state (id, blocking, updated_at)
+               VALUES (1, ?, CURRENT_TIMESTAMP)
+               ON CONFLICT (id) DO UPDATE
+                 SET blocking = EXCLUDED.blocking,
+                     updated_at = EXCLUDED.updated_at""",
             (blocking,),
         )
     return jsonify({'blocking': blocking})
@@ -88,18 +94,15 @@ def add_item():
     if not value:
         return jsonify({'error': 'empty value'}), 400
     with get_db() as conn:
+        # Insert if new, else recover the existing id (the list dedupes on
+        # UNIQUE(kind, value)). RETURNING avoids a second round-trip.
         row = conn.execute(
-            "SELECT id FROM workblock_items WHERE kind = ? AND value = ?", (kind, value)
+            """INSERT INTO workblock_items (kind, value) VALUES (?, ?)
+               ON CONFLICT (kind, value) DO UPDATE SET value = EXCLUDED.value
+               RETURNING id""",
+            (kind, value),
         ).fetchone()
-        if row:
-            item_id = row['id']
-        else:
-            conn.execute(
-                "INSERT INTO workblock_items (kind, value) VALUES (?, ?)", (kind, value)
-            )
-            item_id = conn.execute(
-                "SELECT id FROM workblock_items WHERE kind = ? AND value = ?", (kind, value)
-            ).fetchone()['id']
+        item_id = row['id']
     return jsonify({'id': item_id, 'kind': kind, 'value': value})
 
 
