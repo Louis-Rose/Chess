@@ -122,7 +122,7 @@ export function MppMatches() {
               </h3>
               <div className="space-y-2">
                 {matches.map((m) => (
-                  <MatchCard key={m.id} match={m} />
+                  <MatchCard key={m.id} match={m} onSelect={() => setSelectedId(m.id)} />
                 ))}
               </div>
             </div>
@@ -137,14 +137,21 @@ export function MppMatches() {
               : 'No matches with known teams yet.'}
         </div>
       ) : null}
+
+      {selectedId && (
+        <MppMatchDetail matchId={selectedId} onClose={() => setSelectedId(null)} />
+      )}
     </div>
   );
 }
 
-function MatchCard({ match: m }: { match: MppMatch }) {
+function MatchCard({ match: m, onSelect }: { match: MppMatch; onSelect: () => void }) {
   const played = m.status !== 'upcoming';
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-800/40 px-4 py-3">
+    <div
+      onClick={onSelect}
+      className="cursor-pointer rounded-2xl border border-slate-800 bg-slate-800/40 px-4 py-3 transition-colors hover:border-emerald-500/50 hover:bg-slate-800/70"
+    >
       <div className="mb-2 flex items-center justify-center gap-2 text-[11px] text-slate-500">
         {m.game_week != null && <span>J{m.game_week}</span>}
         <span>.</span>
