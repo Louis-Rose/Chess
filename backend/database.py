@@ -1209,3 +1209,13 @@ def init_db():
             for v in ('youtube.com', 'linkedin.com', 'chess.com'):
                 conn.execute("INSERT INTO workblock_items (kind, value) VALUES (?, ?)", ('site', v))
             logger.info("Created workblock_items table")
+
+        # Keep block-list values lowercase (matching is case-insensitive).
+        # Idempotent: drops any case-duplicates, then lowercases the rest.
+        if _table_exists(conn, 'workblock_items'):
+            conn.execute("""
+                DELETE FROM workblock_items a
+                USING workblock_items b
+                WHERE a.id > b.id AND a.kind = b.kind AND lower(a.value) = lower(b.value)
+            """)
+            conn.execute("UPDATE workblock_items SET value = lower(value) WHERE value <> lower(value)")

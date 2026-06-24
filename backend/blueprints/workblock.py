@@ -84,7 +84,7 @@ def add_item():
     value = (data.get('value') or '').strip()
     if kind not in VALID_KINDS:
         return jsonify({'error': 'invalid kind'}), 400
-    value = _normalize_site(value) if kind == 'site' else value
+    value = _normalize_site(value) if kind == 'site' else value.lower()
     if not value:
         return jsonify({'error': 'empty value'}), 400
     with get_db() as conn:

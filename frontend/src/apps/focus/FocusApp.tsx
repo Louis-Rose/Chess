@@ -78,7 +78,7 @@ function FocusPanel() {
       <BlockList
         title="Mac apps"
         kind="app"
-        placeholder="e.g. WhatsApp"
+        placeholder="e.g. whatsapp"
         items={apps}
         onAdd={addItem}
         onRemove={removeItem}
