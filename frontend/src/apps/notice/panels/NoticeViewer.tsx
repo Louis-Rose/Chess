@@ -123,7 +123,7 @@ export function NoticeViewer() {
             </div>
 
             {/* Asking window */}
-            <div className="h-[34rem] md:h-auto md:min-h-0 md:w-96 md:shrink-0">
+            <div className="h-[34rem] md:h-auto md:min-h-0 md:min-w-0 md:flex-1">
               <PageQA getPageImage={() => getPageImage.current?.() ?? null} />
             </div>
           </div>
