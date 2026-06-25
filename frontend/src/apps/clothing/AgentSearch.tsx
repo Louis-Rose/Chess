@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { ExternalLink } from 'lucide-react';
 import { useStores } from './StoresContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -11,6 +10,23 @@ import { useLanguage } from '../../contexts/LanguageContext';
 // The list of stores is shared with the Stores tab via StoresContext.
 const POLL_MS = 2000;
 const MAX_POLLS = 90; // ~3 min ceiling
+
+// Clothing types the user can narrow the search to (a second toggle row). Folded
+// into the agent prompt as a natural-language hint.
+const CATEGORIES = [
+  'shirts',
+  'tshirts',
+  'polos',
+  'sweatshirts',
+  'sweaters',
+  'trousers',
+  'shorts',
+  'jackets',
+  'coats',
+  'suits',
+  'shoes',
+  'accessories',
+] as const;
 
 type Item = {
   name: string;
@@ -26,6 +42,8 @@ export function AgentSearch() {
   // Stores excluded from this search. Everything not in here is included, so
   // newly added stores are searched by default.
   const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
+  // Clothing types to narrow the search to (none selected = no type filter).
+  const [types, setTypes] = useState<Set<string>>(() => new Set());
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,16 +64,30 @@ export function AgentSearch() {
     });
   };
 
+  const toggleType = (type: string) => {
+    setTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
+
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   const run = async () => {
     const q = prompt.trim();
-    if (!q || loading) return;
+    const selectedTypes = CATEGORIES.filter((c) => types.has(c)).map((c) => t(`clothing.type.${c}`));
+    if ((!q && selectedTypes.length === 0) || loading) return;
     const sources = stores.filter((s) => !excluded.has(s.domain)).map((s) => s.domain);
     if (sources.length === 0) {
       setError(t('clothing.find.selectStore'));
       return;
     }
+    // Fold the chosen types into the prompt the browsing agent receives.
+    const fullPrompt = [q, selectedTypes.length ? `(${selectedTypes.join(', ')})` : '']
+      .filter(Boolean)
+      .join(' ');
     cancelled.current = false;
     setError(null);
     setSummary(null);
@@ -63,7 +95,7 @@ export function AgentSearch() {
     setLoading(true);
     try {
       const { data } = await axios.post<{ job_id: number }>('/api/clothing/search', {
-        prompt: q,
+        prompt: fullPrompt,
         sources,
       });
       const jobId = data.job_id;
@@ -121,6 +153,28 @@ export function AgentSearch() {
         })}
       </div>
 
+      {/* Clothing type toggles — narrow the search to specific types. */}
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
+        {CATEGORIES.map((c) => {
+          const on = types.has(c);
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => toggleType(c)}
+              aria-pressed={on}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                on
+                  ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300'
+                  : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t(`clothing.type.${c}`)}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Prompt — press Enter to search (Shift+Enter for a new line) */}
       <textarea
         value={prompt}
@@ -141,55 +195,54 @@ export function AgentSearch() {
       )}
       {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
 
-      {/* Results */}
+      {/* Results — a table of model name and price. */}
       {summary && <p className="mt-4 text-sm text-slate-300">{summary}</p>}
       {items && items.length > 0 && (
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {items.map((it, i) => (
-            <ResultCard key={i} item={it} />
-          ))}
+        <div className="mt-4 overflow-hidden rounded-xl border border-slate-800">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-2 font-medium">{t('clothing.find.colName')}</th>
+                <th className="px-3 py-2 text-right font-medium">{t('clothing.find.colPrice')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr
+                  key={i}
+                  className="border-b border-slate-800/60 transition-colors last:border-0 hover:bg-slate-800/30"
+                >
+                  <td className="px-3 py-2">
+                    {it.url ? (
+                      <a
+                        href={it.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-slate-100 hover:text-emerald-300"
+                      >
+                        {it.name}
+                      </a>
+                    ) : (
+                      <span className="font-medium text-slate-100">{it.name}</span>
+                    )}
+                    {it.source && (
+                      <span className="ml-2 text-[10px] uppercase tracking-wide text-slate-500">
+                        {it.source}
+                      </span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-right text-emerald-300">
+                    {it.price || '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       {items && items.length === 0 && (
         <p className="mt-4 text-sm text-slate-400">{t('clothing.find.nothing')}</p>
       )}
     </div>
-  );
-}
-
-function ResultCard({ item }: { item: Item }) {
-  const { t } = useLanguage();
-  const body = (
-    <>
-      {item.image && (
-        <img
-          src={item.image}
-          alt=""
-          loading="lazy"
-          className="mb-2 aspect-[3/4] w-full rounded-lg object-cover"
-        />
-      )}
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold text-slate-100">{item.name}</p>
-        {item.price && <span className="whitespace-nowrap text-xs text-emerald-300">{item.price}</span>}
-      </div>
-      {item.source && <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-500">{item.source}</p>}
-      {item.url && (
-        <span className="mt-1.5 flex items-center gap-1 text-xs font-medium text-emerald-400">
-          {t('clothing.find.view')} <ExternalLink className="h-3 w-3" />
-        </span>
-      )}
-    </>
-  );
-
-  const cls =
-    'block rounded-xl border border-slate-800 bg-slate-800/40 p-2.5 text-left transition-colors hover:border-emerald-500/60';
-
-  return item.url ? (
-    <a href={item.url} target="_blank" rel="noreferrer" className={cls}>
-      {body}
-    </a>
-  ) : (
-    <div className={cls}>{body}</div>
   );
 }
