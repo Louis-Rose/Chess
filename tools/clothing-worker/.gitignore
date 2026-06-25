@@ -2,3 +2,4 @@
 chrome-profile/
 .env
 __pycache__/
+worker.log
