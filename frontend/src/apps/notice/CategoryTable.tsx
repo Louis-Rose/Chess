@@ -175,7 +175,7 @@ export function CategoryTable({
       <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-slate-800">
         <table className="w-full text-center text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-white">
+            <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-white [&>th]:border-r [&>th]:border-slate-800/60 [&>th:last-child]:border-r-0">
               <th className="px-4 py-2 font-medium">Model</th>
               <th className="px-4 py-2 font-medium">Category (page {page})</th>
               <th className="px-4 py-2 font-medium">API cost</th>
@@ -190,7 +190,11 @@ export function CategoryTable({
               const open = canShowThinking && !!expanded[m.id];
               return (
                 <Fragment key={m.id}>
-                  <tr className={open ? '' : 'border-b border-slate-800/60 last:border-0'}>
+                  <tr
+                    className={`[&>td]:border-r [&>td]:border-slate-800/60 [&>td:last-child]:border-r-0 ${
+                      open ? '' : 'border-b border-slate-800/60 last:border-0'
+                    }`}
+                  >
                     <td className="px-4 py-2.5 font-semibold text-slate-100">
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         <span>{m.label}</span>
@@ -198,7 +202,7 @@ export function CategoryTable({
                           <button
                             type="button"
                             onClick={() => setExpanded((e) => ({ ...e, [m.id]: !e[m.id] }))}
-                            className="text-xs font-medium text-emerald-400 transition-colors hover:text-emerald-300"
+                            className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-300 transition-colors hover:border-emerald-500 hover:bg-emerald-500/20"
                           >
                             {open ? 'Hide thinking' : 'Show thinking'}
                           </button>
