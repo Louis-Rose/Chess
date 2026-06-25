@@ -239,9 +239,16 @@ def main():
         sys.exit('CLOTHING_WORKER_SECRET is not set (see .env.example).')
     print(f'LUMNA clothing worker → {BASE_URL}\nPolling for jobs (Ctrl-C to stop)…')
     with sync_playwright() as p:
+        # Look like a normal browser, not automation: drop the --enable-automation
+        # flag and hide navigator.webdriver, which bot walls (DataDome) fingerprint.
         ctx = p.chromium.launch_persistent_context(
             PROFILE_DIR, channel='chrome', headless=False,
             viewport={'width': 1280, 'height': 900},
+            args=['--disable-blink-features=AutomationControlled'],
+            ignore_default_args=['--enable-automation'],
+        )
+        ctx.add_init_script(
+            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
         )
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         try:
