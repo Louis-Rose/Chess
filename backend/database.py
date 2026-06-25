@@ -1481,3 +1481,41 @@ def init_db():
                 "always legible or perfectly clear.",
             ),
         )
+
+        # Migration: seed MVP notes 2-5. Insert each only if its position is still
+        # absent, so it never duplicates and never overwrites a later VM edit.
+        _notice_notes_seed = [
+            (
+                2,
+                "Pour cela, chaque page de la notice doit être catégorisée. Les "
+                "catégories possibles sont: Sommaire, Outils nécessaires, Matériel "
+                "fourni, Assemblage - Etape N, Sécurité, Liens",
+                "To do this, each page of the instructions must be categorized. The "
+                "possible categories are: Summary, Required tools, Supplied parts, "
+                "Assembly - Step N, Safety, Links",
+            ),
+            (
+                3,
+                "Pour chaque Etape d'assemblage, il faut trouver : la ou les pages "
+                "concernées. Et meme plus précisément : les sections de pages. Car "
+                "certaines pages présentent plusieurs étapes à la fois.",
+                "For each assembly step, we need to find the page or pages involved. "
+                "And even more precisely: the page sections, because some pages show "
+                "several steps at once.",
+            ),
+            (
+                4,
+                "Ensuite, pour chaque étape, il faut lister les pièces nécessaires. "
+                "Pour cela, les numéros de série sont essentiels.",
+                "Then, for each step, we need to list the required parts. For this, "
+                "the part numbers are essential.",
+            ),
+            (5, "A faire", "To do"),
+        ]
+        for _pos, _fr, _en in _notice_notes_seed:
+            conn.execute(
+                """INSERT INTO notice_notes (position, body, body_en)
+                   SELECT ?, ?, ?
+                   WHERE NOT EXISTS (SELECT 1 FROM notice_notes WHERE position = ?)""",
+                (_pos, _fr, _en, _pos),
+            )
