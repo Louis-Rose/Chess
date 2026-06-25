@@ -99,7 +99,8 @@ export function PdfViewer({
         const pdfPage = await doc.getPage(page);
         if (cancelled) return;
         const base = pdfPage.getViewport({ scale: 1 });
-        const scale = width / base.width;
+        // Render at 80% of the column width, leaving padding around the page.
+        const scale = (width * 0.8) / base.width;
         const viewport = pdfPage.getViewport({ scale });
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -201,29 +202,7 @@ export function PdfViewer({
             <span className="truncate text-xl font-semibold">{name}</span>
           </div>
         )}
-        <div className="flex items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={() => go(-1)}
-            disabled={page <= 1 || loading}
-            className="rounded-lg border border-slate-700 bg-slate-800 p-2 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-40"
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="min-w-[6rem] text-center text-sm text-slate-400">
-            {numPages > 0 ? `Page ${page} of ${numPages}` : '—'}
-          </span>
-          <button
-            type="button"
-            onClick={() => go(1)}
-            disabled={page >= numPages || loading}
-            className="rounded-lg border border-slate-700 bg-slate-800 p-2 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-40"
-            aria-label="Next page"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} />
       </div>
 
       {/* Page canvas */}
@@ -244,25 +223,76 @@ export function PdfViewer({
         )}
       </div>
 
-      {/* Zoom modal: click the backdrop (or Escape) to close. */}
+      {/* Zoom modal: click the backdrop (or Escape) to close. The backdrop shows
+          a zoom-out cursor; the page itself keeps a normal cursor. */}
       {zoomed && (
         <div
           onClick={() => setZoomed(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-4"
         >
           <button
             type="button"
             onClick={() => setZoomed(false)}
             aria-label="Close"
-            className="absolute right-4 top-4 rounded-lg border border-slate-600 bg-slate-800/80 p-2 text-slate-200 transition-colors hover:bg-slate-700"
+            className="absolute right-4 top-4 cursor-pointer rounded-lg border border-slate-600 bg-slate-800/80 p-2 text-slate-200 transition-colors hover:bg-slate-700"
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="max-h-full max-w-full overflow-auto" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="max-h-full max-w-full cursor-default overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <canvas ref={zoomCanvasRef} className="rounded-lg shadow-2xl" />
+          </div>
+          {/* Page count + navigation, same as the toolbar, floated at the bottom. */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 cursor-default rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 backdrop-blur"
+          >
+            <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} />
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Previous / "Page X of Y" / next control, shared by the toolbar and the zoom
+// modal so both stay in sync.
+function PageNav({
+  page,
+  numPages,
+  onGo,
+  disabled = false,
+}: {
+  page: number;
+  numPages: number;
+  onGo: (delta: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-4">
+      <button
+        type="button"
+        onClick={() => onGo(-1)}
+        disabled={disabled || page <= 1}
+        className="rounded-lg border border-slate-700 bg-slate-800 p-2 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-40"
+        aria-label="Previous page"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <span className="min-w-[6rem] text-center text-sm text-slate-400">
+        {numPages > 0 ? `Page ${page} of ${numPages}` : '—'}
+      </span>
+      <button
+        type="button"
+        onClick={() => onGo(1)}
+        disabled={disabled || page >= numPages}
+        className="rounded-lg border border-slate-700 bg-slate-800 p-2 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-40"
+        aria-label="Next page"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
     </div>
   );
 }
