@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd *)",
+      "Bash(git add *)",
+      "Bash(git mv *)",
+      "Bash(jq *)",
+      "Bash(npx tsc -b)",
+      "Bash(npx vite build)"
+    ]
+  }
+}
