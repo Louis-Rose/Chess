@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { ExternalLink, Loader2, Search, X } from 'lucide-react';
-import { useStores, cleanDomain } from './StoresContext';
+import { ExternalLink } from 'lucide-react';
+import { useStores } from './StoresContext';
 
 // An agent that hunts for an item across the configured store sites. The web app
 // only enqueues the request; a worker on the owner's own machine (real Chrome,
@@ -20,8 +20,10 @@ type Item = {
 };
 
 export function AgentSearch() {
-  const { stores, addStore, removeStore } = useStores();
-  const [newSource, setNewSource] = useState('');
+  const { stores } = useStores();
+  // Stores excluded from this search. Everything not in here is included, so
+  // newly added stores are searched by default.
+  const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +35,13 @@ export function AgentSearch() {
     cancelled.current = true;
   }, []);
 
-  const addSource = () => {
-    addStore({ domain: cleanDomain(newSource) });
-    setNewSource('');
+  const toggleStore = (domain: string) => {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(domain)) next.delete(domain);
+      else next.add(domain);
+      return next;
+    });
   };
 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -43,9 +49,9 @@ export function AgentSearch() {
   const run = async () => {
     const q = prompt.trim();
     if (!q || loading) return;
-    const sources = stores.map((s) => s.domain);
+    const sources = stores.filter((s) => !excluded.has(s.domain)).map((s) => s.domain);
     if (sources.length === 0) {
-      setError('Add at least one store first.');
+      setError('Select at least one store.');
       return;
     }
     cancelled.current = false;
@@ -89,63 +95,44 @@ export function AgentSearch() {
 
   return (
     <div className="mb-8 rounded-2xl border border-slate-800 bg-slate-800/30 p-4 sm:p-5">
-      <h2 className="mb-1 text-sm font-semibold">Find it for me</h2>
-      <p className="mb-3 text-xs text-slate-400">
-        Describe what you want. Your agent browses the sites below and brings back what it finds.
-      </p>
+      <h2 className="mb-4 text-center text-xl font-semibold">Find it for me</h2>
 
-      {/* Sources — shared with the Stores tab */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {stores.map((s) => (
-          <span
-            key={s.domain}
-            className="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 py-1 pl-3 pr-1 text-xs text-slate-300"
-          >
-            {s.name}
+      {/* Store toggles — shared with the Stores tab. Tap to include/exclude. */}
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
+        {stores.map((s) => {
+          const on = !excluded.has(s.domain);
+          return (
             <button
+              key={s.domain}
               type="button"
-              onClick={() => removeStore(s.domain)}
-              className="rounded-full p-0.5 text-slate-500 hover:bg-slate-700 hover:text-slate-200"
-              aria-label={`Remove ${s.name}`}
+              onClick={() => toggleStore(s.domain)}
+              aria-pressed={on}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                on
+                  ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300'
+                  : 'border-slate-700 bg-slate-800/40 text-slate-500 hover:text-slate-300'
+              }`}
             >
-              <X className="h-3 w-3" />
+              {s.name}
             </button>
-          </span>
-        ))}
-        <input
-          value={newSource}
-          onChange={(e) => setNewSource(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSource())}
-          placeholder="add a site…"
-          className="w-32 rounded-full border border-dashed border-slate-700 bg-transparent px-3 py-1 text-xs text-slate-200 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-        />
+          );
+        })}
       </div>
 
-      {/* Prompt */}
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              run();
-            }
-          }}
-          rows={2}
-          placeholder="e.g. a light linen shirt for summer, under 90€"
-          className="flex-1 resize-none rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={run}
-          disabled={loading || !prompt.trim()}
-          className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40 sm:w-32"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          {loading ? 'Searching' : 'Search'}
-        </button>
-      </div>
+      {/* Prompt — press Enter to search (Shift+Enter for a new line) */}
+      <textarea
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            run();
+          }
+        }}
+        rows={2}
+        placeholder="Describe what you want…"
+        className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+      />
 
       {loading && (
         <p className="mt-3 text-xs text-slate-500">
@@ -164,7 +151,7 @@ export function AgentSearch() {
         </div>
       )}
       {items && items.length === 0 && (
-        <p className="mt-4 text-sm text-slate-400">Nothing found. Try rewording or adding a site.</p>
+        <p className="mt-4 text-sm text-slate-400">Nothing found. Try rewording.</p>
       )}
     </div>
   );
