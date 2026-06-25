@@ -32,12 +32,11 @@ notice_bp = Blueprint('notice', __name__)
 # list (apps/notice/models.ts) and the admin GEMINI_PRICING table so usage cost
 # is tracked. Validated server-side so a client can't request an arbitrary model.
 ALLOWED_MODELS = {
-    'gemini-3-flash-preview',
-    'gemini-3.1-flash-lite-preview',
     'gemini-3.1-pro-preview',
-    'gemini-2.0-flash',
+    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
 }
-DEFAULT_MODEL = 'gemini-3-flash-preview'
+DEFAULT_MODEL = 'gemini-3.5-flash'
 # Safety cap on the decoded page image (a rendered page is well under this).
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 

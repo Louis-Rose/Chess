@@ -7,10 +7,9 @@ export interface NoticeModel {
 }
 
 export const NOTICE_MODELS: NoticeModel[] = [
-  { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' },
-  { id: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite' },
   { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro' },
-  { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+  { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
+  { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
 ];
 
-export const DEFAULT_NOTICE_MODEL = NOTICE_MODELS[0].id;
+export const DEFAULT_NOTICE_MODEL = 'gemini-3.5-flash';
