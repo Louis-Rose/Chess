@@ -232,11 +232,6 @@ export function PdfViewer({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header: page navigation */}
-      <div className="border-b border-slate-800 px-4 py-3">
-        <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} />
-      </div>
-
       {/* Page canvas */}
       <div ref={containerRef} className="flex-1 overflow-auto bg-slate-950/40 p-4">
         {loading && (
@@ -253,6 +248,11 @@ export function PdfViewer({
             className={`mx-auto max-w-full cursor-zoom-in rounded-lg shadow-lg ${loading ? 'hidden' : ''}`}
           />
         )}
+      </div>
+
+      {/* Footer: page navigation, under the page */}
+      <div className="border-t border-slate-800 px-4 py-3">
+        <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} />
       </div>
 
       {/* Zoom modal: click the backdrop (or Escape) to close. The backdrop shows
