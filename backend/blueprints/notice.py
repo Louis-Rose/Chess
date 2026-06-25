@@ -216,12 +216,19 @@ def _normalize_category(text):
 @login_required
 def notes():
     """The MVP key points shown on the app's first tab, ordered by position.
-    Stored in the DB so the copy can be edited without a frontend rebuild."""
+    Stored in the DB so the copy can be edited without a frontend rebuild.
+    `?lang=en` returns the English copy (body_en), falling back to the base
+    French body where a translation is missing."""
+    lang = (request.args.get('lang') or '').strip().lower()
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT body FROM notice_notes ORDER BY position, id'
+            'SELECT body, body_en FROM notice_notes ORDER BY position, id'
         ).fetchall()
-    return jsonify({'notes': [dict(r)['body'] for r in rows]})
+    out = []
+    for row in rows:
+        r = dict(row)
+        out.append(r['body_en'] if lang.startswith('en') and r.get('body_en') else r['body'])
+    return jsonify({'notes': out})
 
 
 @notice_bp.route('/api/notice/costs', methods=['GET'])

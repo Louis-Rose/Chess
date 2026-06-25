@@ -1427,18 +1427,23 @@ def init_db():
                     id         SERIAL PRIMARY KEY,
                     position   INTEGER NOT NULL,
                     body       TEXT NOT NULL,
+                    body_en    TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             conn.execute("CREATE INDEX idx_notice_notes_position ON notice_notes(position)")
             conn.execute(
-                "INSERT INTO notice_notes (position, body) VALUES (?, ?)",
+                "INSERT INTO notice_notes (position, body, body_en) VALUES (?, ?, ?)",
                 (
                     1,
                     "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
                     "les étapes de la notice papier. La notice papier est une bonne "
                     "source d'information dans l'absolu (étapes, pièces..), mais pas "
                     "toujours lisible ou parfaitement claire.",
+                    "The assembly steps in the Notice.ai video should follow the steps "
+                    "of the paper instructions. The paper instructions are a good "
+                    "source of information overall (steps, parts, etc.), but not "
+                    "always legible or perfectly clear.",
                 ),
             )
             logger.info("Created notice_notes table and seeded the first MVP note")
@@ -1457,5 +1462,22 @@ def init_db():
                 "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
                 "les étapes de la notice papier. En cas de doute, les utilisateurs "
                 "pourront se référer aux deux sources indépendamment.",
+            ),
+        )
+
+        # Migration: English translation per note. `body` stays the base (French);
+        # `body_en` holds the English copy (NULL falls back to `body` server-side).
+        if not _column_exists(conn, 'notice_notes', 'body_en'):
+            conn.execute("ALTER TABLE notice_notes ADD COLUMN body_en TEXT")
+            logger.info("Added body_en column to notice_notes")
+        # Backfill note 1's English copy (only where it's still empty, so a manual
+        # edit on the VM is never overwritten).
+        conn.execute(
+            "UPDATE notice_notes SET body_en = ? WHERE position = 1 AND body_en IS NULL",
+            (
+                "The assembly steps in the Notice.ai video should follow the steps "
+                "of the paper instructions. The paper instructions are a good "
+                "source of information overall (steps, parts, etc.), but not "
+                "always legible or perfectly clear.",
             ),
         )
