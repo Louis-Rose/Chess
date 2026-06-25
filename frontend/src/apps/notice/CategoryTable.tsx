@@ -119,13 +119,13 @@ export function CategoryTable({
 
       {error && <p className="mb-2 text-center text-sm text-rose-400">{error}</p>}
 
-      <div className="overflow-hidden rounded-xl border border-slate-800">
-        <table className="w-full text-sm">
+      <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border border-slate-800">
+        <table className="w-full text-center text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
               <th className="px-4 py-2 font-medium">Model</th>
               <th className="px-4 py-2 font-medium">Category (page {page})</th>
-              <th className="px-4 py-2 text-right font-medium">API cost</th>
+              <th className="px-4 py-2 font-medium">API cost</th>
             </tr>
           </thead>
           <tbody>
@@ -135,10 +135,14 @@ export function CategoryTable({
                 <tr key={m.id} className="border-b border-slate-800/60 last:border-0">
                   <td className="px-4 py-2.5 font-semibold text-slate-100">{m.label}</td>
                   <td className="px-4 py-2.5 text-slate-300">
-                    {cell ?? (busy ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : '—')}
+                    {cell ?? (busy ? (
+                      <Loader2 className="mx-auto h-4 w-4 animate-spin text-slate-500" />
+                    ) : (
+                      '—'
+                    ))}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right text-emerald-300">
-                    ${(costs[m.id] ?? 0).toFixed(4)}
+                  <td className="whitespace-nowrap px-4 py-2.5 text-emerald-300">
+                    ${(costs[m.id] ?? 0).toFixed(2)}
                   </td>
                 </tr>
               );
