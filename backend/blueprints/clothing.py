@@ -7,8 +7,9 @@ real Chrome — claims the job, browses the sources and posts the result back.
 
 Flow:
   browser  POST /api/clothing/search        -> enqueue, returns {job_id}
-  browser  GET  /api/clothing/jobs/<id>      -> poll status/result
+  browser  GET  /api/clothing/jobs/<id>      -> poll status/progress/result
   worker   GET  /api/clothing/worker/next    -> claim oldest pending job
+  worker   POST /api/clothing/worker/<id>/progress -> report per-store progress
   worker   POST /api/clothing/worker/<id>/result -> deliver items / error
 
 The two worker endpoints are guarded by a shared secret (CLOTHING_WORKER_SECRET)
@@ -63,11 +64,10 @@ def _worker_authorized():
 @login_required
 def enqueue():
     data = request.get_json(silent=True) or {}
+    # The prompt is optional: an empty one is a "vanilla" browse of the sources.
     prompt = (data.get('prompt') or '').strip()
     raw_sources = data.get('sources') or []
 
-    if not prompt:
-        return jsonify({'error': 'Tell the agent what to look for.'}), 400
     if len(prompt) > MAX_PROMPT_CHARS:
         return jsonify({'error': 'That request is too long.'}), 400
     if not isinstance(raw_sources, list):
@@ -105,7 +105,7 @@ def poll(job_id):
             (job_id, PENDING_TIMEOUT_SECONDS),
         )
         row = conn.execute(
-            "SELECT user_id, status, result, error FROM clothing_jobs WHERE id = ?",
+            "SELECT user_id, status, result, error, progress FROM clothing_jobs WHERE id = ?",
             (job_id,),
         ).fetchone()
 
@@ -124,6 +124,11 @@ def poll(job_id):
             if row['error'] == 'offline'
             else (row['error'] or 'The search failed.')
         )
+    elif row['status'] == 'running' and row['progress']:
+        try:
+            out['progress'] = json.loads(row['progress'])
+        except Exception:
+            pass
     return jsonify(out)
 
 
@@ -162,6 +167,38 @@ def worker_next():
     except Exception:
         sources = []
     return jsonify({'job': {'id': row['id'], 'prompt': row['prompt'], 'sources': sources}})
+
+
+@clothing_bp.route('/api/clothing/worker/<int:job_id>/progress', methods=['POST'])
+def worker_progress(job_id):
+    """The worker reports which store it's on so the UI can show live steps.
+
+    Body: {current: "<domain>"|null, done: <int>, total: <int>}. Only recorded
+    while the job is still running; late reports are ignored.
+    """
+    if not _worker_authorized():
+        return jsonify({'error': 'unauthorized'}), 401
+
+    data = request.get_json(silent=True) or {}
+    current = (str(data.get('current') or '').strip()[:100]) or None
+
+    def _as_int(v):
+        try:
+            return max(int(v), 0)
+        except (TypeError, ValueError):
+            return 0
+
+    payload = json.dumps({
+        'current': current,
+        'done': _as_int(data.get('done')),
+        'total': _as_int(data.get('total')),
+    })
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE clothing_jobs SET progress = ? WHERE id = ? AND status = 'running'",
+            (payload, job_id),
+        )
+    return jsonify({'ok': True})
 
 
 @clothing_bp.route('/api/clothing/worker/<int:job_id>/result', methods=['POST'])

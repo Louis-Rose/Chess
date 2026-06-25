@@ -1410,3 +1410,9 @@ def init_db():
                 "CREATE INDEX idx_clothing_jobs_status ON clothing_jobs(status, created_at)"
             )
             logger.info("Created clothing_jobs table")
+
+        # Migration: per-store progress the worker reports while browsing, as JSON
+        # text ({current, done, total}), surfaced to the UI step list.
+        if not _column_exists(conn, 'clothing_jobs', 'progress'):
+            conn.execute("ALTER TABLE clothing_jobs ADD COLUMN progress TEXT")
+            logger.info("Added progress column to clothing_jobs")

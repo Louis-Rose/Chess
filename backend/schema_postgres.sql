@@ -286,6 +286,7 @@ CREATE TABLE IF NOT EXISTS clothing_jobs (
     status      TEXT NOT NULL DEFAULT 'pending',
     result      TEXT,
     error       TEXT,
+    progress    TEXT,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     claimed_at  TIMESTAMP,
     finished_at TIMESTAMP
