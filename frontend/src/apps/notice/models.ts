@@ -4,10 +4,11 @@
 export interface NoticeModel {
   id: string;
   label: string;
+  thinking?: boolean; // returns reasoning ("thoughts") we can display
 }
 
 export const NOTICE_MODELS: NoticeModel[] = [
-  { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro' },
+  { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro', thinking: true },
   { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
   { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' },
 ];

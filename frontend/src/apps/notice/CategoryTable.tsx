@@ -1,27 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Sparkles } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 
-// model id -> page number -> category label
-type CatMap = Record<string, Record<number, string>>;
+// model id -> page number -> value (category label, or thought summary)
+type ByModelPage = Record<string, Record<number, string>>;
 
-// Categories are remembered per PDF in this browser, keyed by document id, so
-// they survive reloads. Each (page, model) keeps only its most recent result.
-const catKey = (docId: string) => `notice.categories.${docId}`;
+// Categories and thoughts are remembered per PDF in this browser, keyed by
+// document id, so they survive reloads. Each (page, model) keeps only its most
+// recent result.
+const mapKey = (kind: string, docId: string) => `notice.${kind}.${docId}`;
 
-function loadCategories(docId: string): CatMap {
+function loadMap(kind: string, docId: string): ByModelPage {
   try {
-    const raw = localStorage.getItem(catKey(docId));
-    return raw ? (JSON.parse(raw) as CatMap) : {};
+    const raw = localStorage.getItem(mapKey(kind, docId));
+    return raw ? (JSON.parse(raw) as ByModelPage) : {};
   } catch {
     return {};
   }
 }
 
-function saveCategories(docId: string, cats: CatMap) {
+function saveMap(kind: string, docId: string, value: ByModelPage) {
   try {
-    localStorage.setItem(catKey(docId), JSON.stringify(cats));
+    localStorage.setItem(mapKey(kind, docId), JSON.stringify(value));
   } catch {
     // ignore quota / serialization errors
   }
@@ -44,8 +45,11 @@ export function CategoryTable({
   page: number;
   docId: string;
 }) {
-  const [categories, setCategories] = useState<CatMap>({});
-  const categoriesRef = useRef<CatMap>({});
+  const [categories, setCategories] = useState<ByModelPage>({});
+  const categoriesRef = useRef<ByModelPage>({});
+  const [thoughts, setThoughts] = useState<ByModelPage>({});
+  const thoughtsRef = useRef<ByModelPage>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<null | 'this' | 'all'>(null);
@@ -69,22 +73,33 @@ export function CategoryTable({
     void loadCosts();
   }, [loadCosts]);
 
-  // Load this PDF's remembered categories when the document changes.
+  // Load this PDF's remembered categories + thoughts when the document changes.
   useEffect(() => {
-    const loaded = loadCategories(docId);
-    categoriesRef.current = loaded;
-    setCategories(loaded);
+    const cats = loadMap('categories', docId);
+    const ths = loadMap('thoughts', docId);
+    categoriesRef.current = cats;
+    thoughtsRef.current = ths;
+    setCategories(cats);
+    setThoughts(ths);
+    setExpanded({});
     setError(null);
     setProgress(null);
   }, [docId]);
 
-  // Record one (model, page) result, keeping only the most recent, and persist.
-  const setCategory = (modelId: string, pageNum: number, category: string) => {
-    const next: CatMap = { ...categoriesRef.current };
-    next[modelId] = { ...(next[modelId] || {}), [pageNum]: category };
-    categoriesRef.current = next;
-    setCategories(next);
-    saveCategories(docId, next);
+  // Record one (model, page) result (and its reasoning), keeping only the most
+  // recent, and persist.
+  const setResult = (modelId: string, pageNum: number, category: string, thought: string) => {
+    const nextCats: ByModelPage = { ...categoriesRef.current };
+    nextCats[modelId] = { ...(nextCats[modelId] || {}), [pageNum]: category };
+    categoriesRef.current = nextCats;
+    setCategories(nextCats);
+    saveMap('categories', docId, nextCats);
+
+    const nextThoughts: ByModelPage = { ...thoughtsRef.current };
+    nextThoughts[modelId] = { ...(nextThoughts[modelId] || {}), [pageNum]: thought };
+    thoughtsRef.current = nextThoughts;
+    setThoughts(nextThoughts);
+    saveMap('thoughts', docId, nextThoughts);
   };
 
   // Classify one page image across every model, storing results per (model, page).
@@ -92,13 +107,13 @@ export function CategoryTable({
     await Promise.all(
       NOTICE_MODELS.map(async (m) => {
         try {
-          const { data } = await axios.post<{ category: string }>('/api/notice/categorize', {
-            image,
-            model: m.id,
-          });
-          setCategory(m.id, pageNum, data.category);
+          const { data } = await axios.post<{ category: string; thoughts?: string }>(
+            '/api/notice/categorize',
+            { image, model: m.id },
+          );
+          setResult(m.id, pageNum, data.category, data.thoughts || '');
         } catch {
-          setCategory(m.id, pageNum, '—');
+          setResult(m.id, pageNum, '—', '');
         }
       }),
     );
@@ -170,23 +185,52 @@ export function CategoryTable({
           <tbody>
             {NOTICE_MODELS.map((m) => {
               const cell = categories[m.id]?.[page];
+              const thought = thoughts[m.id]?.[page];
+              const canShowThinking = !!m.thinking && !!thought;
+              const open = canShowThinking && !!expanded[m.id];
               return (
-                <tr key={m.id} className="border-b border-slate-800/60 last:border-0">
-                  <td className="px-4 py-2.5 font-semibold text-slate-100">{m.label}</td>
-                  <td className="px-4 py-2.5 text-slate-300">
-                    {cell ?? (busy ? (
-                      <Loader2 className="mx-auto h-4 w-4 animate-spin text-slate-500" />
-                    ) : (
-                      '—'
-                    ))}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-emerald-300">
-                    ${(costs[m.id] ?? 0).toFixed(2)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-slate-300">
-                    {times[m.id] ? `${times[m.id].toFixed(1)}s` : '—'}
-                  </td>
-                </tr>
+                <Fragment key={m.id}>
+                  <tr className={open ? '' : 'border-b border-slate-800/60 last:border-0'}>
+                    <td className="px-4 py-2.5 font-semibold text-slate-100">
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <span>{m.label}</span>
+                        {canShowThinking && (
+                          <button
+                            type="button"
+                            onClick={() => setExpanded((e) => ({ ...e, [m.id]: !e[m.id] }))}
+                            className="text-xs font-medium text-emerald-400 transition-colors hover:text-emerald-300"
+                          >
+                            {open ? 'Hide thinking' : 'Show thinking'}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-300">
+                      {cell ?? (busy ? (
+                        <Loader2 className="mx-auto h-4 w-4 animate-spin text-slate-500" />
+                      ) : (
+                        '—'
+                      ))}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-emerald-300">
+                      ${(costs[m.id] ?? 0).toFixed(2)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-slate-300">
+                      {times[m.id] ? `${times[m.id].toFixed(1)}s` : '—'}
+                    </td>
+                  </tr>
+                  {open && (
+                    <tr className="border-b border-slate-800/60 last:border-0">
+                      <td colSpan={4} className="px-4 pb-3">
+                        <textarea
+                          readOnly
+                          value={thought}
+                          className="h-44 w-full resize-y rounded-lg border border-slate-700 bg-slate-900/50 p-3 text-left text-xs leading-relaxed text-slate-300 focus:outline-none"
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

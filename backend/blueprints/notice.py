@@ -37,6 +37,8 @@ ALLOWED_MODELS = {
     'gemini-3.1-flash-lite',
 }
 DEFAULT_MODEL = 'gemini-3.5-flash'
+# Models that return reasoning ("thoughts"); others have nothing to show.
+THINKING_MODELS = {'gemini-3.1-pro-preview'}
 # Safety cap on the decoded page image (a rendered page is well under this).
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
@@ -86,9 +88,27 @@ def _decode_image(image_b64):
     return image_bytes, None
 
 
-def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None):
-    """Run one Gemini vision call on a page image, log usage, return the text.
-    `phase` tags the usage row ('ask' / 'categorize') so timing can be split.
+def _split_thoughts(response):
+    """Split a response into (answer_text, thought_summary). Thought parts carry
+    part.thought == True; everything else is the answer. Falls back to
+    response.text for the answer if the parts aren't structured as expected."""
+    answer, thoughts = [], []
+    try:
+        for part in response.candidates[0].content.parts:
+            text = getattr(part, 'text', None)
+            if not text:
+                continue
+            (thoughts if getattr(part, 'thought', False) else answer).append(text)
+    except Exception:
+        return (getattr(response, 'text', '') or '').strip(), ''
+    ans = '\n'.join(answer).strip() or (getattr(response, 'text', '') or '').strip()
+    return ans, '\n'.join(thoughts).strip()
+
+
+def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None, want_thoughts=False):
+    """Run one Gemini vision call on a page image, log usage, return
+    (answer, thoughts). `phase` tags the usage row ('ask' / 'categorize') so
+    timing can be split; `want_thoughts` asks thinking models for their reasoning.
     May raise ValueError (not configured) or other exceptions (call failed)."""
     client_paid, client_free = _init_gemini_clients('notice')
     from google.genai import types
@@ -97,10 +117,15 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None):
         types.Part.from_bytes(data=image_bytes, mime_type='image/png'),
         text_prompt,
     ]
+    config = None
+    if want_thoughts:
+        config = types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(include_thoughts=True),
+        )
     start = time.time()
     try:
         response, billing_tier, retry_info = _gemini_generate(
-            client_free, client_paid, model, contents,
+            client_free, client_paid, model, contents, config=config,
         )
     except Exception as e:
         _log_api_usage('notice', model, 0, 0, round(time.time() - start),
@@ -108,7 +133,7 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None):
         raise
 
     elapsed = round(time.time() - start)
-    answer = (getattr(response, 'text', None) or '').strip()
+    answer, thoughts = _split_thoughts(response)
     in_tok, out_tok, think_tok = _extract_usage_tokens(response)
     retry_info = retry_info or {}
     _log_api_usage(
@@ -117,7 +142,7 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None):
         retry_free_error=retry_info.get('free_error'),
         retry_free_elapsed=retry_info.get('free_elapsed'), phase=phase,
     )
-    return answer
+    return answer, thoughts
 
 
 @notice_bp.route('/api/notice/ask', methods=['POST'])
@@ -137,7 +162,7 @@ def ask():
 
     user_id = getattr(request, 'user_id', None)
     try:
-        answer = _gemini_on_image(model, image_bytes, _PROMPT.format(question=question), user_id, phase='ask')
+        answer, _ = _gemini_on_image(model, image_bytes, _PROMPT.format(question=question), user_id, phase='ask')
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
     except Exception:
@@ -163,7 +188,10 @@ def categorize():
 
     user_id = getattr(request, 'user_id', None)
     try:
-        answer = _gemini_on_image(model, image_bytes, _CATEGORIZE_PROMPT, user_id, phase='categorize')
+        answer, thoughts = _gemini_on_image(
+            model, image_bytes, _CATEGORIZE_PROMPT, user_id,
+            phase='categorize', want_thoughts=model in THINKING_MODELS,
+        )
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
     except Exception:
@@ -173,7 +201,7 @@ def categorize():
     category = _normalize_category(answer)
     if not category:
         return jsonify({'error': 'No category returned.'}), 502
-    return jsonify({'category': category})
+    return jsonify({'category': category, 'thoughts': thoughts})
 
 
 def _normalize_category(text):
