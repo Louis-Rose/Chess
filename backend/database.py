@@ -1385,3 +1385,28 @@ def init_db():
                 "ON mpp_standings_history(challenge_id, snapshot_date)"
             )
             logger.info("Created mpp_standings_history table")
+
+        # Migration: clothing agent job queue. A search request is enqueued here
+        # by the web app and picked up by a worker running on the owner's own
+        # machine (residential IP + real Chrome) so it can browse bot-protected
+        # stores. The worker claims a pending job, scrapes the sources and posts
+        # the result back. sources/result are JSON text.
+        if not _table_exists(conn, 'clothing_jobs'):
+            conn.execute("""
+                CREATE TABLE clothing_jobs (
+                    id          SERIAL PRIMARY KEY,
+                    user_id     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    prompt      TEXT NOT NULL,
+                    sources     TEXT NOT NULL,
+                    status      TEXT NOT NULL DEFAULT 'pending',
+                    result      TEXT,
+                    error       TEXT,
+                    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    claimed_at  TIMESTAMP,
+                    finished_at TIMESTAMP
+                )
+            """)
+            conn.execute(
+                "CREATE INDEX idx_clothing_jobs_status ON clothing_jobs(status, created_at)"
+            )
+            logger.info("Created clothing_jobs table")

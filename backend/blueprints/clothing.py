@@ -1,55 +1,42 @@
-"""Clothing backend: an agent that hunts for an item across configured stores.
+"""Clothing backend: a job queue for the personal shopping agent.
 
-The user types what they're looking for (e.g. "a light linen summer shirt under
-80 euros") and a list of source sites (Octobre by default). We hand the request
-to Gemini with Google Search grounding so it can browse those stores' live pages
-and return concrete products with links. The Gemini client/retry/usage-logging
-plumbing is reused from the chesscoaches blueprint so this shares the same
-paid/free key fallback and admin usage tracking.
+Bot-protected stores (Octobre is behind DataDome) refuse server-side requests,
+so the actual browsing can't happen on the VM. Instead the web app enqueues a
+search here and a worker running on the owner's own machine — residential IP,
+real Chrome — claims the job, browses the sources and posts the result back.
+
+Flow:
+  browser  POST /api/clothing/search        -> enqueue, returns {job_id}
+  browser  GET  /api/clothing/jobs/<id>      -> poll status/result
+  worker   GET  /api/clothing/worker/next    -> claim oldest pending job
+  worker   POST /api/clothing/worker/<id>/result -> deliver items / error
+
+The two worker endpoints are guarded by a shared secret (CLOTHING_WORKER_SECRET)
+rather than a login session, since the worker is a headless script, not a user.
 """
 
+import hmac
 import json
 import logging
+import os
 import re
-import time
 
 from flask import Blueprint, jsonify, request
 
 from auth import login_required
-from blueprints.chesscoaches import (
-    _init_gemini_clients,
-    _gemini_generate,
-    _extract_usage_tokens,
-    _log_api_usage,
-    _strip_code_fences,
-)
+from database import get_db
 
 logger = logging.getLogger(__name__)
 
 clothing_bp = Blueprint('clothing', __name__)
 
-# Grounded search works on the flash tier; keep one model, no client choice.
-MODEL = 'gemini-3-flash-preview'
-# Defensive caps so a client can't send an abusive prompt / source list.
 MAX_PROMPT_CHARS = 500
 MAX_SOURCES = 12
-MAX_ITEMS = 8
-
-_PROMPT = (
-    "You are a personal shopping assistant. The user is looking for:\n"
-    "\"{query}\"\n\n"
-    "Search the web and look ONLY inside these store websites (use site: filters "
-    "for each domain): {sources}.\n"
-    "Find specific products that are currently listed for sale and genuinely "
-    "match the request. For each product give its exact name, its price (with "
-    "currency, or null if you cannot find it), a direct URL to the product page, "
-    "and one short sentence on why it fits.\n"
-    "Return at most {max_items} products, best matches first.\n\n"
-    "Respond with ONLY a JSON object, no prose around it, shaped exactly like:\n"
-    '{{"summary": "<one short sentence overview>", "items": [{{"name": "...", '
-    '"price": "...", "url": "https://...", "note": "..."}}]}}\n'
-    "If nothing matches, return an empty items array and say so in summary."
-)
+# A pending job with no worker is failed after this long so the UI can say the
+# agent is offline instead of spinning forever.
+PENDING_TIMEOUT_SECONDS = 150
+# A claimed job whose worker died is returned to the pool after this long.
+RUNNING_TIMEOUT_SECONDS = 180
 
 
 def _clean_domain(raw):
@@ -60,16 +47,28 @@ def _clean_domain(raw):
     return s.strip()
 
 
+def _worker_authorized():
+    secret = os.environ.get('CLOTHING_WORKER_SECRET')
+    if not secret:
+        return False
+    sent = request.headers.get('X-Worker-Secret', '')
+    return hmac.compare_digest(sent, secret)
+
+
+# ---------------------------------------------------------------------------
+# Browser-facing endpoints
+# ---------------------------------------------------------------------------
+
 @clothing_bp.route('/api/clothing/search', methods=['POST'])
 @login_required
-def search():
+def enqueue():
     data = request.get_json(silent=True) or {}
-    query = (data.get('prompt') or '').strip()
+    prompt = (data.get('prompt') or '').strip()
     raw_sources = data.get('sources') or []
 
-    if not query:
+    if not prompt:
         return jsonify({'error': 'Tell the agent what to look for.'}), 400
-    if len(query) > MAX_PROMPT_CHARS:
+    if len(prompt) > MAX_PROMPT_CHARS:
         return jsonify({'error': 'That request is too long.'}), 400
     if not isinstance(raw_sources, list):
         return jsonify({'error': 'Sources must be a list of sites.'}), 400
@@ -82,79 +81,131 @@ def search():
     if not sources:
         return jsonify({'error': 'Add at least one source site.'}), 400
 
-    try:
-        client_paid, client_free = _init_gemini_clients('clothing')
-    except ValueError:
-        return jsonify({'error': 'The agent is not configured on the server.'}), 503
-
-    from google.genai import types
-
-    prompt = _PROMPT.format(
-        query=query, sources=', '.join(sources), max_items=MAX_ITEMS,
-    )
-    config = types.GenerateContentConfig(
-        tools=[types.Tool(google_search=types.GoogleSearch())],
-    )
-
     user_id = getattr(request, 'user_id', None)
-    start = time.time()
-    try:
-        response, billing_tier, retry_info = _gemini_generate(
-            client_free, client_paid, MODEL, prompt, config=config,
+    with get_db() as conn:
+        row = conn.execute(
+            """INSERT INTO clothing_jobs (user_id, prompt, sources)
+               VALUES (?, ?, ?) RETURNING id""",
+            (user_id, prompt, json.dumps(sources)),
+        ).fetchone()
+    return jsonify({'job_id': row['id']})
+
+
+@clothing_bp.route('/api/clothing/jobs/<int:job_id>', methods=['GET'])
+@login_required
+def poll(job_id):
+    user_id = getattr(request, 'user_id', None)
+    with get_db() as conn:
+        # Lazily fail a job that has sat pending with no worker to claim it.
+        conn.execute(
+            """UPDATE clothing_jobs
+                  SET status = 'error', error = 'offline', finished_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND status = 'pending'
+                  AND created_at < CURRENT_TIMESTAMP - (? * INTERVAL '1 second')""",
+            (job_id, PENDING_TIMEOUT_SECONDS),
         )
-    except Exception as e:
-        elapsed = round(time.time() - start)
-        logger.exception('[clothing] Gemini call failed')
-        _log_api_usage('clothing', MODEL, 0, 0, elapsed, error=str(e), user_id=user_id)
-        return jsonify({'error': 'The agent request failed. Please try again.'}), 502
+        row = conn.execute(
+            "SELECT user_id, status, result, error FROM clothing_jobs WHERE id = ?",
+            (job_id,),
+        ).fetchone()
 
-    elapsed = round(time.time() - start)
-    text = (getattr(response, 'text', None) or '').strip()
-    in_tok, out_tok, think_tok = _extract_usage_tokens(response)
-    retry_info = retry_info or {}
-    _log_api_usage(
-        'clothing', MODEL, in_tok, out_tok, elapsed,
-        thinking_tokens=think_tok, billing_tier=billing_tier, user_id=user_id,
-        retry_free_error=retry_info.get('free_error'),
-        retry_free_elapsed=retry_info.get('free_elapsed'),
-    )
+    if not row or (row['user_id'] is not None and row['user_id'] != user_id):
+        return jsonify({'error': 'Job not found.'}), 404
 
-    if not text:
-        return jsonify({'error': 'The agent did not return anything.'}), 502
-
-    summary, items = _parse_result(text)
-    return jsonify({'summary': summary, 'items': items, 'sources': sources})
-
-
-def _parse_result(text):
-    """Pull the {summary, items} JSON out of the model's reply, defensively."""
-    cleaned = _strip_code_fences(text)
-    try:
-        obj = json.loads(cleaned)
-    except Exception:
-        # Last resort: grab the first {...} block.
-        m = re.search(r'\{.*\}', cleaned, re.DOTALL)
+    out = {'status': row['status']}
+    if row['status'] == 'done':
         try:
-            obj = json.loads(m.group(0)) if m else {}
+            out['result'] = json.loads(row['result']) if row['result'] else {}
         except Exception:
-            return text[:500], []
+            out['result'] = {}
+    elif row['status'] == 'error':
+        out['error'] = (
+            'Your shopping agent looks offline. Start the worker on your machine and try again.'
+            if row['error'] == 'offline'
+            else (row['error'] or 'The search failed.')
+        )
+    return jsonify(out)
 
-    if not isinstance(obj, dict):
-        return text[:500], []
 
-    summary = str(obj.get('summary') or '').strip()
+# ---------------------------------------------------------------------------
+# Worker-facing endpoints (shared-secret auth)
+# ---------------------------------------------------------------------------
+
+@clothing_bp.route('/api/clothing/worker/next', methods=['GET'])
+def worker_next():
+    if not _worker_authorized():
+        return jsonify({'error': 'unauthorized'}), 401
+
+    with get_db() as conn:
+        # Claim the oldest job that's pending, or running but abandoned. SKIP
+        # LOCKED lets several workers poll without grabbing the same row.
+        row = conn.execute(
+            """UPDATE clothing_jobs
+                  SET status = 'running', claimed_at = CURRENT_TIMESTAMP
+                WHERE id = (
+                    SELECT id FROM clothing_jobs
+                     WHERE status = 'pending'
+                        OR (status = 'running'
+                            AND claimed_at < CURRENT_TIMESTAMP - (? * INTERVAL '1 second'))
+                     ORDER BY created_at
+                     LIMIT 1
+                     FOR UPDATE SKIP LOCKED
+                )
+               RETURNING id, prompt, sources""",
+            (RUNNING_TIMEOUT_SECONDS,),
+        ).fetchone()
+
+    if not row:
+        return jsonify({'job': None})
+    try:
+        sources = json.loads(row['sources'])
+    except Exception:
+        sources = []
+    return jsonify({'job': {'id': row['id'], 'prompt': row['prompt'], 'sources': sources}})
+
+
+@clothing_bp.route('/api/clothing/worker/<int:job_id>/result', methods=['POST'])
+def worker_result(job_id):
+    if not _worker_authorized():
+        return jsonify({'error': 'unauthorized'}), 401
+
+    data = request.get_json(silent=True) or {}
+    err = (data.get('error') or '').strip()
+
+    if err:
+        with get_db() as conn:
+            conn.execute(
+                """UPDATE clothing_jobs
+                      SET status = 'error', error = ?, finished_at = CURRENT_TIMESTAMP
+                    WHERE id = ?""",
+                (err[:500], job_id),
+            )
+        return jsonify({'ok': True})
+
+    summary = str(data.get('summary') or '').strip()
     items = []
-    for it in (obj.get('items') or [])[:MAX_ITEMS]:
+    for it in (data.get('items') or [])[:40]:
         if not isinstance(it, dict):
             continue
-        url = str(it.get('url') or '').strip()
         name = str(it.get('name') or '').strip()
         if not name:
             continue
+        url = str(it.get('url') or '').strip()
+        img = str(it.get('image') or '').strip()
         items.append({
-            'name': name,
-            'price': str(it.get('price') or '').strip() or None,
+            'name': name[:200],
+            'price': (str(it.get('price') or '').strip() or None),
             'url': url if url.startswith('http') else None,
-            'note': str(it.get('note') or '').strip(),
+            'image': img if img.startswith('http') else None,
+            'source': str(it.get('source') or '').strip()[:100] or None,
         })
-    return summary, items
+
+    result = json.dumps({'summary': summary, 'items': items})
+    with get_db() as conn:
+        conn.execute(
+            """UPDATE clothing_jobs
+                  SET status = 'done', result = ?, error = NULL, finished_at = CURRENT_TIMESTAMP
+                WHERE id = ?""",
+            (result, job_id),
+        )
+    return jsonify({'ok': True})

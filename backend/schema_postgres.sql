@@ -275,6 +275,23 @@ CREATE TABLE IF NOT EXISTS api_usage (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Clothing agent job queue. Enqueued by the web app, claimed and fulfilled by a
+-- worker on the owner's own machine (residential IP + real Chrome) so it can
+-- browse bot-protected stores. sources/result are JSON text.
+CREATE TABLE IF NOT EXISTS clothing_jobs (
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    prompt      TEXT NOT NULL,
+    sources     TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    result      TEXT,
+    error       TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    claimed_at  TIMESTAMP,
+    finished_at TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_clothing_jobs_status ON clothing_jobs(status, created_at);
+
 -- Music memory trace (written by the my-music Spotify tracker daemon, read by
 -- the public /music page). Media metadata is separated from the play log.
 CREATE TABLE IF NOT EXISTS music_artists (
