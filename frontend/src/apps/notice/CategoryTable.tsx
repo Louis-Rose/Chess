@@ -1,10 +1,31 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Sparkles } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 
 // model id -> page number -> category label
 type CatMap = Record<string, Record<number, string>>;
+
+// Categories are remembered per PDF in this browser, keyed by document id, so
+// they survive reloads. Each (page, model) keeps only its most recent result.
+const catKey = (docId: string) => `notice.categories.${docId}`;
+
+function loadCategories(docId: string): CatMap {
+  try {
+    const raw = localStorage.getItem(catKey(docId));
+    return raw ? (JSON.parse(raw) as CatMap) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveCategories(docId: string, cats: CatMap) {
+  try {
+    localStorage.setItem(catKey(docId), JSON.stringify(cats));
+  } catch {
+    // ignore quota / serialization errors
+  }
+}
 
 // A table with one row per Gemini model: the model name, the category it assigns
 // to the page currently shown, and the running Gemini spend for that model in
@@ -24,6 +45,7 @@ export function CategoryTable({
   docId: string;
 }) {
   const [categories, setCategories] = useState<CatMap>({});
+  const categoriesRef = useRef<CatMap>({});
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<null | 'this' | 'all'>(null);
@@ -47,12 +69,23 @@ export function CategoryTable({
     void loadCosts();
   }, [loadCosts]);
 
-  // Categories are per page; clear them when the document changes.
+  // Load this PDF's remembered categories when the document changes.
   useEffect(() => {
-    setCategories({});
+    const loaded = loadCategories(docId);
+    categoriesRef.current = loaded;
+    setCategories(loaded);
     setError(null);
     setProgress(null);
   }, [docId]);
+
+  // Record one (model, page) result, keeping only the most recent, and persist.
+  const setCategory = (modelId: string, pageNum: number, category: string) => {
+    const next: CatMap = { ...categoriesRef.current };
+    next[modelId] = { ...(next[modelId] || {}), [pageNum]: category };
+    categoriesRef.current = next;
+    setCategories(next);
+    saveCategories(docId, next);
+  };
 
   // Classify one page image across every model, storing results per (model, page).
   const classify = async (image: string, pageNum: number) => {
@@ -63,9 +96,9 @@ export function CategoryTable({
             image,
             model: m.id,
           });
-          setCategories((c) => ({ ...c, [m.id]: { ...(c[m.id] || {}), [pageNum]: data.category } }));
+          setCategory(m.id, pageNum, data.category);
         } catch {
-          setCategories((c) => ({ ...c, [m.id]: { ...(c[m.id] || {}), [pageNum]: '—' } }));
+          setCategory(m.id, pageNum, '—');
         }
       }),
     );
