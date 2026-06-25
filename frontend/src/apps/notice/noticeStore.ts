@@ -75,11 +75,16 @@ function genId(): string {
 
 export async function addFile(file: File): Promise<NoticeFile> {
   const hash = await sha256(file);
-  // De-dupe by content: the same PDF — even renamed — returns the existing
-  // record instead of storing another copy.
+  // De-dupe by content: the same PDF — even renamed — reuses the existing record
+  // instead of storing another copy. Adopt the (possibly new) name and bump it to
+  // the top of the history, keeping the same id so the open document is stable.
   if (hash) {
     const existing = await findByHash(hash);
-    if (existing) return existing;
+    if (existing) {
+      const updated: NoticeFile = { ...existing, name: file.name, addedAt: Date.now() };
+      await tx('readwrite', (s) => s.put(updated));
+      return updated;
+    }
   }
   const rec: NoticeFile = {
     id: genId(),
