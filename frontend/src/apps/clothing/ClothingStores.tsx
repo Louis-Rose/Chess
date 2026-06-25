@@ -8,56 +8,70 @@ export function ClothingStores() {
   const { stores, addStore, removeStore } = useStores();
   const [site, setSite] = useState('');
   const [name, setName] = useState('');
+  const [adding, setAdding] = useState(false);
 
   const submit = () => {
     if (!site.trim()) return;
     addStore({ url: site.trim(), domain: site.trim(), name: name.trim() || undefined });
     setSite('');
     setName('');
+    setAdding(false);
   };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
-      <h2 className="mb-1 text-lg font-semibold">Stores</h2>
-      <p className="mb-6 text-sm text-slate-400">
-        The shops your agent searches. Adding one here also adds it to the Find tab. Tap a card to
-        browse the store yourself.
-      </p>
+      <h2 className="mb-6 text-center text-2xl font-semibold">Stores</h2>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="flex flex-wrap justify-center gap-3">
         {stores.map((s) => (
-          <StoreCard key={s.domain} store={s} onRemove={() => removeStore(s.domain)} />
+          <div key={s.domain} className="w-full sm:w-[calc(50%-0.375rem)]">
+            <StoreCard store={s} onRemove={() => removeStore(s.domain)} />
+          </div>
         ))}
       </div>
 
-      {/* Add a store */}
-      <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-800/30 p-4">
-        <p className="mb-2 text-sm font-semibold">Add a store</p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            value={site}
-            onChange={(e) => setSite(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), submit())}
-            placeholder="site or URL, e.g. sezane.com"
-            className="flex-1 rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
-          />
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), submit())}
-            placeholder="name (optional)"
-            className="rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none sm:w-48"
-          />
+      {/* Add a store: collapsed to a small button until opened */}
+      <div className="mt-6 flex justify-center">
+        {adding ? (
+          <div className="w-full rounded-2xl border border-slate-800 bg-slate-800/30 p-4">
+            <p className="mb-3 text-center text-sm font-semibold">Add a store</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={site}
+                onChange={(e) => setSite(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), submit())}
+                placeholder="site or URL, e.g. sezane.com"
+                autoFocus
+                className="flex-1 rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
+              />
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), submit())}
+                placeholder="name (optional)"
+                className="rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none sm:w-48"
+              />
+              <button
+                type="button"
+                onClick={submit}
+                disabled={!site.trim()}
+                className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Plus className="h-4 w-4" />
+                Add
+              </button>
+            </div>
+          </div>
+        ) : (
           <button
             type="button"
-            onClick={submit}
-            disabled={!site.trim()}
-            className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/40 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-300"
           >
             <Plus className="h-4 w-4" />
-            Add
+            Add a store
           </button>
-        </div>
+        )}
       </div>
     </div>
   );
