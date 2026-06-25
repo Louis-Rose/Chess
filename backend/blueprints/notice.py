@@ -1,18 +1,22 @@
-"""Notice.ai backend: answer a user's question about the page they're viewing.
+"""Notice.ai backend: answer questions and categorize the page being viewed.
 
-The frontend renders the current PDF page to a PNG and posts it here with the
-question. We forward both to Gemini (vision) and return the answer. The Gemini
-client/retry/usage-logging plumbing is reused from the chesscoaches blueprint so
-this feature shares the same paid/free key fallback and admin usage tracking.
+The frontend renders the current PDF page to a PNG and posts it here. We forward
+it to Gemini (vision) for two things: a free-form answer (/ask) and a one-label
+page category (/categorize). /costs reports the running Gemini spend per model
+for this feature. The Gemini client/retry/usage-logging plumbing is reused from
+the chesscoaches blueprint so this shares the same paid/free key fallback and
+admin usage tracking.
 """
 
 import base64
 import logging
+import re
 import time
 
 from flask import Blueprint, jsonify, request
 
 from auth import login_required
+from database import get_db
 from blueprints.chesscoaches import (
     _init_gemini_clients,
     _gemini_generate,
@@ -44,57 +48,64 @@ _PROMPT = (
     "so plainly.\n\nQuestion: {question}"
 )
 
+# Fixed set of page categories for an assembly manual. Assembly steps carry their
+# printed step number ("Assemblage - Etape N", N from 1 to 100).
+_FIXED_CATEGORIES = ['Sommaire', 'Outils nécessaires', 'Matériel fourni', 'Sécurité', 'Liens']
+_STEP_RE = re.compile(r'^Assemblage - Etape ([1-9]\d?|100)$')
 
-@notice_bp.route('/api/notice/ask', methods=['POST'])
-@login_required
-def ask():
-    data = request.get_json(silent=True) or {}
-    question = (data.get('question') or '').strip()
-    image_b64 = data.get('image') or ''
-    model = (data.get('model') or '').strip()
-    if model not in ALLOWED_MODELS:
-        model = DEFAULT_MODEL
+_CATEGORIZE_PROMPT = (
+    "You are classifying ONE page of a furniture assembly manual. Look at the "
+    "attached page image and choose the single category it best matches, from "
+    "exactly this list:\n"
+    "- Sommaire\n"
+    "- Outils nécessaires\n"
+    "- Matériel fourni\n"
+    "- Assemblage - Etape N  (replace N with the assembly step number printed on the page)\n"
+    "- Sécurité\n"
+    "- Liens\n"
+    "Reply with ONLY the category label, nothing else. For an assembly step, "
+    'write it exactly like "Assemblage - Etape 3".'
+)
 
-    if not question:
-        return jsonify({'error': 'A question is required.'}), 400
+
+def _decode_image(image_b64):
+    """Validate + decode a posted page image. Returns (bytes, None) or
+    (None, (response, status)) so callers can `return err` directly."""
     if not image_b64:
-        return jsonify({'error': 'No page image was provided.'}), 400
-
+        return None, (jsonify({'error': 'No page image was provided.'}), 400)
     # Accept either a data URL ("data:image/png;base64,...") or bare base64.
     if image_b64.startswith('data:') and ',' in image_b64:
         image_b64 = image_b64.split(',', 1)[1]
     try:
         image_bytes = base64.b64decode(image_b64, validate=True)
     except Exception:
-        return jsonify({'error': 'The page image could not be read.'}), 400
+        return None, (jsonify({'error': 'The page image could not be read.'}), 400)
     if not image_bytes:
-        return jsonify({'error': 'The page image was empty.'}), 400
+        return None, (jsonify({'error': 'The page image was empty.'}), 400)
     if len(image_bytes) > MAX_IMAGE_BYTES:
-        return jsonify({'error': 'The page image is too large.'}), 413
+        return None, (jsonify({'error': 'The page image is too large.'}), 413)
+    return image_bytes, None
 
-    try:
-        client_paid, client_free = _init_gemini_clients('notice')
-    except ValueError:
-        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
 
+def _gemini_on_image(model, image_bytes, text_prompt, user_id):
+    """Run one Gemini vision call on a page image, log usage, return the text.
+    May raise ValueError (not configured) or other exceptions (call failed)."""
+    client_paid, client_free = _init_gemini_clients('notice')
     from google.genai import types
 
     contents = [
         types.Part.from_bytes(data=image_bytes, mime_type='image/png'),
-        _PROMPT.format(question=question),
+        text_prompt,
     ]
-
-    user_id = getattr(request, 'user_id', None)
     start = time.time()
     try:
         response, billing_tier, retry_info = _gemini_generate(
             client_free, client_paid, model, contents,
         )
     except Exception as e:
-        elapsed = round(time.time() - start)
-        logger.exception('[notice] Gemini call failed')
-        _log_api_usage('notice', model, 0, 0, elapsed, error=str(e), user_id=user_id)
-        return jsonify({'error': 'The assistant request failed. Please try again.'}), 502
+        _log_api_usage('notice', model, 0, 0, round(time.time() - start),
+                       error=str(e), user_id=user_id)
+        raise
 
     elapsed = round(time.time() - start)
     answer = (getattr(response, 'text', None) or '').strip()
@@ -106,7 +117,96 @@ def ask():
         retry_free_error=retry_info.get('free_error'),
         retry_free_elapsed=retry_info.get('free_elapsed'),
     )
+    return answer
+
+
+@notice_bp.route('/api/notice/ask', methods=['POST'])
+@login_required
+def ask():
+    data = request.get_json(silent=True) or {}
+    question = (data.get('question') or '').strip()
+    model = (data.get('model') or '').strip()
+    if model not in ALLOWED_MODELS:
+        model = DEFAULT_MODEL
+    if not question:
+        return jsonify({'error': 'A question is required.'}), 400
+
+    image_bytes, err = _decode_image(data.get('image') or '')
+    if err:
+        return err
+
+    user_id = getattr(request, 'user_id', None)
+    try:
+        answer = _gemini_on_image(model, image_bytes, _PROMPT.format(question=question), user_id)
+    except ValueError:
+        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
+    except Exception:
+        logger.exception('[notice] Gemini call failed')
+        return jsonify({'error': 'The assistant request failed. Please try again.'}), 502
 
     if not answer:
         return jsonify({'error': 'The assistant did not return an answer.'}), 502
     return jsonify({'answer': answer})
+
+
+@notice_bp.route('/api/notice/categorize', methods=['POST'])
+@login_required
+def categorize():
+    data = request.get_json(silent=True) or {}
+    model = (data.get('model') or '').strip()
+    if model not in ALLOWED_MODELS:
+        return jsonify({'error': 'Unknown model.'}), 400
+
+    image_bytes, err = _decode_image(data.get('image') or '')
+    if err:
+        return err
+
+    user_id = getattr(request, 'user_id', None)
+    try:
+        answer = _gemini_on_image(model, image_bytes, _CATEGORIZE_PROMPT, user_id)
+    except ValueError:
+        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
+    except Exception:
+        logger.exception('[notice] categorize failed')
+        return jsonify({'error': 'Classification failed.'}), 502
+
+    category = _normalize_category(answer)
+    if not category:
+        return jsonify({'error': 'No category returned.'}), 502
+    return jsonify({'category': category})
+
+
+def _normalize_category(text):
+    """Snap the model's reply to one of the known labels (best-effort)."""
+    t = (text or '').strip().strip('."')
+    if t in _FIXED_CATEGORIES or _STEP_RE.match(t):
+        return t
+    return t or None
+
+
+@notice_bp.route('/api/notice/costs', methods=['GET'])
+@login_required
+def costs():
+    """Total Gemini spend per model for the Notice.ai feature (paid calls only)."""
+    from blueprints.admin import GEMINI_PRICING
+
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT model_id,
+                   SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN input_tokens ELSE 0 END) AS paid_input,
+                   SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN output_tokens ELSE 0 END) AS paid_output,
+                   SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN COALESCE(thinking_tokens,0) ELSE 0 END) AS paid_thinking
+               FROM api_usage
+               WHERE feature = 'notice'
+               GROUP BY model_id""",
+        ).fetchall()
+
+    out = {}
+    for row in rows:
+        r = dict(row)
+        pricing = GEMINI_PRICING.get(r['model_id'], {'input': 0, 'output': 0})
+        billed_output = (r['paid_output'] or 0) + (r['paid_thinking'] or 0)
+        out[r['model_id']] = (
+            (r['paid_input'] or 0) * pricing['input'] + billed_output * pricing['output']
+        ) / 1_000_000
+    return jsonify({'costs': out})

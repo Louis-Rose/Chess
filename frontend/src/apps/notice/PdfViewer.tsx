@@ -17,9 +17,11 @@ pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
 export function PdfViewer({
   file,
   onPageImage,
+  onPage,
 }: {
   file: Blob;
   onPageImage?: (getImage: () => string | null) => void;
+  onPage?: (page: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -146,6 +148,11 @@ export function PdfViewer({
   useEffect(() => {
     onPageImage?.(() => canvasRef.current?.toDataURL('image/png') ?? null);
   }, [onPageImage]);
+
+  // Report the current page number so the parent can react to navigation.
+  useEffect(() => {
+    onPage?.(page);
+  }, [page, onPage]);
 
   // When zoomed, render the current page large enough to fill the viewport.
   useEffect(() => {

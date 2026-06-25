@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, Loader2, Upload } from 'lucide-react';
 import { PdfViewer } from '../PdfViewer';
 import { PageQA } from '../PageQA';
+import { CategoryTable } from '../CategoryTable';
 import { SECTION_WIDTH } from '../sectionWidth';
 import { getFile, type NoticeFile } from '../noticeStore';
 import { useNoticeFiles } from '../useNoticeFiles';
@@ -15,6 +16,7 @@ export function NoticeViewer() {
   const { add } = useNoticeFiles();
 
   const [current, setCurrent] = useState<NoticeFile | null>(null);
+  const [pageNum, setPageNum] = useState(1);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -86,7 +88,7 @@ export function NoticeViewer() {
       {current ? (
         // Open document: Upload control, then two columns — document left,
         // asking window right (stacked on mobile).
-        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col">
+        <div className="mx-auto flex w-full max-w-6xl flex-col">
           <div className="mb-3 flex justify-center">
             <button
               type="button"
@@ -105,7 +107,7 @@ export function NoticeViewer() {
             <span className="truncate text-lg font-semibold">{current.name}</span>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-6 md:flex-row">
+          <div className="flex flex-col gap-6 md:h-[75vh] md:flex-row">
             {/* Document */}
             <div
               onDragOver={(e) => {
@@ -124,6 +126,7 @@ export function NoticeViewer() {
                 onPageImage={(fn) => {
                   getPageImage.current = fn;
                 }}
+                onPage={setPageNum}
               />
             </div>
 
@@ -132,6 +135,13 @@ export function NoticeViewer() {
               <PageQA getPageImage={() => getPageImage.current?.() ?? null} />
             </div>
           </div>
+
+          {/* Per-model page categories + Gemini cost */}
+          <CategoryTable
+            getPageImage={() => getPageImage.current?.() ?? null}
+            page={pageNum}
+            docId={current.id}
+          />
         </div>
       ) : (
         // No document: a square drop zone (loading / not-found / empty).
