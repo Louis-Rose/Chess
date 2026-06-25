@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Loader2, Send } from 'lucide-react';
 import { GeminiLogo } from './GeminiLogo';
 import { NOTICE_MODELS, DEFAULT_NOTICE_MODEL } from './models';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -14,6 +15,7 @@ interface Message {
 // conversation above the asking bar (like Gemini). The page is captured as a
 // PNG via `getPageImage` and posted with each question.
 export function PageQA({ getPageImage }: { getPageImage: () => string | null }) {
+  const { t } = useLanguage();
   const [question, setQuestion] = useState('');
   const [model, setModel] = useState(DEFAULT_NOTICE_MODEL);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,7 +42,7 @@ export function PageQA({ getPageImage }: { getPageImage: () => string | null }) 
 
     const image = getPageImage();
     if (!image) {
-      setError('The page is still rendering. Try again in a moment.');
+      setError(t('notice.err.rendering'));
       return;
     }
 
@@ -57,7 +59,7 @@ export function PageQA({ getPageImage }: { getPageImage: () => string | null }) 
       setMessages((m) => [...m, { role: 'assistant', content: data.answer }]);
     } catch (err) {
       const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
-      setError(msg || 'Something went wrong. Please try again.');
+      setError(msg || t('notice.err.generic'));
     } finally {
       setLoading(false);
     }
@@ -73,14 +75,14 @@ export function PageQA({ getPageImage }: { getPageImage: () => string | null }) 
           ref={inputRef}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask anything about this page…"
+          placeholder={t('notice.qa.placeholder')}
           className="w-full rounded-xl border border-slate-700 bg-slate-900/50 py-3.5 pl-4 pr-12 text-base text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
         />
         {(question.trim() || loading) && (
           <button
             type="submit"
             disabled={!question.trim() || loading}
-            aria-label="Ask"
+            aria-label={t('notice.qa.ask')}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
@@ -133,7 +135,7 @@ export function PageQA({ getPageImage }: { getPageImage: () => string | null }) 
             {loading && (
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Reading this page…
+                {t('notice.qa.reading')}
               </div>
             )}
             {error && (

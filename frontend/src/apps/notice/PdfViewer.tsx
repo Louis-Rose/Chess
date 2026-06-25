@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import PdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // PDF.js renders pages off the main thread. Let Vite bundle and instantiate the
 // worker (?worker) rather than pointing workerSrc at a raw .mjs URL: the latter
@@ -34,6 +35,7 @@ export function PdfViewer({
   const taskRef = useRef<RenderTask | null>(null);
   const zoomCanvasRef = useRef<HTMLCanvasElement>(null);
   const zoomTaskRef = useRef<RenderTask | null>(null);
+  const { t } = useLanguage();
 
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
@@ -64,7 +66,7 @@ export function PdfViewer({
         docRef.current = doc;
         setNumPages(doc.numPages);
       } catch {
-        if (!cancelled) setError('Could not open this PDF.');
+        if (!cancelled) setError(t('notice.pdf.openError'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -244,7 +246,7 @@ export function PdfViewer({
           <canvas
             ref={canvasRef}
             onClick={() => !loading && numPages > 0 && setZoomed(true)}
-            title="Click to zoom"
+            title={t('notice.pdf.zoom')}
             className={`mx-auto max-w-full cursor-zoom-in rounded-lg shadow-lg ${loading ? 'hidden' : ''}`}
           />
         )}
@@ -265,7 +267,7 @@ export function PdfViewer({
           <button
             type="button"
             onClick={() => setZoomed(false)}
-            aria-label="Close"
+            aria-label={t('notice.pdf.close')}
             className="absolute right-4 top-4 cursor-pointer rounded-lg border border-slate-600 bg-slate-800/80 p-2 text-slate-200 transition-colors hover:bg-slate-700"
           >
             <X className="h-5 w-5" />
@@ -302,6 +304,7 @@ function PageNav({
   onGo: (delta: number) => void;
   disabled?: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="flex items-center justify-center gap-4">
       <button
@@ -309,19 +312,19 @@ function PageNav({
         onClick={() => onGo(-1)}
         disabled={disabled || page <= 1}
         className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40"
-        aria-label="Previous page"
+        aria-label={t('notice.pdf.prev')}
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
       <span className="min-w-[6rem] text-center text-sm text-slate-600">
-        {numPages > 0 ? `Page ${page} of ${numPages}` : '—'}
+        {numPages > 0 ? `${t('notice.pdf.page')} ${page} ${t('notice.pdf.of')} ${numPages}` : '—'}
       </span>
       <button
         type="button"
         onClick={() => onGo(1)}
         disabled={disabled || page >= numPages}
         className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40"
-        aria-label="Next page"
+        aria-label={t('notice.pdf.next')}
       >
         <ChevronRight className="h-4 w-4" />
       </button>

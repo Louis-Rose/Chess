@@ -7,17 +7,18 @@ import { AppTitle } from '../../components/AppTitle';
 import { LangToggle } from '../../components/LangToggle';
 import { LoginButton } from '../../components/LoginButton';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
 }
 
 const NAV: NavItem[] = [
-  { to: '/notice/notes', label: 'MVP Notes', icon: Lightbulb },
-  { to: '/notice/view', label: 'Viewer', icon: FileText },
-  { to: '/notice/library', label: 'Library', icon: Library },
+  { to: '/notice/notes', labelKey: 'notice.nav.notes', icon: Lightbulb },
+  { to: '/notice/view', labelKey: 'notice.nav.viewer', icon: FileText },
+  { to: '/notice/library', labelKey: 'notice.nav.library', icon: Library },
 ];
 
 function navClass(active: boolean): string {
@@ -32,6 +33,7 @@ function navClass(active: boolean): string {
 // (the app is available to any signed-in user; files stay in their browser).
 export function NoticeLayout() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { t } = useLanguage();
 
   useEffect(() => {
     document.title = 'Notice.ai | LUMNA';
@@ -42,10 +44,10 @@ export function NoticeLayout() {
       {/* Desktop sidebar (shared LUMNA rail + Notice nav) */}
       <AppSidebar className="sticky top-0 hidden h-dvh md:flex">
         <nav className="flex flex-col gap-1">
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {NAV.map(({ to, labelKey, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => navClass(isActive)}>
               <Icon className="h-4 w-4" />
-              {label}
+              {t(labelKey)}
             </NavLink>
           ))}
         </nav>
@@ -57,13 +59,13 @@ export function NoticeLayout() {
           <NavLink to="/notice" end className="mr-2 flex items-center gap-2">
             <LumnaLogo className="h-6 w-6" />
           </NavLink>
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {NAV.map(({ to, labelKey, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => navClass(isActive)}>
               <Icon className="h-4 w-4" />
-              {label}
+              {t(labelKey)}
             </NavLink>
           ))}
-          <LangToggle disabled className="ml-auto" />
+          <LangToggle className="ml-auto" />
           {user && (
             <div className="flex items-center gap-2">
               {user.picture && (
@@ -83,7 +85,7 @@ export function NoticeLayout() {
         <div className="relative hidden border-b border-slate-800 px-6 py-5 md:block">
           <AppTitle title="Notice.ai" />
           <div className="absolute right-6 top-1/2 -translate-y-1/2">
-            <LangToggle disabled />
+            <LangToggle />
           </div>
         </div>
 
@@ -93,9 +95,7 @@ export function NoticeLayout() {
               <Lock className="h-10 w-10 text-slate-400" />
               <div>
                 <h2 className="text-xl font-semibold text-slate-900">Notice.ai</h2>
-                <p className="mt-1 max-w-sm text-slate-600">
-                  Sign in with Google to upload and read your documents. They stay private to your browser.
-                </p>
+                <p className="mt-1 max-w-sm text-slate-600">{t('notice.gate.desc')}</p>
               </div>
               <LoginButton redirectTo="/notice" />
             </div>

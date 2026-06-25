@@ -7,6 +7,7 @@ import { CategoryTable } from '../CategoryTable';
 import { SECTION_WIDTH } from '../sectionWidth';
 import { getFile, type NoticeFile } from '../noticeStore';
 import { useNoticeFiles } from '../useNoticeFiles';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 // The Viewer page: upload a PDF (button or drag-and-drop) and read it page by
 // page. When the route carries an :id, that stored document is shown.
@@ -14,6 +15,7 @@ export function NoticeViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { add } = useNoticeFiles();
+  const { t } = useLanguage();
 
   const [current, setCurrent] = useState<NoticeFile | null>(null);
   const [pageNum, setPageNum] = useState(1);
@@ -100,7 +102,7 @@ export function NoticeViewer() {
               className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Upload PDF
+              {t('notice.upload')}
             </button>
           </div>
 
@@ -178,7 +180,7 @@ export function NoticeViewer() {
               className="flex h-full w-full flex-col items-center justify-center gap-2 px-6 text-center text-slate-500 transition-colors hover:bg-emerald-50"
             >
               <FileText className="h-10 w-10" />
-              <p>This document is no longer in your library. Click to upload a new one.</p>
+              <p>{t('notice.viewer.gone')}</p>
             </button>
           ) : (
             <div
@@ -191,11 +193,11 @@ export function NoticeViewer() {
                 <Upload className="h-10 w-10 text-slate-400" />
               )}
               <div>
-                <h3 className="text-xl font-semibold text-slate-900">Upload PDF</h3>
-                <p className="mt-1 font-medium text-slate-700">Drop a PDF here, or click to upload.</p>
-                <p className="mt-1 text-sm text-slate-500">It's saved in this browser and added to your library.</p>
+                <h3 className="text-xl font-semibold text-slate-900">{t('notice.upload')}</h3>
+                <p className="mt-1 font-medium text-slate-700">{t('notice.viewer.dropHint')}</p>
+                <p className="mt-1 text-sm text-slate-500">{t('notice.viewer.dropSub')}</p>
               </div>
-              {rejected && <p className="text-sm text-red-600">Only PDF files are supported for now.</p>}
+              {rejected && <p className="text-sm text-red-600">{t('notice.viewer.onlyPdf')}</p>}
             </div>
           )}
         </div>

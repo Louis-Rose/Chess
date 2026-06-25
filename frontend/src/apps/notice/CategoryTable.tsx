@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Sparkles } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // model id -> page number -> value (category label, or thought summary)
 type ByModelPage = Record<string, Record<number, string>>;
@@ -45,6 +46,7 @@ export function CategoryTable({
   page: number;
   docId: string;
 }) {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<ByModelPage>({});
   const categoriesRef = useRef<ByModelPage>({});
   const [thoughts, setThoughts] = useState<ByModelPage>({});
@@ -122,7 +124,7 @@ export function CategoryTable({
   const findThisPage = async () => {
     const image = getPageImage();
     if (!image) {
-      setError('The page is still rendering. Try again in a moment.');
+      setError(t('notice.err.rendering'));
       return;
     }
     setError(null);
@@ -161,11 +163,11 @@ export function CategoryTable({
       <div className="mb-3 flex flex-wrap justify-center gap-3">
         <button type="button" onClick={findThisPage} disabled={!!busy} className={btnClass}>
           {busy === 'this' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Find Categories (this page)
+          {t('notice.cat.thisPage')}
         </button>
         <button type="button" onClick={findAllPages} disabled={!!busy} className={btnClass}>
           {busy === 'all' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Find Categories (all pages)
+          {t('notice.cat.allPages')}
           {busy === 'all' && progress ? ` · ${progress.done}/${progress.total}` : ''}
         </button>
       </div>
@@ -176,10 +178,12 @@ export function CategoryTable({
         <table className="w-full text-center text-sm">
           <thead>
             <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-white [&>th]:border-r [&>th]:border-slate-800/60 [&>th:last-child]:border-r-0">
-              <th className="px-4 py-2 font-medium">Model</th>
-              <th className="px-4 py-2 font-medium">Category (page {page})</th>
-              <th className="px-4 py-2 font-medium">API cost</th>
-              <th className="px-4 py-2 font-medium">Time taken</th>
+              <th className="px-4 py-2 font-medium">{t('notice.cat.model')}</th>
+              <th className="px-4 py-2 font-medium">
+                {t('notice.cat.category')} ({t('notice.pdf.page')} {page})
+              </th>
+              <th className="px-4 py-2 font-medium">{t('notice.cat.cost')}</th>
+              <th className="px-4 py-2 font-medium">{t('notice.cat.time')}</th>
             </tr>
           </thead>
           <tbody>
@@ -204,7 +208,7 @@ export function CategoryTable({
                             onClick={() => setExpanded((e) => ({ ...e, [m.id]: !e[m.id] }))}
                             className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-300 transition-colors hover:border-emerald-500 hover:bg-emerald-500/20"
                           >
-                            {open ? 'Hide thinking' : 'Show thinking'}
+                            {open ? t('notice.cat.hideThinking') : t('notice.cat.showThinking')}
                           </button>
                         )}
                       </div>
