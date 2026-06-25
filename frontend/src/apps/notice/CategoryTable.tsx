@@ -122,7 +122,7 @@ export function CategoryTable({
       <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border border-slate-800">
         <table className="w-full text-center text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-white">
               <th className="px-4 py-2 font-medium">Model</th>
               <th className="px-4 py-2 font-medium">Category (page {page})</th>
               <th className="px-4 py-2 font-medium">API cost</th>
