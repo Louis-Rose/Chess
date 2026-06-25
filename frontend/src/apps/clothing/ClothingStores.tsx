@@ -33,7 +33,19 @@ export function ClothingStores() {
       {/* Add a store: collapsed to a small button until opened */}
       <div className="mt-6 flex justify-center">
         {adding ? (
-          <div className="w-full rounded-2xl border border-slate-800 bg-slate-800/30 p-4">
+          <div className="relative w-full rounded-2xl border border-slate-800 bg-slate-800/30 p-4">
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(false);
+                setSite('');
+                setName('');
+              }}
+              aria-label="Close"
+              className="absolute right-3 top-3 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-700/60 hover:text-slate-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <p className="mb-3 text-center text-sm font-semibold">Add a store</p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
