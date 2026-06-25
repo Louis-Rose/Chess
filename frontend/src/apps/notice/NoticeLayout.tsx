@@ -46,6 +46,17 @@ export function NoticeLayout() {
     document.title = 'Notice.ai | LUMNA';
   }, []);
 
+  // The app is globally dark (`dark` on <html>), and Tailwind's dark: variant
+  // fires for any ancestor with that class — so a scoped class can't turn it
+  // off. Drive the global class from the Notice theme instead; the shared rail
+  // uses explicit dark colors (not dark: variants), so it stays dark either
+  // way. Restore the app default (dark) when leaving Notice.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', theme === 'dark');
+    return () => root.classList.add('dark');
+  }, [theme]);
+
   const toggleTheme = () => {
     setTheme((prev) => {
       const next = prev === 'dark' ? 'light' : 'dark';
@@ -80,11 +91,7 @@ export function NoticeLayout() {
       </AppSidebar>
 
       {/* Content column: themed by the toggle. */}
-      <div
-        className={`flex min-w-0 flex-1 flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 ${
-          theme === 'dark' ? 'dark' : ''
-        }`}
-      >
+      <div className="flex min-w-0 flex-1 flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
         {/* Mobile top nav — always dark */}
         <div className="flex items-center gap-1 border-b border-slate-800 bg-slate-900 px-3 py-2 text-slate-100 md:hidden">
           <NavLink to="/notice" end className="mr-2 flex items-center gap-2">
