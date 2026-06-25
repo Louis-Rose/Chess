@@ -87,7 +87,7 @@ export function NoticeViewer() {
         // Open document: Upload control, then two columns — document left,
         // asking window right (stacked on mobile).
         <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col">
-          <div className="mb-4 flex justify-center">
+          <div className="mb-3 flex justify-center">
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -97,6 +97,12 @@ export function NoticeViewer() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               Upload PDF
             </button>
+          </div>
+
+          {/* Current document name, under the upload control */}
+          <div className="mb-4 flex items-center justify-center gap-2 text-slate-100">
+            <FileText className="h-4 w-4 shrink-0 text-emerald-400" />
+            <span className="truncate text-lg font-semibold">{current.name}</span>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-6 md:flex-row">
@@ -115,7 +121,6 @@ export function NoticeViewer() {
               <PdfViewer
                 key={current.id}
                 file={current.data}
-                name={current.name}
                 onPageImage={(fn) => {
                   getPageImage.current = fn;
                 }}

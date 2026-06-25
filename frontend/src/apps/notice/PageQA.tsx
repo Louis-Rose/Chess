@@ -109,22 +109,26 @@ export function PageQA({ getPageImage }: { getPageImage: () => string | null }) 
         <div ref={endRef} />
       </div>
 
-      {/* Asking bar */}
-      <form onSubmit={ask} className="flex flex-col gap-3 border-t border-slate-800 p-3">
-        <input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask anything about this page…"
-          className="w-full rounded-xl border border-slate-700 bg-slate-900/50 px-4 py-3.5 text-base text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!question.trim() || loading}
-          className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-5 py-3 text-base font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-          Ask
-        </button>
+      {/* Asking bar: press Enter to send. A send icon appears once there's text. */}
+      <form onSubmit={ask} className="border-t border-slate-800 p-3">
+        <div className="relative">
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask anything about this page…"
+            className="w-full rounded-xl border border-slate-700 bg-slate-900/50 py-3.5 pl-4 pr-12 text-base text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
+          />
+          {(question.trim() || loading) && (
+            <button
+              type="submit"
+              disabled={!question.trim() || loading}
+              aria-label="Ask"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );
