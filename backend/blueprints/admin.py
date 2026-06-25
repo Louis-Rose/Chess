@@ -22,7 +22,7 @@ COACHES_LAUNCH_DATE = '2026-03-23'
 GEMINI_PRICING = {
     # Current Notice.ai lineup
     'gemini-3.1-pro-preview':         {'input': 2.00, 'output': 12.00},
-    'gemini-3.5-flash':               {'input': 0.50, 'output': 3.00},   # placeholder pricing — verify
+    'gemini-3.5-flash':               {'input': 1.50, 'output': 9.00},
     'gemini-3.1-flash-lite':          {'input': 0.25, 'output': 1.50},
     # Older ids kept so historical api_usage rows still price correctly
     'gemini-3-flash-preview':         {'input': 0.50, 'output': 3.00},

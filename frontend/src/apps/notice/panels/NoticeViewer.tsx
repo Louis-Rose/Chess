@@ -17,13 +17,16 @@ export function NoticeViewer() {
 
   const [current, setCurrent] = useState<NoticeFile | null>(null);
   const [pageNum, setPageNum] = useState(1);
+  const [numPages, setNumPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [rejected, setRejected] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Getter handed up by PdfViewer; returns the current page as a PNG data URL.
+  // Getters handed up by PdfViewer: the current page as a PNG, and a renderer
+  // for any page (used to categorize all pages).
   const getPageImage = useRef<(() => string | null) | null>(null);
+  const renderPage = useRef<((n: number) => Promise<string | null>) | null>(null);
 
   // Load the selected document from IndexedDB when the id changes.
   useEffect(() => {
@@ -127,6 +130,10 @@ export function NoticeViewer() {
                   getPageImage.current = fn;
                 }}
                 onPage={setPageNum}
+                onNumPages={setNumPages}
+                onRenderPage={(fn) => {
+                  renderPage.current = fn;
+                }}
               />
             </div>
 
@@ -139,6 +146,8 @@ export function NoticeViewer() {
           {/* Per-model page categories + Gemini cost */}
           <CategoryTable
             getPageImage={() => getPageImage.current?.() ?? null}
+            renderPage={(n) => renderPage.current?.(n) ?? Promise.resolve(null)}
+            numPages={numPages}
             page={pageNum}
             docId={current.id}
           />
