@@ -99,7 +99,7 @@ export function NoticeViewer() {
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:shadow-none dark:hover:bg-emerald-500/10"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {t('notice.upload')}
@@ -107,8 +107,8 @@ export function NoticeViewer() {
           </div>
 
           {/* Current document name, under the upload control */}
-          <div className="mb-4 flex items-center justify-center gap-2 text-slate-900">
-            <FileText className="h-4 w-4 shrink-0 text-emerald-600" />
+          <div className="mb-4 flex items-center justify-center gap-2 text-slate-900 dark:text-slate-100">
+            <FileText className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span className="truncate text-lg font-semibold">{current.name}</span>
           </div>
 
@@ -121,8 +121,10 @@ export function NoticeViewer() {
               }}
               onDragLeave={() => setDragging(false)}
               onDrop={onDrop}
-              className={`h-[60vh] overflow-hidden rounded-2xl border shadow-sm md:h-auto md:min-h-0 md:min-w-0 md:flex-1 ${
-                dragging ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 bg-white'
+              className={`h-[60vh] overflow-hidden rounded-2xl border shadow-sm dark:shadow-none md:h-auto md:min-h-0 md:min-w-0 md:flex-1 ${
+                dragging
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/5'
+                  : 'border-slate-300 bg-white dark:border-slate-800 dark:bg-slate-800/30'
               }`}
             >
               <PdfViewer
@@ -163,10 +165,10 @@ export function NoticeViewer() {
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
-          className={`mt-12 aspect-square overflow-hidden rounded-2xl border shadow-sm transition-colors ${
+          className={`mt-12 aspect-square overflow-hidden rounded-2xl border shadow-sm transition-colors dark:shadow-none ${
             dragging
-              ? 'border-emerald-500 bg-emerald-50'
-              : 'border-slate-300 bg-white hover:border-emerald-500 hover:bg-emerald-50'
+              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/5'
+              : 'border-slate-300 bg-white hover:border-emerald-500 hover:bg-emerald-50 dark:border-slate-800 dark:bg-slate-800/30 dark:hover:bg-emerald-500/5'
           } ${SECTION_WIDTH}`}
         >
           {loading ? (
@@ -177,7 +179,7 @@ export function NoticeViewer() {
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="flex h-full w-full flex-col items-center justify-center gap-2 px-6 text-center text-slate-500 transition-colors hover:bg-emerald-50"
+              className="flex h-full w-full flex-col items-center justify-center gap-2 px-6 text-center text-slate-500 transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-500/5"
             >
               <FileText className="h-10 w-10" />
               <p>{t('notice.viewer.gone')}</p>
@@ -190,14 +192,14 @@ export function NoticeViewer() {
               {busy ? (
                 <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
               ) : (
-                <Upload className="h-10 w-10 text-slate-400" />
+                <Upload className="h-10 w-10 text-slate-400 dark:text-slate-600" />
               )}
               <div>
-                <h3 className="text-xl font-semibold text-slate-900">{t('notice.upload')}</h3>
-                <p className="mt-1 font-medium text-slate-700">{t('notice.viewer.dropHint')}</p>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{t('notice.upload')}</h3>
+                <p className="mt-1 font-medium text-slate-700 dark:text-slate-300">{t('notice.viewer.dropHint')}</p>
                 <p className="mt-1 text-sm text-slate-500">{t('notice.viewer.dropSub')}</p>
               </div>
-              {rejected && <p className="text-sm text-red-600">{t('notice.viewer.onlyPdf')}</p>}
+              {rejected && <p className="text-sm text-red-600 dark:text-red-400">{t('notice.viewer.onlyPdf')}</p>}
             </div>
           )}
         </div>

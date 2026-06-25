@@ -235,13 +235,13 @@ export function PdfViewer({
   return (
     <div className="flex h-full flex-col">
       {/* Page canvas */}
-      <div ref={containerRef} className="flex-1 overflow-auto bg-slate-50 p-4">
+      <div ref={containerRef} className="flex-1 overflow-auto bg-slate-50 p-4 dark:bg-slate-950/40">
         {loading && (
           <div className="flex h-full items-center justify-center text-slate-400">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         )}
-        {error && <p className="py-12 text-center text-sm text-red-600">{error}</p>}
+        {error && <p className="py-12 text-center text-sm text-red-600 dark:text-red-400">{error}</p>}
         {!error && (
           <canvas
             ref={canvasRef}
@@ -253,7 +253,7 @@ export function PdfViewer({
       </div>
 
       {/* Footer: page navigation, under the page */}
-      <div className="border-t border-slate-200 px-4 py-3">
+      <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-800">
         <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} />
       </div>
 
@@ -278,10 +278,11 @@ export function PdfViewer({
           >
             <canvas ref={zoomCanvasRef} className="rounded-lg shadow-2xl" />
           </div>
-          {/* Page count + navigation, same as the toolbar, floated at the bottom. */}
+          {/* Page count + navigation, floated at the bottom. The zoom overlay is
+              always dark (forced via the `dark` class) regardless of app theme. */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 cursor-default rounded-xl border border-slate-300 bg-white/90 px-3 py-2 backdrop-blur"
+            className="dark absolute bottom-4 left-1/2 -translate-x-1/2 cursor-default rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 backdrop-blur"
           >
             <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} />
           </div>
@@ -311,19 +312,19 @@ function PageNav({
         type="button"
         onClick={() => onGo(-1)}
         disabled={disabled || page <= 1}
-        className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40"
+        className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-emerald-500/10"
         aria-label={t('notice.pdf.prev')}
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
-      <span className="min-w-[6rem] text-center text-sm text-slate-600">
+      <span className="min-w-[6rem] text-center text-sm text-slate-600 dark:text-slate-400">
         {numPages > 0 ? `${t('notice.pdf.page')} ${page} ${t('notice.pdf.of')} ${numPages}` : '—'}
       </span>
       <button
         type="button"
         onClick={() => onGo(1)}
         disabled={disabled || page >= numPages}
-        className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40"
+        className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-emerald-500/10"
         aria-label={t('notice.pdf.next')}
       >
         <ChevronRight className="h-4 w-4" />

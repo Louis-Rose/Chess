@@ -29,8 +29,8 @@ export function NoticeLibrary() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-center justify-center gap-3">
-        <FileText className="h-6 w-6 text-emerald-600" />
-        <h1 className="text-2xl font-bold text-slate-900">{t('notice.nav.library')}</h1>
+        <FileText className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t('notice.nav.library')}</h1>
       </div>
 
       {files === null ? (
@@ -42,12 +42,12 @@ export function NoticeLibrary() {
           {files.map((f) => (
             <li
               key={f.id}
-              className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-emerald-500"
+              className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-emerald-500 dark:border-slate-800 dark:bg-slate-800/40 dark:shadow-none dark:hover:border-slate-700"
             >
               <Link to={`/notice/view/${f.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                <FileText className="h-5 w-5 shrink-0 text-emerald-600" />
+                <FileText className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{f.name}</p>
+                  <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{f.name}</p>
                   <p className="text-xs text-slate-500">
                     {formatSize(f.size)} · {formatDate(f.addedAt)}
                   </p>
@@ -60,7 +60,7 @@ export function NoticeLibrary() {
                     void remove(f.id);
                 }}
                 aria-label={`${t('notice.lib.remove')} ${f.name}`}
-                className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-600"
+                className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-600 dark:hover:bg-slate-700 dark:hover:text-red-400"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

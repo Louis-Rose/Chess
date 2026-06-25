@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { FileText, Library, Lightbulb, Lock, LogOut, type LucideIcon } from 'lucide-react';
+import { FileText, Library, Lightbulb, Lock, LogOut, Moon, Sun, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
-import { AppTitle } from '../../components/AppTitle';
 import { LangToggle } from '../../components/LangToggle';
 import { LoginButton } from '../../components/LoginButton';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +20,8 @@ const NAV: NavItem[] = [
   { to: '/notice/library', labelKey: 'notice.nav.library', icon: Library },
 ];
 
+// Nav links live in the always-dark left rail / mobile bar, so they keep dark
+// colors regardless of the content theme.
 function navClass(active: boolean): string {
   return [
     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -28,20 +29,45 @@ function navClass(active: boolean): string {
   ].join(' ');
 }
 
-// Sidebar shell for Notice.ai: a fixed left rail on desktop, a horizontal bar
-// on mobile. Two destinations — Viewer and Library — and a Google sign-in gate
-// (the app is available to any signed-in user; files stay in their browser).
+type Theme = 'light' | 'dark';
+const THEME_KEY = 'notice.theme';
+
+// Sidebar shell for Notice.ai. The left rail and mobile bar are always dark
+// (shared chrome); the content column (header + main) toggles light/dark via a
+// `dark` class, driving the dark: variants in the panels.
 export function NoticeLayout() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const { t } = useLanguage();
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'),
+  );
 
   useEffect(() => {
     document.title = 'Notice.ai | LUMNA';
   }, []);
 
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, next);
+      return next;
+    });
+  };
+
+  const themeButton = (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label="Toggle light/dark theme"
+      className="rounded-lg border border-slate-300 p-2 text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+    >
+      {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
+  );
+
   return (
     <div className="flex min-h-dvh bg-slate-900 text-slate-100">
-      {/* Desktop sidebar (shared LUMNA rail + Notice nav) */}
+      {/* Desktop sidebar (shared LUMNA rail + Notice nav) — always dark */}
       <AppSidebar className="sticky top-0 hidden h-dvh md:flex">
         <nav className="flex flex-col gap-1">
           {NAV.map(({ to, labelKey, icon: Icon }) => (
@@ -53,9 +79,14 @@ export function NoticeLayout() {
         </nav>
       </AppSidebar>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top nav */}
-        <div className="flex items-center gap-1 border-b border-slate-800 px-3 py-2 md:hidden">
+      {/* Content column: themed by the toggle. */}
+      <div
+        className={`flex min-w-0 flex-1 flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 ${
+          theme === 'dark' ? 'dark' : ''
+        }`}
+      >
+        {/* Mobile top nav — always dark */}
+        <div className="flex items-center gap-1 border-b border-slate-800 bg-slate-900 px-3 py-2 text-slate-100 md:hidden">
           <NavLink to="/notice" end className="mr-2 flex items-center gap-2">
             <LumnaLogo className="h-6 w-6" />
           </NavLink>
@@ -65,12 +96,13 @@ export function NoticeLayout() {
               {t(labelKey)}
             </NavLink>
           ))}
-          <LangToggle className="ml-auto" />
-          {user && (
-            <div className="flex items-center gap-2">
-              {user.picture && (
-                <img src={user.picture} alt="" className="h-7 w-7 rounded-full" title={user.email} />
-              )}
+          <div className="ml-auto flex items-center gap-2">
+            {themeButton}
+            <LangToggle />
+            {user?.picture && (
+              <img src={user.picture} alt="" className="h-7 w-7 rounded-full" title={user.email} />
+            )}
+            {user && (
               <button
                 onClick={() => logout()}
                 className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
@@ -78,24 +110,29 @@ export function NoticeLayout() {
               >
                 <LogOut className="h-4 w-4" />
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <div className="relative hidden border-b border-slate-800 px-6 py-5 md:block">
-          <AppTitle title="Notice.ai" />
-          <div className="absolute right-6 top-1/2 -translate-y-1/2">
+        {/* Desktop header bar — themed */}
+        <div className="relative hidden border-b border-slate-200 px-6 py-5 dark:border-slate-800 md:block">
+          <div className="flex items-center justify-center gap-3">
+            <FileText className="h-9 w-9 text-emerald-500" strokeWidth={1.5} />
+            <h1 className="text-3xl font-bold tracking-wide">Notice.ai</h1>
+          </div>
+          <div className="absolute right-6 top-1/2 flex -translate-y-1/2 items-center gap-2">
+            {themeButton}
             <LangToggle />
           </div>
         </div>
 
-        <main className="flex min-w-0 flex-1 flex-col bg-slate-100 text-slate-900">
+        <main className="flex min-w-0 flex-1 flex-col">
           {!authLoading && !isAuthenticated ? (
             <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
               <Lock className="h-10 w-10 text-slate-400" />
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">Notice.ai</h2>
-                <p className="mt-1 max-w-sm text-slate-600">{t('notice.gate.desc')}</p>
+                <h2 className="text-xl font-semibold">Notice.ai</h2>
+                <p className="mt-1 max-w-sm text-slate-600 dark:text-slate-400">{t('notice.gate.desc')}</p>
               </div>
               <LoginButton redirectTo="/notice" />
             </div>
