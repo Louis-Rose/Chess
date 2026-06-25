@@ -3,7 +3,9 @@
     "allow": [
       "Bash(cd *)",
       "Bash(git add *)",
+      "Bash(git commit *)",
       "Bash(git mv *)",
+      "Bash(git push *)",
       "Bash(jq *)",
       "Bash(npx tsc -b)",
       "Bash(npx vite build)"
