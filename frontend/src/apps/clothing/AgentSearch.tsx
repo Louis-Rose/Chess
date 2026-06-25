@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ExternalLink, Loader2, Search, X } from 'lucide-react';
+import { useStores, cleanDomain } from './StoresContext';
 
 // An agent that hunts for an item across the configured store sites. The web app
 // only enqueues the request; a worker on the owner's own machine (real Chrome,
 // residential IP) actually browses the stores and posts results back, so even
 // bot-protected sites like Octobre work. We enqueue, then poll for the result.
-const SOURCES_KEY = 'clothing.sources';
-const DEFAULT_SOURCES = ['octobre-editions.com'];
+// The list of stores is shared with the Stores tab via StoresContext.
 const POLL_MS = 2000;
 const MAX_POLLS = 90; // ~3 min ceiling
 
@@ -19,25 +19,8 @@ type Item = {
   source: string | null;
 };
 
-function loadSources(): string[] {
-  try {
-    const raw = localStorage.getItem(SOURCES_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.every((s) => typeof s === 'string')) return parsed;
-    }
-  } catch {
-    /* fall through to default */
-  }
-  return DEFAULT_SOURCES;
-}
-
-function cleanDomain(raw: string): string {
-  return raw.trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0].trim();
-}
-
 export function AgentSearch() {
-  const [sources, setSources] = useState<string[]>(loadSources);
+  const { stores, addStore, removeStore } = useStores();
   const [newSource, setNewSource] = useState('');
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,26 +33,19 @@ export function AgentSearch() {
     cancelled.current = true;
   }, []);
 
-  const persist = (next: string[]) => {
-    setSources(next);
-    localStorage.setItem(SOURCES_KEY, JSON.stringify(next));
-  };
-
   const addSource = () => {
-    const d = cleanDomain(newSource);
-    if (d && !sources.includes(d)) persist([...sources, d]);
+    addStore({ domain: cleanDomain(newSource) });
     setNewSource('');
   };
-
-  const removeSource = (d: string) => persist(sources.filter((s) => s !== d));
 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   const run = async () => {
     const q = prompt.trim();
     if (!q || loading) return;
+    const sources = stores.map((s) => s.domain);
     if (sources.length === 0) {
-      setError('Add at least one source site first.');
+      setError('Add at least one store first.');
       return;
     }
     cancelled.current = false;
@@ -118,19 +94,19 @@ export function AgentSearch() {
         Describe what you want. Your agent browses the sites below and brings back what it finds.
       </p>
 
-      {/* Sources */}
+      {/* Sources — shared with the Stores tab */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {sources.map((s) => (
+        {stores.map((s) => (
           <span
-            key={s}
+            key={s.domain}
             className="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 py-1 pl-3 pr-1 text-xs text-slate-300"
           >
-            {s}
+            {s.name}
             <button
               type="button"
-              onClick={() => removeSource(s)}
+              onClick={() => removeStore(s.domain)}
               className="rounded-full p-0.5 text-slate-500 hover:bg-slate-700 hover:text-slate-200"
-              aria-label={`Remove ${s}`}
+              aria-label={`Remove ${s.name}`}
             >
               <X className="h-3 w-3" />
             </button>
