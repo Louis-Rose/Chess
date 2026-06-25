@@ -5,7 +5,6 @@ import {
   TrendingUp,
   Rocket,
   Shirt,
-  Focus,
   FileText,
   type LucideIcon,
 } from 'lucide-react';
@@ -21,7 +20,6 @@ export interface AppEntry {
 // The LUMNA sub-apps. Single source of truth for both the chooser tiles and the
 // titled header (icon + name) shown at the top of each app.
 export const APPS: AppEntry[] = [
-  { path: '/focus', label: 'Focus', Icon: Focus },
   { path: '/chess', label: 'Chess', Icon: Crown },
   { path: '/fit', label: 'Gym', Icon: Dumbbell },
   { path: '/music', label: 'Music', Icon: Music },

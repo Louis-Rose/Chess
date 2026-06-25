@@ -16,7 +16,6 @@ const MusicApp = lazy(() => import('./apps/music/MusicApp').then(m => ({ default
 const InvestingApp = lazy(() => import('./apps/investing/InvestingApp').then(m => ({ default: m.InvestingApp })));
 const YcApp = lazy(() => import('./apps/yc/YcApp').then(m => ({ default: m.YcApp })));
 const ClothingApp = lazy(() => import('./apps/clothing/ClothingApp').then(m => ({ default: m.ClothingApp })));
-const FocusApp = lazy(() => import('./apps/focus/FocusApp').then(m => ({ default: m.FocusApp })));
 const FocusPrivacy = lazy(() => import('./apps/focus/FocusPrivacy').then(m => ({ default: m.FocusPrivacy })));
 const ChessApp = lazy(() => import('./apps/chess/ChessApp').then(m => ({ default: m.ChessApp })));
 const FideApp = lazy(() => import('./apps/fide/FideApp').then(m => ({ default: m.FideApp })));
@@ -57,7 +56,6 @@ function App() {
         <Route path="/yc/*" element={<YcApp />} />
         <Route path="/clothing/*" element={<ClothingApp />} />
         <Route path="/focus/privacy" element={<FocusPrivacy />} />
-        <Route path="/focus/*" element={<FocusApp />} />
         <Route path="/notice/*" element={<NoticeApp />} />
         <Route path="/mpp/*" element={<MppApp />} />
         <Route path="/chess/stats/*" element={<ChessApp />} />

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Focus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginButton } from './LoginButton';
+import { FocusSettingsModal } from '../apps/focus/FocusSettings';
 
 // Clickable avatar that opens a dropdown: name, email, and Sign out. Shows a
 // sign-in button when logged out. Shared by the top bar (avatar only) and the
@@ -9,6 +10,7 @@ import { LoginButton } from './LoginButton';
 export function ProfileMenu({ showName = false }: { showName?: boolean }) {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [focusOpen, setFocusOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +70,18 @@ export function ProfileMenu({ showName = false }: { showName?: boolean }) {
             role="menuitem"
             onClick={() => {
               setOpen(false);
+              setFocusOpen(true);
+            }}
+            className="flex w-full items-center gap-2 whitespace-nowrap border-b border-slate-700 px-3 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700"
+          >
+            <Focus className="h-4 w-4" />
+            Focus
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
               logout();
             }}
             className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700"
@@ -77,6 +91,8 @@ export function ProfileMenu({ showName = false }: { showName?: boolean }) {
           </button>
         </div>
       )}
+
+      {focusOpen && <FocusSettingsModal onClose={() => setFocusOpen(false)} />}
     </div>
   );
 }

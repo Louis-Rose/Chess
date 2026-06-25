@@ -1,35 +1,13 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Copy, Check } from 'lucide-react';
-import { SidebarLayout } from '../../components/SidebarLayout';
-import { useAuth } from '../../contexts/AuthContext';
-import { getFocusToken, focusHeaders } from './focusToken';
+import { Copy, Check, X } from 'lucide-react';
+import { focusHeaders } from './focusToken';
 import { pingExtension, isExtensionPresentMessage } from './extensionBridge';
 
-// Page at /focus: hands out the connection token for the LUMNA Focus browser
-// extension. Blocking and the block list are managed in the extension itself.
-export function FocusApp() {
-  useEffect(() => {
-    document.title = 'Focus | LUMNA';
-  }, []);
-
-  const { isAuthenticated } = useAuth();
-
-  return (
-    <SidebarLayout title="Focus">
-      <div className="mx-auto max-w-xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="space-y-4">
-          <ExtensionConnect isAuthenticated={isAuthenticated} />
-          {!isAuthenticated && (
-            <p className="px-1 text-center text-xs text-slate-500">
-              This token is tied to this device. Sign in to use the same one everywhere.
-            </p>
-          )}
-        </div>
-      </div>
-    </SidebarLayout>
-  );
-}
+// Focus is not a full app, just token management for the LUMNA Focus browser
+// extension. It lives in the account dropdown as a modal: hand out the connection
+// token, let the user copy or rotate it. Blocking and the block list are managed
+// in the extension itself.
 
 // True once the LUMNA Focus extension's content script announces itself (on load
 // or in reply to our ping). Drives the "Connected" badge.
@@ -52,9 +30,47 @@ function useExtensionPresent(): boolean {
   return present;
 }
 
-// Shows the caller's token for the LUMNA Focus browser extension. Logged-in
-// users get a stable server token; anonymous users use their browser token.
-function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
+// Modal shell: centered overlay, close on backdrop click or Escape.
+export function FocusSettingsModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Focus"
+        className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-100">Focus</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <ExtensionConnect />
+      </div>
+    </div>
+  );
+}
+
+// Shows the signed-in user's stable server token for the LUMNA Focus extension.
+function ExtensionConnect() {
   const [token, setToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [rotating, setRotating] = useState(false);
@@ -63,15 +79,11 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
   const extensionPresent = useExtensionPresent();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setToken(getFocusToken());
-      return;
-    }
     axios
       .get<{ token: string }>('/api/workblock/token', { headers: focusHeaders() })
       .then((r) => setToken(r.data.token))
       .catch(() => undefined);
-  }, [isAuthenticated]);
+  }, []);
 
   // Once the extension is detected, the token has done its job, so collapse it.
   const showToken = !extensionPresent || forceShow;
@@ -87,8 +99,8 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
     }
   };
 
-  // Issue a fresh token (logged-in only); the old one stops working, so reveal
-  // the new one to paste into the extension.
+  // Issue a fresh token; the old one stops working, so reveal the new one to
+  // paste into the extension.
   const rotate = async () => {
     setRotating(true);
     try {
@@ -108,9 +120,9 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-6">
+    <div>
       <div className="mb-1 flex items-center gap-2">
-        <h3 className="text-lg font-semibold">Block in your browser</h3>
+        <h3 className="text-sm font-semibold text-slate-200">Block in your browser</h3>
         {extensionPresent && (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-400">
             <Check className="h-3 w-3" />
@@ -133,7 +145,7 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
               readOnly
               value={token ?? 'Loading...'}
               onFocus={(e) => e.currentTarget.select()}
-              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900/50 px-3 py-1.5 font-mono text-sm text-slate-200"
+              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-1.5 font-mono text-sm text-slate-200"
             />
             <button
               type="button"
@@ -164,16 +176,14 @@ function ExtensionConnect({ isAuthenticated }: { isAuthenticated: boolean }) {
             Your extension is connected. Manage blocking and your block list from the extension.
           </p>
           <div className="flex items-center justify-center gap-4">
-            {isAuthenticated && (
-              <button
-                type="button"
-                onClick={rotate}
-                disabled={rotating}
-                className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-60"
-              >
-                {rotating ? 'Generating...' : 'Generate new token'}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={rotate}
+              disabled={rotating}
+              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-60"
+            >
+              {rotating ? 'Generating...' : 'Generate new token'}
+            </button>
             <button
               type="button"
               onClick={() => setForceShow(true)}

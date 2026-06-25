@@ -60,13 +60,9 @@ export function FocusPrivacy() {
 
         <Section title="Data retention and deletion">
           <p>
-            Your block list lives in your LUMNA account (or anonymously, keyed to a random token)
-            on lumna.co. Remove the extension to stop all local storage and access. You can rotate
-            or revoke your token from{' '}
-            <a href="/focus" className="text-emerald-400 hover:underline">
-              lumna.co/focus
-            </a>
-            .
+            Your block list lives in your LUMNA account on lumna.co. Remove the extension to stop
+            all local storage and access. You can rotate or revoke your token from the Focus option
+            in your account menu on lumna.co.
           </p>
         </Section>
 

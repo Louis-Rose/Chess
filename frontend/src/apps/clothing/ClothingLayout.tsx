@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Search, Store, type LucideIcon } from 'lucide-react';
+import { Search, BookOpen, Store, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
 import { AppTitle } from '../../components/AppTitle';
@@ -13,6 +13,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: '/clothing', label: 'Find', icon: Search, end: true },
+  { to: '/clothing/how-to', label: 'How to', icon: BookOpen },
   { to: '/clothing/stores', label: 'Stores', icon: Store },
 ];
 
