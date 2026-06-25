@@ -6,6 +6,7 @@ const tokenEl = document.getElementById('token');
 const saveBtn = document.getElementById('save');
 const setupStatusEl = document.getElementById('setupStatus');
 const toggleBtn = document.getElementById('blockToggle');
+const blockLabelEl = document.getElementById('blockLabel');
 const listEl = document.getElementById('list');
 const emptyEl = document.getElementById('empty');
 const addForm = document.getElementById('addForm');
@@ -36,6 +37,7 @@ function notifySync() {
 
 function render() {
   toggleBtn.setAttribute('aria-checked', String(state.blocking));
+  blockLabelEl.textContent = state.blocking ? 'Blocking On' : 'Blocking Off';
   listEl.innerHTML = '';
   for (const item of state.items) {
     const chip = document.createElement('span');
