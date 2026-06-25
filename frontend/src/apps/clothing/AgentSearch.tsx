@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { ExternalLink } from 'lucide-react';
 import { useStores } from './StoresContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // An agent that hunts for an item across the configured store sites. The web app
 // only enqueues the request; a worker on the owner's own machine (real Chrome,
@@ -21,6 +22,7 @@ type Item = {
 
 export function AgentSearch() {
   const { stores } = useStores();
+  const { t } = useLanguage();
   // Stores excluded from this search. Everything not in here is included, so
   // newly added stores are searched by default.
   const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
@@ -51,7 +53,7 @@ export function AgentSearch() {
     if (!q || loading) return;
     const sources = stores.filter((s) => !excluded.has(s.domain)).map((s) => s.domain);
     if (sources.length === 0) {
-      setError('Select at least one store.');
+      setError(t('clothing.find.selectStore'));
       return;
     }
     cancelled.current = false;
@@ -80,14 +82,14 @@ export function AgentSearch() {
           return;
         }
         if (job.status === 'error') {
-          setError(job.error || 'The search failed.');
+          setError(job.error || t('clothing.find.failed'));
           return;
         }
       }
-      setError('The search is taking too long. Try again.');
+      setError(t('clothing.find.tooLong'));
     } catch (err) {
       const msg = axios.isAxiosError(err) ? err.response?.data?.error : null;
-      setError(msg || 'Something went wrong. Please try again.');
+      setError(msg || t('clothing.find.genericError'));
     } finally {
       if (!cancelled.current) setLoading(false);
     }
@@ -95,7 +97,7 @@ export function AgentSearch() {
 
   return (
     <div className="mb-8 rounded-2xl border border-slate-800 bg-slate-800/30 p-4 sm:p-5">
-      <h2 className="mb-4 text-center text-xl font-semibold">Find it for me</h2>
+      <h2 className="mb-4 text-center text-xl font-semibold">{t('clothing.find.title')}</h2>
 
       {/* Store toggles — shared with the Stores tab. Tap to include/exclude. */}
       <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
@@ -130,14 +132,12 @@ export function AgentSearch() {
           }
         }}
         rows={2}
-        placeholder="Describe what you want…"
+        placeholder={t('clothing.find.placeholder')}
         className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
       />
 
       {loading && (
-        <p className="mt-3 text-xs text-slate-500">
-          Your agent is browsing the stores. This can take up to a minute.
-        </p>
+        <p className="mt-3 text-xs text-slate-500">{t('clothing.find.searching')}</p>
       )}
       {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
 
@@ -151,13 +151,14 @@ export function AgentSearch() {
         </div>
       )}
       {items && items.length === 0 && (
-        <p className="mt-4 text-sm text-slate-400">Nothing found. Try rewording.</p>
+        <p className="mt-4 text-sm text-slate-400">{t('clothing.find.nothing')}</p>
       )}
     </div>
   );
 }
 
 function ResultCard({ item }: { item: Item }) {
+  const { t } = useLanguage();
   const body = (
     <>
       {item.image && (
@@ -175,7 +176,7 @@ function ResultCard({ item }: { item: Item }) {
       {item.source && <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-500">{item.source}</p>}
       {item.url && (
         <span className="mt-1.5 flex items-center gap-1 text-xs font-medium text-emerald-400">
-          View <ExternalLink className="h-3 w-3" />
+          {t('clothing.find.view')} <ExternalLink className="h-3 w-3" />
         </span>
       )}
     </>

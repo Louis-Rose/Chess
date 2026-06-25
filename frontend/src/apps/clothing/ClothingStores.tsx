@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { ExternalLink, Plus, X } from 'lucide-react';
 import { useStores, type Store } from './StoresContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // The stores your agent searches, shared with the Find tab's source chips.
 // Logos live in frontend/public/logos/ and are referenced by their root path.
 export function ClothingStores() {
   const { stores, addStore, removeStore } = useStores();
+  const { t } = useLanguage();
   const [site, setSite] = useState('');
   const [name, setName] = useState('');
   const [adding, setAdding] = useState(false);
@@ -20,12 +22,12 @@ export function ClothingStores() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
-      <h2 className="mb-6 text-center text-2xl font-semibold">Stores</h2>
+      <h2 className="mb-6 text-center text-2xl font-semibold">{t('clothing.stores.title')}</h2>
 
       <div className="flex flex-wrap justify-center gap-3">
         {stores.map((s) => (
           <div key={s.domain} className="w-full sm:w-[calc(50%-0.375rem)]">
-            <StoreCard store={s} onRemove={() => removeStore(s.domain)} />
+            <StoreCard store={s} onRemove={() => removeStore(s.domain)} removeLabel={t('clothing.stores.remove')} />
           </div>
         ))}
       </div>
@@ -41,18 +43,18 @@ export function ClothingStores() {
                 setSite('');
                 setName('');
               }}
-              aria-label="Close"
+              aria-label={t('clothing.stores.close')}
               className="absolute right-3 top-3 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-700/60 hover:text-slate-200"
             >
               <X className="h-4 w-4" />
             </button>
-            <p className="mb-3 text-center text-sm font-semibold">Add a store</p>
+            <p className="mb-3 text-center text-sm font-semibold">{t('clothing.stores.add')}</p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 value={site}
                 onChange={(e) => setSite(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), submit())}
-                placeholder="site or URL, e.g. sezane.com"
+                placeholder={t('clothing.stores.sitePlaceholder')}
                 autoFocus
                 className="flex-1 rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
               />
@@ -60,7 +62,7 @@ export function ClothingStores() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), submit())}
-                placeholder="name (optional)"
+                placeholder={t('clothing.stores.namePlaceholder')}
                 className="rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none sm:w-48"
               />
               <button
@@ -70,7 +72,7 @@ export function ClothingStores() {
                 className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Plus className="h-4 w-4" />
-                Add
+                {t('clothing.stores.addBtn')}
               </button>
             </div>
           </div>
@@ -81,7 +83,7 @@ export function ClothingStores() {
             className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/40 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-300"
           >
             <Plus className="h-4 w-4" />
-            Add a store
+            {t('clothing.stores.add')}
           </button>
         )}
       </div>
@@ -89,7 +91,15 @@ export function ClothingStores() {
   );
 }
 
-function StoreCard({ store, onRemove }: { store: Store; onRemove: () => void }) {
+function StoreCard({
+  store,
+  onRemove,
+  removeLabel,
+}: {
+  store: Store;
+  onRemove: () => void;
+  removeLabel: string;
+}) {
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -97,7 +107,7 @@ function StoreCard({ store, onRemove }: { store: Store; onRemove: () => void }) 
       <button
         type="button"
         onClick={onRemove}
-        aria-label={`Remove ${store.name}`}
+        aria-label={`${removeLabel} ${store.name}`}
         className="absolute right-2 top-2 z-10 rounded-full bg-slate-900/70 p-1 text-slate-400 opacity-0 transition hover:text-red-400 group-hover:opacity-100"
       >
         <X className="h-4 w-4" />
