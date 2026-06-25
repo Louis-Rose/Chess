@@ -1416,3 +1416,28 @@ def init_db():
         if not _column_exists(conn, 'clothing_jobs', 'progress'):
             conn.execute("ALTER TABLE clothing_jobs ADD COLUMN progress TEXT")
             logger.info("Added progress column to clothing_jobs")
+
+        # Migration: Notice.ai MVP notes. A short ordered list of key points shown
+        # on the app's first tab, stored here so the copy can be edited (a row
+        # UPDATE/INSERT on the VM) without a frontend rebuild. Seeded with the
+        # first key point; further ones are added as rows ordered by `position`.
+        if not _table_exists(conn, 'notice_notes'):
+            conn.execute("""
+                CREATE TABLE notice_notes (
+                    id         SERIAL PRIMARY KEY,
+                    position   INTEGER NOT NULL,
+                    body       TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_notice_notes_position ON notice_notes(position)")
+            conn.execute(
+                "INSERT INTO notice_notes (position, body) VALUES (?, ?)",
+                (
+                    1,
+                    "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
+                    "les étapes de la notice papier. En cas de doute, les utilisateurs "
+                    "pourront se référer aux deux sources indépendamment.",
+                ),
+            )
+            logger.info("Created notice_notes table and seeded the first MVP note")

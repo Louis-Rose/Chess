@@ -212,6 +212,18 @@ def _normalize_category(text):
     return t or None
 
 
+@notice_bp.route('/api/notice/notes', methods=['GET'])
+@login_required
+def notes():
+    """The MVP key points shown on the app's first tab, ordered by position.
+    Stored in the DB so the copy can be edited without a frontend rebuild."""
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT body FROM notice_notes ORDER BY position, id'
+        ).fetchall()
+    return jsonify({'notes': [dict(r)['body'] for r in rows]})
+
+
 @notice_bp.route('/api/notice/costs', methods=['GET'])
 @login_required
 def costs():
