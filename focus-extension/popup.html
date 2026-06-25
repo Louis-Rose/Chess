@@ -40,7 +40,7 @@
 
       /* Connected view */
       .row {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex; align-items: center; justify-content: center; gap: 0.75rem;
         margin-top: 0.25rem;
       }
       .row .label { font-size: 0.95rem; font-weight: 600; }
@@ -70,11 +70,24 @@
         padding: 0 0.15rem;
       }
       .chip button:hover { color: #fb7185; }
-      .empty { margin-top: 0.85rem; font-size: 0.8rem; color: #64748b; }
+      .empty { margin: 0; font-size: 0.8rem; color: #64748b; }
 
-      .addrow { display: flex; gap: 0.4rem; margin-top: 0.85rem; }
-      .addrow input { flex: 1; }
-      .addrow button { margin: 0; width: auto; padding: 0.45rem 0.8rem; font-size: 0.85rem; }
+      /* Container holding the blocked-site chips and the add row. */
+      .blockbox {
+        margin-top: 0.85rem; padding: 0.6rem;
+        border: 1px solid #334155; border-radius: 0.6rem;
+        background: rgba(15, 23, 42, 0.4);
+      }
+      .blockbox .list { margin-top: 0; }
+
+      .addrow { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+      /* Input + Add button sized to the same height as the chips above. */
+      .addrow input { flex: 1; padding: 0.2rem 0.55rem; font-size: 0.8rem; }
+      .addrow button { margin: 0; width: auto; padding: 0.2rem 0.8rem; font-size: 0.8rem; }
+
+      /* Bottom button row: Change token + Reload extension, side by side. */
+      .actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.9rem; }
+      .actions button { margin-top: 0; }
 
       .status { margin-top: 0.9rem; font-size: 0.8rem; color: #94a3b8; }
       .time { margin-top: 0.15rem; font-size: 0.72rem; color: #64748b; }
@@ -107,21 +120,25 @@
         </button>
       </div>
 
-      <div class="list" id="list"></div>
-      <p class="empty" id="empty" hidden>No sites yet.</p>
+      <div class="blockbox">
+        <div class="list" id="list"></div>
+        <p class="empty" id="empty" hidden>No sites yet.</p>
 
-      <form id="addForm" class="addrow">
-        <input id="addInput" type="text" placeholder="e.g. reddit.com" autocomplete="off" />
-        <button type="submit">Add</button>
-      </form>
+        <form id="addForm" class="addrow">
+          <input id="addInput" type="text" placeholder="e.g. reddit.com" autocomplete="off" />
+          <button type="submit">Add</button>
+        </form>
+      </div>
 
       <div class="status" id="status"></div>
-      <button id="change" class="secondary">Change token</button>
-    </section>
 
-    <button id="reload" class="secondary" title="Restart the extension and reload its code from disk">
-      Reload extension
-    </button>
+      <div class="actions">
+        <button id="change" class="secondary">Change token</button>
+        <button id="reload" class="secondary" title="Restart the extension and reload its code from disk">
+          Reload extension
+        </button>
+      </div>
+    </section>
 
     <script src="popup.js"></script>
   </body>

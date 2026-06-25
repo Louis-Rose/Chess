@@ -92,14 +92,18 @@ async function reloadMatchingTabs(sites) {
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.alarms.create(ALARM, { periodInMinutes: POLL_MINUTES });
-  sync();
+// The service worker is torn down and restarted at any time (idle timeout,
+// browser restart, extension update, or a programmatic reload). Top-level code
+// runs on EVERY startup, unlike onInstalled/onStartup which only fire on
+// install and browser launch. Doing the setup here makes the worker self-heal:
+// it re-arms the poll alarm and applies the current block rules on every
+// startup, so a restarted worker never sits idle with stale (or no) rules and
+// you don't need a manual "Reload extension" to get blocking back.
+chrome.alarms.get(ALARM, (existing) => {
+  if (!existing) chrome.alarms.create(ALARM, { periodInMinutes: POLL_MINUTES });
 });
-chrome.runtime.onStartup.addListener(() => {
-  chrome.alarms.create(ALARM, { periodInMinutes: POLL_MINUTES });
-  sync();
-});
+sync();
+
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === ALARM) sync();
 });
