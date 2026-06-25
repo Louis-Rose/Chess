@@ -225,7 +225,7 @@ export function AgentSearch() {
       </div>
 
       {loading && <SearchSteps stage={stage} stores={searchStores} progress={progress} />}
-      {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
+      {error && <p className="mt-3 text-center text-sm text-rose-400">{error}</p>}
 
       {/* Results — a table of model name and price. */}
       {summary && <p className="mt-4 text-sm text-slate-300">{summary}</p>}

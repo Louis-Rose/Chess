@@ -171,7 +171,10 @@ def run_job(page, job):
     query = to_query(prompt)
     print(f'→ job {job["id"]}: "{prompt}"  (query: "{query}")')
     items = []
-    for domain in job['sources']:
+    total = len(job['sources'])
+    for i, domain in enumerate(job['sources']):
+        # Tell the UI which store we're starting so it can show live steps.
+        post_progress(job['id'], current=domain, done=i, total=total)
         recipe = RECIPES.get(domain)
         try:
             found = recipe(page, query) if recipe else search_generic(page, domain, query)
@@ -183,12 +186,23 @@ def run_job(page, job):
             it.setdefault('source', domain)
         print(f'   {domain}: {len(found)} items')
         items.extend(found)
+    post_progress(job['id'], current=None, done=total, total=total)
 
     n_sites = len(job['sources'])
     summary = (f'Found {len(items)} item(s) across {n_sites} '
                f'{"site" if n_sites == 1 else "sites"} for "{query}".'
                if items else f'No matches found for "{query}".')
     return {'summary': summary, 'items': items}
+
+
+def post_progress(job_id, current, done, total):
+    """Report which store we're on so the /clothing page can show live steps."""
+    try:
+        requests.post(f'{BASE_URL}/api/clothing/worker/{job_id}/progress',
+                      json={'current': current, 'done': done, 'total': total},
+                      headers=HEADERS, timeout=15)
+    except Exception as e:
+        print(f'   failed to post progress: {e}')
 
 
 def post_result(job_id, payload):
