@@ -34,14 +34,34 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ## Run
 
 ```bash
-source .venv/bin/activate
-set -a; source .env; set +a       # load .env into the shell
-python worker.py
+./run.sh        # loads .env and starts the worker (works under any shell)
 ```
 
 A Chrome window opens and the worker starts polling. Leave it running whenever
 you want `/clothing` search to work — if it's off, the page just says your agent
 is offline.
+
+## Run it always-on (recommended)
+
+Instead of keeping a terminal open, install it as a macOS background service that
+auto-starts at login and self-restarts:
+
+```bash
+./install-service.sh
+```
+
+It copies a self-contained worker to `~/Library/Application Support/lumna-clothing-worker/`
+(this repo sits under `~/Desktop`, which macOS TCC blocks launchd from reading)
+and registers a LaunchAgent. **Re-run it after editing `worker.py`/`run.sh`** to
+push the update.
+
+```bash
+tail -f "$HOME/Library/Application Support/lumna-clothing-worker/worker.log"   # logs
+launchctl bootout  gui/$(id -u)/co.lumna.clothing-worker                       # stop
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/co.lumna.clothing-worker.plist  # start
+```
+
+The Mac must be on and awake for searches to run, since the browsing happens here.
 
 **Bot checks:** the first time a store challenges you, solve it once in the
 Chrome window. The cookie is saved in `./chrome-profile/`, so later runs skip it.

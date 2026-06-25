@@ -21,6 +21,9 @@ set -a
 source .env
 set +a
 
+# Flush prints immediately so worker.log is live (useful under launchd).
+export PYTHONUNBUFFERED=1
+
 PY=./.venv/bin/python
 [ -x "$PY" ] || PY=python3
 exec "$PY" worker.py
