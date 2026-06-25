@@ -18,8 +18,9 @@ function Tile({ entry }: { entry: AppEntry }) {
   );
 }
 
-// Root landing: pick a product. Tiles come from the shared app catalog. Owner-only
-// apps render in their own centered row below the public grid.
+// Root landing: pick a product. Tiles come from the shared app catalog and flow
+// into rows of up to four, each row horizontally centered, so the grid adapts on
+// its own as apps are added or removed (owner-only apps appear for the owner).
 export function ChooserPage() {
   const { user } = useAuth();
   const isOwner = user?.email === OWNER_EMAIL;
@@ -28,32 +29,21 @@ export function ChooserPage() {
     document.title = 'LUMNA';
   }, []);
 
-  const tiles = APPS.filter((a) => !a.ownerOnly);
-  const ownerTiles = isOwner ? APPS.filter((a) => a.ownerOnly) : [];
+  const tiles = APPS.filter((a) => !a.ownerOnly || isOwner);
 
   return (
     <SidebarLayout>
       <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-10 md:min-h-full">
-      <div className="w-full max-w-5xl">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex w-full max-w-5xl flex-wrap justify-center gap-4">
           {tiles.map((entry) => (
-            <Tile key={entry.path} entry={entry} />
+            <div
+              key={entry.path}
+              className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]"
+            >
+              <Tile entry={entry} />
+            </div>
           ))}
         </div>
-
-        {ownerTiles.length > 0 && (
-          <div className="mt-4 flex flex-wrap justify-center gap-4">
-            {ownerTiles.map((entry) => (
-              <div
-                key={entry.path}
-                className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]"
-              >
-                <Tile entry={entry} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
       </div>
     </SidebarLayout>
   );
