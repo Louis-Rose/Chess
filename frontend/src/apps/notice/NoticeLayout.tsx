@@ -4,6 +4,7 @@ import { FileText, Library, Lightbulb, Lock, LogOut, type LucideIcon } from 'luc
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
 import { AppTitle } from '../../components/AppTitle';
+import { LangToggle } from '../../components/LangToggle';
 import { LoginButton } from '../../components/LoginButton';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -62,8 +63,9 @@ export function NoticeLayout() {
               {label}
             </NavLink>
           ))}
+          <LangToggle disabled className="ml-auto" />
           {user && (
-            <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-2">
               {user.picture && (
                 <img src={user.picture} alt="" className="h-7 w-7 rounded-full" title={user.email} />
               )}
@@ -78,8 +80,11 @@ export function NoticeLayout() {
           )}
         </div>
 
-        <div className="hidden border-b border-slate-800 px-6 py-5 md:block">
+        <div className="relative hidden border-b border-slate-800 px-6 py-5 md:block">
           <AppTitle title="Notice.ai" />
+          <div className="absolute right-6 top-1/2 -translate-y-1/2">
+            <LangToggle disabled />
+          </div>
         </div>
 
         <main className="flex min-w-0 flex-1 flex-col bg-slate-100 text-slate-900">
