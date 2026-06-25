@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Search } from 'lucide-react';
+import { Check, Circle, Loader2, Search } from 'lucide-react';
 import { useStores } from './StoresContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -46,6 +46,9 @@ export function AgentSearch() {
   const [types, setTypes] = useState<Set<string>>(() => new Set());
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
+  // Which backend stage the job is in while loading: 'queued' (waiting for the
+  // worker to claim it) or 'browsing' (worker is on it). Drives the step list.
+  const [stage, setStage] = useState<'queued' | 'browsing'>('queued');
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [items, setItems] = useState<Item[] | null>(null);
@@ -92,6 +95,7 @@ export function AgentSearch() {
     setError(null);
     setSummary(null);
     setItems(null);
+    setStage('queued');
     setLoading(true);
     try {
       const { data } = await axios.post<{ job_id: number }>('/api/clothing/search', {
@@ -108,6 +112,7 @@ export function AgentSearch() {
           result?: { summary: string; items: Item[] };
           error?: string;
         }>(`/api/clothing/jobs/${jobId}`);
+        if (job.status === 'running') setStage('browsing');
         if (job.status === 'done') {
           setSummary(job.result?.summary || null);
           setItems(job.result?.items || []);
@@ -207,9 +212,7 @@ export function AgentSearch() {
         </button>
       </div>
 
-      {loading && (
-        <p className="mt-3 text-center text-xs text-slate-500">{t('clothing.find.searching')}</p>
-      )}
+      {loading && <SearchSteps stage={stage} />}
       {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
 
       {/* Results — a table of model name and price. */}
@@ -261,5 +264,35 @@ export function AgentSearch() {
         <p className="mt-4 text-sm text-slate-400">{t('clothing.find.nothing')}</p>
       )}
     </div>
+  );
+}
+
+// Progress steps shown while a search runs. The first two map to real backend
+// stages (queued -> the worker claimed the job and is browsing); the last is the
+// list being assembled once the agent returns.
+function SearchSteps({ stage }: { stage: 'queued' | 'browsing' }) {
+  const { t } = useLanguage();
+  const order = stage === 'queued' ? 0 : 1;
+  const steps = [
+    { key: 'clothing.find.step.sent', state: order > 0 ? 'done' : 'active' },
+    { key: 'clothing.find.step.browsing', state: order > 1 ? 'done' : order === 1 ? 'active' : 'pending' },
+    { key: 'clothing.find.step.results', state: 'pending' as const },
+  ] as const;
+
+  return (
+    <ul className="mx-auto mt-4 w-fit space-y-2">
+      {steps.map(({ key, state }) => (
+        <li key={key} className="flex items-center gap-2 text-sm">
+          {state === 'done' ? (
+            <Check className="h-4 w-4 flex-shrink-0 text-emerald-400" />
+          ) : state === 'active' ? (
+            <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-emerald-400" />
+          ) : (
+            <Circle className="h-3.5 w-3.5 flex-shrink-0 text-slate-600" />
+          )}
+          <span className={state === 'pending' ? 'text-slate-500' : 'text-slate-200'}>{t(key)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
