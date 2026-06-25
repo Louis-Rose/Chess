@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { SidebarLayout } from '../../components/SidebarLayout';
+import { AgentSearch } from './AgentSearch';
 
 // Static guide at /clothing: the best colors to wear in summer. No backend.
 const SUMMER_COLORS = [
@@ -17,6 +18,8 @@ export function ClothingApp() {
   return (
     <SidebarLayout title="Clothing">
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+        <AgentSearch />
+
         <h2 className="mb-1 text-center text-lg font-semibold">Best colors to wear in summer</h2>
         <p className="mb-6 text-center text-sm text-slate-400">
           Light, pale colors reflect sunlight instead of soaking it up, so you stay cooler. Lean into these.
