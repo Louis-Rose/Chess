@@ -1436,8 +1436,26 @@ def init_db():
                 (
                     1,
                     "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
-                    "les étapes de la notice papier. En cas de doute, les utilisateurs "
-                    "pourront se référer aux deux sources indépendamment.",
+                    "les étapes de la notice papier. La notice papier est une bonne "
+                    "source d'information dans l'absolu (étapes, pièces..), mais pas "
+                    "toujours lisible ou parfaitement claire.",
                 ),
             )
             logger.info("Created notice_notes table and seeded the first MVP note")
+
+        # Migration: reword note 1's second sentence. A DB seeded before this
+        # change still holds the original wording; rewrite it. Matched on the old
+        # body, so it is a no-op once applied (and on fresh DBs seeded with the new
+        # wording above). Going forward, note edits are a plain UPDATE on the VM.
+        conn.execute(
+            "UPDATE notice_notes SET body = ? WHERE body = ?",
+            (
+                "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
+                "les étapes de la notice papier. La notice papier est une bonne "
+                "source d'information dans l'absolu (étapes, pièces..), mais pas "
+                "toujours lisible ou parfaitement claire.",
+                "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
+                "les étapes de la notice papier. En cas de doute, les utilisateurs "
+                "pourront se référer aux deux sources indépendamment.",
+            ),
+        )
