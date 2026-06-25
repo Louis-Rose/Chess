@@ -380,7 +380,7 @@ const translations: Record<Language, Record<string, string>> = {
     'clothing.type.coats': 'Coats',
     'clothing.type.suits': 'Suits',
     'clothing.type.shoes': 'Shoes',
-    'clothing.type.accessories': 'Accessories',
+    'clothing.find.run': 'Search',
 
     // Common
     'common.loading': 'Loading...',
@@ -757,7 +757,7 @@ const translations: Record<Language, Record<string, string>> = {
     'clothing.type.coats': 'Manteaux',
     'clothing.type.suits': 'Costumes',
     'clothing.type.shoes': 'Chaussures',
-    'clothing.type.accessories': 'Accessoires',
+    'clothing.find.run': 'Rechercher',
 
     // Common
     'common.loading': 'Chargement...',
@@ -1134,7 +1134,7 @@ const translations: Record<Language, Record<string, string>> = {
     'clothing.type.coats': 'Abrigos',
     'clothing.type.suits': 'Trajes',
     'clothing.type.shoes': 'Zapatos',
-    'clothing.type.accessories': 'Accesorios',
+    'clothing.find.run': 'Buscar',
 
     // Common
     'common.loading': 'Cargando...',

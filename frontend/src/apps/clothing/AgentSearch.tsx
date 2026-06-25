@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { Loader2, Search } from 'lucide-react';
 import { useStores } from './StoresContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -25,7 +26,6 @@ const CATEGORIES = [
   'coats',
   'suits',
   'shoes',
-  'accessories',
 ] as const;
 
 type Item = {
@@ -76,9 +76,9 @@ export function AgentSearch() {
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   const run = async () => {
+    if (loading) return;
     const q = prompt.trim();
     const selectedTypes = CATEGORIES.filter((c) => types.has(c)).map((c) => t(`clothing.type.${c}`));
-    if ((!q && selectedTypes.length === 0) || loading) return;
     const sources = stores.filter((s) => !excluded.has(s.domain)).map((s) => s.domain);
     if (sources.length === 0) {
       setError(t('clothing.find.selectStore'));
@@ -131,8 +131,10 @@ export function AgentSearch() {
     <div className="mb-8 rounded-2xl border border-slate-800 bg-slate-800/30 p-4 sm:p-5">
       <h2 className="mb-4 text-center text-xl font-semibold">{t('clothing.find.title')}</h2>
 
+      {/* Two distinct categories of filters, separated by a divider:
+          the stores to browse, then the clothing types to narrow to. */}
       {/* Store toggles — shared with the Stores tab. Tap to include/exclude. */}
-      <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2 pb-4">
         {stores.map((s) => {
           const on = !excluded.has(s.domain);
           return (
@@ -153,8 +155,10 @@ export function AgentSearch() {
         })}
       </div>
 
+      <div className="border-t border-slate-700/60" />
+
       {/* Clothing type toggles — narrow the search to specific types. */}
-      <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2 pb-4 pt-4">
         {CATEGORIES.map((c) => {
           const on = types.has(c);
           return (
@@ -175,7 +179,7 @@ export function AgentSearch() {
         })}
       </div>
 
-      {/* Prompt — press Enter to search (Shift+Enter for a new line) */}
+      {/* Prompt (optional) — press Enter to search (Shift+Enter for a new line) */}
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
@@ -189,6 +193,19 @@ export function AgentSearch() {
         placeholder={t('clothing.find.placeholder')}
         className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none"
       />
+
+      {/* Launch button — works even with no prompt typed (a vanilla search). */}
+      <div className="mt-3 flex justify-center">
+        <button
+          type="button"
+          onClick={run}
+          disabled={loading}
+          className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-emerald-500/10 px-5 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:border-emerald-500 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          {t('clothing.find.run')}
+        </button>
+      </div>
 
       {loading && (
         <p className="mt-3 text-xs text-slate-500">{t('clothing.find.searching')}</p>
