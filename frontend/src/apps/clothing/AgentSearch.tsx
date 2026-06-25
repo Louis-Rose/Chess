@@ -208,7 +208,7 @@ export function AgentSearch() {
       </div>
 
       {loading && (
-        <p className="mt-3 text-xs text-slate-500">{t('clothing.find.searching')}</p>
+        <p className="mt-3 text-center text-xs text-slate-500">{t('clothing.find.searching')}</p>
       )}
       {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
 
