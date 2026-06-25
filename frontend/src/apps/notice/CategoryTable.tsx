@@ -25,16 +25,21 @@ export function CategoryTable({
 }) {
   const [categories, setCategories] = useState<CatMap>({});
   const [costs, setCosts] = useState<Record<string, number>>({});
+  const [times, setTimes] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<null | 'this' | 'all'>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadCosts = useCallback(async () => {
     try {
-      const { data } = await axios.get<{ costs: Record<string, number> }>('/api/notice/costs');
+      const { data } = await axios.get<{
+        costs: Record<string, number>;
+        times: Record<string, number>;
+      }>('/api/notice/costs');
       setCosts(data.costs || {});
+      setTimes(data.times || {});
     } catch {
-      // non-fatal: leave the cost column at $0
+      // non-fatal: leave the cost/time columns empty
     }
   }, []);
 
@@ -119,13 +124,14 @@ export function CategoryTable({
 
       {error && <p className="mb-2 text-center text-sm text-rose-400">{error}</p>}
 
-      <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border border-slate-800">
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-slate-800">
         <table className="w-full text-center text-sm">
           <thead>
             <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-white">
               <th className="px-4 py-2 font-medium">Model</th>
               <th className="px-4 py-2 font-medium">Category (page {page})</th>
               <th className="px-4 py-2 font-medium">API cost</th>
+              <th className="px-4 py-2 font-medium">Time taken</th>
             </tr>
           </thead>
           <tbody>
@@ -143,6 +149,9 @@ export function CategoryTable({
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-emerald-300">
                     ${(costs[m.id] ?? 0).toFixed(2)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-slate-300">
+                    {times[m.id] ? `${times[m.id].toFixed(1)}s` : '—'}
                   </td>
                 </tr>
               );

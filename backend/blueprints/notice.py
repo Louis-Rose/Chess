@@ -86,8 +86,9 @@ def _decode_image(image_b64):
     return image_bytes, None
 
 
-def _gemini_on_image(model, image_bytes, text_prompt, user_id):
+def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None):
     """Run one Gemini vision call on a page image, log usage, return the text.
+    `phase` tags the usage row ('ask' / 'categorize') so timing can be split.
     May raise ValueError (not configured) or other exceptions (call failed)."""
     client_paid, client_free = _init_gemini_clients('notice')
     from google.genai import types
@@ -103,7 +104,7 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id):
         )
     except Exception as e:
         _log_api_usage('notice', model, 0, 0, round(time.time() - start),
-                       error=str(e), user_id=user_id)
+                       error=str(e), user_id=user_id, phase=phase)
         raise
 
     elapsed = round(time.time() - start)
@@ -114,7 +115,7 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id):
         'notice', model, in_tok, out_tok, elapsed,
         thinking_tokens=think_tok, billing_tier=billing_tier, user_id=user_id,
         retry_free_error=retry_info.get('free_error'),
-        retry_free_elapsed=retry_info.get('free_elapsed'),
+        retry_free_elapsed=retry_info.get('free_elapsed'), phase=phase,
     )
     return answer
 
@@ -136,7 +137,7 @@ def ask():
 
     user_id = getattr(request, 'user_id', None)
     try:
-        answer = _gemini_on_image(model, image_bytes, _PROMPT.format(question=question), user_id)
+        answer = _gemini_on_image(model, image_bytes, _PROMPT.format(question=question), user_id, phase='ask')
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
     except Exception:
@@ -162,7 +163,7 @@ def categorize():
 
     user_id = getattr(request, 'user_id', None)
     try:
-        answer = _gemini_on_image(model, image_bytes, _CATEGORIZE_PROMPT, user_id)
+        answer = _gemini_on_image(model, image_bytes, _CATEGORIZE_PROMPT, user_id, phase='categorize')
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
     except Exception:
@@ -186,7 +187,8 @@ def _normalize_category(text):
 @notice_bp.route('/api/notice/costs', methods=['GET'])
 @login_required
 def costs():
-    """Total Gemini spend per model for the Notice.ai feature (paid calls only)."""
+    """Per-model Gemini spend (paid calls) and average categorize time for the
+    Notice.ai feature."""
     from blueprints.admin import GEMINI_PRICING
 
     with get_db() as conn:
@@ -199,6 +201,13 @@ def costs():
                WHERE feature = 'notice'
                GROUP BY model_id""",
         ).fetchall()
+        # Average wall-clock of successful page-category requests, per model.
+        time_rows = conn.execute(
+            """SELECT model_id, AVG(elapsed_seconds) AS avg_seconds
+               FROM api_usage
+               WHERE feature = 'notice' AND phase = 'categorize' AND error IS NULL
+               GROUP BY model_id""",
+        ).fetchall()
 
     out = {}
     for row in rows:
@@ -208,4 +217,10 @@ def costs():
         out[r['model_id']] = (
             (r['paid_input'] or 0) * pricing['input'] + billed_output * pricing['output']
         ) / 1_000_000
-    return jsonify({'costs': out})
+
+    times = {}
+    for row in time_rows:
+        r = dict(row)
+        times[r['model_id']] = float(r['avg_seconds']) if r['avg_seconds'] is not None else 0.0
+
+    return jsonify({'costs': out, 'times': times})
