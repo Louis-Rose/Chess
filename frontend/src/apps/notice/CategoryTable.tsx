@@ -154,7 +154,7 @@ export function CategoryTable({
   };
 
   const btnClass =
-    'flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50';
+    'flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-100 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50';
 
   return (
     <div className="mt-6">
@@ -172,7 +172,7 @@ export function CategoryTable({
 
       {error && <p className="mb-2 text-center text-sm text-rose-400">{error}</p>}
 
-      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-slate-800">
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-lg">
         <table className="w-full text-center text-sm">
           <thead>
             <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-white [&>th]:border-r [&>th]:border-slate-800/60 [&>th:last-child]:border-r-0">

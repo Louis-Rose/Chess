@@ -91,7 +91,7 @@ export function PageQA({ getPageImage }: { getPageImage: () => string | null }) 
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-800/30">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-lg">
       {/* Header: Gemini logo + model selector (shows the active model) */}
       <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3">
         <GeminiLogo className="h-6 w-6 shrink-0" />

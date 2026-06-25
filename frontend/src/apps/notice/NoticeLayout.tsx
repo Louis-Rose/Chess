@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { FileText, Library, Lock, LogOut, type LucideIcon } from 'lucide-react';
+import { FileText, Library, Lightbulb, Lock, LogOut, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
 import { AppTitle } from '../../components/AppTitle';
@@ -14,6 +14,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
+  { to: '/notice/notes', label: 'MVP Notes', icon: Lightbulb },
   { to: '/notice/view', label: 'Viewer', icon: FileText },
   { to: '/notice/library', label: 'Library', icon: Library },
 ];
@@ -81,13 +82,13 @@ export function NoticeLayout() {
           <AppTitle title="Notice.ai" />
         </div>
 
-        <main className="flex min-w-0 flex-1 flex-col">
+        <main className="flex min-w-0 flex-1 flex-col bg-slate-100 text-slate-900">
           {!authLoading && !isAuthenticated ? (
             <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
-              <Lock className="h-10 w-10 text-slate-600" />
+              <Lock className="h-10 w-10 text-slate-400" />
               <div>
-                <h2 className="text-xl font-semibold text-slate-100">Notice.ai</h2>
-                <p className="mt-1 max-w-sm text-slate-400">
+                <h2 className="text-xl font-semibold text-slate-900">Notice.ai</h2>
+                <p className="mt-1 max-w-sm text-slate-600">
                   Sign in with Google to upload and read your documents. They stay private to your browser.
                 </p>
               </div>
