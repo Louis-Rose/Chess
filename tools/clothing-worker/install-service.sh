@@ -22,8 +22,8 @@ fi
 
 echo "→ syncing worker into $DST"
 mkdir -p "$DST"
-cp "$SRC/worker.py" "$SRC/run.sh" "$SRC/requirements.txt" "$SRC/.env" "$DST/"
-chmod +x "$DST/run.sh"
+cp "$SRC/worker.py" "$SRC/run.sh" "$SRC/solve.sh" "$SRC/requirements.txt" "$SRC/.env" "$DST/"
+chmod +x "$DST/run.sh" "$DST/solve.sh"
 
 if [ ! -x "$DST/.venv/bin/python" ]; then
   echo "→ creating venv"

@@ -95,10 +95,10 @@ export function AgentSearch() {
       setError(t('clothing.find.selectStore'));
       return;
     }
-    // Fold the chosen types into the prompt the browsing agent receives.
-    const fullPrompt = [q, selectedTypes.length ? `(${selectedTypes.join(', ')})` : '']
-      .filter(Boolean)
-      .join(' ');
+    // Fold the chosen types into the prompt the browsing agent receives, as
+    // plain keywords (no punctuation — the worker searches the store with this
+    // text verbatim).
+    const fullPrompt = [q, ...selectedTypes].filter(Boolean).join(' ').trim();
     cancelled.current = false;
     setError(null);
     setSummary(null);
@@ -227,8 +227,11 @@ export function AgentSearch() {
       {loading && <SearchSteps stage={stage} stores={searchStores} progress={progress} />}
       {error && <p className="mt-3 text-center text-sm text-rose-400">{error}</p>}
 
-      {/* Results — a table of model name and price. */}
-      {summary && <p className="mt-4 text-sm text-slate-300">{summary}</p>}
+      {/* Results — a table of model name and price. The summary only adds value
+          alongside results; on zero results the localized line below says it. */}
+      {summary && items && items.length > 0 && (
+        <p className="mt-4 text-center text-sm text-slate-300">{summary}</p>
+      )}
       {items && items.length > 0 && (
         <div className="mt-4 overflow-hidden rounded-xl border border-slate-800">
           <table className="w-full text-sm">
@@ -273,7 +276,7 @@ export function AgentSearch() {
         </div>
       )}
       {items && items.length === 0 && (
-        <p className="mt-4 text-sm text-slate-400">{t('clothing.find.nothing')}</p>
+        <p className="mt-4 text-center text-sm text-slate-400">{t('clothing.find.nothing')}</p>
       )}
     </div>
   );

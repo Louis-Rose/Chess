@@ -114,6 +114,10 @@ def to_query(prompt: str) -> str:
     return q or prompt.strip()
 
 
+class BotWall(Exception):
+    """Raised when a store is showing a bot/captcha challenge we can't get past."""
+
+
 def _maybe_bot_wall(page) -> bool:
     """True if a DataDome/captcha challenge is on screen."""
     html = (page.content() or '').lower()
@@ -124,6 +128,8 @@ def search_octobre(page, query):
     page.goto('https://www.octobre-editions.com/fr-fr/search',
               wait_until='domcontentloaded', timeout=45000)
     _wait_through_wall(page)
+    if _maybe_bot_wall(page):
+        raise BotWall('octobre-editions.com')
     page.wait_for_selector('input.search__input', timeout=20000)
     page.fill('input.search__input', query)
     page.keyboard.press('Enter')
@@ -142,10 +148,14 @@ def search_generic(page, domain, query):
             page.goto(f'{base}/search?q={quote_plus(query)}',
                       wait_until='domcontentloaded', timeout=45000)
             _wait_through_wall(page)
+            if _maybe_bot_wall(page):
+                raise BotWall(domain)
             page.wait_for_timeout(2500)
             items = page.evaluate(GENERIC_EXTRACT_JS)
             if items:
                 return items
+        except BotWall:
+            raise
         except Exception as e:
             print(f'   generic fetch failed for {base}: {e}')
     return []
@@ -171,6 +181,7 @@ def run_job(page, job):
     query = to_query(prompt)
     print(f'→ job {job["id"]}: "{prompt}"  (query: "{query}")')
     items = []
+    walled = []
     total = len(job['sources'])
     for i, domain in enumerate(job['sources']):
         # Tell the UI which store we're starting so it can show live steps.
@@ -178,6 +189,10 @@ def run_job(page, job):
         recipe = RECIPES.get(domain)
         try:
             found = recipe(page, query) if recipe else search_generic(page, domain, query)
+        except BotWall:
+            print(f'   {domain}: BLOCKED — bot check not cleared')
+            walled.append(domain)
+            found = []
         except Exception as e:
             print(f'   {domain}: error {e}')
             found = []
@@ -187,6 +202,12 @@ def run_job(page, job):
         print(f'   {domain}: {len(found)} items')
         items.extend(found)
     post_progress(job['id'], current=None, done=total, total=total)
+
+    # If we got nothing and at least one store was walled, say so plainly rather
+    # than the misleading "no matches" — the user needs to solve it in the window.
+    if not items and walled:
+        return {'error': f'{", ".join(walled)} is showing a bot check. '
+                         'Open the worker’s Chrome window and solve it once, then search again.'}
 
     n_sites = len(job['sources'])
     summary = (f'Found {len(items)} item(s) across {n_sites} '
@@ -240,7 +261,10 @@ def main():
                 try:
                     result = run_job(page, job)
                     post_result(job['id'], result)
-                    print(f'   ✓ delivered {len(result["items"])} items')
+                    if 'error' in result:
+                        print(f'   ⚠ {result["error"]}')
+                    else:
+                        print(f'   ✓ delivered {len(result["items"])} items')
                 except Exception as e:
                     print(f'   job failed: {e}')
                     post_result(job['id'], {'error': str(e)[:300]})
