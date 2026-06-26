@@ -262,6 +262,8 @@ function Table({
   language: string;
   nameWidth: number;
 }) {
+  // Drop fetch columns with no data for any displayed match.
+  const columns = data.columns.filter((c) => matches.some((m) => m.cells[c]));
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse border border-slate-700 text-center text-sm">
@@ -270,7 +272,7 @@ function Table({
             <th className="border border-slate-700 bg-slate-800/60 px-3 py-2 text-center font-medium text-slate-300">
               {t('mpp.tests.match')}
             </th>
-            {data.columns.map((c) => (
+            {columns.map((c) => (
               <th
                 key={c}
                 className="relative border border-slate-700 bg-slate-800/60 px-8 py-2 font-medium text-slate-300"
@@ -302,7 +304,7 @@ function Table({
                   <div className="text-xs text-slate-500">{fmtKickoff(m.date, loc)}</div>
                 )}
               </td>
-              {data.columns.map((c) => (
+              {columns.map((c) => (
                 <td key={c} className="border border-slate-700 px-2 py-2 align-middle">
                   <Cell match={m} cell={m.cells[c]} t={t} language={language} nameWidth={nameWidth} />
                 </td>
@@ -349,7 +351,7 @@ function Cell({
   return (
     <table className="mx-auto border-collapse text-center">
       <tbody>
-        <tr className="text-[11px] text-slate-400">
+        <tr className="text-[11px] font-bold text-white">
           <Td />
           <Td w={nameWidth}>{match.home ? countryName(match.home, language) : '1'}</Td>
           <Td>N</Td>
@@ -403,7 +405,7 @@ function Td({
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <td className="border border-slate-700/70 px-2 py-0.5 text-left font-sans text-[11px] font-medium text-slate-400">
+    <td className="border border-slate-700/70 px-2 py-0.5 text-center font-sans text-[11px] font-bold text-white">
       {children}
     </td>
   );
