@@ -30,17 +30,21 @@ function navClass(active: boolean): string {
   ].join(' ');
 }
 
-// Sidebar shell for the MPP section: the shared LUMNA rail plus the app's tabs
-// (Leaderboard, MPP Docs), with a Disconnect control in the top bar.
+// Sidebar shell for the MPP section: the shared LUMNA rail plus the app's tabs.
+// Matches the Clothing layout — title centered with the language toggle on the
+// right; the MPP account "Disconnect" lives in the profile menu.
 export function MppLayout({ onDisconnect }: { onDisconnect: () => void }) {
   const { t } = useLanguage();
   const disconnect = () => {
     axios.post('/api/mpp/disconnect').then(onDisconnect);
   };
+  const profileItems = [
+    { icon: LogOut, label: t('mpp.common.disconnect'), onClick: disconnect, danger: true },
+  ];
 
   return (
     <div className="flex min-h-dvh bg-slate-900 text-slate-100">
-      <AppSidebar className="sticky top-0 hidden h-dvh md:flex">
+      <AppSidebar className="sticky top-0 hidden h-dvh md:flex" profileItems={profileItems}>
         <nav className="flex flex-col gap-1">
           {NAV.map(({ to, labelKey, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => navClass(isActive)}>
@@ -63,24 +67,14 @@ export function MppLayout({ onDisconnect }: { onDisconnect: () => void }) {
               {t(labelKey)}
             </NavLink>
           ))}
-          <div className="ml-auto flex items-center gap-2">
+          <LangToggle className="ml-auto" />
+        </div>
+
+        <div className="relative hidden border-b border-slate-800 px-6 py-5 md:block">
+          <AppTitle title="MPP" />
+          <div className="absolute right-6 top-1/2 -translate-y-1/2">
             <LangToggle />
           </div>
-        </div>
-
-        <div className="hidden border-b border-slate-800 px-6 py-5 md:block">
-          <AppTitle title="MPP" />
-        </div>
-
-        <div className="flex items-center justify-end gap-2 border-b border-slate-800 px-6 py-3">
-          <LangToggle />
-          <button
-            onClick={disconnect}
-            className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-400 transition-colors hover:border-red-500/60 hover:text-red-400"
-          >
-            <LogOut className="h-4 w-4" />
-            {t('mpp.common.disconnect')}
-          </button>
         </div>
 
         <main className="min-w-0 flex-1">
