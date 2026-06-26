@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, X } from 'lucide-react';
+import { TeamCrest } from './TeamCrest';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { localeFor, countryName } from './mppLocale';
 import type { MppCoteCell, MppTestMatch, MppTests } from './types';
@@ -162,10 +163,12 @@ function Table({
           {data.matches.map((m) => (
             <tr key={m.match_id}>
               <td className="border border-slate-700 px-3 py-2 align-middle">
-                <div className="font-semibold text-slate-100">
-                  {m.home ? countryName(m.home, language) : '?'}{' '}
-                  <span className="text-slate-500">{t('mpp.tests.vs')}</span>{' '}
+                <div className="flex items-center justify-center gap-1.5 font-semibold text-slate-100">
+                  <TeamCrest src={m.home_crest} className="h-5 w-5" />
+                  {m.home ? countryName(m.home, language) : '?'}
+                  <span className="text-slate-500">{t('mpp.tests.vs')}</span>
                   {m.away ? countryName(m.away, language) : '?'}
+                  <TeamCrest src={m.away_crest} className="h-5 w-5" />
                 </div>
                 {fmtKickoff(m.date, loc) && (
                   <div className="text-xs text-slate-500">{fmtKickoff(m.date, loc)}</div>

@@ -789,11 +789,13 @@ def _snapshot_test_matches(token):
         with get_db() as conn:
             conn.execute(
                 """INSERT INTO mpp_cote_history
-                       (match_id, batch_at, home_team, away_team, match_date, status,
+                       (match_id, batch_at, home_team, away_team,
+                        home_crest, away_crest, match_date, status,
                         cote_home, cote_draw, cote_away,
                         prono_home, prono_draw, prono_away)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (match_id, batch, detail['home']['name'], detail['away']['name'],
+                 detail['home'].get('crest'), detail['away'].get('crest'),
                  detail.get('date'), detail.get('status'),
                  cote.get('home'), cote.get('draw'), cote.get('away'),
                  bets.get('home'), bets.get('draw'), bets.get('away')),
@@ -808,7 +810,8 @@ def _tests_payload():
     cote/prono cell for each batch."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT match_id, batch_at, home_team, away_team, match_date, status,
+            """SELECT match_id, batch_at, home_team, away_team,
+                      home_crest, away_crest, match_date, status,
                       cote_home, cote_draw, cote_away,
                       prono_home, prono_draw, prono_away
                FROM mpp_cote_history
@@ -827,6 +830,7 @@ def _tests_payload():
             m = matches[r['match_id']] = {'match_id': r['match_id'], 'cells': {}}
         # Carry the latest known meta forward (rows are batch-ascending).
         m['home'], m['away'] = r['home_team'], r['away_team']
+        m['home_crest'], m['away_crest'] = r['home_crest'], r['away_crest']
         m['date'], m['status'] = r['match_date'], r['status']
         m['cells'][batch] = {
             'cote': {'home': r['cote_home'], 'draw': r['cote_draw'], 'away': r['cote_away']},

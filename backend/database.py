@@ -1425,6 +1425,15 @@ def init_db():
             )
             logger.info("Added batch_at to mpp_cote_history")
 
+        # Tests tab shows each fixture's flag in the first column, reusing the
+        # MPP crest URLs. Older rows have none and only get them on the next
+        # re-fetch; the payload carries the latest meta forward, so flags appear
+        # once a fresh snapshot lands.
+        if not _column_exists(conn, 'mpp_cote_history', 'home_crest'):
+            conn.execute("ALTER TABLE mpp_cote_history ADD COLUMN home_crest TEXT")
+            conn.execute("ALTER TABLE mpp_cote_history ADD COLUMN away_crest TEXT")
+            logger.info("Added crest columns to mpp_cote_history")
+
         # Migration: clothing agent job queue. A search request is enqueued here
         # by the web app and picked up by a worker running on the owner's own
         # machine (residential IP + real Chrome) so it can browse bot-protected

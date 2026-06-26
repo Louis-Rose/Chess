@@ -87,6 +87,8 @@ export interface MppTestMatch {
   match_id: string;
   home: string | null;
   away: string | null;
+  home_crest: string | null;
+  away_crest: string | null;
   date: string | null;
   status: 'final' | 'live' | 'upcoming' | null;
   cells: Record<string, MppCoteCell>; // keyed by fetch column (batch_at ISO)
