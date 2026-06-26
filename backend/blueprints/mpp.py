@@ -647,7 +647,7 @@ def mpp_tests_fetch():
     body = request.get_json(silent=True) or {}
     match_ids = body.get('matchIds')
     if match_ids is not None:
-        match_ids = [int(m) for m in match_ids]
+        match_ids = [str(m) for m in match_ids]
 
     try:
         _snapshot_test_matches(token, match_ids)
