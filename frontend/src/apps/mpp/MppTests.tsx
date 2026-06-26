@@ -269,18 +269,19 @@ function Table({
   language: string;
   nameWidth: number;
 }) {
-  // Drop fetch columns with no data for any displayed match.
-  const columns = data.columns.filter((c) => matches.some((m) => m.cells[c]));
+  // Keep only fetch columns that have data for every displayed match; a column
+  // missing any match's cell is partially empty and gets dropped.
+  const columns = data.columns.filter((c) => matches.every((m) => m.cells[c]));
 
-  // Grab-and-drag the header to pan the table horizontally (the strip is wide).
+  // Grab-and-drag anywhere in the table to pan it horizontally (it runs wide).
   const scrollRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; left: number } | null>(null);
-  const onHeadPointerDown = (e: React.PointerEvent) => {
+  const onPointerDown = (e: React.PointerEvent) => {
     if (!scrollRef.current || (e.target as HTMLElement).closest('button')) return;
     drag.current = { x: e.clientX, left: scrollRef.current.scrollLeft };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
-  const onHeadPointerMove = (e: React.PointerEvent) => {
+  const onPointerMove = (e: React.PointerEvent) => {
     if (!drag.current || !scrollRef.current) return;
     scrollRef.current.scrollLeft = drag.current.left - (e.clientX - drag.current.x);
   };
@@ -289,15 +290,16 @@ function Table({
   };
 
   return (
-    <div ref={scrollRef} className="overflow-x-auto">
+    <div
+      ref={scrollRef}
+      className="cursor-grab select-none overflow-x-auto active:cursor-grabbing"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+    >
       <table className="w-full border-collapse border border-slate-700 text-center text-sm">
-        <thead
-          className="cursor-grab select-none active:cursor-grabbing"
-          onPointerDown={onHeadPointerDown}
-          onPointerMove={onHeadPointerMove}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-        >
+        <thead>
           <tr>
             <th className="border border-slate-700 bg-slate-800/60 px-3 py-2 text-center font-medium text-slate-300">
               {t('mpp.tests.match')}
