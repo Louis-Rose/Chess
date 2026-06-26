@@ -61,8 +61,8 @@ const dayLabel = (key: string, t: TFn, loc: string): string => {
 
 type DayBucket = { key: string; matches: MppTestMatch[] };
 
-// Group matches by day, keep only today onward (+ any TBC), and make sure today
-// is present even with no matches so the strip always starts there.
+// Group matches by day (every day that has matches, past ones included), and
+// make sure today is present even with no matches so the strip always shows it.
 function dayBuckets(matches: MppTestMatch[]): DayBucket[] {
   const byDay = new Map<string, MppTestMatch[]>();
   for (const m of matches) {
@@ -70,7 +70,7 @@ function dayBuckets(matches: MppTestMatch[]): DayBucket[] {
     (byDay.get(k) ?? byDay.set(k, []).get(k)!).push(m);
   }
   const tk = todayKey();
-  const keys = [...byDay.keys()].filter((k) => k === TBC || k >= tk);
+  const keys = [...byDay.keys()];
   if (!keys.includes(tk)) keys.push(tk);
   keys.sort((a, b) => (a === TBC ? 1 : b === TBC ? -1 : a < b ? -1 : a > b ? 1 : 0));
   return keys.map((k) => ({ key: k, matches: byDay.get(k) ?? [] }));
