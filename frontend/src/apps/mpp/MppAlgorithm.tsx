@@ -58,27 +58,35 @@ function collectPoints(data: MppTests, language: string): Point[] {
 }
 
 // Floor = lowest cote (favorites clamped down), ceiling = highest cote
-// (long-shots clamped up). K is the value that best fits the whole clamped model
-// cote = clamp(K / p, C_min, C_max) by least squares, so points sitting on the
-// floor or ceiling no longer drag the estimate (a plain median of p*cote does).
+// (long-shots clamped up). The observed espérance (p*cote) is NOT constant, so
+// the pure reciprocal cote = K/p is wrong; the engine follows a power law
+// cote = K / p^alpha with alpha < 1 (cote falls slower than 1/p). K and alpha
+// are grid-searched to least-squares-fit the whole clamped model, and R²
+// reports how much of the cote variance that fit explains.
 function fit(points: Point[]) {
   const cotes = points.map((d) => d.cote);
+  const ps = points.map((d) => d.p);
   const cMin = Math.min(...cotes);
   const cMax = Math.max(...cotes);
-  let k = 1;
-  let bestSse = Infinity;
-  for (let cand = 1; cand <= 300; cand++) {
-    let sse = 0;
-    for (const d of points) {
-      const e = clamp(cand / d.p, cMin, cMax) - d.cote;
-      sse += e * e;
-    }
-    if (sse < bestSse) {
-      bestSse = sse;
-      k = cand;
+
+  let best = { k: 1, alpha: 1, sse: Infinity };
+  for (let a = 10; a <= 150; a += 2) {
+    const alpha = a / 100; // 0.10 .. 1.50
+    const xs = ps.map((p) => Math.pow(p, alpha)); // reused across all K
+    for (let k = 1; k <= 400; k++) {
+      let sse = 0;
+      for (let i = 0; i < cotes.length; i++) {
+        const e = clamp(k / xs[i], cMin, cMax) - cotes[i];
+        sse += e * e;
+      }
+      if (sse < best.sse) best = { k, alpha, sse };
     }
   }
-  return { cMin, cMax, k };
+
+  const mean = cotes.reduce((s, v) => s + v, 0) / cotes.length;
+  const ssTot = cotes.reduce((s, v) => s + (v - mean) ** 2, 0);
+  const r2 = ssTot ? 1 - best.sse / ssTot : 0;
+  return { cMin, cMax, k: best.k, alpha: best.alpha, r2 };
 }
 
 export function MppAlgorithm() {
@@ -101,16 +109,17 @@ export function MppAlgorithm() {
     if (!data) return null;
     const points = collectPoints(data, language);
     if (!points.length) return null;
-    const { cMin, cMax, k } = fit(points);
+    const { cMin, cMax, k, alpha, r2 } = fit(points);
     // One series for the chart: dense fitted curve + observed scatter, sorted by
     // p. `fit` is set only on curve rows, `cote`/`teams`/`pick` only on observed.
+    const model = (p: number) => clamp(k / Math.pow(p, alpha), cMin, cMax);
     const curve = Array.from({ length: 200 }, (_, i) => {
       const p = (i + 1) / 200;
-      return { p, fit: clamp(k / p, cMin, cMax) };
+      return { p, fit: model(p) };
     });
-    const scatter = points.map((d) => ({ ...d, fit: clamp(k / d.p, cMin, cMax) }));
+    const scatter = points.map((d) => ({ ...d, fit: model(d.p) }));
     const chart = [...curve, ...scatter].sort((a, b) => a.p - b.p);
-    return { cMin, cMax, k, n: points.length, chart };
+    return { cMin, cMax, k, alpha, r2, n: points.length, chart };
   }, [data, language]);
 
   return (
@@ -127,10 +136,12 @@ export function MppAlgorithm() {
         <>
           <p className="mb-4 text-sm text-slate-400">{t('mpp.algo.intro')}</p>
 
-          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Stat label={t('mpp.algo.floor')} value={model.cMin} />
             <Stat label={t('mpp.algo.ceiling')} value={model.cMax} />
             <Stat label={t('mpp.algo.scaling')} value={model.k} />
+            <Stat label={t('mpp.algo.alpha')} value={model.alpha.toFixed(2)} />
+            <Stat label={t('mpp.algo.r2')} value={model.r2.toFixed(2)} />
             <Stat label={t('mpp.algo.dataPoints')} value={model.n} />
           </div>
 
@@ -229,7 +240,7 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: Tooltip
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-center">
       <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
