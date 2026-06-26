@@ -672,16 +672,29 @@ def mpp_tests_fetch():
 @mpp_bp.route('/api/mpp/tests/batch', methods=['DELETE'])
 @owner_required
 def mpp_tests_delete_batch():
-    """Remove one fetch column (all rows sharing a batch_at)."""
-    batch_at = request.args.get('batchAt', '').strip()
+    """Remove rows from one fetch snapshot. matchIds scopes the delete to those
+    matches (the day on screen), leaving the snapshot's other days intact; absent
+    matchIds removes the whole column."""
+    body = request.get_json(silent=True) or {}
+    batch_at = (body.get('batchAt') or request.args.get('batchAt', '')).strip()
     if not batch_at:
         return jsonify({'error': 'missing_batch'}), 400
     try:
         when = datetime.fromisoformat(batch_at)
     except ValueError:
         return jsonify({'error': 'bad_batch'}), 400
+
+    match_ids = body.get('matchIds')
     with get_db() as conn:
-        conn.execute('DELETE FROM mpp_cote_history WHERE batch_at = ?', (when,))
+        if match_ids:
+            ids = [str(m) for m in match_ids]
+            placeholders = ','.join(['?'] * len(ids))
+            conn.execute(
+                f'DELETE FROM mpp_cote_history WHERE batch_at = ? AND match_id IN ({placeholders})',
+                [when, *ids],
+            )
+        else:
+            conn.execute('DELETE FROM mpp_cote_history WHERE batch_at = ?', (when,))
     return jsonify(_tests_payload())
 
 

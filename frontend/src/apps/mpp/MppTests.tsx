@@ -127,13 +127,17 @@ export function MppTests() {
       ? runFetch(null, true)
       : runFetch(activeMatches.map((m) => m.match_id));
 
-  const removeColumn = useCallback((batchAt: string) => {
+  // Removes the snapshot's rows for the matches currently on screen only, so
+  // deleting a column under one day leaves the other days' data intact.
+  const removeColumn = (batchAt: string) => {
     axios
-      .delete<MppTests>('/api/mpp/tests/batch', { params: { batchAt } })
+      .delete<MppTests>('/api/mpp/tests/batch', {
+        data: { batchAt, matchIds: activeMatches.map((m) => m.match_id) },
+      })
       .then((r) => setData(r.data))
       .catch(() => setError('delete_failed'))
       .finally(() => setPending(null));
-  }, []);
+  };
 
   // Load stored history; if nothing has ever been fetched, fetch once now.
   useEffect(() => {
