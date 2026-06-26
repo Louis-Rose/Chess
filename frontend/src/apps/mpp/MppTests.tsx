@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { localeFor, countryName } from './mppLocale';
 import type { MppCoteCell, MppTestMatch, MppTests } from './types';
 
 type TFn = (key: string) => string;
@@ -12,17 +13,17 @@ type TFn = (key: string) => string;
 
 const asUtc = (iso: string) => (iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`);
 
-const fmtFetch = (iso: string) =>
-  new Date(asUtc(iso)).toLocaleString('en-GB', {
+const fmtFetch = (iso: string, loc: string) =>
+  new Date(asUtc(iso)).toLocaleString(loc, {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
   });
 
-const fmtKickoff = (iso: string | null) => {
+const fmtKickoff = (iso: string | null, loc: string) => {
   if (!iso) return null;
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? null
-    : d.toLocaleString('en-GB', {
+    : d.toLocaleString(loc, {
         weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
       });
 };
@@ -31,7 +32,8 @@ const num = (v: number | null, suffix = '') => (v == null ? '.' : `${v}${suffix}
 const pct = (v: number | null) => (v == null ? null : Math.round(v * 100));
 
 export function MppTests() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const loc = localeFor(language);
   const [data, setData] = useState<MppTests | null>(null);
   const [fetching, setFetching] = useState(false);
   const [pending, setPending] = useState<string | null>(null); // batch_at to delete
@@ -103,12 +105,12 @@ export function MppTests() {
           {t('mpp.tests.empty')}
         </p>
       ) : (
-        <Table data={data} onAskRemove={setPending} t={t} />
+        <Table data={data} onAskRemove={setPending} t={t} loc={loc} language={language} />
       )}
 
       {pending && (
         <ConfirmModal
-          label={fmtFetch(pending)}
+          label={fmtFetch(pending, loc)}
           onCancel={() => setPending(null)}
           onConfirm={() => removeColumn(pending)}
           t={t}
@@ -122,10 +124,14 @@ function Table({
   data,
   onAskRemove,
   t,
+  loc,
+  language,
 }: {
   data: MppTests;
   onAskRemove: (b: string) => void;
   t: TFn;
+  loc: string;
+  language: string;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -140,7 +146,7 @@ function Table({
                 key={c}
                 className="relative border border-slate-700 bg-slate-800/60 px-8 py-2 font-medium text-slate-300"
               >
-                {fmtFetch(c)}
+                {fmtFetch(c, loc)}
                 <button
                   onClick={() => onAskRemove(c)}
                   title={t('mpp.tests.removeFetchTitle')}
@@ -157,16 +163,17 @@ function Table({
             <tr key={m.match_id}>
               <td className="border border-slate-700 px-3 py-2 align-middle">
                 <div className="font-semibold text-slate-100">
-                  {m.home ?? '?'} <span className="text-slate-500">{t('mpp.tests.vs')}</span>{' '}
-                  {m.away ?? '?'}
+                  {m.home ? countryName(m.home, language) : '?'}{' '}
+                  <span className="text-slate-500">{t('mpp.tests.vs')}</span>{' '}
+                  {m.away ? countryName(m.away, language) : '?'}
                 </div>
-                {fmtKickoff(m.date) && (
-                  <div className="text-xs text-slate-500">{fmtKickoff(m.date)}</div>
+                {fmtKickoff(m.date, loc) && (
+                  <div className="text-xs text-slate-500">{fmtKickoff(m.date, loc)}</div>
                 )}
               </td>
               {data.columns.map((c) => (
                 <td key={c} className="border border-slate-700 px-2 py-2 align-middle">
-                  <Cell match={m} cell={m.cells[c]} t={t} />
+                  <Cell match={m} cell={m.cells[c]} t={t} language={language} />
                 </td>
               ))}
             </tr>
@@ -181,10 +188,12 @@ function Cell({
   match,
   cell,
   t,
+  language,
 }: {
   match: MppTestMatch;
   cell: MppCoteCell | undefined;
   t: TFn;
+  language: string;
 }) {
   if (!cell) return <span className="text-slate-600">.</span>;
   const { cote, prono } = cell;
@@ -196,9 +205,9 @@ function Cell({
       <tbody>
         <tr className="text-[11px] text-slate-400">
           <Td />
-          <Td>{match.home ?? '1'}</Td>
+          <Td>{match.home ? countryName(match.home, language) : '1'}</Td>
           <Td>N</Td>
-          <Td>{match.away ?? '2'}</Td>
+          <Td>{match.away ? countryName(match.away, language) : '2'}</Td>
         </tr>
         <tr className="font-mono text-slate-100">
           <Label>{t('mpp.tests.odds')}</Label>

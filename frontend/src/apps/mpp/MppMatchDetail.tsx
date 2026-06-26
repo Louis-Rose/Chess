@@ -3,6 +3,7 @@ import axios from 'axios';
 import { X } from 'lucide-react';
 import { TeamCrest } from './TeamCrest';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { countryName } from './mppLocale';
 import type { MppMatchDetail as Detail } from './types';
 
 type TFn = (key: string) => string;
@@ -10,7 +11,7 @@ type TFn = (key: string) => string;
 // The "avant-match" detail behind a match click: the MPP prono split
 // (Stats Prono MPP) and the best-rated players. Lazy-loaded per match.
 export function MppMatchDetail({ matchId, onClose }: { matchId: string; onClose: () => void }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState(false);
 
@@ -59,24 +60,26 @@ export function MppMatchDetail({ matchId, onClose }: { matchId: string; onClose:
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-700 border-t-emerald-500" />
           </div>
         ) : (
-          <Body detail={detail} t={t} />
+          <Body detail={detail} t={t} language={language} />
         )}
       </div>
     </div>
   );
 }
 
-function Body({ detail, t }: { detail: Detail; t: TFn }) {
+function Body({ detail, t, language }: { detail: Detail; t: TFn; language: string }) {
   const played = detail.status !== 'upcoming';
   const homePct = Math.round((detail.bets?.home ?? 0) * 100);
   const drawPct = Math.round((detail.bets?.draw ?? 0) * 100);
   const awayPct = Math.round((detail.bets?.away ?? 0) * 100);
+  const homeName = countryName(detail.home.name, language);
+  const awayName = countryName(detail.away.name, language);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-center gap-4">
-        <TeamHead name={detail.home.name} crest={detail.home.crest} />
+        <TeamHead name={homeName} crest={detail.home.crest} />
         <div className="shrink-0 text-center">
           {played ? (
             <span className="font-mono text-2xl font-bold text-slate-100">
@@ -86,16 +89,16 @@ function Body({ detail, t }: { detail: Detail; t: TFn }) {
             <span className="text-sm font-medium text-slate-500">{t('mpp.detail.vs')}</span>
           )}
         </div>
-        <TeamHead name={detail.away.name} crest={detail.away.crest} />
+        <TeamHead name={awayName} crest={detail.away.crest} />
       </div>
 
       {/* Stats Prono MPP */}
       {detail.bets && (
         <Card title={t('mpp.detail.statsPronoMpp')}>
           <div className="flex items-start justify-around">
-            <Ring pct={homePct} label={`${homePct}%`} sub={`${t('mpp.detail.win')} ${detail.home.name ?? ''}`} />
+            <Ring pct={homePct} label={`${homePct}%`} sub={`${t('mpp.detail.win')} ${homeName}`} />
             <Ring pct={drawPct} label={`${drawPct}%`} sub={t('mpp.detail.draw')} />
-            <Ring pct={awayPct} label={`${awayPct}%`} sub={`${t('mpp.detail.win')} ${detail.away.name ?? ''}`} />
+            <Ring pct={awayPct} label={`${awayPct}%`} sub={`${t('mpp.detail.win')} ${awayName}`} />
           </div>
           {detail.cote && (
             <p className="mt-3 text-center text-xs text-slate-500">

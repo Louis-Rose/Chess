@@ -9,10 +9,7 @@ export function MppRules() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-sm leading-relaxed text-slate-300 sm:px-6">
       <header>
-        <h2 className="text-xl font-bold text-slate-100">{t('mpp.rules.title')}</h2>
-        <p className="mt-1 text-slate-400">
-          {t('mpp.rules.subtitle')}
-        </p>
+        <h2 className="text-center text-xl font-bold text-slate-100">{t('mpp.nav.rules')}</h2>
       </header>
 
       <Section title={t('mpp.rules.basicsTitle')}>
@@ -80,18 +77,6 @@ export function MppRules() {
         </p>
       </Section>
 
-      <p className="text-xs text-slate-500">
-        {t('mpp.rules.sourceLabel')}{' '}
-        <a
-          href="https://ligue1.com/fr/articles/l1_article_5224-mpp-mondial-tout-savoir-sur-les-regles-26"
-          target="_blank"
-          rel="noreferrer"
-          className="text-emerald-400 hover:underline"
-        >
-          {t('mpp.rules.sourceLink')}
-        </a>
-        .
-      </p>
     </div>
   );
 }

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { localeFor } from './mppLocale';
 import type { MppStandings as Standings } from './types';
 
 // Full league leaderboard (the MPP "Classement"): every player with their
 // Bons / Exacts / Points, the owner's own row highlighted. Lazy-loaded when a
 // league card is expanded.
 export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const loc = localeFor(language);
   const [data, setData] = useState<Standings | null>(null);
   const [error, setError] = useState(false);
 
@@ -73,7 +75,7 @@ export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
                 <td className="px-2 py-2 text-right tabular-nums text-slate-400">{s.good}</td>
                 <td className="px-2 py-2 text-right tabular-nums text-slate-400">{s.exact}</td>
                 <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-100">
-                  {s.points?.toLocaleString('fr-FR')}
+                  {s.points?.toLocaleString(loc)}
                 </td>
               </tr>
             );

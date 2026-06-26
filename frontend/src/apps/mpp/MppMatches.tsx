@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react';
 import { MppMatchDetail } from './MppMatchDetail';
 import { TeamCrest } from './TeamCrest';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { localeFor, countryName } from './mppLocale';
 import type { MppMatch, MppMatches as MppMatchesData, MppTeam } from './types';
 
 type TFn = (key: string) => string;
@@ -27,7 +28,8 @@ let cachedAt = 0;
 const FRESH_MS = 90_000;
 
 export function MppMatches() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const loc = localeFor(language);
   const [data, setData] = useState<MppMatchesData | null>(cachedMatches);
   const [loading, setLoading] = useState(cachedMatches === null);
   const [error, setError] = useState<string | null>(null);
@@ -69,28 +71,31 @@ export function MppMatches() {
     return all;
   }, [data, filter]);
 
-  const groups = useMemo(() => groupByDate(filtered, t), [filtered, t]);
+  const groups = useMemo(() => groupByDate(filtered, t, loc), [filtered, t, loc]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-4 py-8 sm:px-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-slate-100">{t('mpp.matches.title')}</h2>
-          {data && (
-            <p className="text-xs text-slate-500">
-              {filtered.length} {t('mpp.matches.of')} {data.matches.length}{' '}
-              {t('mpp.matches.withKnownTeams')}
-            </p>
-          )}
+      <div className="space-y-1">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div />
+          <h2 className="text-center text-xl font-bold text-slate-100">{t('mpp.matches.title')}</h2>
+          <div className="flex justify-end">
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              {t('mpp.matches.refresh')}
+            </button>
+          </div>
         </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          {t('mpp.matches.refresh')}
-        </button>
+        {data && (
+          <p className="text-center text-xs text-slate-500">
+            {filtered.length} {t('mpp.matches.of')} {data.matches.length}{' '}
+            {t('mpp.matches.withKnownTeams')}
+          </p>
+        )}
       </div>
 
       <div className="flex gap-1 rounded-xl border border-slate-800 bg-slate-800/40 p-1">
@@ -133,6 +138,8 @@ export function MppMatches() {
                     match={m}
                     onSelect={() => setSelectedId(m.id)}
                     t={t}
+                    loc={loc}
+                    language={language}
                   />
                 ))}
               </div>
@@ -160,10 +167,14 @@ function MatchCard({
   match: m,
   onSelect,
   t,
+  loc,
+  language,
 }: {
   match: MppMatch;
   onSelect: () => void;
   t: TFn;
+  loc: string;
+  language: string;
 }) {
   const played = m.status !== 'upcoming';
   return (
@@ -174,7 +185,7 @@ function MatchCard({
       <div className="mb-2 flex items-center justify-center gap-2 text-[11px] text-slate-500">
         {m.game_week != null && <span>J{m.game_week}</span>}
         <span>.</span>
-        <span>{formatTime(m.date, t)}</span>
+        <span>{formatTime(m.date, t, loc)}</span>
         {m.status === 'live' && (
           <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 font-bold uppercase text-emerald-400">
             {m.match_time || t('mpp.matches.live')}
@@ -183,7 +194,7 @@ function MatchCard({
       </div>
 
       <div className="flex items-center justify-center gap-3">
-        <TeamSide team={m.home} align="right" />
+        <TeamSide team={m.home} align="right" language={language} />
         <div className="shrink-0 px-2 text-center">
           {played ? (
             <span className="font-mono text-lg font-bold text-slate-100">
@@ -193,7 +204,7 @@ function MatchCard({
             <span className="text-sm font-medium text-slate-500">{t('mpp.matches.vs')}</span>
           )}
         </div>
-        <TeamSide team={m.away} align="left" />
+        <TeamSide team={m.away} align="left" language={language} />
       </div>
 
       {(m.cote || hasProno(m)) && (
@@ -233,7 +244,15 @@ function hasProno(m: MppMatch): boolean {
   return m.prono != null && (m.prono.home != null || m.prono.away != null);
 }
 
-function TeamSide({ team, align }: { team: MppTeam; align: 'left' | 'right' }) {
+function TeamSide({
+  team,
+  align,
+  language,
+}: {
+  team: MppTeam;
+  align: 'left' | 'right';
+  language: string;
+}) {
   return (
     <div
       className={`flex min-w-0 flex-1 items-center gap-2 ${
@@ -241,7 +260,9 @@ function TeamSide({ team, align }: { team: MppTeam; align: 'left' | 'right' }) {
       }`}
     >
       <TeamCrest src={team.crest} className="h-7 w-7" />
-      <span className="truncate text-sm font-semibold text-slate-100">{team.name}</span>
+      <span className="truncate text-sm font-semibold text-slate-100">
+        {countryName(team.name, language)}
+      </span>
     </div>
   );
 }
@@ -257,11 +278,15 @@ function Cote({ label, value }: { label: string; value: number }) {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function groupByDate(matches: MppMatch[], t: TFn): { label: string; matches: MppMatch[] }[] {
+function groupByDate(
+  matches: MppMatch[],
+  t: TFn,
+  loc: string,
+): { label: string; matches: MppMatch[] }[] {
   const groups: { label: string; matches: MppMatch[] }[] = [];
   let current: { label: string; matches: MppMatch[] } | null = null;
   for (const m of matches) {
-    const label = formatDay(m.date, t);
+    const label = formatDay(m.date, t, loc);
     if (!current || current.label !== label) {
       current = { label, matches: [] };
       groups.push(current);
@@ -271,16 +296,16 @@ function groupByDate(matches: MppMatch[], t: TFn): { label: string; matches: Mpp
   return groups;
 }
 
-function formatDay(iso: string | null, t: TFn): string {
+function formatDay(iso: string | null, t: TFn, loc: string): string {
   if (!iso) return t('mpp.matches.dateTbc');
-  return new Date(iso).toLocaleDateString('en-GB', {
+  return new Date(iso).toLocaleDateString(loc, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   });
 }
 
-function formatTime(iso: string | null, t: TFn): string {
+function formatTime(iso: string | null, t: TFn, loc: string): string {
   if (!iso) return t('mpp.matches.tbc');
-  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
 }

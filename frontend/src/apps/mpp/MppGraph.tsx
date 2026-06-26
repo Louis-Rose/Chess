@@ -11,6 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { localeFor } from './mppLocale';
 import type { MppHistory } from './types';
 
 // Distinct colours for the other players; the owner's own line is always
@@ -21,14 +22,15 @@ const COLORS = [
 ];
 const ME_COLOR = '#10b981';
 
-const fmtDate = (d: string) =>
-  new Date(`${d}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+const fmtDate = (d: string, loc: string) =>
+  new Date(`${d}T00:00:00`).toLocaleDateString(loc, { day: '2-digit', month: 'short' });
 
 // Points-over-time for one league, one line per player. MPP exposes no
 // historical standings, so the series starts the first day this was opened and
 // grows by one point per day. Embedded inside each league card.
 export function MppGraph({ challengeId }: { challengeId: string }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const loc = localeFor(language);
   const [history, setHistory] = useState<MppHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +70,7 @@ export function MppGraph({ challengeId }: { challengeId: string }) {
             <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
-              tickFormatter={fmtDate}
+              tickFormatter={(v) => fmtDate(v as string, loc)}
               tick={{ fill: '#e2e8f0', fontSize: 12 }}
               axisLine={{ stroke: '#334155' }}
               tickLine={{ stroke: '#334155' }}
@@ -78,7 +80,7 @@ export function MppGraph({ challengeId }: { challengeId: string }) {
               axisLine={{ stroke: '#334155' }}
               tickLine={{ stroke: '#334155' }}
               width={52}
-              tickFormatter={(v) => (v as number).toLocaleString('fr-FR')}
+              tickFormatter={(v) => (v as number).toLocaleString(loc)}
             />
             <Tooltip
               contentStyle={{
@@ -89,7 +91,7 @@ export function MppGraph({ challengeId }: { challengeId: string }) {
                 fontSize: 12,
               }}
               labelStyle={{ color: '#94a3b8' }}
-              labelFormatter={(v) => fmtDate(v as string)}
+              labelFormatter={(v) => fmtDate(v as string, loc)}
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#e2e8f0' }} />
             {history.users.map((u, i) => {
