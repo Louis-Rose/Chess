@@ -773,9 +773,11 @@ def _resolve_test_match_ids(token):
 
 
 def _snapshot_test_matches(token):
-    """Record one cote/prono row per watched match. force=True bypasses the
-    match cache so a manual re-fetch always reads live values."""
+    """Record one cote/prono row per watched match, all sharing one batch_at so
+    the round forms a single column. force=True bypasses the match cache so a
+    manual re-fetch always reads live values."""
     match_ids = _resolve_test_match_ids(token)
+    batch = datetime.utcnow()
     count = 0
     for match_id in match_ids.values():
         raw = _fetch_match(token, match_id, force=True)
@@ -787,11 +789,11 @@ def _snapshot_test_matches(token):
         with get_db() as conn:
             conn.execute(
                 """INSERT INTO mpp_cote_history
-                       (match_id, home_team, away_team, match_date, status,
+                       (match_id, batch_at, home_team, away_team, match_date, status,
                         cote_home, cote_draw, cote_away,
                         prono_home, prono_draw, prono_away)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (match_id, detail['home']['name'], detail['away']['name'],
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (match_id, batch, detail['home']['name'], detail['away']['name'],
                  detail.get('date'), detail.get('status'),
                  cote.get('home'), cote.get('draw'), cote.get('away'),
                  bets.get('home'), bets.get('draw'), bets.get('away')),
@@ -801,33 +803,38 @@ def _snapshot_test_matches(token):
 
 
 def _tests_payload():
-    """Every stored snapshot, grouped per match, oldest-first within a match."""
+    """Pivot stored snapshots into a matches-by-fetches table: a list of fetch
+    columns (batches, oldest first) and a row per watched match holding the
+    cote/prono cell for each batch."""
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT match_id, home_team, away_team, match_date, status,
-                      fetched_at, cote_home, cote_draw, cote_away,
+            """SELECT match_id, batch_at, home_team, away_team, match_date, status,
+                      cote_home, cote_draw, cote_away,
                       prono_home, prono_draw, prono_away
                FROM mpp_cote_history
-               ORDER BY fetched_at ASC"""
+               ORDER BY batch_at ASC"""
         ).fetchall()
 
-    matches = {}
+    def _iso(v):
+        return v.isoformat() if hasattr(v, 'isoformat') else v
+
+    columns, matches = {}, {}
     for r in rows:
+        batch = _iso(r['batch_at'])
+        columns[batch] = True
         m = matches.get(r['match_id'])
         if m is None:
-            m = matches[r['match_id']] = {'match_id': r['match_id'], 'snapshots': []}
-        # Carry the latest known meta forward (rows are time-ascending).
+            m = matches[r['match_id']] = {'match_id': r['match_id'], 'cells': {}}
+        # Carry the latest known meta forward (rows are batch-ascending).
         m['home'], m['away'] = r['home_team'], r['away_team']
         m['date'], m['status'] = r['match_date'], r['status']
-        ts = r['fetched_at']
-        m['snapshots'].append({
-            'fetched_at': ts.isoformat() if hasattr(ts, 'isoformat') else ts,
+        m['cells'][batch] = {
             'cote': {'home': r['cote_home'], 'draw': r['cote_draw'], 'away': r['cote_away']},
             'prono': {'home': r['prono_home'], 'draw': r['prono_draw'], 'away': r['prono_away']},
-        })
+        }
 
-    out = sorted(matches.values(), key=lambda m: (m['date'] is None, m['date'] or ''))
-    return {'matches': out}
+    ordered = sorted(matches.values(), key=lambda m: (m['date'] is None, m['date'] or ''))
+    return {'columns': sorted(columns), 'matches': ordered}
 
 
 @mpp_bp.route('/api/mpp/tests', methods=['GET'])
@@ -857,6 +864,22 @@ def mpp_tests_fetch():
     except Exception:
         logger.exception('MPP test snapshot failed')
         return jsonify({'error': 'mpp_unavailable'}), 502
+    return jsonify(_tests_payload())
+
+
+@mpp_bp.route('/api/mpp/tests/batch', methods=['DELETE'])
+@owner_required
+def mpp_tests_delete_batch():
+    """Remove one fetch column (all rows sharing a batch_at)."""
+    batch_at = request.args.get('batchAt', '').strip()
+    if not batch_at:
+        return jsonify({'error': 'missing_batch'}), 400
+    try:
+        when = datetime.fromisoformat(batch_at)
+    except ValueError:
+        return jsonify({'error': 'bad_batch'}), 400
+    with get_db() as conn:
+        conn.execute('DELETE FROM mpp_cote_history WHERE batch_at = ?', (when,))
     return jsonify(_tests_payload())
 
 

@@ -1396,6 +1396,7 @@ def init_db():
                     id          SERIAL PRIMARY KEY,
                     match_id    TEXT NOT NULL,
                     fetched_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    batch_at    TIMESTAMP,
                     home_team   TEXT,
                     away_team   TEXT,
                     match_date  TEXT,
@@ -1413,6 +1414,16 @@ def init_db():
                 "ON mpp_cote_history(match_id, fetched_at)"
             )
             logger.info("Created mpp_cote_history table")
+
+        # A single re-fetch snapshots all watched matches at once; batch_at ties
+        # those rows together so the Tests table can show / remove them as one
+        # column. Backfill older rows from their own fetch time.
+        if not _column_exists(conn, 'mpp_cote_history', 'batch_at'):
+            conn.execute("ALTER TABLE mpp_cote_history ADD COLUMN batch_at TIMESTAMP")
+            conn.execute(
+                "UPDATE mpp_cote_history SET batch_at = fetched_at WHERE batch_at IS NULL"
+            )
+            logger.info("Added batch_at to mpp_cote_history")
 
         # Migration: clothing agent job queue. A search request is enqueued here
         # by the web app and picked up by a worker running on the owner's own

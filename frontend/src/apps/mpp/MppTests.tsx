@@ -1,47 +1,36 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-import { RefreshCw } from 'lucide-react';
-import type { MppCoteSnapshot, MppTestMatch, MppTests } from './types';
+import { RefreshCw, X } from 'lucide-react';
+import type { MppCoteCell, MppTests } from './types';
 
-// "Tests" tab: re-fetch a few watched fixtures' cotes (1/N/2 reward points) and
-// prono split on demand and keep the full history, so we can watch them drift.
-type Metric = 'cote' | 'prono';
+// "Tests" tab: a matches-by-fetches table. Rows are the watched fixtures; each
+// column is one re-fetch round, holding that match's cotes (1/N/2) and the
+// prono split in a single cell. A column can be removed with one click.
 
-const SERIES = [
-  { key: 'home', label: '1', color: '#10b981' },
-  { key: 'draw', label: 'N', color: '#f59e0b' },
-  { key: 'away', label: '2', color: '#3b82f6' },
-] as const;
+const asUtc = (iso: string) => (iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`);
 
-const fmtTime = (iso: string) => {
-  const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`);
-  return d.toLocaleString('en-GB', {
+const fmtFetch = (iso: string) =>
+  new Date(asUtc(iso)).toLocaleString('en-GB', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
   });
-};
 
-const fmtDate = (iso: string | null) => {
+const fmtKickoff = (iso: string | null) => {
   if (!iso) return null;
   const d = new Date(iso);
   return Number.isNaN(d.getTime())
     ? null
-    : d.toLocaleString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
+    : d.toLocaleString('en-GB', {
+        weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+      });
 };
+
+const triple = (a: number | null, b: number | null, c: number | null, suffix = '') =>
+  [a, b, c].map((v) => (v == null ? '.' : `${v}${suffix}`)).join(' · ');
 
 const pct = (v: number | null) => (v == null ? null : Math.round(v * 100));
 
 export function MppTests() {
   const [data, setData] = useState<MppTests | null>(null);
-  const [metric, setMetric] = useState<Metric>('cote');
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +44,13 @@ export function MppTests() {
       .finally(() => setFetching(false));
   }, []);
 
+  const removeColumn = useCallback((batchAt: string) => {
+    axios
+      .delete<MppTests>('/api/mpp/tests/batch', { params: { batchAt } })
+      .then((r) => setData(r.data))
+      .catch(() => setError('delete_failed'));
+  }, []);
+
   // Load stored history; if nothing has ever been fetched, fetch once now.
   useEffect(() => {
     let active = true;
@@ -63,8 +59,7 @@ export function MppTests() {
       .then((r) => {
         if (!active) return;
         setData(r.data);
-        const empty = r.data.matches.every((m) => m.snapshots.length === 0);
-        if (r.data.matches.length === 0 || empty) refetch();
+        if (r.data.columns.length === 0) refetch();
       })
       .catch(() => active && setError('load_failed'));
     return () => {
@@ -73,25 +68,22 @@ export function MppTests() {
   }, [refetch]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-100">Tests</h1>
           <p className="text-sm text-slate-400">
-            Do the cotes and probabilities move over time? Re-fetch to add a point.
+            Each cell: cotes (1 · N · 2) then probabilities. Re-fetch to add a column.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Toggle metric={metric} onChange={setMetric} />
-          <button
-            onClick={refetch}
-            disabled={fetching}
-            className="flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${fetching ? 'animate-spin' : ''}`} />
-            {fetching ? 'Fetching.' : 'Re-fetch now'}
-          </button>
-        </div>
+        <button
+          onClick={refetch}
+          disabled={fetching}
+          className="flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${fetching ? 'animate-spin' : ''}`} />
+          {fetching ? 'Fetching.' : 'Re-fetch now'}
+        </button>
       </div>
 
       {error && (
@@ -109,140 +101,73 @@ export function MppTests() {
           No watched matches resolved yet. Hit Re-fetch to find them.
         </p>
       ) : (
-        <div className="space-y-5">
-          {data.matches.map((m) => (
-            <MatchCard key={m.match_id} match={m} metric={metric} />
-          ))}
-        </div>
+        <Table data={data} onRemove={removeColumn} />
       )}
     </div>
   );
 }
 
-function Toggle({ metric, onChange }: { metric: Metric; onChange: (m: Metric) => void }) {
-  const opts: { key: Metric; label: string }[] = [
-    { key: 'cote', label: 'Cotes' },
-    { key: 'prono', label: 'Probabilities' },
-  ];
+function Table({ data, onRemove }: { data: MppTests; onRemove: (b: string) => void }) {
   return (
-    <div className="flex rounded-lg border border-slate-700 p-0.5 text-sm">
-      {opts.map((o) => (
-        <button
-          key={o.key}
-          onClick={() => onChange(o.key)}
-          className={`rounded-md px-3 py-1 font-medium transition-colors ${
-            metric === o.key ? 'bg-slate-700 text-slate-100' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function MatchCard({ match, metric }: { match: MppTestMatch; metric: Metric }) {
-  const date = fmtDate(match.date);
-  const rows = [...match.snapshots].reverse(); // newest first in the table
-  const value = (s: MppCoteSnapshot, key: 'home' | 'draw' | 'away') =>
-    metric === 'cote' ? s.cote[key] : pct(s.prono[key]);
-
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="font-semibold text-slate-100">
-          {match.home ?? '?'} <span className="text-slate-500">vs</span> {match.away ?? '?'}
-        </h2>
-        <span className="text-xs text-slate-500">
-          {date}
-          {match.status && match.status !== 'upcoming' ? ` . ${match.status}` : ''}
-          {` . ${match.snapshots.length} fetch${match.snapshots.length === 1 ? '' : 'es'}`}
-        </span>
-      </div>
-
-      <Chart match={match} metric={metric} />
-
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
-              <th className="py-1.5 pr-3 font-medium">Fetched</th>
-              {SERIES.map((s) => (
-                <th key={s.key} className="py-1.5 pr-3 text-right font-medium">
-                  {metric === 'cote' ? 'Cote ' : 'P '}
-                  {s.label}
-                </th>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse border border-slate-700 text-center text-sm">
+        <thead>
+          <tr>
+            <th className="border border-slate-700 bg-slate-800/60 px-3 py-2 text-center font-medium text-slate-300">
+              Match
+            </th>
+            {data.columns.map((c) => (
+              <th
+                key={c}
+                className="border border-slate-700 bg-slate-800/60 px-3 py-2 font-medium text-slate-300"
+              >
+                <div className="flex items-center justify-center gap-1.5">
+                  <span>{fmtFetch(c)}</span>
+                  <button
+                    onClick={() => onRemove(c)}
+                    title="Remove this fetch"
+                    className="rounded p-0.5 text-slate-500 transition-colors hover:bg-red-500/15 hover:text-red-400"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.matches.map((m) => (
+            <tr key={m.match_id}>
+              <td className="border border-slate-700 px-3 py-2 align-middle">
+                <div className="font-semibold text-slate-100">
+                  {m.home ?? '?'} <span className="text-slate-500">vs</span> {m.away ?? '?'}
+                </div>
+                {fmtKickoff(m.date) && (
+                  <div className="text-xs text-slate-500">{fmtKickoff(m.date)}</div>
+                )}
+              </td>
+              {data.columns.map((c) => (
+                <td key={c} className="border border-slate-700 px-3 py-2 align-middle">
+                  <Cell cell={m.cells[c]} />
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((s, i) => (
-              <tr key={i} className="border-t border-slate-800/70 text-slate-200">
-                <td className="py-1.5 pr-3 text-slate-400">{fmtTime(s.fetched_at)}</td>
-                {SERIES.map((ser) => {
-                  const v = value(s, ser.key);
-                  return (
-                    <td key={ser.key} className="py-1.5 pr-3 text-right font-mono">
-                      {v == null ? '.' : metric === 'prono' ? `${v}%` : v}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function Chart({ match, metric }: { match: MppTestMatch; metric: Metric }) {
-  if (match.snapshots.length < 2) {
-    return (
-      <p className="py-4 text-center text-xs text-slate-500">
-        One data point so far. Re-fetch later to see movement.
-      </p>
-    );
-  }
-  const chartData = match.snapshots.map((s) => ({
-    t: fmtTime(s.fetched_at),
-    home: metric === 'cote' ? s.cote.home : pct(s.prono.home),
-    draw: metric === 'cote' ? s.cote.draw : pct(s.prono.draw),
-    away: metric === 'cote' ? s.cote.away : pct(s.prono.away),
-  }));
-
+function Cell({ cell }: { cell: MppCoteCell | undefined }) {
+  if (!cell) return <span className="text-slate-600">.</span>;
+  const { cote, prono } = cell;
   return (
-    <div className="h-48 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-          <XAxis dataKey="t" tick={{ fill: '#64748b', fontSize: 11 }} stroke="#334155" />
-          <YAxis
-            tick={{ fill: '#64748b', fontSize: 11 }}
-            stroke="#334155"
-            domain={['auto', 'auto']}
-            unit={metric === 'prono' ? '%' : ''}
-          />
-          <Tooltip
-            contentStyle={{
-              background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12,
-            }}
-            labelStyle={{ color: '#94a3b8' }}
-          />
-          {SERIES.map((s) => (
-            <Line
-              key={s.key}
-              type="monotone"
-              dataKey={s.key}
-              name={s.label}
-              stroke={s.color}
-              strokeWidth={2}
-              dot={{ r: 2 }}
-              connectNulls
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="space-y-0.5">
+      <div className="font-mono text-slate-100">{triple(cote.home, cote.draw, cote.away)}</div>
+      <div className="font-mono text-xs text-slate-400">
+        {triple(pct(prono.home), pct(prono.draw), pct(prono.away), '%')}
+      </div>
     </div>
   );
 }

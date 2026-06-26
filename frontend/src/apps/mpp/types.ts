@@ -78,8 +78,7 @@ export interface MppPlayerRating {
   goals: number;
 }
 
-export interface MppCoteSnapshot {
-  fetched_at: string;
+export interface MppCoteCell {
   cote: { home: number | null; draw: number | null; away: number | null };
   prono: { home: number | null; draw: number | null; away: number | null };
 }
@@ -90,10 +89,11 @@ export interface MppTestMatch {
   away: string | null;
   date: string | null;
   status: 'final' | 'live' | 'upcoming' | null;
-  snapshots: MppCoteSnapshot[];
+  cells: Record<string, MppCoteCell>; // keyed by fetch column (batch_at ISO)
 }
 
 export interface MppTests {
+  columns: string[]; // batch_at ISO strings, oldest first
   matches: MppTestMatch[];
 }
 
