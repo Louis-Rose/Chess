@@ -166,31 +166,51 @@ function Table({ data, onAskRemove }: { data: MppTests; onAskRemove: (b: string)
 function Cell({ match, cell }: { match: MppTestMatch; cell: MppCoteCell | undefined }) {
   if (!cell) return <span className="text-slate-600">.</span>;
   const { cote, prono } = cell;
+  // Espérance = cote × probability (the average points that outcome is worth).
+  const esp = (c: number | null, p: number | null) =>
+    c == null || p == null ? '.' : (c * p).toFixed(1);
   return (
     <table className="mx-auto border-collapse text-center">
       <tbody>
         <tr className="text-[11px] text-slate-400">
+          <Td />
           <Td>{match.home ?? '1'}</Td>
           <Td>N</Td>
           <Td>{match.away ?? '2'}</Td>
         </tr>
         <tr className="font-mono text-slate-100">
+          <Label>Cotes</Label>
           <Td>{num(cote.home)}</Td>
           <Td>{num(cote.draw)}</Td>
           <Td>{num(cote.away)}</Td>
         </tr>
         <tr className="font-mono text-[11px] text-slate-400">
+          <Label>Probabilités</Label>
           <Td>{num(pct(prono.home), '%')}</Td>
           <Td>{num(pct(prono.draw), '%')}</Td>
           <Td>{num(pct(prono.away), '%')}</Td>
+        </tr>
+        <tr className="font-mono text-xs text-amber-300/90">
+          <Label>Espérance</Label>
+          <Td>{esp(cote.home, prono.home)}</Td>
+          <Td>{esp(cote.draw, prono.draw)}</Td>
+          <Td>{esp(cote.away, prono.away)}</Td>
         </tr>
       </tbody>
     </table>
   );
 }
 
-function Td({ children }: { children: React.ReactNode }) {
+function Td({ children }: { children?: React.ReactNode }) {
   return <td className="border border-slate-700/70 px-2 py-0.5">{children}</td>;
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <td className="border border-slate-700/70 px-2 py-0.5 text-left font-sans text-[11px] font-medium text-slate-400">
+      {children}
+    </td>
+  );
 }
 
 function ConfirmModal({
