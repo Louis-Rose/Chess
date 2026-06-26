@@ -108,15 +108,22 @@ export function MppTests() {
       ? buckets.flatMap((b) => b.matches)
       : buckets.find((b) => b.key === activeKey)?.matches ?? [];
 
-  const refetch = useCallback(() => {
+  // matchIds: null = every upcoming match; a list = just those.
+  const runFetch = useCallback((matchIds: string[] | null) => {
     setFetching(true);
     setError(null);
     axios
-      .post<MppTests>('/api/mpp/tests/fetch')
+      .post<MppTests>('/api/mpp/tests/fetch', { matchIds })
       .then((r) => setData(r.data))
       .catch((e) => setError(e?.response?.data?.error || 'fetch_failed'))
       .finally(() => setFetching(false));
   }, []);
+
+  // The button fetches only the open day's matches (all of them on the All tab).
+  const refetch = () =>
+    runFetch(activeKey === ALL || activeKey === null
+      ? null
+      : activeMatches.map((m) => m.match_id));
 
   const removeColumn = useCallback((batchAt: string) => {
     axios
@@ -134,13 +141,13 @@ export function MppTests() {
       .then((r) => {
         if (!active) return;
         setData(r.data);
-        if (r.data.columns.length === 0) refetch();
+        if (r.data.columns.length === 0) runFetch(null);
       })
       .catch(() => active && setError('load_failed'));
     return () => {
       active = false;
     };
-  }, [refetch]);
+  }, [runFetch]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
@@ -293,7 +300,7 @@ function Table({
           {matches.map((m) => (
             <tr key={m.match_id}>
               <td className="border border-slate-700 px-3 py-2 align-middle">
-                <div className="flex flex-col items-center gap-0.5 font-semibold text-slate-100">
+                <div className="mx-auto flex w-fit flex-col items-start gap-2 font-semibold text-slate-100">
                   <span className="flex items-center gap-1.5 whitespace-nowrap">
                     <TeamCrest src={m.home_crest} className="h-5 w-5" />
                     {m.home ? countryName(m.home, language) : '?'}
@@ -304,7 +311,7 @@ function Table({
                   </span>
                 </div>
                 {fmtKickoff(m.date, loc) && (
-                  <div className="text-xs text-slate-500">{fmtKickoff(m.date, loc)}</div>
+                  <div className="mt-2 text-xs text-slate-500">{fmtKickoff(m.date, loc)}</div>
                 )}
               </td>
               {columns.map((c) => (

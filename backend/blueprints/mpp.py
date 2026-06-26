@@ -547,11 +547,13 @@ def _upcoming_match_ids(token):
     return upcoming
 
 
-def _snapshot_test_matches(token):
-    """Record one cote/prono row per upcoming match, all sharing one batch_at so
-    the round forms a single fetch column. force=True bypasses the match cache so
-    a manual re-fetch always reads live values."""
-    match_ids = _upcoming_match_ids(token)
+def _snapshot_test_matches(token, match_ids=None):
+    """Record one cote/prono row per match, all sharing one batch_at so the round
+    forms a single fetch column. force=True bypasses the match cache so a manual
+    re-fetch always reads live values. match_ids None snapshots every upcoming
+    match; a list restricts the round to those matches."""
+    if match_ids is None:
+        match_ids = _upcoming_match_ids(token)
     batch = datetime.utcnow()
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         raws = list(pool.map(lambda mid: _fetch_match(token, mid, force=True), match_ids))
@@ -640,8 +642,15 @@ def mpp_tests_fetch():
             ).fetchone())
         return jsonify({'error': 'token_expired' if connected else 'not_connected'}), 409
 
+    # matchIds null/absent -> every upcoming match; a list -> just those (the
+    # day the user has open). An empty list snapshots nothing.
+    body = request.get_json(silent=True) or {}
+    match_ids = body.get('matchIds')
+    if match_ids is not None:
+        match_ids = [int(m) for m in match_ids]
+
     try:
-        _snapshot_test_matches(token)
+        _snapshot_test_matches(token, match_ids)
     except Exception:
         logger.exception('MPP test snapshot failed')
         return jsonify({'error': 'mpp_unavailable'}), 502
