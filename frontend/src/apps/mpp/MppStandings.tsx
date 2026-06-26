@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useLanguage } from '../../contexts/LanguageContext';
 import type { MppStandings as Standings } from './types';
 
 // Full league leaderboard (the MPP "Classement"): every player with their
 // Bons / Exacts / Points, the owner's own row highlighted. Lazy-loaded when a
 // league card is expanded.
 export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
+  const { t } = useLanguage();
   const [data, setData] = useState<Standings | null>(null);
   const [error, setError] = useState(false);
 
@@ -23,10 +25,10 @@ export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
   }, [challengeId]);
 
   if (error) {
-    return <p className="px-5 py-4 text-sm text-amber-300">Could not load the ranking.</p>;
+    return <p className="px-5 py-4 text-sm text-amber-300">{t('mpp.standings.error')}</p>;
   }
   if (!data) {
-    return <p className="px-5 py-4 text-sm text-slate-500">Loading ranking...</p>;
+    return <p className="px-5 py-4 text-sm text-slate-500">{t('mpp.standings.loading')}</p>;
   }
 
   return (
@@ -34,11 +36,11 @@ export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
-            <th className="px-3 py-2 text-left font-medium">#</th>
-            <th className="px-3 py-2 text-left font-medium">Joueur</th>
-            <th className="px-2 py-2 text-right font-medium">Bons</th>
-            <th className="px-2 py-2 text-right font-medium">Exacts</th>
-            <th className="px-3 py-2 text-right font-medium">Points</th>
+            <th className="px-3 py-2 text-left font-medium">{t('mpp.standings.rank')}</th>
+            <th className="px-3 py-2 text-left font-medium">{t('mpp.standings.player')}</th>
+            <th className="px-2 py-2 text-right font-medium">{t('mpp.standings.good')}</th>
+            <th className="px-2 py-2 text-right font-medium">{t('mpp.standings.exact')}</th>
+            <th className="px-3 py-2 text-right font-medium">{t('mpp.standings.points')}</th>
           </tr>
         </thead>
         <tbody>

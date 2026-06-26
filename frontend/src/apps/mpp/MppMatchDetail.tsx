@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { X } from 'lucide-react';
 import { TeamCrest } from './TeamCrest';
+import { useLanguage } from '../../contexts/LanguageContext';
 import type { MppMatchDetail as Detail } from './types';
+
+type TFn = (key: string) => string;
 
 // The "avant-match" detail behind a match click: the MPP prono split
 // (Stats Prono MPP) and the best-rated players. Lazy-loaded per match.
 export function MppMatchDetail({ matchId, onClose }: { matchId: string; onClose: () => void }) {
+  const { t } = useLanguage();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState(false);
 
@@ -40,7 +44,7 @@ export function MppMatchDetail({ matchId, onClose }: { matchId: string; onClose:
       >
         <div className="mb-4 flex items-start justify-between">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {detail?.game_week != null ? `J${detail.game_week}` : 'Match'}
+            {detail?.game_week != null ? `J${detail.game_week}` : t('mpp.detail.match')}
             {detail?.stadium ? ` . ${detail.stadium}` : ''}
           </span>
           <button onClick={onClose} className="rounded p-1 text-slate-400 hover:text-slate-200">
@@ -49,20 +53,20 @@ export function MppMatchDetail({ matchId, onClose }: { matchId: string; onClose:
         </div>
 
         {error ? (
-          <p className="py-8 text-center text-sm text-amber-300">Could not load this match.</p>
+          <p className="py-8 text-center text-sm text-amber-300">{t('mpp.detail.couldNotLoad')}</p>
         ) : !detail ? (
           <div className="flex h-40 items-center justify-center">
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-700 border-t-emerald-500" />
           </div>
         ) : (
-          <Body detail={detail} />
+          <Body detail={detail} t={t} />
         )}
       </div>
     </div>
   );
 }
 
-function Body({ detail }: { detail: Detail }) {
+function Body({ detail, t }: { detail: Detail; t: TFn }) {
   const played = detail.status !== 'upcoming';
   const homePct = Math.round((detail.bets?.home ?? 0) * 100);
   const drawPct = Math.round((detail.bets?.draw ?? 0) * 100);
@@ -79,7 +83,7 @@ function Body({ detail }: { detail: Detail }) {
               {detail.home.score ?? 0} - {detail.away.score ?? 0}
             </span>
           ) : (
-            <span className="text-sm font-medium text-slate-500">vs</span>
+            <span className="text-sm font-medium text-slate-500">{t('mpp.detail.vs')}</span>
           )}
         </div>
         <TeamHead name={detail.away.name} crest={detail.away.crest} />
@@ -87,15 +91,15 @@ function Body({ detail }: { detail: Detail }) {
 
       {/* Stats Prono MPP */}
       {detail.bets && (
-        <Card title="Stats Prono MPP">
+        <Card title={t('mpp.detail.statsPronoMpp')}>
           <div className="flex items-start justify-around">
-            <Ring pct={homePct} label={`${homePct}%`} sub={`Win ${detail.home.name ?? ''}`} />
-            <Ring pct={drawPct} label={`${drawPct}%`} sub="Draw" />
-            <Ring pct={awayPct} label={`${awayPct}%`} sub={`Win ${detail.away.name ?? ''}`} />
+            <Ring pct={homePct} label={`${homePct}%`} sub={`${t('mpp.detail.win')} ${detail.home.name ?? ''}`} />
+            <Ring pct={drawPct} label={`${drawPct}%`} sub={t('mpp.detail.draw')} />
+            <Ring pct={awayPct} label={`${awayPct}%`} sub={`${t('mpp.detail.win')} ${detail.away.name ?? ''}`} />
           </div>
           {detail.cote && (
             <p className="mt-3 text-center text-xs text-slate-500">
-              Cote 1 <b className="text-emerald-300">{detail.cote.home}</b> . N{' '}
+              {t('mpp.detail.cote')} 1 <b className="text-emerald-300">{detail.cote.home}</b> . N{' '}
               <b className="text-emerald-300">{detail.cote.draw}</b> . 2{' '}
               <b className="text-emerald-300">{detail.cote.away}</b>
             </p>
@@ -105,7 +109,7 @@ function Body({ detail }: { detail: Detail }) {
 
       {/* Best players */}
       {detail.best_players.length > 0 && (
-        <Card title="Best players">
+        <Card title={t('mpp.detail.bestPlayers')}>
           <div className="flex flex-wrap justify-center gap-4">
             {detail.best_players.map((p, i) => (
               <Ring
@@ -121,7 +125,7 @@ function Body({ detail }: { detail: Detail }) {
 
       {!detail.bets && detail.best_players.length === 0 && (
         <p className="py-6 text-center text-sm text-slate-500">
-          No pre-match stats for this fixture yet.
+          {t('mpp.detail.noStats')}
         </p>
       )}
     </div>

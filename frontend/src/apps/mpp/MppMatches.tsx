@@ -3,17 +3,20 @@ import axios from 'axios';
 import { RefreshCw } from 'lucide-react';
 import { MppMatchDetail } from './MppMatchDetail';
 import { TeamCrest } from './TeamCrest';
+import { useLanguage } from '../../contexts/LanguageContext';
 import type { MppMatch, MppMatches as MppMatchesData, MppTeam } from './types';
+
+type TFn = (key: string) => string;
 
 // Matches tab: every match of the owner's competition whose two teams are known,
 // in one chronological scroll. Played matches show the score, upcoming ones show
 // the MPP cotes (1 / N / 2 reward points). No day-by-day clicking.
 type Filter = 'all' | 'upcoming' | 'played';
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'upcoming', label: 'Upcoming' },
-  { key: 'played', label: 'Played' },
+const FILTERS: { key: Filter; labelKey: string }[] = [
+  { key: 'all', labelKey: 'mpp.matches.filter.all' },
+  { key: 'upcoming', labelKey: 'mpp.matches.filter.upcoming' },
+  { key: 'played', labelKey: 'mpp.matches.filter.played' },
 ];
 
 // Module-level cache so revisiting the tab is instant. Without it the component
@@ -24,6 +27,7 @@ let cachedAt = 0;
 const FRESH_MS = 90_000;
 
 export function MppMatches() {
+  const { t } = useLanguage();
   const [data, setData] = useState<MppMatchesData | null>(cachedMatches);
   const [loading, setLoading] = useState(cachedMatches === null);
   const [error, setError] = useState<string | null>(null);
@@ -44,12 +48,12 @@ export function MppMatches() {
         const code = e?.response?.data?.error;
         setError(
           code === 'token_expired'
-            ? 'Your MPP session expired. Reconnect with a fresh token.'
-            : 'Could not reach MPP. Try again in a moment.',
+            ? t('mpp.matches.error.tokenExpired')
+            : t('mpp.matches.error.generic'),
         );
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     // Show the cache instantly; only hit the network when it's stale. A manual
@@ -65,16 +69,17 @@ export function MppMatches() {
     return all;
   }, [data, filter]);
 
-  const groups = useMemo(() => groupByDate(filtered), [filtered]);
+  const groups = useMemo(() => groupByDate(filtered, t), [filtered, t]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-4 py-8 sm:px-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Matches</h2>
+          <h2 className="text-xl font-bold text-slate-100">{t('mpp.matches.title')}</h2>
           {data && (
             <p className="text-xs text-slate-500">
-              {filtered.length} of {data.matches.length} matches with known teams
+              {filtered.length} {t('mpp.matches.of')} {data.matches.length}{' '}
+              {t('mpp.matches.withKnownTeams')}
             </p>
           )}
         </div>
@@ -84,12 +89,12 @@ export function MppMatches() {
           className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('mpp.matches.refresh')}
         </button>
       </div>
 
       <div className="flex gap-1 rounded-xl border border-slate-800 bg-slate-800/40 p-1">
-        {FILTERS.map(({ key, label }) => (
+        {FILTERS.map(({ key, labelKey }) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
@@ -99,7 +104,7 @@ export function MppMatches() {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
@@ -112,7 +117,7 @@ export function MppMatches() {
 
       {loading && !data ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center text-slate-400">
-          Loading matches... the first load reads every fixture, so give it a few seconds.
+          {t('mpp.matches.loading')}
         </div>
       ) : groups.length ? (
         <div className="space-y-6">
@@ -123,7 +128,12 @@ export function MppMatches() {
               </h3>
               <div className="space-y-2">
                 {matches.map((m) => (
-                  <MatchCard key={m.id} match={m} onSelect={() => setSelectedId(m.id)} />
+                  <MatchCard
+                    key={m.id}
+                    match={m}
+                    onSelect={() => setSelectedId(m.id)}
+                    t={t}
+                  />
                 ))}
               </div>
             </div>
@@ -132,10 +142,10 @@ export function MppMatches() {
       ) : data ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center text-slate-400">
           {filter === 'upcoming'
-            ? 'No upcoming matches with known teams yet.'
+            ? t('mpp.matches.empty.upcoming')
             : filter === 'played'
-              ? 'No played matches yet.'
-              : 'No matches with known teams yet.'}
+              ? t('mpp.matches.empty.played')
+              : t('mpp.matches.empty.all')}
         </div>
       ) : null}
 
@@ -146,7 +156,15 @@ export function MppMatches() {
   );
 }
 
-function MatchCard({ match: m, onSelect }: { match: MppMatch; onSelect: () => void }) {
+function MatchCard({
+  match: m,
+  onSelect,
+  t,
+}: {
+  match: MppMatch;
+  onSelect: () => void;
+  t: TFn;
+}) {
   const played = m.status !== 'upcoming';
   return (
     <div
@@ -156,10 +174,10 @@ function MatchCard({ match: m, onSelect }: { match: MppMatch; onSelect: () => vo
       <div className="mb-2 flex items-center justify-center gap-2 text-[11px] text-slate-500">
         {m.game_week != null && <span>J{m.game_week}</span>}
         <span>.</span>
-        <span>{formatTime(m.date)}</span>
+        <span>{formatTime(m.date, t)}</span>
         {m.status === 'live' && (
           <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 font-bold uppercase text-emerald-400">
-            {m.match_time || 'Live'}
+            {m.match_time || t('mpp.matches.live')}
           </span>
         )}
       </div>
@@ -172,7 +190,7 @@ function MatchCard({ match: m, onSelect }: { match: MppMatch; onSelect: () => vo
               {m.home.score ?? 0} - {m.away.score ?? 0}
             </span>
           ) : (
-            <span className="text-sm font-medium text-slate-500">vs</span>
+            <span className="text-sm font-medium text-slate-500">{t('mpp.matches.vs')}</span>
           )}
         </div>
         <TeamSide team={m.away} align="left" />
@@ -182,7 +200,7 @@ function MatchCard({ match: m, onSelect }: { match: MppMatch; onSelect: () => vo
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-slate-800 pt-3 text-xs">
           {m.cote && (
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Cote</span>
+              <span className="text-slate-500">{t('mpp.matches.cote')}</span>
               <Cote label="1" value={m.cote.home} />
               <Cote label="N" value={m.cote.draw} />
               <Cote label="2" value={m.cote.away} />
@@ -190,13 +208,14 @@ function MatchCard({ match: m, onSelect }: { match: MppMatch; onSelect: () => vo
           )}
           {hasProno(m) && (
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Mon prono</span>
+              <span className="text-slate-500">{t('mpp.matches.myProno')}</span>
               <span className="rounded-lg border border-slate-700 bg-slate-900/60 px-2 py-1 font-mono font-semibold text-sky-300">
                 {m.prono!.home ?? '-'} - {m.prono!.away ?? '-'}
               </span>
               {m.prono!.cote != null && (
                 <span className="text-slate-500">
-                  Ma cote <span className="font-semibold text-slate-300">{m.prono!.cote}</span>
+                  {t('mpp.matches.myCote')}{' '}
+                  <span className="font-semibold text-slate-300">{m.prono!.cote}</span>
                 </span>
               )}
               {played && m.prono!.points != null && (
@@ -238,11 +257,11 @@ function Cote({ label, value }: { label: string; value: number }) {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function groupByDate(matches: MppMatch[]): { label: string; matches: MppMatch[] }[] {
+function groupByDate(matches: MppMatch[], t: TFn): { label: string; matches: MppMatch[] }[] {
   const groups: { label: string; matches: MppMatch[] }[] = [];
   let current: { label: string; matches: MppMatch[] } | null = null;
   for (const m of matches) {
-    const label = formatDay(m.date);
+    const label = formatDay(m.date, t);
     if (!current || current.label !== label) {
       current = { label, matches: [] };
       groups.push(current);
@@ -252,8 +271,8 @@ function groupByDate(matches: MppMatch[]): { label: string; matches: MppMatch[] 
   return groups;
 }
 
-function formatDay(iso: string | null): string {
-  if (!iso) return 'Date to be confirmed';
+function formatDay(iso: string | null, t: TFn): string {
+  if (!iso) return t('mpp.matches.dateTbc');
   return new Date(iso).toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
@@ -261,7 +280,7 @@ function formatDay(iso: string | null): string {
   });
 }
 
-function formatTime(iso: string | null): string {
-  if (!iso) return 'TBC';
+function formatTime(iso: string | null, t: TFn): string {
+  if (!iso) return t('mpp.matches.tbc');
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }

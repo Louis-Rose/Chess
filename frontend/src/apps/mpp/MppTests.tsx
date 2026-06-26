@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, X } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
 import type { MppCoteCell, MppTestMatch, MppTests } from './types';
+
+type TFn = (key: string) => string;
 
 // "Tests" tab: a matches-by-fetches table. Rows are the watched fixtures; each
 // column is one re-fetch round. Every cell is a small 1/N/2 table showing the
@@ -28,6 +31,7 @@ const num = (v: number | null, suffix = '') => (v == null ? '.' : `${v}${suffix}
 const pct = (v: number | null) => (v == null ? null : Math.round(v * 100));
 
 export function MppTests() {
+  const { t } = useLanguage();
   const [data, setData] = useState<MppTests | null>(null);
   const [fetching, setFetching] = useState(false);
   const [pending, setPending] = useState<string | null>(null); // batch_at to delete
@@ -71,7 +75,7 @@ export function MppTests() {
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
       <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <div />
-        <h1 className="text-center text-lg font-semibold text-slate-100">Tests</h1>
+        <h1 className="text-center text-lg font-semibold text-slate-100">{t('mpp.tests.title')}</h1>
         <div className="flex justify-end">
           <button
             onClick={refetch}
@@ -79,7 +83,7 @@ export function MppTests() {
             className="flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${fetching ? 'animate-spin' : ''}`} />
-            {fetching ? 'Fetching.' : 'Re-fetch now'}
+            {fetching ? t('mpp.tests.fetching') : t('mpp.tests.refetch')}
           </button>
         </div>
       </div>
@@ -87,8 +91,8 @@ export function MppTests() {
       {error && (
         <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
           {error === 'token_expired'
-            ? 'Your MPP token expired. Reconnect from the Connect screen.'
-            : 'Could not reach MPP. Try again in a moment.'}
+            ? t('mpp.tests.error.tokenExpired')
+            : t('mpp.tests.error.generic')}
         </p>
       )}
 
@@ -96,10 +100,10 @@ export function MppTests() {
         <Spinner />
       ) : data.matches.length === 0 ? (
         <p className="py-12 text-center text-sm text-slate-500">
-          No watched matches resolved yet. Hit Re-fetch to find them.
+          {t('mpp.tests.empty')}
         </p>
       ) : (
-        <Table data={data} onAskRemove={setPending} />
+        <Table data={data} onAskRemove={setPending} t={t} />
       )}
 
       {pending && (
@@ -107,20 +111,29 @@ export function MppTests() {
           label={fmtFetch(pending)}
           onCancel={() => setPending(null)}
           onConfirm={() => removeColumn(pending)}
+          t={t}
         />
       )}
     </div>
   );
 }
 
-function Table({ data, onAskRemove }: { data: MppTests; onAskRemove: (b: string) => void }) {
+function Table({
+  data,
+  onAskRemove,
+  t,
+}: {
+  data: MppTests;
+  onAskRemove: (b: string) => void;
+  t: TFn;
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse border border-slate-700 text-center text-sm">
         <thead>
           <tr>
             <th className="border border-slate-700 bg-slate-800/60 px-3 py-2 text-center font-medium text-slate-300">
-              Match
+              {t('mpp.tests.match')}
             </th>
             {data.columns.map((c) => (
               <th
@@ -130,7 +143,7 @@ function Table({ data, onAskRemove }: { data: MppTests; onAskRemove: (b: string)
                 {fmtFetch(c)}
                 <button
                   onClick={() => onAskRemove(c)}
-                  title="Remove this fetch"
+                  title={t('mpp.tests.removeFetchTitle')}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-red-500 transition-colors hover:bg-red-500/15 hover:text-red-400"
                 >
                   <X className="h-4 w-4" />
@@ -144,7 +157,8 @@ function Table({ data, onAskRemove }: { data: MppTests; onAskRemove: (b: string)
             <tr key={m.match_id}>
               <td className="border border-slate-700 px-3 py-2 align-middle">
                 <div className="font-semibold text-slate-100">
-                  {m.home ?? '?'} <span className="text-slate-500">vs</span> {m.away ?? '?'}
+                  {m.home ?? '?'} <span className="text-slate-500">{t('mpp.tests.vs')}</span>{' '}
+                  {m.away ?? '?'}
                 </div>
                 {fmtKickoff(m.date) && (
                   <div className="text-xs text-slate-500">{fmtKickoff(m.date)}</div>
@@ -152,7 +166,7 @@ function Table({ data, onAskRemove }: { data: MppTests; onAskRemove: (b: string)
               </td>
               {data.columns.map((c) => (
                 <td key={c} className="border border-slate-700 px-2 py-2 align-middle">
-                  <Cell match={m} cell={m.cells[c]} />
+                  <Cell match={m} cell={m.cells[c]} t={t} />
                 </td>
               ))}
             </tr>
@@ -163,7 +177,15 @@ function Table({ data, onAskRemove }: { data: MppTests; onAskRemove: (b: string)
   );
 }
 
-function Cell({ match, cell }: { match: MppTestMatch; cell: MppCoteCell | undefined }) {
+function Cell({
+  match,
+  cell,
+  t,
+}: {
+  match: MppTestMatch;
+  cell: MppCoteCell | undefined;
+  t: TFn;
+}) {
   if (!cell) return <span className="text-slate-600">.</span>;
   const { cote, prono } = cell;
   // Espérance = cote × probability (the average points that outcome is worth).
@@ -179,19 +201,19 @@ function Cell({ match, cell }: { match: MppTestMatch; cell: MppCoteCell | undefi
           <Td>{match.away ?? '2'}</Td>
         </tr>
         <tr className="font-mono text-slate-100">
-          <Label>Cotes</Label>
+          <Label>{t('mpp.tests.odds')}</Label>
           <Td>{num(cote.home)}</Td>
           <Td>{num(cote.draw)}</Td>
           <Td>{num(cote.away)}</Td>
         </tr>
         <tr className="font-mono text-[11px] text-slate-400">
-          <Label>Probabilités</Label>
+          <Label>{t('mpp.tests.probability')}</Label>
           <Td>{num(pct(prono.home), '%')}</Td>
           <Td>{num(pct(prono.draw), '%')}</Td>
           <Td>{num(pct(prono.away), '%')}</Td>
         </tr>
         <tr className="font-mono text-xs text-amber-300/90">
-          <Label>Espérance</Label>
+          <Label>{t('mpp.tests.expected')}</Label>
           <Td>{esp(cote.home, prono.home)}</Td>
           <Td>{esp(cote.draw, prono.draw)}</Td>
           <Td>{esp(cote.away, prono.away)}</Td>
@@ -214,8 +236,8 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 function ConfirmModal({
-  label, onCancel, onConfirm,
-}: { label: string; onCancel: () => void; onConfirm: () => void }) {
+  label, onCancel, onConfirm, t,
+}: { label: string; onCancel: () => void; onConfirm: () => void; t: TFn }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel();
     window.addEventListener('keydown', onKey);
@@ -231,23 +253,23 @@ function ConfirmModal({
         className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-base font-semibold text-slate-100">Remove this fetch?</h2>
+        <h2 className="text-base font-semibold text-slate-100">{t('mpp.tests.confirm.title')}</h2>
         <p className="mt-1.5 text-sm text-slate-400">
-          The column from <span className="text-slate-200">{label}</span> will be deleted for all
-          matches. This cannot be undone.
+          {t('mpp.tests.confirm.bodyBefore')} <span className="text-slate-200">{label}</span>{' '}
+          {t('mpp.tests.confirm.bodyAfter')}
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onCancel}
             className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800"
           >
-            Cancel
+            {t('mpp.tests.cancel')}
           </button>
           <button
             onClick={onConfirm}
             className="rounded-lg bg-red-500/90 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-500"
           >
-            Remove
+            {t('mpp.tests.remove')}
           </button>
         </div>
       </div>

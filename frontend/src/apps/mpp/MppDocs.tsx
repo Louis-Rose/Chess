@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Copy, Check, Download, Code2 } from 'lucide-react';
 import { MPP_API, type MppEndpoint } from './mppEndpoints';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // MPP Docs tab: a human-readable reference for the reverse-engineered Mon Petit
 // Prono API, backed by the MPP_API catalog. The same catalog is the
 // machine-readable source, offered here as copy / download JSON.
 export function MppDocs() {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
 
@@ -36,31 +38,31 @@ export function MppDocs() {
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
       <header className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-slate-100">MPP Docs</h2>
+          <h2 className="text-xl font-bold text-slate-100">{t('mpp.docs.title')}</h2>
           <div className="flex items-center gap-2">
             <button onClick={copyJson} className={btnClass}>
               {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-              {copied ? 'Copied' : 'Copy JSON'}
+              {copied ? t('mpp.docs.copied') : t('mpp.docs.copyJson')}
             </button>
             <button onClick={downloadJson} className={btnClass}>
               <Download className="h-4 w-4" />
-              Download
+              {t('mpp.docs.download')}
             </button>
           </div>
         </div>
         <p className="text-sm text-slate-400">
-          Reverse-engineered map of the Mon Petit Prono API. {count} endpoints across{' '}
-          {MPP_API.groups.length} areas, extracted from the production web bundle on{' '}
+          {t('mpp.docs.intro1')} {count} {t('mpp.docs.intro2')}{' '}
+          {MPP_API.groups.length} {t('mpp.docs.intro3')}{' '}
           {MPP_API.extractedAt}.
         </p>
       </header>
 
       {/* Base + auth */}
       <section className="space-y-2 rounded-2xl border border-slate-800 bg-slate-800/40 p-5">
-        <Field label="Base URL" value={MPP_API.baseUrl} mono />
-        <Field label="Auth" value={MPP_API.auth.scheme} mono />
-        <Field label="Token" value={MPP_API.auth.tokenEndpoint} mono />
-        <Field label="Audience" value={MPP_API.auth.audience} mono />
+        <Field label={t('mpp.docs.baseUrl')} value={MPP_API.baseUrl} mono />
+        <Field label={t('mpp.docs.auth')} value={MPP_API.auth.scheme} mono />
+        <Field label={t('mpp.docs.token')} value={MPP_API.auth.tokenEndpoint} mono />
+        <Field label={t('mpp.docs.audience')} value={MPP_API.auth.audience} mono />
         <p className="pt-1 text-xs text-slate-500">{MPP_API.methodsNote}</p>
       </section>
 
@@ -83,7 +85,7 @@ export function MppDocs() {
       <section className="space-y-2">
         <button onClick={() => setShowRaw((v) => !v)} className={btnClass}>
           <Code2 className="h-4 w-4" />
-          {showRaw ? 'Hide raw JSON' : 'Show raw JSON'}
+          {showRaw ? t('mpp.docs.hideRawJson') : t('mpp.docs.showRawJson')}
         </button>
         {showRaw && (
           <pre className="max-h-96 overflow-auto rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-xs leading-relaxed text-slate-300">
@@ -96,6 +98,7 @@ export function MppDocs() {
 }
 
 function EndpointRow({ endpoint: e, last }: { endpoint: MppEndpoint; last: boolean }) {
+  const { t } = useLanguage();
   return (
     <div
       className={`flex items-start gap-3 bg-slate-800/40 px-4 py-3 ${
@@ -110,7 +113,7 @@ function EndpointRow({ endpoint: e, last }: { endpoint: MppEndpoint; last: boole
           <span className="break-all">{e.path}</span>
           {e.verified && (
             <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
-              Verified
+              {t('mpp.docs.verified')}
             </span>
           )}
         </p>

@@ -4,19 +4,21 @@ import { ListOrdered, CalendarDays, FlaskConical, ScrollText, BookOpen, LogOut, 
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
 import { AppTitle } from '../../components/AppTitle';
+import { LangToggle } from '../../components/LangToggle';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
   icon: LucideIcon;
 }
 
 const NAV: NavItem[] = [
-  { to: '/mpp/leaderboard', label: 'Leaderboard', icon: ListOrdered },
-  { to: '/mpp/matches', label: 'Matches', icon: CalendarDays },
-  { to: '/mpp/tests', label: 'Tests', icon: FlaskConical },
-  { to: '/mpp/rules', label: 'Rules & strategy', icon: ScrollText },
-  { to: '/mpp/docs', label: 'MPP Docs', icon: BookOpen },
+  { to: '/mpp/leaderboard', labelKey: 'mpp.nav.leaderboard', icon: ListOrdered },
+  { to: '/mpp/matches', labelKey: 'mpp.nav.matches', icon: CalendarDays },
+  { to: '/mpp/tests', labelKey: 'mpp.nav.tests', icon: FlaskConical },
+  { to: '/mpp/rules', labelKey: 'mpp.nav.rules', icon: ScrollText },
+  { to: '/mpp/docs', labelKey: 'mpp.nav.docs', icon: BookOpen },
 ];
 
 function navClass(active: boolean): string {
@@ -31,6 +33,7 @@ function navClass(active: boolean): string {
 // Sidebar shell for the MPP section: the shared LUMNA rail plus the app's tabs
 // (Leaderboard, MPP Docs), with a Disconnect control in the top bar.
 export function MppLayout({ onDisconnect }: { onDisconnect: () => void }) {
+  const { t } = useLanguage();
   const disconnect = () => {
     axios.post('/api/mpp/disconnect').then(onDisconnect);
   };
@@ -39,10 +42,10 @@ export function MppLayout({ onDisconnect }: { onDisconnect: () => void }) {
     <div className="flex min-h-dvh bg-slate-900 text-slate-100">
       <AppSidebar className="sticky top-0 hidden h-dvh md:flex">
         <nav className="flex flex-col gap-1">
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {NAV.map(({ to, labelKey, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => navClass(isActive)}>
               <Icon className="h-4 w-4" />
-              {label}
+              {t(labelKey)}
             </NavLink>
           ))}
         </nav>
@@ -54,25 +57,29 @@ export function MppLayout({ onDisconnect }: { onDisconnect: () => void }) {
           <NavLink to="/mpp" end className="mr-2 flex items-center gap-2">
             <LumnaLogo className="h-6 w-6" />
           </NavLink>
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {NAV.map(({ to, labelKey, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => navClass(isActive)}>
               <Icon className="h-4 w-4" />
-              {label}
+              {t(labelKey)}
             </NavLink>
           ))}
+          <div className="ml-auto flex items-center gap-2">
+            <LangToggle />
+          </div>
         </div>
 
         <div className="hidden border-b border-slate-800 px-6 py-5 md:block">
           <AppTitle title="MPP" />
         </div>
 
-        <div className="flex justify-end border-b border-slate-800 px-6 py-3">
+        <div className="flex items-center justify-end gap-2 border-b border-slate-800 px-6 py-3">
+          <LangToggle />
           <button
             onClick={disconnect}
             className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-400 transition-colors hover:border-red-500/60 hover:text-red-400"
           >
             <LogOut className="h-4 w-4" />
-            Disconnect
+            {t('mpp.common.disconnect')}
           </button>
         </div>
 

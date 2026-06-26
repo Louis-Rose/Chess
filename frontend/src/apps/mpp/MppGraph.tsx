@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useLanguage } from '../../contexts/LanguageContext';
 import type { MppHistory } from './types';
 
 // Distinct colours for the other players; the owner's own line is always
@@ -27,6 +28,7 @@ const fmtDate = (d: string) =>
 // historical standings, so the series starts the first day this was opened and
 // grows by one point per day. Embedded inside each league card.
 export function MppGraph({ challengeId }: { challengeId: string }) {
+  const { t } = useLanguage();
   const [history, setHistory] = useState<MppHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,27 +40,27 @@ export function MppGraph({ challengeId }: { challengeId: string }) {
     axios
       .get<MppHistory>('/api/mpp/history', { params: { challengeId } })
       .then((r) => active && setHistory(r.data))
-      .catch(() => active && setError('Could not load the history.'))
+      .catch(() => active && setError(t('mpp.graph.error')))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
     };
-  }, [challengeId]);
+  }, [challengeId, t]);
 
   if (loading && !history) {
-    return <p className="px-5 py-6 text-sm text-slate-500">Loading progression...</p>;
+    return <p className="px-5 py-6 text-sm text-slate-500">{t('mpp.graph.loading')}</p>;
   }
   if (error) {
     return <p className="px-5 py-6 text-sm text-amber-300">{error}</p>;
   }
   if (!history || !history.users.length) {
-    return <p className="px-5 py-6 text-sm text-slate-500">No progression data yet.</p>;
+    return <p className="px-5 py-6 text-sm text-slate-500">{t('mpp.graph.empty')}</p>;
   }
 
   return (
     <div className="px-4 pb-4 pt-8">
       <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
-        Progression
+        {t('mpp.graph.title')}
       </h3>
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -110,7 +112,7 @@ export function MppGraph({ challengeId }: { challengeId: string }) {
       </div>
       {history.rows.length <= 1 && (
         <p className="mt-3 text-center text-xs text-slate-500">
-          Today is the first recorded day. The chart fills in one point per day from here.
+          {t('mpp.graph.firstDayNote')}
         </p>
       )}
     </div>
