@@ -200,6 +200,10 @@ export function MppTests() {
               {t('mpp.tests.emptyDay')}
             </p>
           ) : (
+            <>
+            <p className="mb-2 text-xs text-slate-500">
+              {activeMatches.length} {t('mpp.tests.matchesLabel')}
+            </p>
             <Table
               data={data}
               matches={activeMatches}
@@ -209,6 +213,7 @@ export function MppTests() {
               language={language}
               nameWidth={nameWidth}
             />
+            </>
           )}
         </>
       )}
