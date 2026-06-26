@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Copy, Check, Download, Code2 } from 'lucide-react';
 import { MPP_API, type MppEndpoint } from './mppEndpoints';
+import { MppPageTitle } from './MppPageTitle';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 // MPP Docs tab: a human-readable reference for the reverse-engineered Mon Petit
@@ -37,19 +38,20 @@ export function MppDocs() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
       <header className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-slate-100">{t('mpp.docs.title')}</h2>
-          <div className="flex items-center gap-2">
-            <button onClick={copyJson} className={btnClass}>
-              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-              {copied ? t('mpp.docs.copied') : t('mpp.docs.copyJson')}
-            </button>
-            <button onClick={downloadJson} className={btnClass}>
-              <Download className="h-4 w-4" />
-              {t('mpp.docs.download')}
-            </button>
-          </div>
-        </div>
+        <MppPageTitle
+          action={
+            <div className="flex items-center gap-2">
+              <button onClick={copyJson} className={btnClass}>
+                {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                {copied ? t('mpp.docs.copied') : t('mpp.docs.copyJson')}
+              </button>
+              <button onClick={downloadJson} className={btnClass}>
+                <Download className="h-4 w-4" />
+                {t('mpp.docs.download')}
+              </button>
+            </div>
+          }
+        />
         <p className="text-sm text-slate-400">
           {t('mpp.docs.intro1')} {count} {t('mpp.docs.intro2')}{' '}
           {MPP_API.groups.length} {t('mpp.docs.intro3')}{' '}

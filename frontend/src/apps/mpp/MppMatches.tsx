@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw } from 'lucide-react';
 import { MppMatchDetail } from './MppMatchDetail';
+import { MppPageTitle } from './MppPageTitle';
 import { TeamCrest } from './TeamCrest';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { localeFor, countryName } from './mppLocale';
@@ -76,10 +77,8 @@ export function MppMatches() {
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-4 py-8 sm:px-6">
       <div className="space-y-1">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-          <div />
-          <h2 className="text-center text-xl font-bold text-slate-100">{t('mpp.matches.title')}</h2>
-          <div className="flex justify-end">
+        <MppPageTitle
+          action={
             <button
               onClick={fetchData}
               disabled={loading}
@@ -88,8 +87,8 @@ export function MppMatches() {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               {t('mpp.matches.refresh')}
             </button>
-          </div>
-        </div>
+          }
+        />
         {data && (
           <p className="text-center text-xs text-slate-500">
             {filtered.length} {t('mpp.matches.of')} {data.matches.length}{' '}

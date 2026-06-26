@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { MppPageTitle } from './MppPageTitle';
 
 // Rules & strategy reference for Mon Petit Prono's World Cup 2026 scoring.
 // Sourced from the official LFP / Ligue 1 rules article and corroborating
@@ -8,9 +9,7 @@ export function MppRules() {
   const { t } = useLanguage();
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-sm leading-relaxed text-slate-300 sm:px-6">
-      <header>
-        <h2 className="text-center text-xl font-bold text-slate-100">{t('mpp.nav.rules')}</h2>
-      </header>
+      <MppPageTitle />
 
       <Section title={t('mpp.rules.basicsTitle')}>
         <p>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, X } from 'lucide-react';
 import { TeamCrest } from './TeamCrest';
+import { MppPageTitle } from './MppPageTitle';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { localeFor, countryName } from './mppLocale';
 import type { MppCoteCell, MppTestMatch, MppTests } from './types';
@@ -76,19 +77,19 @@ export function MppTests() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-      <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <div />
-        <h1 className="text-center text-lg font-semibold text-slate-100">{t('mpp.tests.title')}</h1>
-        <div className="flex justify-end">
-          <button
-            onClick={refetch}
-            disabled={fetching}
-            className="flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${fetching ? 'animate-spin' : ''}`} />
-            {fetching ? t('mpp.tests.fetching') : t('mpp.tests.refetch')}
-          </button>
-        </div>
+      <div className="mb-5">
+        <MppPageTitle
+          action={
+            <button
+              onClick={refetch}
+              disabled={fetching}
+              className="flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${fetching ? 'animate-spin' : ''}`} />
+              {fetching ? t('mpp.tests.fetching') : t('mpp.tests.refetch')}
+            </button>
+          }
+        />
       </div>
 
       {error && (

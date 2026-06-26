@@ -1,25 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import axios from 'axios';
-import { ListOrdered, CalendarDays, FlaskConical, ScrollText, BookOpen, LogOut, type LucideIcon } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
 import { AppTitle } from '../../components/AppTitle';
 import { LangToggle } from '../../components/LangToggle';
 import { useLanguage } from '../../contexts/LanguageContext';
-
-interface NavItem {
-  to: string;
-  labelKey: string;
-  icon: LucideIcon;
-}
-
-const NAV: NavItem[] = [
-  { to: '/mpp/matches', labelKey: 'mpp.nav.matches', icon: CalendarDays },
-  { to: '/mpp/tests', labelKey: 'mpp.nav.tests', icon: FlaskConical },
-  { to: '/mpp/rules', labelKey: 'mpp.nav.rules', icon: ScrollText },
-  { to: '/mpp/leaderboard', labelKey: 'mpp.nav.leaderboard', icon: ListOrdered },
-  { to: '/mpp/docs', labelKey: 'mpp.nav.docs', icon: BookOpen },
-];
+import { MPP_NAV as NAV } from './mppNav';
 
 function navClass(active: boolean): string {
   return [
