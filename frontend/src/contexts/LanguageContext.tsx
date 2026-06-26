@@ -420,7 +420,6 @@ const translations: Record<Language, Record<string, string>> = {
 
     // MPP
     'mpp.nav.leaderboard': 'Leaderboard',
-    'mpp.nav.matches': 'Old',
     'mpp.nav.tests': 'Matches',
     'mpp.nav.rules': 'Rules',
     'mpp.nav.docs': 'MPP Docs',
@@ -491,7 +490,10 @@ const translations: Record<Language, Record<string, string>> = {
     'mpp.tests.refetch': 'Re-fetch now',
     'mpp.tests.error.tokenExpired': 'Your MPP token expired. Reconnect from the Connect screen.',
     'mpp.tests.error.generic': 'Could not reach MPP. Try again in a moment.',
-    'mpp.tests.empty': 'No watched matches resolved yet. Hit Re-fetch to find them.',
+    'mpp.tests.empty': 'No upcoming matches yet. Hit Re-fetch to load them.',
+    'mpp.tests.emptyDay': 'No matches on this day.',
+    'mpp.tests.today': 'Today',
+    'mpp.tests.dateTbc': 'Date TBC',
     'mpp.tests.match': 'Match',
     'mpp.tests.vs': 'vs',
     'mpp.tests.removeFetchTitle': 'Remove this fetch',
@@ -971,7 +973,6 @@ const translations: Record<Language, Record<string, string>> = {
 
     // MPP
     'mpp.nav.leaderboard': 'Classement',
-    'mpp.nav.matches': 'Old',
     'mpp.nav.tests': 'Matchs',
     'mpp.nav.rules': 'Règles',
     'mpp.nav.docs': 'Docs MPP',
@@ -1042,7 +1043,10 @@ const translations: Record<Language, Record<string, string>> = {
     'mpp.tests.refetch': 'Récupérer maintenant',
     'mpp.tests.error.tokenExpired': 'Votre jeton MPP a expiré. Reconnectez-vous depuis l\'écran de connexion.',
     'mpp.tests.error.generic': 'Impossible de joindre MPP. Réessayez dans un instant.',
-    'mpp.tests.empty': 'Aucun match suivi résolu pour le moment. Cliquez sur Récupérer pour les trouver.',
+    'mpp.tests.empty': 'Aucun match à venir pour le moment. Cliquez sur Récupérer pour les charger.',
+    'mpp.tests.emptyDay': 'Aucun match ce jour.',
+    'mpp.tests.today': "Aujourd'hui",
+    'mpp.tests.dateTbc': 'Date à confirmer',
     'mpp.tests.match': 'Match',
     'mpp.tests.vs': 'vs',
     'mpp.tests.removeFetchTitle': 'Supprimer cette récupération',
@@ -1522,7 +1526,6 @@ const translations: Record<Language, Record<string, string>> = {
 
     // MPP
     'mpp.nav.leaderboard': 'Clasificación',
-    'mpp.nav.matches': 'Old',
     'mpp.nav.tests': 'Partidos',
     'mpp.nav.rules': 'Reglas',
     'mpp.nav.docs': 'Docs MPP',
@@ -1593,7 +1596,10 @@ const translations: Record<Language, Record<string, string>> = {
     'mpp.tests.refetch': 'Actualizar ahora',
     'mpp.tests.error.tokenExpired': 'Tu token de MPP ha caducado. Vuelve a conectarte desde la pantalla de conexión.',
     'mpp.tests.error.generic': 'No se pudo conectar con MPP. Inténtalo de nuevo en un momento.',
-    'mpp.tests.empty': 'Aún no se ha resuelto ningún partido seguido. Pulsa Actualizar para encontrarlos.',
+    'mpp.tests.empty': 'Aún no hay partidos próximos. Pulsa Actualizar para cargarlos.',
+    'mpp.tests.emptyDay': 'Ningún partido este día.',
+    'mpp.tests.today': 'Hoy',
+    'mpp.tests.dateTbc': 'Fecha por confirmar',
     'mpp.tests.match': 'Partido',
     'mpp.tests.vs': 'vs',
     'mpp.tests.removeFetchTitle': 'Eliminar esta consulta',

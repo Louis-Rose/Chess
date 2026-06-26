@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, X } from 'lucide-react';
 import { TeamCrest } from './TeamCrest';
@@ -9,9 +9,10 @@ import type { MppCoteCell, MppTestMatch, MppTests } from './types';
 
 type TFn = (key: string) => string;
 
-// "Tests" tab: a matches-by-fetches table. Rows are the watched fixtures; each
-// column is one re-fetch round. Every cell is a small 1/N/2 table showing the
-// cotes and the prono split. A column is removed via a confirm modal.
+// "Matches" tab: every upcoming fixture, one row per match, with the cotes and
+// prono split for each re-fetch round across the columns. A date strip at the
+// top filters the rows to a single day, starting from today. A column (one
+// fetch round) is removed via a confirm modal.
 
 const asUtc = (iso: string) => (iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`);
 
@@ -33,6 +34,46 @@ const fmtKickoff = (iso: string | null, loc: string) => {
 const num = (v: number | null, suffix = '') => (v == null ? '.' : `${v}${suffix}`);
 const pct = (v: number | null) => (v == null ? null : Math.round(v * 100));
 
+// Local calendar day (YYYY-MM-DD) of a match, or 'tbc' when the date is unknown.
+// Zero-padded so plain string comparison orders days correctly.
+const TBC = 'tbc';
+const dayKeyOf = (iso: string | null): string => {
+  if (!iso) return TBC;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return TBC;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`;
+};
+
+const todayKey = (): string => dayKeyOf(new Date().toISOString());
+
+const dayLabel = (key: string, t: TFn, loc: string): string => {
+  if (key === TBC) return t('mpp.tests.dateTbc');
+  if (key === todayKey()) return t('mpp.tests.today');
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(loc, {
+    weekday: 'short', day: 'numeric', month: 'short',
+  });
+};
+
+type DayBucket = { key: string; matches: MppTestMatch[] };
+
+// Group matches by day, keep only today onward (+ any TBC), and make sure today
+// is present even with no matches so the strip always starts there.
+function dayBuckets(matches: MppTestMatch[]): DayBucket[] {
+  const byDay = new Map<string, MppTestMatch[]>();
+  for (const m of matches) {
+    const k = dayKeyOf(m.date);
+    (byDay.get(k) ?? byDay.set(k, []).get(k)!).push(m);
+  }
+  const tk = todayKey();
+  const keys = [...byDay.keys()].filter((k) => k === TBC || k >= tk);
+  if (!keys.includes(tk)) keys.push(tk);
+  keys.sort((a, b) => (a === TBC ? 1 : b === TBC ? -1 : a < b ? -1 : a > b ? 1 : 0));
+  return keys.map((k) => ({ key: k, matches: byDay.get(k) ?? [] }));
+}
+
 export function MppTests() {
   const { t, language } = useLanguage();
   const loc = localeFor(language);
@@ -40,6 +81,15 @@ export function MppTests() {
   const [fetching, setFetching] = useState(false);
   const [pending, setPending] = useState<string | null>(null); // batch_at to delete
   const [error, setError] = useState<string | null>(null);
+  const [day, setDay] = useState<string | null>(null); // selected day, null = default
+
+  const buckets = useMemo(() => dayBuckets(data?.matches ?? []), [data]);
+  const activeKey =
+    (day && buckets.some((b) => b.key === day) && day) ||
+    buckets.find((b) => b.key === todayKey())?.key ||
+    buckets[0]?.key ||
+    null;
+  const activeMatches = buckets.find((b) => b.key === activeKey)?.matches ?? [];
 
   const refetch = useCallback(() => {
     setFetching(true);
@@ -107,7 +157,29 @@ export function MppTests() {
           {t('mpp.tests.empty')}
         </p>
       ) : (
-        <Table data={data} onAskRemove={setPending} t={t} loc={loc} language={language} />
+        <>
+          <DateStrip
+            buckets={buckets}
+            active={activeKey}
+            onSelect={setDay}
+            t={t}
+            loc={loc}
+          />
+          {activeMatches.length === 0 ? (
+            <p className="py-12 text-center text-sm text-slate-500">
+              {t('mpp.tests.emptyDay')}
+            </p>
+          ) : (
+            <Table
+              data={data}
+              matches={activeMatches}
+              onAskRemove={setPending}
+              t={t}
+              loc={loc}
+              language={language}
+            />
+          )}
+        </>
       )}
 
       {pending && (
@@ -122,14 +194,48 @@ export function MppTests() {
   );
 }
 
+function DateStrip({
+  buckets,
+  active,
+  onSelect,
+  t,
+  loc,
+}: {
+  buckets: DayBucket[];
+  active: string | null;
+  onSelect: (key: string) => void;
+  t: TFn;
+  loc: string;
+}) {
+  return (
+    <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
+      {buckets.map((b) => (
+        <button
+          key={b.key}
+          onClick={() => onSelect(b.key)}
+          className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            b.key === active
+              ? 'bg-emerald-500/15 text-emerald-300'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+          }`}
+        >
+          {dayLabel(b.key, t, loc)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function Table({
   data,
+  matches,
   onAskRemove,
   t,
   loc,
   language,
 }: {
   data: MppTests;
+  matches: MppTestMatch[];
   onAskRemove: (b: string) => void;
   t: TFn;
   loc: string;
@@ -161,7 +267,7 @@ function Table({
           </tr>
         </thead>
         <tbody>
-          {data.matches.map((m) => (
+          {matches.map((m) => (
             <tr key={m.match_id}>
               <td className="border border-slate-700 px-3 py-2 align-middle">
                 <div className="flex items-center justify-center gap-1.5 font-semibold text-slate-100">

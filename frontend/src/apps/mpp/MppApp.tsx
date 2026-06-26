@@ -7,7 +7,6 @@ import { SidebarLayout } from '../../components/SidebarLayout';
 import { MppConnect } from './MppConnect';
 import { MppLayout } from './MppLayout';
 import { MppLeaderboard } from './MppLeaderboard';
-import { MppMatches } from './MppMatches';
 import { MppTests } from './MppTests';
 import { MppRules } from './MppRules';
 import { MppDocs } from './MppDocs';
@@ -60,7 +59,6 @@ export function MppApp() {
       <Route element={<MppLayout onDisconnect={loadStatus} />}>
         <Route index element={<Navigate to="leaderboard" replace />} />
         <Route path="leaderboard" element={<MppLeaderboard />} />
-        <Route path="matches" element={<MppMatches />} />
         <Route path="tests" element={<MppTests />} />
         <Route path="rules" element={<MppRules />} />
         <Route path="docs" element={<MppDocs />} />

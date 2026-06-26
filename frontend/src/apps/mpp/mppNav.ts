@@ -1,7 +1,6 @@
 import {
   ListOrdered,
   CalendarDays,
-  FlaskConical,
   ScrollText,
   BookOpen,
   type LucideIcon,
@@ -17,8 +16,7 @@ export interface MppNavItem {
 }
 
 export const MPP_NAV: MppNavItem[] = [
-  { to: '/mpp/matches', labelKey: 'mpp.nav.matches', icon: CalendarDays },
-  { to: '/mpp/tests', labelKey: 'mpp.nav.tests', icon: FlaskConical },
+  { to: '/mpp/tests', labelKey: 'mpp.nav.tests', icon: CalendarDays },
   { to: '/mpp/rules', labelKey: 'mpp.nav.rules', icon: ScrollText },
   { to: '/mpp/leaderboard', labelKey: 'mpp.nav.leaderboard', icon: ListOrdered },
   { to: '/mpp/docs', labelKey: 'mpp.nav.docs', icon: BookOpen },
