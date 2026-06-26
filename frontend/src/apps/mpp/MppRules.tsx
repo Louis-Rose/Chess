@@ -35,19 +35,7 @@ export function MppRules() {
         <p>
           {t('mpp.rules.cotesDesc')}
         </p>
-        <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
-          {t('mpp.rules.cotesTableCaption')}
-        </p>
-        <div className="mt-2 overflow-hidden rounded-xl border border-slate-800">
-          <Row head cells={[t('mpp.rules.colOutcome'), t('mpp.rules.colPlayersBacking'), t('mpp.rules.colPoints')]} />
-          <Row cells={[t('mpp.rules.outcomeFavouriteWin'), '91%', '31']} />
-          <Row cells={[t('mpp.rules.outcomeDraw'), '6%', '157']} />
-          <Row cells={[t('mpp.rules.outcomeUnderdogWin'), '3%', '184']} />
-        </div>
-        <p className="mt-2 text-slate-400">
-          {t('mpp.rules.cotesTableNote')}
-        </p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-slate-500">
           {t('mpp.rules.cotesApiNote1')} (<code className="text-emerald-300">quotations</code>{' '}
           {t('mpp.rules.cotesApiNote2')} <code className="text-emerald-300">stats.bets</code> {t('mpp.rules.cotesApiNote3')}
         </p>
