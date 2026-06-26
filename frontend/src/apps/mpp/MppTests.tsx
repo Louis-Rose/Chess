@@ -108,22 +108,24 @@ export function MppTests() {
       ? buckets.flatMap((b) => b.matches)
       : buckets.find((b) => b.key === activeKey)?.matches ?? [];
 
-  // matchIds: null = every upcoming match; a list = just those.
-  const runFetch = useCallback((matchIds: string[] | null) => {
+  // matchIds: null = every upcoming match; a list = just those. includePast
+  // (only meaningful when matchIds is null) also pulls finished matches.
+  const runFetch = useCallback((matchIds: string[] | null, includePast = false) => {
     setFetching(true);
     setError(null);
     axios
-      .post<MppTests>('/api/mpp/tests/fetch', { matchIds })
+      .post<MppTests>('/api/mpp/tests/fetch', { matchIds, includePast })
       .then((r) => setData(r.data))
       .catch((e) => setError(e?.response?.data?.error || 'fetch_failed'))
       .finally(() => setFetching(false));
   }, []);
 
-  // The button fetches only the open day's matches (all of them on the All tab).
+  // The button fetches only the open day's matches; on the All tab it fetches
+  // every match including past ones, to back-fill the Algorithme data basis.
   const refetch = () =>
-    runFetch(activeKey === ALL || activeKey === null
-      ? null
-      : activeMatches.map((m) => m.match_id));
+    activeKey === ALL || activeKey === null
+      ? runFetch(null, true)
+      : runFetch(activeMatches.map((m) => m.match_id));
 
   const removeColumn = useCallback((batchAt: string) => {
     axios

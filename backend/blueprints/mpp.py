@@ -514,9 +514,11 @@ def _match_detail(token, raw):
 # groups the rows day by day, starting from today.
 
 
-def _upcoming_match_ids(token):
-    """Ids of every not-yet-played match of the owner's competition, so the
-    Matches tab can track them all, day by day, from today on."""
+def _all_match_ids(token, include_played=False):
+    """Ids of the owner's competition matches whose teams are drawn. By default
+    only not-yet-played matches (the Matches tab tracks those, day by day, from
+    today on); include_played=True also returns finished matches, whose final
+    cotes/prono enrich the Algorithme data basis."""
     card = _owner_contest(token)
     champ_id = card.get('championshipId') if card else None
     if not champ_id:
@@ -531,20 +533,26 @@ def _upcoming_match_ids(token):
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         raws = list(pool.map(lambda mid: _fetch_match(token, mid), ids))
 
-    upcoming = []
+    out = []
     for raw in raws:
         if not raw:
             continue
         home_raw, away_raw = raw.get('home') or {}, raw.get('away') or {}
-        if raw.get('period') == 'fullTime':
-            continue  # already played
-        if home_raw.get('score') is not None or away_raw.get('score') is not None:
-            continue  # live or played
+        if not include_played:
+            if raw.get('period') == 'fullTime':
+                continue  # already played
+            if home_raw.get('score') is not None or away_raw.get('score') is not None:
+                continue  # live or played
         if not _resolve_club(token, home_raw.get('clubId')) \
                 or not _resolve_club(token, away_raw.get('clubId')):
             continue  # teams not drawn yet
-        upcoming.append(raw.get('id'))
-    return upcoming
+        out.append(raw.get('id'))
+    return out
+
+
+def _upcoming_match_ids(token):
+    """Ids of every not-yet-played match of the owner's competition."""
+    return _all_match_ids(token, include_played=False)
 
 
 def _snapshot_test_matches(token, match_ids=None):
@@ -642,12 +650,16 @@ def mpp_tests_fetch():
             ).fetchone())
         return jsonify({'error': 'token_expired' if connected else 'not_connected'}), 409
 
-    # matchIds null/absent -> every upcoming match; a list -> just those (the
-    # day the user has open). An empty list snapshots nothing.
+    # matchIds is a list -> snapshot just those (the open day); an empty list
+    # snapshots nothing. matchIds null/absent -> every upcoming match, or every
+    # match including played ones when includePast is set (the Tout button, to
+    # back-fill the Algorithme data basis).
     body = request.get_json(silent=True) or {}
     match_ids = body.get('matchIds')
     if match_ids is not None:
         match_ids = [str(m) for m in match_ids]
+    elif body.get('includePast'):
+        match_ids = _all_match_ids(token, include_played=True)
 
     try:
         _snapshot_test_matches(token, match_ids)

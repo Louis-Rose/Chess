@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { MppPageTitle } from './MppPageTitle';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { countryName } from './mppLocale';
 import type { MppTests } from './types';
 
 // Algorithme tab: reverse-engineer MPP's point engine from the live data
@@ -24,26 +25,32 @@ import type { MppTests } from './types';
 interface Point {
   p: number; // community vote share, 0..1
   cote: number; // points awarded
+  teams: string; // "Home vs Away"
+  pick: string; // predicted outcome: home team, "N" (draw) or away team
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-// Pull every (p, cote) pair from all matches/snapshots; dedupe identical pairs
-// so repeated snapshots of stable odds don't overplot the scatter.
-function collectPoints(data: MppTests): Point[] {
+// Pull every (p, cote) outcome from all matches/snapshots, tagged with its match
+// and predicted outcome. Dedupe identical readings of the same match-outcome so
+// repeated snapshots of stable odds don't overplot the scatter.
+function collectPoints(data: MppTests, language: string): Point[] {
   const seen = new Map<string, Point>();
   for (const m of data.matches) {
+    const home = m.home ? countryName(m.home, language) : '?';
+    const away = m.away ? countryName(m.away, language) : '?';
+    const teams = `${home} vs ${away}`;
     for (const c of data.columns) {
       const cell = m.cells[c];
       if (!cell) continue;
-      const outcomes: [number | null, number | null][] = [
-        [cell.prono.home, cell.cote.home],
-        [cell.prono.draw, cell.cote.draw],
-        [cell.prono.away, cell.cote.away],
+      const outcomes: [number | null, number | null, string][] = [
+        [cell.prono.home, cell.cote.home, home],
+        [cell.prono.draw, cell.cote.draw, 'N'],
+        [cell.prono.away, cell.cote.away, away],
       ];
-      for (const [p, cote] of outcomes) {
+      for (const [p, cote, pick] of outcomes) {
         if (p == null || cote == null || p <= 0 || cote <= 0) continue;
-        seen.set(`${p}|${cote}`, { p, cote });
+        seen.set(`${m.match_id}|${pick}|${p}|${cote}`, { p, cote, teams, pick });
       }
     }
   }
@@ -75,7 +82,7 @@ function fit(points: Point[]) {
 }
 
 export function MppAlgorithm() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [data, setData] = useState<MppTests | null>(null);
   const [error, setError] = useState(false);
 
@@ -92,19 +99,19 @@ export function MppAlgorithm() {
 
   const model = useMemo(() => {
     if (!data) return null;
-    const points = collectPoints(data);
+    const points = collectPoints(data, language);
     if (!points.length) return null;
     const { cMin, cMax, k } = fit(points);
     // One series for the chart: dense fitted curve + observed scatter, sorted by
-    // p. `fit` is set only on curve rows, `cote` only on observed rows.
+    // p. `fit` is set only on curve rows, `cote`/`teams`/`pick` only on observed.
     const curve = Array.from({ length: 200 }, (_, i) => {
       const p = (i + 1) / 200;
       return { p, fit: clamp(k / p, cMin, cMax) };
     });
-    const scatter = points.map((d) => ({ p: d.p, cote: d.cote, fit: clamp(k / d.p, cMin, cMax) }));
+    const scatter = points.map((d) => ({ ...d, fit: clamp(k / d.p, cMin, cMax) }));
     const chart = [...curve, ...scatter].sort((a, b) => a.p - b.p);
     return { cMin, cMax, k, n: points.length, chart };
-  }, [data]);
+  }, [data, language]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
@@ -167,27 +174,39 @@ export function MppAlgorithm() {
   );
 }
 
-// Hover read-out: the probability plus whatever series sit at this x (the
-// observed cote and/or the fitted value).
-interface TooltipEntry { name?: string; value?: number; color?: string }
-function ChartTooltip({
-  active,
-  label,
-  payload,
-}: {
-  active?: boolean;
-  label?: number;
-  payload?: TooltipEntry[];
-}) {
+// Hover read-out. Over a data point it shows the match, the predicted outcome
+// and its numbers; over the bare fitted curve it just shows p and the fit.
+interface Row { p: number; cote?: number; fit?: number; teams?: string; pick?: string }
+interface TooltipEntry { dataKey?: string; payload?: Row }
+function ChartTooltip({ active, payload }: { active?: boolean; payload?: TooltipEntry[] }) {
+  const { t } = useLanguage();
   if (!active || !payload?.length) return null;
+  const obs = payload.find((e) => e.dataKey === 'cote')?.payload;
+  const row = obs ?? payload[0]?.payload;
+  if (!row) return null;
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs shadow-lg">
-      <div className="mb-1 text-slate-400">p = {Math.round((label ?? 0) * 100)}%</div>
-      {payload.map((e) => (
-        <div key={e.name} style={{ color: e.color }}>
-          {e.name}: {Math.round(e.value ?? 0)}
-        </div>
-      ))}
+      {obs ? (
+        <>
+          <div className="mb-1 font-semibold text-slate-100">{row.teams}</div>
+          <div className="text-slate-300">
+            {t('mpp.algo.pick')}: <span className="font-medium">{row.pick}</span>
+          </div>
+          <div className="text-emerald-400">
+            {t('mpp.tests.odds')}: {row.cote}
+          </div>
+          <div className="text-slate-400">
+            {t('mpp.tests.probability')}: {Math.round(row.p * 100)}%
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mb-1 text-slate-400">p = {Math.round(row.p * 100)}%</div>
+          <div className="text-amber-400">
+            {t('mpp.algo.fit')}: {Math.round(row.fit ?? 0)}
+          </div>
+        </>
+      )}
     </div>
   );
 }
