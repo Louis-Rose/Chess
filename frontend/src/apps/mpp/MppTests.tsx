@@ -35,8 +35,10 @@ const num = (v: number | null, suffix = '') => (v == null ? '.' : `${v}${suffix}
 const pct = (v: number | null) => (v == null ? null : Math.round(v * 100));
 
 // Local calendar day (YYYY-MM-DD) of a match, or 'tbc' when the date is unknown.
-// Zero-padded so plain string comparison orders days correctly.
+// Zero-padded so plain string comparison orders days correctly. ALL is the
+// "show every day at once" pill at the end of the strip.
 const TBC = 'tbc';
+const ALL = 'all';
 const dayKeyOf = (iso: string | null): string => {
   if (!iso) return TBC;
   const d = new Date(iso);
@@ -84,12 +86,16 @@ export function MppTests() {
   const [day, setDay] = useState<string | null>(null); // selected day, null = default
 
   const buckets = useMemo(() => dayBuckets(data?.matches ?? []), [data]);
+  const isValidDay = (k: string) => k === ALL || buckets.some((b) => b.key === k);
   const activeKey =
-    (day && buckets.some((b) => b.key === day) && day) ||
+    (day && isValidDay(day) && day) ||
     buckets.find((b) => b.key === todayKey())?.key ||
     buckets[0]?.key ||
     null;
-  const activeMatches = buckets.find((b) => b.key === activeKey)?.matches ?? [];
+  const activeMatches =
+    activeKey === ALL
+      ? buckets.flatMap((b) => b.matches)
+      : buckets.find((b) => b.key === activeKey)?.matches ?? [];
 
   const refetch = useCallback(() => {
     setFetching(true);
@@ -207,21 +213,22 @@ function DateStrip({
   t: TFn;
   loc: string;
 }) {
+  const pillClass = (selected: boolean) =>
+    `shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+      selected
+        ? 'bg-emerald-500/15 text-emerald-300'
+        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+    }`;
   return (
     <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
       {buckets.map((b) => (
-        <button
-          key={b.key}
-          onClick={() => onSelect(b.key)}
-          className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            b.key === active
-              ? 'bg-emerald-500/15 text-emerald-300'
-              : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-          }`}
-        >
+        <button key={b.key} onClick={() => onSelect(b.key)} className={pillClass(b.key === active)}>
           {dayLabel(b.key, t, loc)}
         </button>
       ))}
+      <button onClick={() => onSelect(ALL)} className={pillClass(active === ALL)}>
+        {t('mpp.tests.all')}
+      </button>
     </div>
   );
 }
