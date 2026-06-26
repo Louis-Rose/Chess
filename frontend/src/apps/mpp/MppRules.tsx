@@ -116,17 +116,19 @@ function Tag({ children, className }: { children: ReactNode; className: string }
 function Row({ cells, head }: { cells: string[]; head?: boolean }) {
   return (
     <div
-      className={`grid grid-cols-[1fr_auto] gap-4 px-4 py-2 ${
+      className={`grid ${
         head
           ? 'border-b border-slate-800 bg-slate-900/40 text-xs uppercase tracking-wide text-slate-500'
           : 'border-b border-slate-800/60 last:border-0'
       }`}
-      style={{ gridTemplateColumns: cells.length === 3 ? '1fr 1fr auto' : '1fr auto' }}
+      style={{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }}
     >
       {cells.map((c, i) => (
         <span
           key={i}
-          className={i === cells.length - 1 && !head ? 'text-right font-semibold text-slate-100' : ''}
+          className={`px-4 py-2 text-center ${i > 0 ? 'border-l border-slate-800' : ''} ${
+            i === cells.length - 1 && !head ? 'font-semibold text-slate-100' : ''
+          }`}
         >
           {c}
         </span>
