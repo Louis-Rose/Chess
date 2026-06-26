@@ -49,6 +49,7 @@ _EXPIRY_MARGIN = timedelta(seconds=120)
 # handles the EST/EDT switch automatically.
 _EASTERN = ZoneInfo('America/New_York')
 _DAY_CUTOFF_HOURS = 4
+_PARIS = ZoneInfo('Europe/Paris')
 
 
 def _mpp_day():
@@ -699,12 +700,64 @@ def run_snapshot_cycle():
             logger.exception('MPP snapshot cycle failed for user %s', uid)
 
 
+# ── Automatic cote/prono snapshots ───────────────────────────────────────────
+# The Matches tab's columns are only created when someone clicks "re-fetch". To
+# build the history unattended, the hourly scheduler also snapshots the watched
+# matches every 2 hours anchored at 19:00 Paris time, i.e. on the odd Paris
+# hours (19, 21, 23, 01, 03, ...). An advisory lock + a same-hour dedup check
+# make it fire exactly once per slot across all gunicorn workers and restarts.
+_TEST_FETCH_LOCK = 0x6D70705F74737473  # arbitrary key shared by every worker
+
+
+def _test_fetch_due(conn):
+    """True when the current Paris hour is a 2-hourly slot from 19:00 and no
+    snapshot has been recorded yet this clock hour."""
+    if datetime.now(_PARIS).hour % 2 == 0:
+        return False
+    hour_start = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+    row = conn.execute(
+        'SELECT 1 FROM mpp_cote_history WHERE batch_at >= ? LIMIT 1', (hour_start,)
+    ).fetchone()
+    return row is None
+
+
+def run_test_fetch_cycle():
+    """Snapshot every connected account's watched matches once per 2-hour slot.
+    The advisory lock serializes workers; only the winner that finds the slot
+    unfilled performs the fetch."""
+    with get_db() as conn:
+        got = conn.execute(
+            'SELECT pg_try_advisory_lock(?) AS locked', (_TEST_FETCH_LOCK,)
+        ).fetchone()
+        if not got or not got['locked']:
+            return  # another worker is handling this tick
+        try:
+            if not _test_fetch_due(conn):
+                return
+            accounts = [row['user_id'] for row in
+                        conn.execute('SELECT user_id FROM mpp_account').fetchall()]
+            for uid in accounts:
+                try:
+                    with get_db() as c2:
+                        token = _get_access_token(c2, uid)
+                    if token:
+                        _snapshot_test_matches(token)
+                except Exception:
+                    logger.exception('MPP auto test-fetch failed for user %s', uid)
+        finally:
+            conn.execute('SELECT pg_advisory_unlock(?)', (_TEST_FETCH_LOCK,))
+
+
 def _scheduler_loop(interval_seconds):
     while True:
         try:
             run_snapshot_cycle()
         except Exception:
             logger.exception('MPP scheduler tick failed')
+        try:
+            run_test_fetch_cycle()
+        except Exception:
+            logger.exception('MPP test-fetch tick failed')
         time.sleep(interval_seconds)
 
 
