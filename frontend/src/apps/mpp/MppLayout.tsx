@@ -14,10 +14,10 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: '/mpp/leaderboard', labelKey: 'mpp.nav.leaderboard', icon: ListOrdered },
   { to: '/mpp/matches', labelKey: 'mpp.nav.matches', icon: CalendarDays },
   { to: '/mpp/tests', labelKey: 'mpp.nav.tests', icon: FlaskConical },
   { to: '/mpp/rules', labelKey: 'mpp.nav.rules', icon: ScrollText },
+  { to: '/mpp/leaderboard', labelKey: 'mpp.nav.leaderboard', icon: ListOrdered },
   { to: '/mpp/docs', labelKey: 'mpp.nav.docs', icon: BookOpen },
 ];
 
