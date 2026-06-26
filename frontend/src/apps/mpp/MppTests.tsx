@@ -168,7 +168,7 @@ function Cell({ match, cell }: { match: MppTestMatch; cell: MppCoteCell | undefi
   const { cote, prono } = cell;
   // Espérance = cote × probability (the average points that outcome is worth).
   const esp = (c: number | null, p: number | null) =>
-    c == null || p == null ? '.' : (c * p).toFixed(1);
+    c == null || p == null ? '.' : String(Math.round(c * p));
   return (
     <table className="mx-auto border-collapse text-center">
       <tbody>
