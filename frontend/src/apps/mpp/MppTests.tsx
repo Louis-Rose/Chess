@@ -86,6 +86,17 @@ export function MppTests() {
   const [day, setDay] = useState<string | null>(null); // selected day, null = default
 
   const buckets = useMemo(() => dayBuckets(data?.matches ?? []), [data]);
+
+  // Widest country name across every match (any day) drives the width of the
+  // home/away columns, so all cell-tables line up to the same size.
+  const nameWidth = useMemo(() => {
+    let max = 1;
+    for (const m of data?.matches ?? []) {
+      if (m.home) max = Math.max(max, countryName(m.home, language).length);
+      if (m.away) max = Math.max(max, countryName(m.away, language).length);
+    }
+    return max;
+  }, [data, language]);
   const isValidDay = (k: string) => k === ALL || buckets.some((b) => b.key === k);
   const activeKey =
     (day && isValidDay(day) && day) ||
@@ -183,6 +194,7 @@ export function MppTests() {
               t={t}
               loc={loc}
               language={language}
+              nameWidth={nameWidth}
             />
           )}
         </>
@@ -240,6 +252,7 @@ function Table({
   t,
   loc,
   language,
+  nameWidth,
 }: {
   data: MppTests;
   matches: MppTestMatch[];
@@ -247,6 +260,7 @@ function Table({
   t: TFn;
   loc: string;
   language: string;
+  nameWidth: number;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -290,7 +304,7 @@ function Table({
               </td>
               {data.columns.map((c) => (
                 <td key={c} className="border border-slate-700 px-2 py-2 align-middle">
-                  <Cell match={m} cell={m.cells[c]} t={t} language={language} />
+                  <Cell match={m} cell={m.cells[c]} t={t} language={language} nameWidth={nameWidth} />
                 </td>
               ))}
             </tr>
@@ -306,11 +320,13 @@ function Cell({
   cell,
   t,
   language,
+  nameWidth,
 }: {
   match: MppTestMatch;
   cell: MppCoteCell | undefined;
   t: TFn;
   language: string;
+  nameWidth: number;
 }) {
   if (!cell) return <span className="text-slate-600">.</span>;
   const { cote, prono } = cell;
@@ -335,9 +351,9 @@ function Cell({
       <tbody>
         <tr className="text-[11px] text-slate-400">
           <Td />
-          <Td>{match.home ? countryName(match.home, language) : '1'}</Td>
+          <Td w={nameWidth}>{match.home ? countryName(match.home, language) : '1'}</Td>
           <Td>N</Td>
-          <Td>{match.away ? countryName(match.away, language) : '2'}</Td>
+          <Td w={nameWidth}>{match.away ? countryName(match.away, language) : '2'}</Td>
           <Td>{t('mpp.tests.total')}</Td>
         </tr>
         <tr className="font-mono text-slate-100">
@@ -366,9 +382,20 @@ function Cell({
   );
 }
 
-function Td({ children, strong }: { children?: React.ReactNode; strong?: boolean }) {
+function Td({
+  children,
+  strong,
+  w,
+}: {
+  children?: React.ReactNode;
+  strong?: boolean;
+  w?: number;
+}) {
   return (
-    <td className={`border border-slate-700/70 px-2 py-0.5 ${strong ? 'font-semibold text-slate-100' : ''}`}>
+    <td
+      style={w ? { width: `${w}ch`, whiteSpace: 'nowrap' } : undefined}
+      className={`border border-slate-700/70 px-2 py-0.5 ${strong ? 'font-semibold text-slate-100' : ''}`}
+    >
       {children}
     </td>
   );
