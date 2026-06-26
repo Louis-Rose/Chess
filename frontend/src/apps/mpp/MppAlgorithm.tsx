@@ -1,28 +1,76 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { TeamCrest } from './TeamCrest';
+import {
+  CartesianGrid,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Scatter,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { MppPageTitle } from './MppPageTitle';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { countryName } from './mppLocale';
-import type { MppCoteCell, MppTestMatch, MppTests } from './types';
+import type { MppTests } from './types';
 
-// Algorithme tab: pulls the same data as Matchs - Tout and flattens every
-// upcoming match into a single table of its latest cotes and probabilities.
+// Algorithme tab: reverse-engineer MPP's point engine from the live data
+// pulled by Matchs - Tout. Every (probability p, cote) pair across all matches
+// and snapshots is collected, the floor/ceiling/scaling constants are estimated,
+// and the fitted curve cote = clamp(round(K / p), C_min, C_max) is drawn over
+// the observed scatter. See the point-algorithm reference for the model.
 
-const pct = (v: number | null) => (v == null ? '.' : `${Math.round(v * 100)}%`);
-const num = (v: number | null) => (v == null ? '.' : `${v}`);
+interface Point {
+  p: number; // community vote share, 0..1
+  cote: number; // points awarded
+}
 
-// Most recent snapshot for a match (columns are oldest-first).
-function latestCell(m: MppTestMatch, columns: string[]): MppCoteCell | undefined {
-  for (let i = columns.length - 1; i >= 0; i--) {
-    const cell = m.cells[columns[i]];
-    if (cell) return cell;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+const median = (xs: number[]): number => {
+  if (!xs.length) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+};
+
+// Pull every (p, cote) pair from all matches/snapshots; dedupe identical pairs
+// so repeated snapshots of stable odds don't overplot the scatter.
+function collectPoints(data: MppTests): Point[] {
+  const seen = new Map<string, Point>();
+  for (const m of data.matches) {
+    for (const c of data.columns) {
+      const cell = m.cells[c];
+      if (!cell) continue;
+      const outcomes: [number | null, number | null][] = [
+        [cell.prono.home, cell.cote.home],
+        [cell.prono.draw, cell.cote.draw],
+        [cell.prono.away, cell.cote.away],
+      ];
+      for (const [p, cote] of outcomes) {
+        if (p == null || cote == null || p <= 0 || cote <= 0) continue;
+        seen.set(`${p}|${cote}`, { p, cote });
+      }
+    }
   }
-  return undefined;
+  return [...seen.values()];
+}
+
+// Floor = lowest cote (favorites clamped down), ceiling = highest cote
+// (long-shots clamped up). K from the unclamped middle band, where cote = K / p
+// so p * cote = K; the median is robust to the rounding noise.
+function fit(points: Point[]) {
+  const cotes = points.map((d) => d.cote);
+  const cMin = Math.min(...cotes);
+  const cMax = Math.max(...cotes);
+  const middle = points.filter((d) => d.cote > cMin && d.cote < cMax);
+  const k = Math.round(median((middle.length ? middle : points).map((d) => d.p * d.cote)));
+  return { cMin, cMax, k };
 }
 
 export function MppAlgorithm() {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [data, setData] = useState<MppTests | null>(null);
   const [error, setError] = useState(false);
 
@@ -37,9 +85,21 @@ export function MppAlgorithm() {
     };
   }, []);
 
-  const rows = (data?.matches ?? [])
-    .map((m) => ({ match: m, cell: latestCell(m, data!.columns) }))
-    .filter((r): r is { match: MppTestMatch; cell: MppCoteCell } => r.cell != null);
+  const model = useMemo(() => {
+    if (!data) return null;
+    const points = collectPoints(data);
+    if (!points.length) return null;
+    const { cMin, cMax, k } = fit(points);
+    // One series for the chart: dense fitted curve + observed scatter, sorted by
+    // p. `fit` is set only on curve rows, `cote` only on observed rows.
+    const curve = Array.from({ length: 100 }, (_, i) => {
+      const p = (i + 1) / 100;
+      return { p, fit: clamp(Math.round(k / p), cMin, cMax) };
+    });
+    const scatter = points.map((d) => ({ p: d.p, cote: d.cote }));
+    const chart = [...curve, ...scatter].sort((a, b) => a.p - b.p);
+    return { cMin, cMax, k, n: points.length, chart };
+  }, [data]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
@@ -47,72 +107,70 @@ export function MppAlgorithm() {
         <MppPageTitle />
       </div>
 
-      {error ? (
+      {error || (data && !model) ? (
         <p className="py-12 text-center text-sm text-slate-500">{t('mpp.tests.empty')}</p>
-      ) : data === null ? (
+      ) : !model ? (
         <Spinner />
-      ) : rows.length === 0 ? (
-        <p className="py-12 text-center text-sm text-slate-500">{t('mpp.tests.empty')}</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-slate-700 text-center text-sm">
-            <thead className="bg-slate-800/60 text-slate-300">
-              <tr>
-                <th rowSpan={2} className="border border-slate-700 px-3 py-2 font-medium">
-                  {t('mpp.tests.match')}
-                </th>
-                <th colSpan={3} className="border border-slate-700 px-3 py-2 font-medium">
-                  {t('mpp.tests.odds')}
-                </th>
-                <th colSpan={3} className="border border-slate-700 px-3 py-2 font-medium">
-                  {t('mpp.tests.probability')}
-                </th>
-              </tr>
-              <tr className="text-xs text-slate-400">
-                {['1', 'N', '2', '1', 'N', '2'].map((h, i) => (
-                  <th key={i} className="border border-slate-700 px-3 py-1.5 font-medium">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ match: m, cell }) => (
-                <tr key={m.match_id}>
-                  <td className="border border-slate-700 px-3 py-2 text-left">
-                    <Team crest={m.home_crest} name={m.home} language={language} />
-                    <Team crest={m.away_crest} name={m.away} language={language} />
-                  </td>
-                  <td className="border border-slate-700 px-3 py-2 font-mono">{num(cell.cote.home)}</td>
-                  <td className="border border-slate-700 px-3 py-2 font-mono">{num(cell.cote.draw)}</td>
-                  <td className="border border-slate-700 px-3 py-2 font-mono">{num(cell.cote.away)}</td>
-                  <td className="border border-slate-700 px-3 py-2 font-mono text-slate-400">{pct(cell.prono.home)}</td>
-                  <td className="border border-slate-700 px-3 py-2 font-mono text-slate-400">{pct(cell.prono.draw)}</td>
-                  <td className="border border-slate-700 px-3 py-2 font-mono text-slate-400">{pct(cell.prono.away)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <p className="mb-4 text-sm text-slate-400">{t('mpp.algo.intro')}</p>
+
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label={t('mpp.algo.floor')} value={model.cMin} />
+            <Stat label={t('mpp.algo.ceiling')} value={model.cMax} />
+            <Stat label={t('mpp.algo.scaling')} value={model.k} />
+            <Stat label={t('mpp.algo.dataPoints')} value={model.n} />
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
+            <ResponsiveContainer width="100%" height={420}>
+              <ComposedChart data={model.chart} margin={{ top: 8, right: 16, bottom: 24, left: 4 }}>
+                <CartesianGrid stroke="#1e293b" />
+                <XAxis
+                  dataKey="p"
+                  type="number"
+                  domain={[0, 1]}
+                  stroke="#64748b"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
+                  label={{ value: t('mpp.tests.probability'), position: 'insideBottom', offset: -12, fill: '#94a3b8', fontSize: 12 }}
+                />
+                <YAxis
+                  stroke="#64748b"
+                  tick={{ fontSize: 12 }}
+                  label={{ value: t('mpp.tests.odds'), angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 12 }}
+                />
+                <Tooltip
+                  contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12 }}
+                  labelFormatter={(v: number) => `p = ${Math.round(v * 100)}%`}
+                  formatter={(value, name) => [Math.round(Number(value)), name]}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Scatter name={t('mpp.algo.observed')} dataKey="cote" fill="#10b981" />
+                <Line
+                  name={t('mpp.algo.fit')}
+                  dataKey="fit"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls
+                  type="monotone"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-function Team({
-  crest,
-  name,
-  language,
-}: {
-  crest: string | null;
-  name: string | null;
-  language: string;
-}) {
+function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <span className="flex items-center gap-1.5 whitespace-nowrap font-semibold text-slate-100">
-      <TeamCrest src={crest} className="h-4 w-4" />
-      {name ? countryName(name, language) : '?'}
-    </span>
+    <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-center">
+      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 font-mono text-2xl font-semibold text-slate-100">{value}</div>
+    </div>
   );
 }
 
