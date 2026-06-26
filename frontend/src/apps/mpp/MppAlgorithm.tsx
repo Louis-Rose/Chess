@@ -27,6 +27,7 @@ interface Point {
   cote: number; // points awarded
   teams: string; // "Home vs Away"
   pick: string; // predicted outcome: home team, "N" (draw) or away team
+  matchId: string; // groups the outcomes belonging to one match
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -50,7 +51,7 @@ function collectPoints(data: MppTests, language: string): Point[] {
       ];
       for (const [p, cote, pick] of outcomes) {
         if (p == null || cote == null || p <= 0 || cote <= 0) continue;
-        seen.set(`${m.match_id}|${pick}|${p}|${cote}`, { p, cote, teams, pick });
+        seen.set(`${m.match_id}|${pick}|${p}|${cote}`, { p, cote, teams, pick, matchId: m.match_id });
       }
     }
   }
@@ -83,10 +84,62 @@ function fit(points: Point[]) {
     }
   }
 
-  const mean = cotes.reduce((s, v) => s + v, 0) / cotes.length;
-  const ssTot = cotes.reduce((s, v) => s + (v - mean) ** 2, 0);
-  const r2 = ssTot ? 1 - best.sse / ssTot : 0;
+  const r2 = best.sse ? 1 - best.sse / totalVar(cotes) : 1;
   return { cMin, cMax, k: best.k, alpha: best.alpha, r2 };
+}
+
+// Best integer K for one match's points at a fixed alpha (clamped model).
+function bestKForGroup(grp: Point[], alpha: number, cMin: number, cMax: number) {
+  const xs = grp.map((d) => Math.pow(d.p, alpha));
+  let bestK = 1;
+  let bestSse = Infinity;
+  for (let k = 1; k <= 400; k++) {
+    let sse = 0;
+    for (let i = 0; i < grp.length; i++) {
+      const e = clamp(k / xs[i], cMin, cMax) - grp[i].cote;
+      sse += e * e;
+    }
+    if (sse < bestSse) {
+      bestSse = sse;
+      bestK = k;
+    }
+  }
+  return { k: bestK, sse: bestSse };
+}
+
+// One K per match, a single alpha shared across all matches: grid the shared
+// alpha, fit each match's own K at that alpha, keep the alpha with the lowest
+// total error. If a single match's K explains the cote spread that the global
+// fit misses, K is a per-match constant.
+function fitPerMatch(groups: Point[][], cMin: number, cMax: number) {
+  let best = { alpha: 1, ks: [] as number[], sse: Infinity };
+  for (let a = 10; a <= 150; a += 2) {
+    const alpha = a / 100;
+    let totalSse = 0;
+    const ks: number[] = [];
+    for (const grp of groups) {
+      const { k, sse } = bestKForGroup(grp, alpha, cMin, cMax);
+      ks.push(k);
+      totalSse += sse;
+    }
+    if (totalSse < best.sse) best = { alpha, ks, sse: totalSse };
+  }
+  const allCotes = groups.flat().map((d) => d.cote);
+  const r2 = best.sse ? 1 - best.sse / totalVar(allCotes) : 1;
+  const sorted = [...best.ks].sort((a, b) => a - b);
+  return {
+    alpha: best.alpha,
+    r2,
+    kMin: sorted[0],
+    kMed: sorted[Math.floor(sorted.length / 2)],
+    kMax: sorted[sorted.length - 1],
+    nMatches: groups.length,
+  };
+}
+
+function totalVar(xs: number[]): number {
+  const mean = xs.reduce((s, v) => s + v, 0) / xs.length;
+  return xs.reduce((s, v) => s + (v - mean) ** 2, 0);
 }
 
 export function MppAlgorithm() {
@@ -119,7 +172,15 @@ export function MppAlgorithm() {
     });
     const scatter = points.map((d) => ({ ...d, fit: model(d.p) }));
     const chart = [...curve, ...scatter].sort((a, b) => a.p - b.p);
-    return { cMin, cMax, k, alpha, r2, n: points.length, chart };
+
+    // Per-match fit: group outcomes by match, fit one K each (shared alpha).
+    const byMatch = new Map<string, Point[]>();
+    for (const pt of points) {
+      (byMatch.get(pt.matchId) ?? byMatch.set(pt.matchId, []).get(pt.matchId)!).push(pt);
+    }
+    const perMatch = fitPerMatch([...byMatch.values()], cMin, cMax);
+
+    return { cMin, cMax, k, alpha, r2, n: points.length, chart, perMatch };
   }, [data, language]);
 
   return (
@@ -143,6 +204,18 @@ export function MppAlgorithm() {
             <Stat label={t('mpp.algo.alpha')} value={model.alpha.toFixed(2)} />
             <Stat label={t('mpp.algo.r2')} value={model.r2.toFixed(2)} />
             <Stat label={t('mpp.algo.dataPoints')} value={model.n} />
+          </div>
+
+          <p className="mb-2 text-sm font-medium text-slate-300">{t('mpp.algo.perMatchTitle')}</p>
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label={t('mpp.algo.alpha')} value={model.perMatch.alpha.toFixed(2)} />
+            <Stat label={t('mpp.algo.r2')} value={model.perMatch.r2.toFixed(2)} />
+            <Stat
+              label={t('mpp.algo.kMedian')}
+              value={model.perMatch.kMed}
+              sub={`${model.perMatch.kMin}–${model.perMatch.kMax}`}
+            />
+            <Stat label={t('mpp.algo.matches')} value={model.perMatch.nMatches} />
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
@@ -240,11 +313,12 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: Tooltip
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-center">
       <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-1 font-mono text-2xl font-semibold text-slate-100">{value}</div>
+      {sub && <div className="mt-0.5 font-mono text-xs text-slate-500">{sub}</div>}
     </div>
   );
 }
