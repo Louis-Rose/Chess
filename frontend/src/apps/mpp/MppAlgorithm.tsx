@@ -164,13 +164,31 @@ export function MppAlgorithm() {
                   type="monotone"
                   isAnimationActive={false}
                 />
-                <Scatter name={t('mpp.algo.observed')} dataKey="cote" fill="#10b981" />
+                <Scatter
+                  name={t('mpp.algo.observed')}
+                  dataKey="cote"
+                  fill="#10b981"
+                  shape={<DotShape />}
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </>
       )}
     </div>
+  );
+}
+
+// A visible dot wrapped in a larger transparent circle, so the whole area
+// around the point is a hover target (not just the small dot).
+function DotShape(props: { cx?: number; cy?: number }) {
+  const { cx, cy } = props;
+  if (cx == null || cy == null) return null;
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={14} fill="transparent" />
+      <circle cx={cx} cy={cy} r={5} fill="#10b981" />
+    </g>
   );
 }
 
