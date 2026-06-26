@@ -21,6 +21,7 @@ import concurrent.futures
 import logging
 import threading
 import time
+import unicodedata
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -444,13 +445,14 @@ def _resolve_club(token, club_id):
     return info
 
 
-def _fetch_match(token, match_id):
+def _fetch_match(token, match_id, force=False):
     """A match's raw detail, cached. Finished matches are cached for a day,
-    others briefly. Retries a few times to ride out rate-limiting."""
+    others briefly. Retries a few times to ride out rate-limiting. Pass
+    force=True to bypass the cache (used by a manual Tests re-fetch)."""
     now = time.time()
     with _match_lock:
         cached = _match_cache.get(match_id)
-    if cached:
+    if cached and not force:
         raw, ts = cached
         ttl = _FINAL_TTL if raw.get('period') == 'fullTime' else _LIVE_TTL
         if now - ts < ttl:
@@ -691,6 +693,171 @@ def mpp_match(match_id):
     if raw is None:
         return jsonify({'error': 'mpp_unavailable'}), 502
     return jsonify(_match_detail(token, raw))
+
+
+# ── Tests tab: cote/prono drift over time ────────────────────────────────────
+# A handful of watched fixtures whose cotes (1/N/2 reward points) and prono
+# split we re-fetch on demand to see whether they move as kickoff approaches.
+# Matches are identified by accent-insensitive team-name keyword pairs so we
+# don't have to hardcode MPP's opaque match ids; once found, the id is implied
+# by the rows we've stored, so later fetches go straight to that one match.
+
+_TEST_MATCHES = [
+    ('pays-bas', 'maroc'),
+    ('etats', 'bosnie'),
+    ('bresil', 'japon'),
+]
+
+
+def _norm(s):
+    """Lowercase, accent-stripped form for loose team-name matching."""
+    s = unicodedata.normalize('NFKD', s or '')
+    return ''.join(c for c in s if not unicodedata.combining(c)).lower()
+
+
+def _target_index(home_name, away_name):
+    """Index of the watched pair these two teams form, or None."""
+    h, a = _norm(home_name), _norm(away_name)
+    for i, (ka, kb) in enumerate(_TEST_MATCHES):
+        if (ka in h and kb in a) or (ka in a and kb in h):
+            return i
+    return None
+
+
+def _known_test_match_ids():
+    """Map watched-pair index -> match id, from rows we've already stored."""
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT DISTINCT match_id, home_team, away_team FROM mpp_cote_history'
+        ).fetchall()
+    known = {}
+    for r in rows:
+        idx = _target_index(r['home_team'], r['away_team'])
+        if idx is not None:
+            known[idx] = r['match_id']
+    return known
+
+
+def _resolve_test_match_ids(token):
+    """All watched match ids, scanning the owner's calendar only for the ones
+    we haven't already pinned down from stored rows."""
+    known = _known_test_match_ids()
+    if len(known) >= len(_TEST_MATCHES):
+        return known
+
+    card = _owner_contest(token)
+    champ_id = card.get('championshipId') if card else None
+    if not champ_id:
+        return known
+
+    cal, _ = _api_json(token, f'/championship-calendar/{champ_id}')
+    game_weeks = (cal or {}).get('gameWeeks') or {}
+    ids = []
+    for key in sorted(game_weeks, key=lambda k: int(k)):
+        ids.extend(game_weeks[key].get('matchesIds') or [])
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        raws = list(pool.map(lambda mid: _fetch_match(token, mid), ids))
+
+    for raw in raws:
+        if not raw or len(known) >= len(_TEST_MATCHES):
+            continue
+        home = _resolve_club(token, (raw.get('home') or {}).get('clubId'))
+        away = _resolve_club(token, (raw.get('away') or {}).get('clubId'))
+        if not home or not away:
+            continue
+        idx = _target_index(home['name'], away['name'])
+        if idx is not None and idx not in known:
+            known[idx] = raw.get('id')
+    return known
+
+
+def _snapshot_test_matches(token):
+    """Record one cote/prono row per watched match. force=True bypasses the
+    match cache so a manual re-fetch always reads live values."""
+    match_ids = _resolve_test_match_ids(token)
+    count = 0
+    for match_id in match_ids.values():
+        raw = _fetch_match(token, match_id, force=True)
+        if not raw:
+            continue
+        detail = _match_detail(token, raw)
+        cote = detail.get('cote') or {}
+        bets = detail.get('bets') or {}
+        with get_db() as conn:
+            conn.execute(
+                """INSERT INTO mpp_cote_history
+                       (match_id, home_team, away_team, match_date, status,
+                        cote_home, cote_draw, cote_away,
+                        prono_home, prono_draw, prono_away)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (match_id, detail['home']['name'], detail['away']['name'],
+                 detail.get('date'), detail.get('status'),
+                 cote.get('home'), cote.get('draw'), cote.get('away'),
+                 bets.get('home'), bets.get('draw'), bets.get('away')),
+            )
+        count += 1
+    return count
+
+
+def _tests_payload():
+    """Every stored snapshot, grouped per match, oldest-first within a match."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT match_id, home_team, away_team, match_date, status,
+                      fetched_at, cote_home, cote_draw, cote_away,
+                      prono_home, prono_draw, prono_away
+               FROM mpp_cote_history
+               ORDER BY fetched_at ASC"""
+        ).fetchall()
+
+    matches = {}
+    for r in rows:
+        m = matches.get(r['match_id'])
+        if m is None:
+            m = matches[r['match_id']] = {'match_id': r['match_id'], 'snapshots': []}
+        # Carry the latest known meta forward (rows are time-ascending).
+        m['home'], m['away'] = r['home_team'], r['away_team']
+        m['date'], m['status'] = r['match_date'], r['status']
+        ts = r['fetched_at']
+        m['snapshots'].append({
+            'fetched_at': ts.isoformat() if hasattr(ts, 'isoformat') else ts,
+            'cote': {'home': r['cote_home'], 'draw': r['cote_draw'], 'away': r['cote_away']},
+            'prono': {'home': r['prono_home'], 'draw': r['prono_draw'], 'away': r['prono_away']},
+        })
+
+    out = sorted(matches.values(), key=lambda m: (m['date'] is None, m['date'] or ''))
+    return {'matches': out}
+
+
+@mpp_bp.route('/api/mpp/tests', methods=['GET'])
+@owner_required
+def mpp_tests():
+    """All recorded cote/prono snapshots for the watched matches."""
+    return jsonify(_tests_payload())
+
+
+@mpp_bp.route('/api/mpp/tests/fetch', methods=['POST'])
+@owner_required
+def mpp_tests_fetch():
+    """Fetch the watched matches' cotes + prono now, store a snapshot each, and
+    return the full updated history."""
+    user_id = get_current_user()
+    with get_db() as conn:
+        token = _get_access_token(conn, user_id)
+    if token is None:
+        with get_db() as conn:
+            connected = bool(conn.execute(
+                'SELECT 1 FROM mpp_account WHERE user_id = ?', (user_id,)
+            ).fetchone())
+        return jsonify({'error': 'token_expired' if connected else 'not_connected'}), 409
+
+    try:
+        _snapshot_test_matches(token)
+    except Exception:
+        logger.exception('MPP test snapshot failed')
+        return jsonify({'error': 'mpp_unavailable'}), 502
+    return jsonify(_tests_payload())
 
 
 # ── Daily snapshot scheduler ─────────────────────────────────────────────────

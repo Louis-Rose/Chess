@@ -1386,6 +1386,34 @@ def init_db():
             )
             logger.info("Created mpp_standings_history table")
 
+        # Tests tab: every manual/initial fetch of a watched match's cotes (the
+        # 1/N/2 reward points) and prono split records one row here, so we can
+        # watch whether they drift over time. One row per match per fetch — the
+        # full history is kept, duplicates and all.
+        if not _table_exists(conn, 'mpp_cote_history'):
+            conn.execute("""
+                CREATE TABLE mpp_cote_history (
+                    id          SERIAL PRIMARY KEY,
+                    match_id    TEXT NOT NULL,
+                    fetched_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    home_team   TEXT,
+                    away_team   TEXT,
+                    match_date  TEXT,
+                    status      TEXT,
+                    cote_home   INTEGER,
+                    cote_draw   INTEGER,
+                    cote_away   INTEGER,
+                    prono_home  REAL,
+                    prono_draw  REAL,
+                    prono_away  REAL
+                )
+            """)
+            conn.execute(
+                "CREATE INDEX idx_mpp_cote_match "
+                "ON mpp_cote_history(match_id, fetched_at)"
+            )
+            logger.info("Created mpp_cote_history table")
+
         # Migration: clothing agent job queue. A search request is enqueued here
         # by the web app and picked up by a worker running on the owner's own
         # machine (residential IP + real Chrome) so it can browse bot-protected

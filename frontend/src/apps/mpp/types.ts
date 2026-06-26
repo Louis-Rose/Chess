@@ -78,6 +78,25 @@ export interface MppPlayerRating {
   goals: number;
 }
 
+export interface MppCoteSnapshot {
+  fetched_at: string;
+  cote: { home: number | null; draw: number | null; away: number | null };
+  prono: { home: number | null; draw: number | null; away: number | null };
+}
+
+export interface MppTestMatch {
+  match_id: string;
+  home: string | null;
+  away: string | null;
+  date: string | null;
+  status: 'final' | 'live' | 'upcoming' | null;
+  snapshots: MppCoteSnapshot[];
+}
+
+export interface MppTests {
+  matches: MppTestMatch[];
+}
+
 export interface MppMatchDetail {
   id: string;
   date: string | null;
