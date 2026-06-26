@@ -394,27 +394,22 @@ def _normalize_standing(s):
     }
 
 
-# ── Matches & cotes ──────────────────────────────────────────────────────────
-# The "Matches" tab: every competition match whose two teams are known, with the
-# MPP "cote" (the 1/N/2 reward points). MPP exposes no bulk match endpoint, so we
-# expand the championship calendar into per-match detail calls. Those calls are
-# rate-limited (bursts get throttled), so we keep concurrency low, retry, and
+# ── Match detail & cotes ─────────────────────────────────────────────────────
+# Shared plumbing for reading a match's teams and MPP "cote" (the 1/N/2 reward
+# points), used by the Matches tab snapshots. MPP exposes no bulk match endpoint,
+# so we expand the championship calendar into per-match detail calls. Those calls
+# are rate-limited (bursts get throttled), so we keep concurrency low, retry, and
 # cache hard: club names and finished matches never change, so in steady state we
 # only re-read the handful of live/upcoming matches.
 
 _CREST_BASE = 'https://s3.eu-west-1.amazonaws.com/image.mpg'
 _FINAL_TTL = 24 * 3600   # a finished match never changes
 _LIVE_TTL = 90           # live/upcoming detail (scores, cotes) — refresh often
-_RESPONSE_TTL = 180      # assembled match list
 
 _clubs_lock = threading.Lock()
 _clubs_cache = {}        # club_id -> {name, short, crest}  (real teams only)
 _match_lock = threading.Lock()
 _match_cache = {}        # match_id -> (raw_detail, fetched_at)
-_matches_lock = threading.Lock()
-_matches_cache = {}      # championship_id -> (payload, fetched_at)
-_forecasts_lock = threading.Lock()
-_forecasts_cache = {}    # contest_id -> (match_id -> prono, fetched_at)
 
 
 def _resolve_club(token, club_id):
@@ -469,51 +464,6 @@ def _fetch_match(token, match_id, force=False):
     return None
 
 
-def _prono_cote(prono, cote):
-    """The cote of the result the owner predicted (home/draw/away), or None."""
-    home, away = prono.get('home'), prono.get('away')
-    if not cote or home is None or away is None:
-        return None
-    outcome = 'home' if home > away else 'away' if home < away else 'draw'
-    return cote.get(outcome)
-
-
-def _normalize_match(token, raw):
-    """Shape one match for the UI, or None if either team is still unknown."""
-    home_raw = raw.get('home') or {}
-    away_raw = raw.get('away') or {}
-    home = _resolve_club(token, home_raw.get('clubId'))
-    away = _resolve_club(token, away_raw.get('clubId'))
-    if not home or not away:
-        return None
-
-    home_score = home_raw.get('score')
-    away_score = away_raw.get('score')
-    period = raw.get('period')
-    if period == 'fullTime':
-        status = 'final'
-    elif home_score is not None or away_score is not None:
-        status = 'live'
-    else:
-        status = 'upcoming'
-
-    q = raw.get('quotations') or {}
-    cote = None
-    if q.get('home') is not None:
-        cote = {'home': q.get('home'), 'draw': q.get('draw'), 'away': q.get('away')}
-
-    return {
-        'id': raw.get('id'),
-        'game_week': raw.get('gameWeekNumber'),
-        'date': raw.get('date'),
-        'status': status,
-        'match_time': raw.get('matchTime'),
-        'home': {**home, 'score': home_score},
-        'away': {**away, 'score': away_score},
-        'cote': cote,
-    }
-
-
 def _owner_contest(token):
     """The owner's contest card (championship id, contest id, game-week range)."""
     contests, _ = _api_json(token, '/user-contests')
@@ -521,125 +471,9 @@ def _owner_contest(token):
     return next((c for c in cards if c.get('championshipId')), None)
 
 
-def _load_forecasts(token, contest_id, first_gw, last_gw):
-    """The owner's prediction per match: {match_id: {home, away, points}}.
-    One call per game-week; cached briefly so it rides along with the list."""
-    now = time.time()
-    with _forecasts_lock:
-        cached = _forecasts_cache.get(contest_id)
-    if cached and now - cached[1] < _RESPONSE_TTL:
-        return cached[0]
-
-    out = {}
-    for gw in range(first_gw, last_gw + 1):
-        data, _ = _api_json(
-            token, f'/user-match-forecasts/contest/{contest_id}/game-week/{gw}')
-        for match_id, by_contest in ((data or {}).get('forecasts') or {}).items():
-            entry = by_contest.get(contest_id) or next(iter(by_contest.values()), None)
-            if not entry:
-                continue
-            out[match_id] = {
-                'home': entry.get('homeScore'),
-                'away': entry.get('awayScore'),
-                'points': (entry.get('points') or {}).get('total'),
-            }
-
-    with _forecasts_lock:
-        _forecasts_cache[contest_id] = (out, now)
-    return out
-
-
-@mpp_bp.route('/api/mpp/matches', methods=['GET'])
-@owner_required
-def mpp_matches():
-    """All known-team matches of the owner's competition, with cotes, as one
-    chronological list (played, live and upcoming)."""
-    user_id = get_current_user()
-    with get_db() as conn:
-        token = _get_access_token(conn, user_id)
-    if token is None:
-        with get_db() as conn:
-            connected = bool(conn.execute(
-                'SELECT 1 FROM mpp_account WHERE user_id = ?', (user_id,)
-            ).fetchone())
-        return jsonify({'error': 'token_expired' if connected else 'not_connected'}), 409
-
-    card = _owner_contest(token)
-    if not card:
-        return jsonify({'matches': [], 'updated_at': None})
-    champ_id = card.get('championshipId')
-    contest_id = card.get('contestId')
-    first_gw = card.get('firstGameWeekNumber') or 1
-    last_gw = card.get('lastGameWeekNumber') or first_gw
-
-    now = time.time()
-    with _matches_lock:
-        cached = _matches_cache.get(champ_id)
-    if cached and now - cached[1] < _RESPONSE_TTL:
-        return jsonify(cached[0])
-
-    cal, status = _api_json(token, f'/championship-calendar/{champ_id}')
-    if cal is None:
-        if status == 401:
-            return jsonify({'error': 'token_expired'}), 409
-        return jsonify({'error': 'mpp_unavailable', 'status': status}), 502
-
-    game_weeks = cal.get('gameWeeks') or {}
-    match_ids = []
-    for key in sorted(game_weeks, key=lambda k: int(k)):
-        match_ids.extend(game_weeks[key].get('matchesIds') or [])
-
-    # Fetch detail + resolve teams per match. Low concurrency to stay under the
-    # rate limit; the cache absorbs everything finished on later loads.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-        raws = list(pool.map(lambda mid: _fetch_match(token, mid), match_ids))
-
-    matches = [m for m in (_normalize_match(token, r) for r in raws if r) if m]
-    matches.sort(key=lambda m: (m['date'] is None, m['date'] or ''))
-
-    # Merge in the owner's own prediction per match, plus "ma cote" — the cote
-    # of the 1/N/2 result they picked (what they'd score if that result lands).
-    pronos = _load_forecasts(token, contest_id, first_gw, last_gw) if contest_id else {}
-    for m in matches:
-        p = pronos.get(m['id'])
-        if p is not None:
-            p = dict(p)
-            p['cote'] = _prono_cote(p, m['cote'])
-        m['prono'] = p
-
-    payload = {'matches': matches, 'updated_at': datetime.utcnow().isoformat()}
-    with _matches_lock:
-        _matches_cache[champ_id] = (payload, now)
-    return jsonify(payload)
-
-
-# ── Single match detail (the "avant-match" view) ─────────────────────────────
-
-# MPG real-position code -> short label.
-_POSITION = {1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD'}
-
-
-def _rated_players(side_raw, side):
-    """Players on a side that carry an MPG rating (i.e. the match was played)."""
-    out = []
-    for p in (side_raw.get('players') or {}).values():
-        rating = p.get('mpgRating')
-        if rating is None:
-            continue
-        out.append({
-            'name': p.get('lastName') or p.get('firstName'),
-            'rating': rating,
-            'position': _POSITION.get(p.get('realPosition')),
-            'side': side,
-            'goals': (p.get('stats') or {}).get('goals') or 0,
-        })
-    return out
-
-
 def _match_detail(token, raw):
-    """The richer per-match payload behind a click: the MPP prono split
-    (stats.bets), the cote, and the best-rated players. Reuses the same raw
-    detail the matches list already fetched and cached."""
+    """The cote and MPP prono split for one match, shaped for a Tests snapshot.
+    Reuses the same raw detail the calendar scan already fetched and cached."""
     home_raw = raw.get('home') or {}
     away_raw = raw.get('away') or {}
     home = _resolve_club(token, home_raw.get('clubId')) or {}
@@ -653,9 +487,6 @@ def _match_detail(token, raw):
     prono = {'home': bets.get('home'), 'draw': bets.get('draw'), 'away': bets.get('away')} \
         if bets else None
 
-    players = _rated_players(home_raw, 'home') + _rated_players(away_raw, 'away')
-    players.sort(key=lambda p: p['rating'], reverse=True)
-
     period = raw.get('period')
     if period == 'fullTime':
         status = 'final'
@@ -667,31 +498,12 @@ def _match_detail(token, raw):
     return {
         'id': raw.get('id'),
         'date': raw.get('date'),
-        'game_week': raw.get('gameWeekNumber'),
         'status': status,
-        'match_time': raw.get('matchTime'),
-        'stadium': raw.get('stadiumName'),
         'home': {'name': home.get('name'), 'crest': home.get('crest'), 'score': home_raw.get('score')},
         'away': {'name': away.get('name'), 'crest': away.get('crest'), 'score': away_raw.get('score')},
         'cote': cote,
         'bets': prono,            # Stats Prono MPP: share of players on each result
-        'best_players': players[:6],
     }
-
-
-@mpp_bp.route('/api/mpp/match/<match_id>', methods=['GET'])
-@owner_required
-def mpp_match(match_id):
-    """Detail for one match: prono split + cote + best players."""
-    user_id = get_current_user()
-    with get_db() as conn:
-        token = _get_access_token(conn, user_id)
-    if token is None:
-        return jsonify({'error': 'not_connected'}), 409
-    raw = _fetch_match(token, match_id)
-    if raw is None:
-        return jsonify({'error': 'mpp_unavailable'}), 502
-    return jsonify(_match_detail(token, raw))
 
 
 # ── Matches tab: cote/prono drift over time ──────────────────────────────────

@@ -308,8 +308,21 @@ function Cell({
   if (!cell) return <span className="text-slate-600">.</span>;
   const { cote, prono } = cell;
   // Espérance = cote × probability (the average points that outcome is worth).
-  const esp = (c: number | null, p: number | null) =>
-    c == null || p == null ? '.' : String(Math.round(c * p));
+  const espVal = (c: number | null, p: number | null) =>
+    c == null || p == null ? null : Math.round(c * p);
+  // Row total: sum the present values, or null ('.') when the whole row is empty.
+  const sum = (vals: (number | null)[]) => {
+    const present = vals.filter((v): v is number => v != null);
+    return present.length ? present.reduce((a, v) => a + v, 0) : null;
+  };
+
+  const cotes = [cote.home, cote.draw, cote.away];
+  const probs = [pct(prono.home), pct(prono.draw), pct(prono.away)];
+  const esps = [
+    espVal(cote.home, prono.home),
+    espVal(cote.draw, prono.draw),
+    espVal(cote.away, prono.away),
+  ];
   return (
     <table className="mx-auto border-collapse text-center">
       <tbody>
@@ -318,32 +331,40 @@ function Cell({
           <Td>{match.home ? countryName(match.home, language) : '1'}</Td>
           <Td>N</Td>
           <Td>{match.away ? countryName(match.away, language) : '2'}</Td>
+          <Td>{t('mpp.tests.total')}</Td>
         </tr>
         <tr className="font-mono text-slate-100">
           <Label>{t('mpp.tests.odds')}</Label>
-          <Td>{num(cote.home)}</Td>
-          <Td>{num(cote.draw)}</Td>
-          <Td>{num(cote.away)}</Td>
+          <Td>{num(cotes[0])}</Td>
+          <Td>{num(cotes[1])}</Td>
+          <Td>{num(cotes[2])}</Td>
+          <Td strong>{num(sum(cotes))}</Td>
         </tr>
         <tr className="font-mono text-[11px] text-slate-400">
           <Label>{t('mpp.tests.probability')}</Label>
-          <Td>{num(pct(prono.home), '%')}</Td>
-          <Td>{num(pct(prono.draw), '%')}</Td>
-          <Td>{num(pct(prono.away), '%')}</Td>
+          <Td>{num(probs[0], '%')}</Td>
+          <Td>{num(probs[1], '%')}</Td>
+          <Td>{num(probs[2], '%')}</Td>
+          <Td strong>{num(sum(probs), '%')}</Td>
         </tr>
         <tr className="font-mono text-xs text-amber-300/90">
           <Label>{t('mpp.tests.expected')}</Label>
-          <Td>{esp(cote.home, prono.home)}</Td>
-          <Td>{esp(cote.draw, prono.draw)}</Td>
-          <Td>{esp(cote.away, prono.away)}</Td>
+          <Td>{num(esps[0])}</Td>
+          <Td>{num(esps[1])}</Td>
+          <Td>{num(esps[2])}</Td>
+          <Td strong>{num(sum(esps))}</Td>
         </tr>
       </tbody>
     </table>
   );
 }
 
-function Td({ children }: { children?: React.ReactNode }) {
-  return <td className="border border-slate-700/70 px-2 py-0.5">{children}</td>;
+function Td({ children, strong }: { children?: React.ReactNode; strong?: boolean }) {
+  return (
+    <td className={`border border-slate-700/70 px-2 py-0.5 ${strong ? 'font-semibold text-slate-100' : ''}`}>
+      {children}
+    </td>
+  );
 }
 
 function Label({ children }: { children: React.ReactNode }) {
