@@ -8,7 +8,7 @@ import { MppPageTitle } from './MppPageTitle';
 export function MppRules() {
   const { t } = useLanguage();
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-sm leading-relaxed text-slate-300 sm:px-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-center text-sm leading-relaxed text-slate-300 sm:px-6">
       <MppPageTitle />
 
       <Section title={t('mpp.rules.basicsTitle')}>
