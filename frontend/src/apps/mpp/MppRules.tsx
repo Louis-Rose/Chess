@@ -71,18 +71,6 @@ export function MppRules() {
         </div>
       </Section>
 
-      <Section title={t('mpp.rules.x2Title')}>
-        <p>
-          {t('mpp.rules.x2Desc')}
-        </p>
-      </Section>
-
-      <Section title={t('mpp.rules.favouritesTitle')}>
-        <p>
-          {t('mpp.rules.favouritesDesc')}
-        </p>
-      </Section>
-
       <Section title={t('mpp.rules.knockoutTitle')}>
         <p>
           {t('mpp.rules.knockoutDesc')}
@@ -90,29 +78,6 @@ export function MppRules() {
         <p className="mt-2 text-slate-400">
           {t('mpp.rules.knockoutExample')}
         </p>
-      </Section>
-
-      <Section title={t('mpp.rules.strategyTitle')}>
-        <ul className="space-y-1.5">
-          <li>
-            <strong>{t('mpp.rules.strategy1Lead')}</strong> {t('mpp.rules.strategy1Body')}
-          </li>
-          <li>
-            <strong>{t('mpp.rules.strategy2Lead')}</strong> {t('mpp.rules.strategy2Body')}
-          </li>
-          <li>
-            <strong>{t('mpp.rules.strategy3Lead')}</strong> {t('mpp.rules.strategy3Body')}
-          </li>
-          <li>
-            <strong>{t('mpp.rules.strategy4Lead')}</strong> {t('mpp.rules.strategy4Body')}
-          </li>
-          <li>
-            <strong>{t('mpp.rules.strategy5Lead')}</strong> {t('mpp.rules.strategy5Body')}
-          </li>
-          <li>
-            <strong>{t('mpp.rules.strategy6Lead')}</strong> {t('mpp.rules.strategy6Body')}
-          </li>
-        </ul>
       </Section>
 
       <p className="text-xs text-slate-500">
