@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { RefreshCw, X } from 'lucide-react';
 import { TeamCrest } from './TeamCrest';
@@ -271,10 +271,33 @@ function Table({
 }) {
   // Drop fetch columns with no data for any displayed match.
   const columns = data.columns.filter((c) => matches.some((m) => m.cells[c]));
+
+  // Grab-and-drag the header to pan the table horizontally (the strip is wide).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; left: number } | null>(null);
+  const onHeadPointerDown = (e: React.PointerEvent) => {
+    if (!scrollRef.current || (e.target as HTMLElement).closest('button')) return;
+    drag.current = { x: e.clientX, left: scrollRef.current.scrollLeft };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onHeadPointerMove = (e: React.PointerEvent) => {
+    if (!drag.current || !scrollRef.current) return;
+    scrollRef.current.scrollLeft = drag.current.left - (e.clientX - drag.current.x);
+  };
+  const endDrag = () => {
+    drag.current = null;
+  };
+
   return (
-    <div className="overflow-x-auto">
+    <div ref={scrollRef} className="overflow-x-auto">
       <table className="w-full border-collapse border border-slate-700 text-center text-sm">
-        <thead>
+        <thead
+          className="cursor-grab select-none active:cursor-grabbing"
+          onPointerDown={onHeadPointerDown}
+          onPointerMove={onHeadPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
           <tr>
             <th className="border border-slate-700 bg-slate-800/60 px-3 py-2 text-center font-medium text-slate-300">
               {t('mpp.tests.match')}
