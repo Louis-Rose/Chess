@@ -240,8 +240,43 @@ function DateStrip({
         ? 'bg-emerald-500/15 text-emerald-300'
         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
     }`;
+
+  // Drag the strip to pan it (it runs past the edge once past days show); a drag
+  // beyond a few px is cancelled at click time so it doesn't also select a day.
+  const ref = useRef<HTMLDivElement>(null);
+  const moved = useRef(false);
+  const onPointerDown = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    const startX = e.clientX;
+    const left = el.scrollLeft;
+    moved.current = false;
+    const move = (ev: PointerEvent) => {
+      if (Math.abs(ev.clientX - startX) > 4) moved.current = true;
+      el.scrollLeft = left - (ev.clientX - startX);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (moved.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      moved.current = false;
+    }
+  };
+
   return (
-    <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1">
+    <div
+      ref={ref}
+      onPointerDown={onPointerDown}
+      onClickCapture={onClickCapture}
+      className="scrollbar-hide mb-4 flex cursor-grab gap-1.5 overflow-x-auto pb-1 active:cursor-grabbing"
+    >
       {buckets.map((b) => (
         <button key={b.key} onClick={() => onSelect(b.key)} className={pillClass(b.key === active)}>
           {dayLabel(b.key, t, loc)}
