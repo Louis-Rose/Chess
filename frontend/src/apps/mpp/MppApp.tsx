@@ -9,6 +9,7 @@ import { MppLayout } from './MppLayout';
 import { MppLeaderboard } from './MppLeaderboard';
 import { MppTests } from './MppTests';
 import { MppRules } from './MppRules';
+import { MppAlgorithm } from './MppAlgorithm';
 import { MppDocs } from './MppDocs';
 import type { MppStatus } from './types';
 
@@ -61,6 +62,7 @@ export function MppApp() {
         <Route path="leaderboard" element={<MppLeaderboard />} />
         <Route path="tests" element={<MppTests />} />
         <Route path="rules" element={<MppRules />} />
+        <Route path="algorithm" element={<MppAlgorithm />} />
         <Route path="docs" element={<MppDocs />} />
         <Route path="*" element={<Navigate to="leaderboard" replace />} />
       </Route>

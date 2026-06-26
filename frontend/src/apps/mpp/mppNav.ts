@@ -2,6 +2,7 @@ import {
   ListOrdered,
   CalendarDays,
   ScrollText,
+  Sigma,
   BookOpen,
   type LucideIcon,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ export interface MppNavItem {
 export const MPP_NAV: MppNavItem[] = [
   { to: '/mpp/tests', labelKey: 'mpp.nav.tests', icon: CalendarDays },
   { to: '/mpp/rules', labelKey: 'mpp.nav.rules', icon: ScrollText },
+  { to: '/mpp/algorithm', labelKey: 'mpp.nav.algorithm', icon: Sigma },
   { to: '/mpp/leaderboard', labelKey: 'mpp.nav.leaderboard', icon: ListOrdered },
   { to: '/mpp/docs', labelKey: 'mpp.nav.docs', icon: BookOpen },
 ];
