@@ -28,13 +28,6 @@ interface Point {
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-const median = (xs: number[]): number => {
-  if (!xs.length) return 0;
-  const s = [...xs].sort((a, b) => a - b);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
-};
-
 // Pull every (p, cote) pair from all matches/snapshots; dedupe identical pairs
 // so repeated snapshots of stable odds don't overplot the scatter.
 function collectPoints(data: MppTests): Point[] {
@@ -58,14 +51,26 @@ function collectPoints(data: MppTests): Point[] {
 }
 
 // Floor = lowest cote (favorites clamped down), ceiling = highest cote
-// (long-shots clamped up). K from the unclamped middle band, where cote = K / p
-// so p * cote = K; the median is robust to the rounding noise.
+// (long-shots clamped up). K is the value that best fits the whole clamped model
+// cote = clamp(K / p, C_min, C_max) by least squares, so points sitting on the
+// floor or ceiling no longer drag the estimate (a plain median of p*cote does).
 function fit(points: Point[]) {
   const cotes = points.map((d) => d.cote);
   const cMin = Math.min(...cotes);
   const cMax = Math.max(...cotes);
-  const middle = points.filter((d) => d.cote > cMin && d.cote < cMax);
-  const k = Math.round(median((middle.length ? middle : points).map((d) => d.p * d.cote)));
+  let k = 1;
+  let bestSse = Infinity;
+  for (let cand = 1; cand <= 300; cand++) {
+    let sse = 0;
+    for (const d of points) {
+      const e = clamp(cand / d.p, cMin, cMax) - d.cote;
+      sse += e * e;
+    }
+    if (sse < bestSse) {
+      bestSse = sse;
+      k = cand;
+    }
+  }
   return { cMin, cMax, k };
 }
 
@@ -92,11 +97,11 @@ export function MppAlgorithm() {
     const { cMin, cMax, k } = fit(points);
     // One series for the chart: dense fitted curve + observed scatter, sorted by
     // p. `fit` is set only on curve rows, `cote` only on observed rows.
-    const curve = Array.from({ length: 100 }, (_, i) => {
-      const p = (i + 1) / 100;
-      return { p, fit: clamp(Math.round(k / p), cMin, cMax) };
+    const curve = Array.from({ length: 200 }, (_, i) => {
+      const p = (i + 1) / 200;
+      return { p, fit: clamp(k / p, cMin, cMax) };
     });
-    const scatter = points.map((d) => ({ p: d.p, cote: d.cote }));
+    const scatter = points.map((d) => ({ p: d.p, cote: d.cote, fit: clamp(k / d.p, cMin, cMax) }));
     const chart = [...curve, ...scatter].sort((a, b) => a.p - b.p);
     return { cMin, cMax, k, n: points.length, chart };
   }, [data]);
@@ -123,8 +128,8 @@ export function MppAlgorithm() {
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
-            <ResponsiveContainer width="100%" height={420}>
-              <ComposedChart data={model.chart} margin={{ top: 8, right: 16, bottom: 24, left: 4 }}>
+            <ResponsiveContainer width="100%" height={440}>
+              <ComposedChart data={model.chart} margin={{ top: 8, right: 20, bottom: 32, left: 8 }}>
                 <CartesianGrid stroke="#1e293b" />
                 <XAxis
                   dataKey="p"
@@ -133,20 +138,15 @@ export function MppAlgorithm() {
                   stroke="#64748b"
                   tick={{ fontSize: 12 }}
                   tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
-                  label={{ value: t('mpp.tests.probability'), position: 'insideBottom', offset: -12, fill: '#94a3b8', fontSize: 12 }}
+                  label={{ value: t('mpp.tests.probability'), position: 'insideBottom', offset: -18, fill: '#94a3b8', fontSize: 12 }}
                 />
                 <YAxis
                   stroke="#64748b"
                   tick={{ fontSize: 12 }}
                   label={{ value: t('mpp.tests.odds'), angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 12 }}
                 />
-                <Tooltip
-                  contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12 }}
-                  labelFormatter={(v: number) => `p = ${Math.round(v * 100)}%`}
-                  formatter={(value, name) => [Math.round(Number(value)), name]}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Scatter name={t('mpp.algo.observed')} dataKey="cote" fill="#10b981" />
+                <Tooltip cursor={{ stroke: '#334155' }} content={<ChartTooltip />} />
+                <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 12 }} />
                 <Line
                   name={t('mpp.algo.fit')}
                   dataKey="fit"
@@ -155,12 +155,39 @@ export function MppAlgorithm() {
                   dot={false}
                   connectNulls
                   type="monotone"
+                  isAnimationActive={false}
                 />
+                <Scatter name={t('mpp.algo.observed')} dataKey="cote" fill="#10b981" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// Hover read-out: the probability plus whatever series sit at this x (the
+// observed cote and/or the fitted value).
+interface TooltipEntry { name?: string; value?: number; color?: string }
+function ChartTooltip({
+  active,
+  label,
+  payload,
+}: {
+  active?: boolean;
+  label?: number;
+  payload?: TooltipEntry[];
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs shadow-lg">
+      <div className="mb-1 text-slate-400">p = {Math.round((label ?? 0) * 100)}%</div>
+      {payload.map((e) => (
+        <div key={e.name} style={{ color: e.color }}>
+          {e.name}: {Math.round(e.value ?? 0)}
+        </div>
+      ))}
     </div>
   );
 }
