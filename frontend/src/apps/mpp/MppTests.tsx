@@ -351,28 +351,28 @@ function Cell({
   return (
     <table className="mx-auto border-collapse text-center">
       <tbody>
-        <tr className="text-[11px] font-bold text-white">
+        <tr className="text-sm font-bold text-white">
           <Td />
           <Td w={nameWidth}>{match.home ? countryName(match.home, language) : '1'}</Td>
           <Td>N</Td>
           <Td w={nameWidth}>{match.away ? countryName(match.away, language) : '2'}</Td>
           <Td>{t('mpp.tests.total')}</Td>
         </tr>
-        <tr className="font-mono text-slate-100">
+        <tr className="font-mono text-sm text-slate-100">
           <Label>{t('mpp.tests.odds')}</Label>
           <Td>{num(cotes[0])}</Td>
           <Td>{num(cotes[1])}</Td>
           <Td>{num(cotes[2])}</Td>
           <Td strong>{num(sum(cotes))}</Td>
         </tr>
-        <tr className="font-mono text-[11px] text-slate-400">
+        <tr className="font-mono text-sm text-slate-400">
           <Label>{t('mpp.tests.probability')}</Label>
           <Td>{num(probs[0], '%')}</Td>
           <Td>{num(probs[1], '%')}</Td>
           <Td>{num(probs[2], '%')}</Td>
           <Td strong>{num(sum(probs), '%')}</Td>
         </tr>
-        <tr className="font-mono text-xs text-amber-300/90">
+        <tr className="font-mono text-sm text-amber-300/90">
           <Label>{t('mpp.tests.expected')}</Label>
           <Td>{num(esps[0])}</Td>
           <Td>{num(esps[1])}</Td>
@@ -405,7 +405,7 @@ function Td({
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <td className="border border-slate-700/70 px-2 py-0.5 text-center font-sans text-[11px] font-bold text-white">
+    <td className="border border-slate-700/70 px-2 py-0.5 text-center font-sans text-sm font-bold text-white">
       {children}
     </td>
   );
