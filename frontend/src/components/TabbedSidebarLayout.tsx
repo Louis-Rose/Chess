@@ -88,19 +88,30 @@ export function TabbedSidebarLayout({
             menuOpen ? 'opacity-100' : 'opacity-0'
           }`}
         />
-        <AppSidebar
-          profileItems={profileItems}
-          className={`absolute left-0 top-0 flex h-dvh transition-transform duration-200 ${
+        <div
+          className={`absolute left-0 top-0 h-dvh transition-transform duration-200 ${
             menuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          {navList(() => setMenuOpen(false))}
-        </AppSidebar>
+          <AppSidebar profileItems={profileItems} className="flex h-dvh">
+            {navList(() => setMenuOpen(false))}
+          </AppSidebar>
+          {/* The menu button stays put (same spot as the top bar's) so you can
+              tap it again to collapse the drawer. */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+            className="absolute left-3 top-3 rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar: menu button, LUMNA logo (→ chooser), title, controls */}
-        <div className="flex items-center gap-3 border-b border-slate-800 px-3 py-3 md:hidden">
+        {/* Mobile top bar: menu button (left), logo + name (centered), controls (right) */}
+        <div className="relative flex items-center border-b border-slate-800 px-3 py-3 md:hidden">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -109,10 +120,12 @@ export function TabbedSidebarLayout({
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Link to="/" aria-label="LUMNA home" className="transition-opacity hover:opacity-80">
-            <LumnaLogo className="h-7 w-7" />
-          </Link>
-          <span className="text-lg font-bold tracking-wide">{titleLabel ?? title}</span>
+          <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2">
+            <Link to="/" aria-label="LUMNA home" className="transition-opacity hover:opacity-80">
+              <LumnaLogo className="h-7 w-7" />
+            </Link>
+            <span className="text-lg font-bold tracking-wide">{titleLabel ?? title}</span>
+          </div>
           {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
         </div>
 
