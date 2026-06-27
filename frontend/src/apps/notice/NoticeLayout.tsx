@@ -48,7 +48,7 @@ export function NoticeLayout() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+      className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
     >
       {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       {theme === 'dark' ? t('notice.theme.toLight') : t('notice.theme.toDark')}
