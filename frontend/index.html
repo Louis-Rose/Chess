@@ -33,10 +33,10 @@
         else if (p.startsWith('/chess')) {
           if (m) m.href = '/chess-manifest.json';
         }
-        else if (m) {
-          // Chooser and other pages aren't an installable app of their own.
-          m.remove();
-        }
+        // Everything else (the welcome/chooser page and generic LUMNA pages)
+        // keeps the default /manifest.json so LUMNA itself can be installed to
+        // the home screen. In production "/" is served by the static index.html
+        // with this manifest hard-coded, so Safari sees it natively.
       })();
     </script>
 
