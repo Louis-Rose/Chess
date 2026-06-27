@@ -7,7 +7,7 @@ import { OWNER_EMAIL } from '../config';
 import { APPS, type AppEntry } from '../apps/catalog';
 
 const TILE_CLASS =
-  'group flex w-full flex-col items-center justify-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 px-6 py-12 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10';
+  'group flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-slate-700 bg-slate-800/50 px-4 py-8 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10 sm:gap-4 sm:px-6 sm:py-12';
 
 function Tile({ entry }: { entry: AppEntry }) {
   const { t } = useLanguage();
@@ -46,7 +46,7 @@ export function ChooserPage() {
           {tiles.map((entry) => (
             <div
               key={entry.path}
-              className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]"
+              className="w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]"
             >
               <Tile entry={entry} />
             </div>
