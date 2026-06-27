@@ -8,13 +8,13 @@ import { FitBottomNav, type FitTab } from './FitBottomNav';
 import { FitHeader } from './FitHeader';
 import { FitProgramme } from './FitProgramme';
 import { FitLogin } from './FitLogin';
-import { FitAuthProvider, useFitAuth } from './fitAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import { FitChrono } from './FitChrono';
 import { requestSessionResume } from './sessionResume';
 
 // New native fitness app (replaces the old Notion-synced Gym page).
-// French only, designed primarily for phone. Per-user, with its own
-// independent auth session (see fitAuth).
+// French only, designed primarily for phone. Per-user, on the shared
+// lumna.co session (see contexts/AuthContext).
 
 const TABS: FitTab[] = [
   { key: 'calendrier', label: 'Calendrier', Icon: CalendarDays },
@@ -29,15 +29,11 @@ export function FitApp() {
     document.title = 'Mon programme';
   }, []);
 
-  return (
-    <FitAuthProvider>
-      <FitAppInner />
-    </FitAuthProvider>
-  );
+  return <FitAppInner />;
 }
 
 function FitAppInner() {
-  const { isLoading, isAuthenticated } = useFitAuth();
+  const { isLoading, isAuthenticated } = useAuth();
   const [active, setActive] = useState(TABS[0].key);
   // Bumped whenever a tab is re-tapped while already active, so the content
   // remounts and resets to its root view (e.g. exits a session in progress).

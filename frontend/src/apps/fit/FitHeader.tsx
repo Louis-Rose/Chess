@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dumbbell, LogOut } from 'lucide-react';
-import { useFitAuth } from './fitAuth';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Top bar for the gym app:
 //  - left: Google profile picture, click for a dropdown (Se déconnecter)
 //  - center: "LUMNA" centered in the bar, with the dumbbell just to its left
 //    (the icon is positioned absolutely so it doesn't shift the centering).
 export function FitHeader() {
-  const { user, logout } = useFitAuth();
+  const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
