@@ -20,7 +20,7 @@ export function SiteNav() {
             (full width, equal halves, centered).
           - sm+: single h-16 row — brand left, buttons + language on the right. */}
       <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-wrap items-center gap-y-3 py-3 sm:py-0 sm:h-16">
-        <Link to="/chess" className="order-1 mr-auto flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <Link to="/" aria-label="LUMNA home" className="order-1 mr-auto flex items-center gap-2 hover:opacity-80 transition-opacity">
           <LumnaLogo className="w-7 h-7" />
           <span className="text-lg font-bold tracking-wide">LUMNA</span>
         </Link>
