@@ -33,12 +33,15 @@ function navClass(active: boolean): string {
 //   nav         — the app's tabs (label already resolved/translated)
 //   profileItems— extra items appended to the rail's profile menu
 //   headerRight — controls shown top-right on both the desktop and mobile bars
+//   contentClassName — extra classes on <main> (e.g. a themed background); the
+//                      rail/drawer and the bars stay dark either way
 export function TabbedSidebarLayout({
   title,
   titleLabel,
   nav,
   profileItems,
   headerRight,
+  contentClassName = '',
   children,
 }: {
   title: string;
@@ -46,6 +49,7 @@ export function TabbedSidebarLayout({
   nav: TabNavItem[];
   profileItems?: ProfileMenuItem[];
   headerRight?: ReactNode;
+  contentClassName?: string;
   children?: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -122,7 +126,7 @@ export function TabbedSidebarLayout({
           )}
         </div>
 
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className={`min-w-0 flex-1 ${contentClassName}`}>{children}</main>
       </div>
     </div>
   );
