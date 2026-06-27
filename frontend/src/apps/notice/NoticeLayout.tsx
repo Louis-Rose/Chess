@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { FileText, Library, Lightbulb, Lock, LogOut, Moon, Sun, type LucideIcon } from 'lucide-react';
 import { LumnaLogo } from '../chesscoaches/components/LumnaBrand';
 import { AppSidebar } from '../../components/AppSidebar';
@@ -94,9 +94,9 @@ export function NoticeLayout() {
       <div className="flex min-w-0 flex-1 flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
         {/* Mobile top nav — always dark */}
         <div className="flex items-center gap-1 border-b border-slate-800 bg-slate-900 px-3 py-2 text-slate-100 md:hidden">
-          <NavLink to="/notice" end className="mr-2 flex items-center gap-2">
+          <Link to="/" aria-label="LUMNA home" className="mr-2 flex items-center gap-2">
             <LumnaLogo className="h-6 w-6" />
-          </NavLink>
+          </Link>
           {NAV.map(({ to, labelKey, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => navClass(isActive)}>
               <Icon className="h-4 w-4" />
