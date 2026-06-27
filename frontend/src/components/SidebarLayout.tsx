@@ -9,7 +9,7 @@ import { LangToggle } from './LangToggle';
 // area background (e.g. YC uses near-black).
 export function SidebarLayout({
   title,
-  contentClassName = 'bg-slate-100 dark:bg-slate-900',
+  contentClassName = 'bg-slate-200 dark:bg-slate-900',
   langToggle = false,
   children,
 }: {
