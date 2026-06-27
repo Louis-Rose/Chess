@@ -28,7 +28,10 @@ export function SidebarLayout({
           <AppHeader title={title} langToggle={langToggle} />
         </div>
         <main className={`min-w-0 flex-1 ${contentClassName}`}>
-          {title && (
+          {/* Header strip: shown when there's a title, or when only the language
+              toggle is active (e.g. the chooser, which has no title but still
+              lets you set the global FR/EN preference). */}
+          {(title || langToggle) && (
             <div className="relative hidden border-b border-slate-800 px-6 py-5 md:block">
               <AppTitle title={title} />
               <div className="absolute right-6 top-1/2 -translate-y-1/2">

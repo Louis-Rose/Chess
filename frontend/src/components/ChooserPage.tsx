@@ -32,7 +32,7 @@ export function ChooserPage() {
   const tiles = APPS.filter((a) => !a.ownerOnly || isOwner);
 
   return (
-    <SidebarLayout>
+    <SidebarLayout langToggle>
       <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-10 md:min-h-full">
         {/* Hold the grid until auth resolves so owner-only tiles don't pop in and
             reflow the rows (a 3-wide row jumping to 4 on refresh). */}
