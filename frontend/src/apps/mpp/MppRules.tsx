@@ -8,7 +8,7 @@ import { MppPageTitle } from './MppPageTitle';
 export function MppRules() {
   const { t } = useLanguage();
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-center text-sm leading-relaxed text-slate-300 sm:px-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-center text-sm leading-relaxed text-slate-700 dark:text-slate-300 sm:px-6">
       <MppPageTitle />
 
       <Section title={t('mpp.rules.basicsTitle')}>
@@ -45,7 +45,7 @@ export function MppRules() {
         <p>
           {t('mpp.rules.rarityDesc')}
         </p>
-        <div className="mt-3 overflow-hidden rounded-xl border border-slate-800">
+        <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
           <Row head cells={[t('mpp.rules.colTier'), t('mpp.rules.colShareCorrect'), t('mpp.rules.colBonus')]} />
           <Row cells={[t('mpp.rules.tierExact'), t('mpp.rules.shareOver30'), '+20']} />
           <Row cells={[t('mpp.rules.tierRare'), t('mpp.rules.share20to30'), '+30']} />
@@ -59,7 +59,7 @@ export function MppRules() {
         <p>
           {t('mpp.rules.knockoutDesc')}
         </p>
-        <p className="mt-2 text-slate-400">
+        <p className="mt-2 text-slate-500 dark:text-slate-400">
           {t('mpp.rules.knockoutExample')}
         </p>
       </Section>
@@ -70,8 +70,8 @@ export function MppRules() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="space-y-2 rounded-2xl border border-slate-800 bg-slate-800/40 p-5">
-      <h3 className="font-semibold text-slate-100">{title}</h3>
+    <section className="space-y-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40 p-5">
+      <h3 className="font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
       {children}
     </section>
   );
@@ -90,16 +90,16 @@ function Row({ cells, head }: { cells: string[]; head?: boolean }) {
     <div
       className={`grid ${
         head
-          ? 'border-b border-slate-800 bg-slate-900/40 text-xs uppercase tracking-wide text-slate-500'
-          : 'border-b border-slate-800/60 last:border-0'
+          ? 'border-b border-slate-200 dark:border-slate-800 bg-slate-200/40 dark:bg-slate-900/40 text-xs uppercase tracking-wide text-slate-500'
+          : 'border-b border-slate-200/60 dark:border-slate-800/60 last:border-0'
       }`}
       style={{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }}
     >
       {cells.map((c, i) => (
         <span
           key={i}
-          className={`px-4 py-2 text-center ${i > 0 ? 'border-l border-slate-800' : ''} ${
-            i === cells.length - 1 && !head ? 'font-semibold text-slate-100' : ''
+          className={`px-4 py-2 text-center ${i > 0 ? 'border-l border-slate-200 dark:border-slate-800' : ''} ${
+            i === cells.length - 1 && !head ? 'font-semibold text-slate-900 dark:text-slate-100' : ''
           }`}
         >
           {c}

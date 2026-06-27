@@ -12,7 +12,7 @@ export function TeamCrest({ src, className = 'h-7 w-7' }: { src: string | null; 
   if (!src || failed) {
     return (
       <span
-        className={`flex shrink-0 items-center justify-center rounded-full bg-slate-700 text-slate-400 ${className}`}
+        className={`flex shrink-0 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 ${className}`}
       >
         <Flag className="h-1/2 w-1/2" />
       </span>

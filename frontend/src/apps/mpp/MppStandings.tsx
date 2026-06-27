@@ -37,7 +37,7 @@ export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wide text-slate-500">
             <th className="px-3 py-2 text-left font-medium">{t('mpp.standings.rank')}</th>
             <th className="px-3 py-2 text-left font-medium">{t('mpp.standings.player')}</th>
             <th className="px-2 py-2 text-right font-medium">{t('mpp.standings.good')}</th>
@@ -51,8 +51,8 @@ export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
             return (
               <tr
                 key={s.user_id}
-                className={`border-b border-slate-800/60 ${
-                  isMe ? 'bg-emerald-500/10' : 'hover:bg-slate-800/40'
+                className={`border-b border-slate-200/60 dark:border-slate-800/60 ${
+                  isMe ? 'bg-emerald-500/10' : 'hover:bg-slate-100/40 dark:hover:bg-slate-800/40'
                 }`}
               >
                 <td className="px-3 py-2">
@@ -67,14 +67,14 @@ export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
                         className="h-7 w-7 shrink-0 rounded-full object-cover"
                       />
                     )}
-                    <span className={`truncate ${isMe ? 'font-semibold text-emerald-300' : 'text-slate-200'}`}>
+                    <span className={`truncate ${isMe ? 'font-semibold text-emerald-300' : 'text-slate-800 dark:text-slate-200'}`}>
                       {s.username}
                     </span>
                   </div>
                 </td>
-                <td className="px-2 py-2 text-right tabular-nums text-slate-400">{s.good}</td>
-                <td className="px-2 py-2 text-right tabular-nums text-slate-400">{s.exact}</td>
-                <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-100">
+                <td className="px-2 py-2 text-right tabular-nums text-slate-500 dark:text-slate-400">{s.good}</td>
+                <td className="px-2 py-2 text-right tabular-nums text-slate-500 dark:text-slate-400">{s.exact}</td>
+                <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-900 dark:text-slate-100">
                   {s.points?.toLocaleString(loc)}
                 </td>
               </tr>
@@ -88,7 +88,7 @@ export function MppStandingsPanel({ challengeId }: { challengeId: string }) {
 
 const MEDAL: Record<number, string> = {
   1: 'bg-amber-400/20 text-amber-300',
-  2: 'bg-slate-300/20 text-slate-200',
+  2: 'bg-slate-300/20 text-slate-800 dark:text-slate-200',
   3: 'bg-orange-500/20 text-orange-300',
 };
 

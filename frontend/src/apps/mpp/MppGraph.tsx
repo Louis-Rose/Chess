@@ -61,7 +61,7 @@ export function MppGraph({ challengeId }: { challengeId: string }) {
 
   return (
     <div className="px-4 pb-4 pt-8">
-      <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-slate-400">
+      <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {t('mpp.graph.title')}
       </h3>
       <div className="h-80 w-full">

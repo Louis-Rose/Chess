@@ -40,13 +40,13 @@ export function MppConnect({ onConnected }: { onConnected: () => void }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-100">{t('mpp.connect.title')}</h2>
-        <p className="mt-1 text-sm text-slate-400">{t('mpp.connect.intro')}</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{t('mpp.connect.title')}</h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{t('mpp.connect.intro')}</p>
       </div>
 
-      <ol className="space-y-4 text-sm text-slate-300">
+      <ol className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
         <li>
-          <span className="font-semibold text-slate-100">1.</span> {t('mpp.connect.step1Pre')}{' '}
+          <span className="font-semibold text-slate-900 dark:text-slate-100">1.</span> {t('mpp.connect.step1Pre')}{' '}
           <a
             href="https://mpp.football"
             target="_blank"
@@ -58,14 +58,14 @@ export function MppConnect({ onConnected }: { onConnected: () => void }) {
           {t('mpp.connect.step1Post')}
         </li>
         <li>
-          <span className="font-semibold text-slate-100">2.</span> {t('mpp.connect.step2')}
+          <span className="font-semibold text-slate-900 dark:text-slate-100">2.</span> {t('mpp.connect.step2')}
           <div className="mt-2 flex items-start gap-2">
-            <code className="flex-1 overflow-x-auto rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-2 text-xs text-emerald-300">
+            <code className="flex-1 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-200/80 dark:bg-slate-900/80 px-3 py-2 text-xs text-emerald-300">
               {EXTRACT_SNIPPET}
             </code>
             <button
               onClick={copySnippet}
-              className="shrink-0 rounded-lg border border-slate-700 bg-slate-800/60 p-2 text-slate-300 hover:border-emerald-500 hover:text-emerald-400"
+              className="shrink-0 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 p-2 text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-400"
               title={t('mpp.connect.copySnippet')}
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -73,7 +73,7 @@ export function MppConnect({ onConnected }: { onConnected: () => void }) {
           </div>
         </li>
         <li>
-          <span className="font-semibold text-slate-100">3.</span> {t('mpp.connect.step3')}
+          <span className="font-semibold text-slate-900 dark:text-slate-100">3.</span> {t('mpp.connect.step3')}
         </li>
       </ol>
 
@@ -82,7 +82,7 @@ export function MppConnect({ onConnected }: { onConnected: () => void }) {
         onChange={(e) => setToken(e.target.value)}
         rows={3}
         placeholder={t('mpp.connect.placeholder')}
-        className="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
+        className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-200/80 dark:bg-slate-900/80 px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none"
       />
 
       {error && <p className="text-sm text-red-400">{error}</p>}

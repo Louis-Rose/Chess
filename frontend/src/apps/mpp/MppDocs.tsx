@@ -52,7 +52,7 @@ export function MppDocs() {
             </div>
           }
         />
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           {t('mpp.docs.intro1')} {count} {t('mpp.docs.intro2')}{' '}
           {MPP_API.groups.length} {t('mpp.docs.intro3')}{' '}
           {MPP_API.extractedAt}.
@@ -60,7 +60,7 @@ export function MppDocs() {
       </header>
 
       {/* Base + auth */}
-      <section className="space-y-2 rounded-2xl border border-slate-800 bg-slate-800/40 p-5">
+      <section className="space-y-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40 p-5">
         <Field label={t('mpp.docs.baseUrl')} value={MPP_API.baseUrl} mono />
         <Field label={t('mpp.docs.auth')} value={MPP_API.auth.scheme} mono />
         <Field label={t('mpp.docs.token')} value={MPP_API.auth.tokenEndpoint} mono />
@@ -72,10 +72,10 @@ export function MppDocs() {
       {MPP_API.groups.map((g) => (
         <section key={g.title} className="space-y-3">
           <div>
-            <h3 className="text-base font-semibold text-slate-100">{g.title}</h3>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{g.title}</h3>
             <p className="text-xs text-slate-500">{g.description}</p>
           </div>
-          <div className="overflow-hidden rounded-2xl border border-slate-800">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
             {g.endpoints.map((e, i) => (
               <EndpointRow key={e.path + i} endpoint={e} last={i === g.endpoints.length - 1} />
             ))}
@@ -90,7 +90,7 @@ export function MppDocs() {
           {showRaw ? t('mpp.docs.hideRawJson') : t('mpp.docs.showRawJson')}
         </button>
         {showRaw && (
-          <pre className="max-h-96 overflow-auto rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-xs leading-relaxed text-slate-300">
+          <pre className="max-h-96 overflow-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-950/60 p-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
             {json}
           </pre>
         )}
@@ -103,15 +103,15 @@ function EndpointRow({ endpoint: e, last }: { endpoint: MppEndpoint; last: boole
   const { t } = useLanguage();
   return (
     <div
-      className={`flex items-start gap-3 bg-slate-800/40 px-4 py-3 ${
-        last ? '' : 'border-b border-slate-800'
+      className={`flex items-start gap-3 bg-white/40 dark:bg-slate-800/40 px-4 py-3 ${
+        last ? '' : 'border-b border-slate-200 dark:border-slate-800'
       }`}
     >
       <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${methodClass(e.method)}`}>
         {e.method}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-2 font-mono text-sm text-slate-200">
+        <p className="flex flex-wrap items-center gap-2 font-mono text-sm text-slate-800 dark:text-slate-200">
           <span className="break-all">{e.path}</span>
           {e.verified && (
             <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
@@ -129,13 +129,13 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
   return (
     <div className="flex flex-wrap items-baseline gap-2">
       <span className="w-20 shrink-0 text-xs uppercase tracking-wide text-slate-500">{label}</span>
-      <span className={`break-all text-sm text-slate-200 ${mono ? 'font-mono' : ''}`}>{value}</span>
+      <span className={`break-all text-sm text-slate-800 dark:text-slate-200 ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   );
 }
 
 const btnClass =
-  'flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-400';
+  'flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-800 dark:text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-400';
 
 function methodClass(method: string): string {
   switch (method) {
@@ -149,6 +149,6 @@ function methodClass(method: string): string {
     case 'DELETE':
       return 'bg-red-500/15 text-red-300';
     default:
-      return 'bg-slate-700/60 text-slate-400';
+      return 'bg-slate-100/60 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400';
   }
 }

@@ -195,7 +195,7 @@ export function MppAlgorithm() {
         <Spinner />
       ) : (
         <>
-          <p className="mb-4 text-sm text-slate-400">{t('mpp.algo.intro')}</p>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">{t('mpp.algo.intro')}</p>
 
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Stat label={t('mpp.algo.floor')} value={model.cMin} />
@@ -206,7 +206,7 @@ export function MppAlgorithm() {
             <Stat label={t('mpp.algo.dataPoints')} value={model.n} />
           </div>
 
-          <p className="mb-2 text-sm font-medium text-slate-300">{t('mpp.algo.perMatchTitle')}</p>
+          <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">{t('mpp.algo.perMatchTitle')}</p>
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat label={t('mpp.algo.alpha')} value={model.perMatch.alpha.toFixed(2)} />
             <Stat label={t('mpp.algo.r2')} value={model.perMatch.r2.toFixed(2)} />
@@ -218,7 +218,7 @@ export function MppAlgorithm() {
             <Stat label={t('mpp.algo.matches')} value={model.perMatch.nMatches} />
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40 p-4">
             <ResponsiveContainer width="100%" height={440}>
               <ComposedChart data={model.chart} margin={{ top: 8, right: 20, bottom: 32, left: 8 }}>
                 <CartesianGrid stroke="#1e293b" />
@@ -287,23 +287,23 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: Tooltip
   const row = obs ?? payload[0]?.payload;
   if (!row) return null;
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs shadow-lg">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-200 dark:bg-slate-900 px-3 py-2 text-xs shadow-lg">
       {obs ? (
         <>
-          <div className="mb-1 font-semibold text-slate-100">{row.teams}</div>
-          <div className="text-slate-300">
+          <div className="mb-1 font-semibold text-slate-900 dark:text-slate-100">{row.teams}</div>
+          <div className="text-slate-700 dark:text-slate-300">
             {t('mpp.algo.pick')}: <span className="font-medium">{row.pick}</span>
           </div>
           <div className="text-emerald-400">
             {t('mpp.tests.odds')}: {row.cote}
           </div>
-          <div className="text-slate-400">
+          <div className="text-slate-500 dark:text-slate-400">
             {t('mpp.tests.probability')}: {Math.round(row.p * 100)}%
           </div>
         </>
       ) : (
         <>
-          <div className="mb-1 text-slate-400">p = {Math.round(row.p * 100)}%</div>
+          <div className="mb-1 text-slate-500 dark:text-slate-400">p = {Math.round(row.p * 100)}%</div>
           <div className="text-amber-400">
             {t('mpp.algo.fit')}: {Math.round(row.fit ?? 0)}
           </div>
@@ -315,9 +315,9 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: Tooltip
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-center">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-200/40 dark:bg-slate-900/40 px-4 py-3 text-center">
       <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 font-mono text-2xl font-semibold text-slate-100">{value}</div>
+      <div className="mt-1 font-mono text-2xl font-semibold text-slate-900 dark:text-slate-100">{value}</div>
       {sub && <div className="mt-0.5 font-mono text-xs text-slate-500">{sub}</div>}
     </div>
   );
@@ -326,7 +326,7 @@ function Stat({ label, value, sub }: { label: string; value: string | number; su
 function Spinner() {
   return (
     <div className="flex h-40 items-center justify-center">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-700 border-t-emerald-500" />
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-emerald-500" />
     </div>
   );
 }

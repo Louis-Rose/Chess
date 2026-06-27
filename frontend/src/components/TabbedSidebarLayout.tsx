@@ -74,7 +74,7 @@ export function TabbedSidebarLayout({
   );
 
   return (
-    <div className="flex min-h-dvh bg-slate-900 text-slate-100">
+    <div className="flex min-h-dvh bg-slate-200 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
       {/* Desktop rail */}
       <AppSidebar className="sticky top-0 hidden h-dvh md:flex" profileItems={profileItems}>
         {navList()}
@@ -111,12 +111,12 @@ export function TabbedSidebarLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar: menu button (left), logo + name (centered), controls (right) */}
-        <div className="relative flex items-center border-b border-slate-800 px-3 py-3 md:hidden">
+        <div className="relative flex items-center border-b border-slate-200 px-3 py-3 dark:border-slate-800 md:hidden">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
-            className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-100"
+            className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -130,7 +130,7 @@ export function TabbedSidebarLayout({
         </div>
 
         {/* Desktop title bar */}
-        <div className="relative hidden border-b border-slate-800 px-6 py-5 md:block">
+        <div className="relative hidden border-b border-slate-200 px-6 py-5 dark:border-slate-800 md:block">
           <AppTitle title={title} label={titleLabel} />
           {headerRight && (
             <div className="absolute right-6 top-1/2 flex -translate-y-1/2 items-center gap-2">

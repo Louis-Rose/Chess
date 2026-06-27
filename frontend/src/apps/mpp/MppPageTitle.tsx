@@ -13,7 +13,7 @@ export function MppPageTitle({ action }: { action?: ReactNode }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
       <div />
-      <h2 className="text-center text-xl font-bold text-slate-100">{key ? t(key) : 'MPP'}</h2>
+      <h2 className="text-center text-xl font-bold text-slate-900 dark:text-slate-100">{key ? t(key) : 'MPP'}</h2>
       <div className="flex justify-end">{action}</div>
     </div>
   );

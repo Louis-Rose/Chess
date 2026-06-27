@@ -43,7 +43,7 @@ export function MppLeaderboard() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-1.5 text-sm font-medium text-slate-800 dark:text-slate-200 transition-colors hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {t('mpp.leaderboard.refresh')}
@@ -58,7 +58,7 @@ export function MppLeaderboard() {
       )}
 
       {loading && !data ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center text-slate-400">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40 p-10 text-center text-slate-500 dark:text-slate-400">
           {t('mpp.leaderboard.loading')}
         </div>
       ) : data && data.contests.length ? (
@@ -68,7 +68,7 @@ export function MppLeaderboard() {
           ))}
         </div>
       ) : data ? (
-        <div className="rounded-2xl border border-slate-800 bg-slate-800/40 p-10 text-center text-slate-400">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40 p-10 text-center text-slate-500 dark:text-slate-400">
           {t('mpp.leaderboard.empty')}
         </div>
       ) : null}
@@ -81,7 +81,7 @@ function ContestCard({ contest: c }: { contest: MppContest }) {
   const challengeId = c.id != null ? String(c.id) : null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-800/40">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-800/40">
       <div className="flex items-center justify-between gap-4 px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           {c.image_url ? (
@@ -90,7 +90,7 @@ function ContestCard({ contest: c }: { contest: MppContest }) {
             <Trophy className="h-6 w-6 shrink-0 text-emerald-400" strokeWidth={1.5} />
           )}
           <div className="min-w-0">
-            <p className="flex items-center gap-2 truncate font-semibold text-slate-100">
+            <p className="flex items-center gap-2 truncate font-semibold text-slate-900 dark:text-slate-100">
               {c.title ?? t('mpp.leaderboard.leagueFallback')}
               {c.is_live && (
                 <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-400">
@@ -117,10 +117,10 @@ function ContestCard({ contest: c }: { contest: MppContest }) {
       </div>
       {challengeId && (
         <>
-          <div className="border-t border-slate-800">
+          <div className="border-t border-slate-200 dark:border-slate-800">
             <MppStandingsPanel challengeId={challengeId} />
           </div>
-          <div className="border-t border-slate-800">
+          <div className="border-t border-slate-200 dark:border-slate-800">
             <MppGraph challengeId={challengeId} />
           </div>
         </>
@@ -132,7 +132,7 @@ function ContestCard({ contest: c }: { contest: MppContest }) {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <p className="text-lg font-bold text-slate-100">{value}</p>
+      <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{value}</p>
       <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
     </div>
   );

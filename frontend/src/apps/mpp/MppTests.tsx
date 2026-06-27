@@ -247,7 +247,7 @@ function DateStrip({
     `shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
       selected
         ? 'bg-emerald-500/15 text-emerald-300'
-        : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200'
     }`;
 
   // Drag the strip to pan it (it runs past the edge once past days show); a drag
@@ -344,16 +344,16 @@ function Table({
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
     >
-      <table className="w-full border-collapse border border-slate-700 text-center text-sm">
+      <table className="w-full border-collapse border border-slate-200 dark:border-slate-700 text-center text-sm">
         <thead>
           <tr>
-            <th className="border border-slate-700 bg-slate-800/60 px-3 py-2 text-center font-medium text-slate-300">
+            <th className="border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-3 py-2 text-center font-medium text-slate-700 dark:text-slate-300">
               {t('mpp.tests.match')}
             </th>
             {columns.map((c) => (
               <th
                 key={c}
-                className="relative border border-slate-700 bg-slate-800/60 px-8 py-2 font-medium text-slate-300"
+                className="relative border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 px-8 py-2 font-medium text-slate-700 dark:text-slate-300"
               >
                 {fmtFetch(c, loc)}
                 <button
@@ -370,8 +370,8 @@ function Table({
         <tbody>
           {matches.map((m) => (
             <tr key={m.match_id}>
-              <td className="border border-slate-700 px-3 py-2 align-middle">
-                <div className="mx-auto flex w-fit flex-col items-start gap-2 font-semibold text-slate-100">
+              <td className="border border-slate-200 dark:border-slate-700 px-3 py-2 align-middle">
+                <div className="mx-auto flex w-fit flex-col items-start gap-2 font-semibold text-slate-900 dark:text-slate-100">
                   <span className="flex items-center gap-1.5 whitespace-nowrap">
                     <TeamCrest src={m.home_crest} className="h-5 w-5" />
                     {m.home ? countryName(m.home, language) : '?'}
@@ -386,7 +386,7 @@ function Table({
                 )}
               </td>
               {columns.map((c) => (
-                <td key={c} className="border border-slate-700 px-2 py-2 align-middle">
+                <td key={c} className="border border-slate-200 dark:border-slate-700 px-2 py-2 align-middle">
                   <Cell match={m} cell={m.cells[c]} t={t} language={language} nameWidth={nameWidth} />
                 </td>
               ))}
@@ -432,21 +432,21 @@ function Cell({
   return (
     <table className="mx-auto border-collapse text-center">
       <tbody>
-        <tr className="text-sm font-bold text-white">
+        <tr className="text-sm font-bold text-slate-900 dark:text-white">
           <Td />
           <Td w={nameWidth}>{match.home ? countryName(match.home, language) : '1'}</Td>
           <Td>N</Td>
           <Td w={nameWidth}>{match.away ? countryName(match.away, language) : '2'}</Td>
           <Td>{t('mpp.tests.total')}</Td>
         </tr>
-        <tr className="font-mono text-sm text-slate-100">
+        <tr className="font-mono text-sm text-slate-900 dark:text-slate-100">
           <Label>{t('mpp.tests.odds')}</Label>
           <Td>{num(cotes[0])}</Td>
           <Td>{num(cotes[1])}</Td>
           <Td>{num(cotes[2])}</Td>
           <Td strong>{num(sum(cotes))}</Td>
         </tr>
-        <tr className="font-mono text-sm text-slate-400">
+        <tr className="font-mono text-sm text-slate-500 dark:text-slate-400">
           <Label>{t('mpp.tests.probability')}</Label>
           <Td>{num(probs[0], '%')}</Td>
           <Td>{num(probs[1], '%')}</Td>
@@ -477,7 +477,7 @@ function Td({
   return (
     <td
       style={w ? { width: `${w}ch`, whiteSpace: 'nowrap' } : undefined}
-      className={`border border-slate-700/70 px-2 py-0.5 ${strong ? 'font-semibold text-slate-100' : ''}`}
+      className={`border border-slate-200/70 dark:border-slate-700/70 px-2 py-0.5 ${strong ? 'font-semibold text-slate-900 dark:text-slate-100' : ''}`}
     >
       {children}
     </td>
@@ -486,7 +486,7 @@ function Td({
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <td className="border border-slate-700/70 px-2 py-0.5 text-center font-sans text-sm font-bold text-white">
+    <td className="border border-slate-200/70 dark:border-slate-700/70 px-2 py-0.5 text-center font-sans text-sm font-bold text-slate-900 dark:text-white">
       {children}
     </td>
   );
@@ -507,18 +507,18 @@ function ConfirmModal({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl"
+        className="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-200 dark:bg-slate-900 p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-base font-semibold text-slate-100">{t('mpp.tests.confirm.title')}</h2>
-        <p className="mt-1.5 text-sm text-slate-400">
-          {t('mpp.tests.confirm.bodyBefore')} <span className="text-slate-200">{label}</span>{' '}
+        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">{t('mpp.tests.confirm.title')}</h2>
+        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+          {t('mpp.tests.confirm.bodyBefore')} <span className="text-slate-800 dark:text-slate-200">{label}</span>{' '}
           {t('mpp.tests.confirm.bodyAfter')}
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800"
+            className="rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             {t('mpp.tests.cancel')}
           </button>
@@ -537,7 +537,7 @@ function ConfirmModal({
 function Spinner() {
   return (
     <div className="flex h-40 items-center justify-center">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-700 border-t-emerald-500" />
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-emerald-500" />
     </div>
   );
 }
