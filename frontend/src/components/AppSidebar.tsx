@@ -26,7 +26,7 @@ export function AppSidebar({
   const { t } = useLanguage();
 
   return (
-    <aside className={`w-56 shrink-0 flex-col border-r border-slate-800 bg-slate-900 px-3 py-5 ${className}`}>
+    <aside className={`w-56 shrink-0 flex-col border-r border-slate-200 bg-white px-3 py-5 dark:border-slate-800 dark:bg-slate-900 ${className}`}>
       <Link
         to="/"
         aria-label="LUMNA home"
@@ -45,7 +45,7 @@ export function AppSidebar({
       <button
         type="button"
         onClick={toggle}
-        className="mt-auto flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
+        className="mt-auto flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
       >
         {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         {theme === 'dark' ? t('theme.toLight') : t('theme.toDark')}

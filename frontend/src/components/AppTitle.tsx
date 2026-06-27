@@ -9,7 +9,7 @@ export function AppTitle({ title, label }: { title?: string; label?: string }) {
   return (
     <div className="flex items-center justify-center gap-3">
       {Icon && <Icon className="h-9 w-9 text-emerald-400" strokeWidth={1.5} />}
-      <h1 className="text-3xl font-bold tracking-wide text-slate-100">{label ?? title}</h1>
+      <h1 className="text-3xl font-bold tracking-wide text-slate-900 dark:text-slate-100">{label ?? title}</h1>
     </div>
   );
 }

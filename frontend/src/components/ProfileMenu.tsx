@@ -36,7 +36,7 @@ export function ProfileMenu({
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
 
-  if (isLoading) return <span className="h-10 w-10 rounded-full bg-slate-800" />;
+  if (isLoading) return <span className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />;
   if (!isAuthenticated || !user) return <LoginButton size="medium" redirectTo="" />;
 
   const avatar = user.picture ? (
@@ -44,10 +44,10 @@ export function ProfileMenu({
       src={user.picture}
       alt=""
       referrerPolicy="no-referrer"
-      className="h-10 w-10 shrink-0 rounded-full border border-slate-700"
+      className="h-10 w-10 shrink-0 rounded-full border border-slate-200 dark:border-slate-700"
     />
   ) : (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-sm font-semibold">
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-sm font-semibold dark:border-slate-700 dark:bg-slate-800">
       {(user.name || user.email || '?').charAt(0).toUpperCase()}
     </span>
   );
@@ -61,24 +61,24 @@ export function ProfileMenu({
         aria-expanded={open}
         className={`flex items-center gap-3 focus:outline-none ${
           showName
-            ? 'w-full justify-center rounded-xl border border-slate-700 bg-slate-800/60 p-2 transition-colors hover:bg-slate-700/60'
+            ? 'w-full justify-center rounded-xl border border-slate-200 bg-slate-100 p-2 transition-colors hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-700/60'
             : 'rounded-full'
         }`}
       >
         {avatar}
         {showName && (
-          <span className="truncate text-sm font-semibold text-slate-100">{user.name}</span>
+          <span className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{user.name}</span>
         )}
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-full z-50 mt-2 w-max min-w-[12rem] overflow-hidden rounded-lg border border-slate-700 bg-slate-800 shadow-lg"
+          className="absolute left-0 top-full z-50 mt-2 w-max min-w-[12rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"
         >
-          <div className="border-b border-slate-700 px-3 py-2.5">
-            <p className="truncate text-sm font-medium text-slate-100">{user.name}</p>
-            <p className="truncate text-xs text-slate-400">{user.email}</p>
+          <div className="border-b border-slate-200 px-3 py-2.5 dark:border-slate-700">
+            <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{user.name}</p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
           </div>
           <button
             type="button"
@@ -87,7 +87,7 @@ export function ProfileMenu({
               setOpen(false);
               setFocusOpen(true);
             }}
-            className="flex w-full items-center gap-2 whitespace-nowrap border-b border-slate-700 px-3 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700"
+            className="flex w-full items-center gap-2 whitespace-nowrap border-b border-slate-200 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             <Focus className="h-4 w-4" />
             Focus
@@ -101,8 +101,8 @@ export function ProfileMenu({
                 setOpen(false);
                 onClick();
               }}
-              className={`flex w-full items-center gap-2 whitespace-nowrap border-b border-slate-700 px-3 py-2.5 text-left text-sm hover:bg-slate-700 ${
-                danger ? 'text-red-400' : 'text-slate-200'
+              className={`flex w-full items-center gap-2 whitespace-nowrap border-b border-slate-200 px-3 py-2.5 text-left text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-700 ${
+                danger ? 'text-red-400' : 'text-slate-700 dark:text-slate-200'
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -116,7 +116,7 @@ export function ProfileMenu({
               setOpen(false);
               logout();
             }}
-            className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700"
+            className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2.5 text-left text-sm text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700"
           >
             <LogOut className="h-4 w-4" />
             Sign out
