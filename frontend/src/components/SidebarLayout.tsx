@@ -10,10 +10,14 @@ import { LangToggle } from './LangToggle';
 export function SidebarLayout({
   title,
   contentClassName = 'bg-slate-900',
+  langToggle = false,
   children,
 }: {
   title?: string;
   contentClassName?: string;
+  // Activate the FR/EN toggle (default off: most SidebarLayout apps aren't
+  // translated, so an active toggle would be a no-op). Translated apps opt in.
+  langToggle?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -21,14 +25,14 @@ export function SidebarLayout({
       <AppSidebar className="sticky top-0 hidden h-dvh md:flex" />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="px-4 pt-4 md:hidden">
-          <AppHeader title={title} />
+          <AppHeader title={title} langToggle={langToggle} />
         </div>
         <main className={`min-w-0 flex-1 ${contentClassName}`}>
           {title && (
             <div className="relative hidden border-b border-slate-800 px-6 py-5 md:block">
               <AppTitle title={title} />
               <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                <LangToggle disabled />
+                <LangToggle disabled={!langToggle} />
               </div>
             </div>
           )}

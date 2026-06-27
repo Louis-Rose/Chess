@@ -39,7 +39,7 @@ export function MppApp() {
 
   if (status === null) {
     return (
-      <SidebarLayout title="MPP">
+      <SidebarLayout title="MPP" langToggle>
         <Spinner />
       </SidebarLayout>
     );
@@ -47,7 +47,7 @@ export function MppApp() {
 
   if (!status.connected) {
     return (
-      <SidebarLayout title="MPP">
+      <SidebarLayout title="MPP" langToggle>
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <MppConnect onConnected={loadStatus} />
         </div>

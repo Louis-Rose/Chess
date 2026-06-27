@@ -2,7 +2,9 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 // FR / EN language toggle (flag + code) for the top-right of each app header.
 // Shown everywhere for consistency, but `disabled` renders it as an inert
-// placeholder — only the Clothing app wires it up for now.
+// placeholder for apps that aren't translated (switching would just show raw
+// keys, since t() has no fallback). The translated apps (MPP, Clothing, Notice)
+// wire it up active.
 const LANGS = [
   { code: 'fr', flag: '🇫🇷', label: 'FR' },
   { code: 'en', flag: '🇬🇧', label: 'EN' },
