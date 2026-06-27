@@ -42,15 +42,16 @@ export function NoticeLayout() {
     });
   };
 
-  // Lives in the always-dark header bar, so it's styled for a dark background.
-  const themeButton = (
+  // Light/dark toggle pinned to the bottom of the rail/drawer (always dark), as
+  // a row matching the nav items.
+  const themeToggle = (
     <button
       type="button"
       onClick={toggleTheme}
-      aria-label="Toggle light/dark theme"
-      className="rounded-lg border border-slate-700 p-2 text-slate-300 transition-colors hover:bg-slate-800"
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
     >
       {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      {theme === 'dark' ? t('notice.theme.toLight') : t('notice.theme.toDark')}
     </button>
   );
 
@@ -64,7 +65,8 @@ export function NoticeLayout() {
     <TabbedSidebarLayout
       title="Notice.ai"
       nav={nav}
-      headerRight={<>{themeButton}<LangToggle /></>}
+      headerRight={<LangToggle />}
+      navFooter={themeToggle}
       contentClassName="flex flex-col bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100"
     >
       {!authLoading && !isAuthenticated ? (
