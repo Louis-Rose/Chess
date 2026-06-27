@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SidebarLayout } from './SidebarLayout';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { OWNER_EMAIL } from '../config';
 import { APPS, type AppEntry } from '../apps/catalog';
 
@@ -9,11 +10,12 @@ const TILE_CLASS =
   'group flex w-full flex-col items-center justify-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/50 px-6 py-12 transition-colors hover:border-emerald-500 hover:bg-emerald-500/10';
 
 function Tile({ entry }: { entry: AppEntry }) {
-  const { path, label, Icon } = entry;
+  const { t } = useLanguage();
+  const { path, labelKey, Icon } = entry;
   return (
     <Link to={path} className={TILE_CLASS}>
       <Icon className="h-14 w-14 text-emerald-400" strokeWidth={1.5} />
-      <span className="text-xl font-semibold">{label}</span>
+      <span className="text-xl font-semibold">{t(labelKey)}</span>
     </Link>
   );
 }

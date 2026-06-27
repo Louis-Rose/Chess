@@ -565,6 +565,15 @@ const translations: Record<Language, Record<string, string>> = {
     'mpp.docs.verified': 'Verified',
     'mpp.docs.hideRawJson': 'Hide raw JSON',
     'mpp.docs.showRawJson': 'Show raw JSON',
+    // App names (chooser tiles)
+    'app.chess': 'Chess',
+    'app.gym': 'Gym',
+    'app.music': 'Music',
+    'app.investing': 'Investing',
+    'app.yc': 'YC Advisor',
+    'app.clothing': 'Clothing',
+    'app.notice': 'Notice.ai',
+    'app.mpp': 'MPP',
     // Common
     'common.loading': 'Loading...',
     'common.error': 'Error',
@@ -1125,6 +1134,15 @@ const translations: Record<Language, Record<string, string>> = {
     'mpp.docs.verified': 'Vérifié',
     'mpp.docs.hideRawJson': 'Masquer le JSON brut',
     'mpp.docs.showRawJson': 'Afficher le JSON brut',
+    // App names (chooser tiles)
+    'app.chess': 'Échecs',
+    'app.gym': 'Muscu',
+    'app.music': 'Musique',
+    'app.investing': 'Investissement',
+    'app.yc': 'Conseiller YC',
+    'app.clothing': 'Vêtements',
+    'app.notice': 'Notice.ai',
+    'app.mpp': 'MPP',
     // Common
     'common.loading': 'Chargement...',
     'common.error': 'Erreur',
@@ -1685,6 +1703,15 @@ const translations: Record<Language, Record<string, string>> = {
     'mpp.docs.verified': 'Verificado',
     'mpp.docs.hideRawJson': 'Ocultar JSON sin procesar',
     'mpp.docs.showRawJson': 'Mostrar JSON sin procesar',
+    // App names (chooser tiles)
+    'app.chess': 'Ajedrez',
+    'app.gym': 'Gimnasio',
+    'app.music': 'Música',
+    'app.investing': 'Inversión',
+    'app.yc': 'Asesor YC',
+    'app.clothing': 'Ropa',
+    'app.notice': 'Notice.ai',
+    'app.mpp': 'MPP',
     // Common
     'common.loading': 'Cargando...',
     'common.error': 'Error',
