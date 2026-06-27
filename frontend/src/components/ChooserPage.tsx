@@ -7,7 +7,7 @@ import { OWNER_EMAIL } from '../config';
 import { APPS, type AppEntry } from '../apps/catalog';
 
 const TILE_CLASS =
-  'group flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-8 transition-colors hover:border-emerald-500 hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-emerald-500/10 sm:gap-4 sm:px-6 sm:py-12';
+  'group flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-8 shadow-sm transition-all hover:border-emerald-500 hover:bg-emerald-50 hover:shadow-md dark:border-slate-700 dark:bg-slate-800/50 dark:shadow-none dark:hover:bg-emerald-500/10 sm:gap-4 sm:px-6 sm:py-12';
 
 function Tile({ entry }: { entry: AppEntry }) {
   const { t } = useLanguage();

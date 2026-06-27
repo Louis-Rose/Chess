@@ -22,7 +22,7 @@ export function LangToggle({
   return (
     <div
       aria-disabled={disabled || undefined}
-      className={`inline-flex items-center gap-0.5 rounded-lg border border-slate-300 bg-slate-100 p-0.5 dark:border-slate-700 dark:bg-slate-800/60 ${
+      className={`inline-flex items-center gap-0.5 rounded-lg border border-slate-300 bg-white p-0.5 shadow-sm dark:border-slate-700 dark:bg-slate-800/60 dark:shadow-none ${
         disabled ? 'opacity-40' : ''
       } ${className}`}
     >
@@ -38,7 +38,7 @@ export function LangToggle({
             aria-label={label}
             className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
               active
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
+                ? 'bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white'
                 : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
             } ${disabled ? 'cursor-not-allowed' : ''}`}
           >

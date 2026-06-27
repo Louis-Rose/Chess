@@ -9,7 +9,7 @@ import { LangToggle } from './LangToggle';
 // area background (e.g. YC uses near-black).
 export function SidebarLayout({
   title,
-  contentClassName = 'bg-slate-50 dark:bg-slate-900',
+  contentClassName = 'bg-slate-100 dark:bg-slate-900',
   langToggle = false,
   children,
 }: {
@@ -21,7 +21,7 @@ export function SidebarLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+    <div className="flex min-h-dvh bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
       <AppSidebar className="sticky top-0 hidden h-dvh md:flex" />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="px-4 pt-4 md:hidden">
