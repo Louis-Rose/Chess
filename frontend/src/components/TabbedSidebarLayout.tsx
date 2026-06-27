@@ -35,8 +35,6 @@ function navClass(active: boolean): string {
 //   headerRight — controls shown top-right on both the desktop and mobile bars
 //   contentClassName — extra classes on <main> (e.g. a themed background); the
 //                      rail/drawer and the bars stay dark either way
-//   navFooter   — extra control pinned to the bottom of the rail/drawer
-//                 (e.g. Notice's light/dark toggle)
 export function TabbedSidebarLayout({
   title,
   titleLabel,
@@ -44,7 +42,6 @@ export function TabbedSidebarLayout({
   profileItems,
   headerRight,
   contentClassName = '',
-  navFooter,
   children,
 }: {
   title: string;
@@ -53,7 +50,6 @@ export function TabbedSidebarLayout({
   profileItems?: ProfileMenuItem[];
   headerRight?: ReactNode;
   contentClassName?: string;
-  navFooter?: ReactNode;
   children?: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -82,7 +78,6 @@ export function TabbedSidebarLayout({
       {/* Desktop rail */}
       <AppSidebar className="sticky top-0 hidden h-dvh md:flex" profileItems={profileItems}>
         {navList()}
-        {navFooter && <div className="mt-auto pt-2">{navFooter}</div>}
       </AppSidebar>
 
       {/* Mobile collapsible drawer (backdrop + sliding rail) */}
@@ -100,7 +95,6 @@ export function TabbedSidebarLayout({
         >
           <AppSidebar profileItems={profileItems} className="flex h-dvh">
             {navList(() => setMenuOpen(false))}
-            {navFooter && <div className="mt-auto pt-2">{navFooter}</div>}
           </AppSidebar>
           {/* The menu button stays put (same spot as the top bar's) so you can
               tap it again to collapse the drawer. */}

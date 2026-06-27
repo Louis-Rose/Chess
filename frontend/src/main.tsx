@@ -7,13 +7,15 @@ import { PostHogProvider } from 'posthog-js/react'
 import axios from 'axios'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './contexts/LanguageContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { CookieConsentProvider } from './contexts/CookieConsentContext'
 import posthog from 'posthog-js'
 import './index.css'
 import App from './App.tsx'
 
-// Always dark mode
-document.documentElement.classList.add('dark')
+// Apply the saved theme before first paint (default dark) to avoid a flash;
+// ThemeProvider keeps it in sync thereafter.
+document.documentElement.classList.toggle('dark', localStorage.getItem('theme') !== 'light')
 
 // Allow opting out of tracking via ?no_track URL param (persists in localStorage)
 if (new URLSearchParams(window.location.search).has('no_track')) {
@@ -57,9 +59,11 @@ const appTree = (
   <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <ThemeProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   </GoogleOAuthProvider>
