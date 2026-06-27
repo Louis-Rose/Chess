@@ -13,6 +13,9 @@ import { useLanguage } from '../contexts/LanguageContext';
 //   - children: optional nav for apps that have sub-sections (e.g. Investing);
 //   - bottom: the global light/dark toggle, pinned here so every sidebar/drawer
 //     carries it by construction.
+// The rail stays dark in both themes (dark sidebar + light content). The `dark`
+// class forces a dark context, so themeable children (ProfileMenu) render dark
+// here even when the page is in light mode.
 export function AppSidebar({
   className = '',
   children,
@@ -26,7 +29,7 @@ export function AppSidebar({
   const { t } = useLanguage();
 
   return (
-    <aside className={`w-56 shrink-0 flex-col border-r border-slate-300 bg-white px-3 py-5 dark:border-slate-800 dark:bg-slate-900 ${className}`}>
+    <aside className={`dark w-56 shrink-0 flex-col border-r border-slate-800 bg-slate-900 px-3 py-5 text-slate-100 ${className}`}>
       <Link
         to="/"
         aria-label="LUMNA home"
