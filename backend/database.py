@@ -1377,164 +1377,16 @@ def init_db():
             conn.execute("ALTER TABLE clothing_jobs ADD COLUMN progress TEXT")
             logger.info("Added progress column to clothing_jobs")
 
-        # Migration: Notice.ai MVP notes. A short ordered list of key points shown
-        # on the app's first tab, stored here so the copy can be edited (a row
-        # UPDATE/INSERT on the VM) without a frontend rebuild. Seeded with the
-        # first key point; further ones are added as rows ordered by `position`.
-        if not _table_exists(conn, 'notice_notes'):
-            conn.execute("""
-                CREATE TABLE notice_notes (
-                    id         SERIAL PRIMARY KEY,
-                    position   INTEGER NOT NULL,
-                    body       TEXT NOT NULL,
-                    body_en    TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            conn.execute("CREATE INDEX idx_notice_notes_position ON notice_notes(position)")
-            conn.execute(
-                "INSERT INTO notice_notes (position, body, body_en) VALUES (?, ?, ?)",
-                (
-                    1,
-                    "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
-                    "les étapes de la notice papier. La notice papier est une bonne "
-                    "source d'information dans l'absolu (étapes, pièces..), mais pas "
-                    "toujours lisible ou parfaitement claire.",
-                    "The assembly steps in the Notice.ai video should follow the steps "
-                    "of the paper instructions. The paper instructions are a good "
-                    "source of information overall (steps, parts, etc.), but not "
-                    "always legible or perfectly clear.",
-                ),
-            )
-            logger.info("Created notice_notes table and seeded the first MVP note")
-
-        # Migration: reword note 1's second sentence. A DB seeded before this
-        # change still holds the original wording; rewrite it. Matched on the old
-        # body, so it is a no-op once applied (and on fresh DBs seeded with the new
-        # wording above). Going forward, note edits are a plain UPDATE on the VM.
-        conn.execute(
-            "UPDATE notice_notes SET body = ? WHERE body = ?",
-            (
-                "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
-                "les étapes de la notice papier. La notice papier est une bonne "
-                "source d'information dans l'absolu (étapes, pièces..), mais pas "
-                "toujours lisible ou parfaitement claire.",
-                "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
-                "les étapes de la notice papier. En cas de doute, les utilisateurs "
-                "pourront se référer aux deux sources indépendamment.",
-            ),
-        )
-
-        # Migration: English translation per note. `body` stays the base (French);
-        # `body_en` holds the English copy (NULL falls back to `body` server-side).
-        if not _column_exists(conn, 'notice_notes', 'body_en'):
-            conn.execute("ALTER TABLE notice_notes ADD COLUMN body_en TEXT")
-            logger.info("Added body_en column to notice_notes")
-        # Backfill note 1's English copy (only where it's still empty, so a manual
-        # edit on the VM is never overwritten).
-        conn.execute(
-            "UPDATE notice_notes SET body_en = ? WHERE position = 1 AND body_en IS NULL",
-            (
-                "The assembly steps in the Notice.ai video should follow the steps "
-                "of the paper instructions. The paper instructions are a good "
-                "source of information overall (steps, parts, etc.), but not "
-                "always legible or perfectly clear.",
-            ),
-        )
-
-        # Migration: seed MVP notes 2-5. Insert each only if its position is still
-        # absent, so it never duplicates and never overwrites a later VM edit.
-        _notice_notes_seed = [
-            (
-                2,
-                "Pour cela, chaque page de la notice doit être catégorisée. Les "
-                "catégories possibles sont: Sommaire, Outils nécessaires, Matériel "
-                "fourni, Assemblage - Etape N, Sécurité, Liens",
-                "To do this, each page of the instructions must be categorized. The "
-                "possible categories are: Summary, Required tools, Supplied parts, "
-                "Assembly - Step N, Safety, Links",
-            ),
-            (
-                3,
-                "Pour chaque Etape d'assemblage, il faut trouver : la ou les pages "
-                "concernées. Et meme plus précisément : les sections de pages. Car "
-                "certaines pages présentent plusieurs étapes à la fois.",
-                "For each assembly step, we need to find the page or pages involved. "
-                "And even more precisely: the page sections, because some pages show "
-                "several steps at once.",
-            ),
-            (
-                4,
-                "Ensuite, pour chaque étape, il faut lister les pièces nécessaires. "
-                "Pour cela, les numéros de série sont essentiels.",
-                "Then, for each step, we need to list the required parts. For this, "
-                "the part numbers are essential.",
-            ),
-            (5, "A faire", "To do"),
-        ]
-        for _pos, _fr, _en in _notice_notes_seed:
-            conn.execute(
-                """INSERT INTO notice_notes (position, body, body_en)
-                   SELECT ?, ?, ?
-                   WHERE NOT EXISTS (SELECT 1 FROM notice_notes WHERE position = ?)""",
-                (_pos, _fr, _en, _pos),
-            )
-
-        # Migration: replace the MVP notes with the 5-step pipeline write-up.
-        # Each row is matched on its prior body so this applies once and is a
-        # no-op afterwards, and never clobbers a later manual edit on the VM —
-        # the same idempotent pattern as the note-1 reword above.
-        _notice_notes_replace = [
-            (
-                1,
-                "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
-                "les étapes de la notice papier. En cas de doute, les utilisateurs "
-                "pourront se référer aux deux sources indépendamment.",
-                "MVP - ETAPE 1 : La vidéo d'assemblage devrait suivre les mêmes étapes que la notice papier. Pour cela, il faut commencer par identifier les étapes de montage dans la notice, et les numéros de pages associés. Même, plus précisément : il faut identifier les parties de pages concernées. Car certaines pages concernent plusieurs étapes à la fois. Pour chaque page, La liste des catégories possibles sont: sommaire, outils nécessaires, matériel fourni, assemblage - étape N, sécurité, liens divers.",
-                "MVP - STEP 1: The assembly video should follow the same steps as the paper instructions. To do this, we first need to identify the assembly steps in the instructions and the associated page numbers. More precisely: we need to identify the parts of the pages involved, because some pages cover several steps at once. For each page, the list of possible categories is: summary, required tools, supplied parts, assembly - step N, safety, miscellaneous links.",
-            ),
-            (
-                2,
-                "Pour cela, chaque page de la notice doit être catégorisée. Les "
-                "catégories possibles sont: Sommaire, Outils nécessaires, Matériel "
-                "fourni, Assemblage - Etape N, Sécurité, Liens",
-                "MVP - ETAPE 2 : Ensuite, pour chaque étape N, il faut lister les pièces nécessaires. Cela nécessite donc, en amont, de lister l'ensemble des pièces de la notice. Elles sont souvent groupées par sachets, et chaque pièce à un numéro de référence.",
-                "MVP - STEP 2: Next, for each step N, we need to list the required parts. This first requires listing all the parts in the instructions. They are often grouped in bags, and each part has a reference number.",
-            ),
-            (
-                3,
-                "Pour chaque Etape d'assemblage, il faut trouver : la ou les pages "
-                "concernées. Et meme plus précisément : les sections de pages. Car "
-                "certaines pages présentent plusieurs étapes à la fois.",
-                "MVP - ETAPE 3 : Ce numéro de référence sera utile pour obtenir de vraies images et/ou vidéos des pièces. C'est l'étape suivante : rassembler des données visuelles \"réelles\" des pièces concernées.",
-                "MVP - STEP 3: This reference number will be useful for obtaining real images and/or videos of the parts. That is the next step: gathering real visual data of the parts involved.",
-            ),
-            (
-                4,
-                "Ensuite, pour chaque étape, il faut lister les pièces nécessaires. "
-                "Pour cela, les numéros de série sont essentiels.",
-                "MVP - ETAPE 4 : Utiliser un LLM pour comprendre la logique de l'étape de la notice en cours, et fournir cela + les données visuelles réelles des pièces pour générer une vidéo fièle à la réalité.",
-                "MVP - STEP 4: Use an LLM to understand the logic of the current instruction step, and provide that plus the real visual data of the parts to generate a video faithful to reality.",
-            ),
-            (
-                5,
-                "A faire",
-                "MVP - ETAPE 5 (optionnel) : Ajouter une voix-off qui décrit chaque étape, nomme les pièces, etc..",
-                "MVP - STEP 5 (optional): Add a voice-over that describes each step, names the parts, and so on.",
-            ),
-        ]
-        for _pos, _old, _fr, _en in _notice_notes_replace:
-            conn.execute(
-                "UPDATE notice_notes SET body = ?, body_en = ? "
-                "WHERE position = ? AND body = ?",
-                (_fr, _en, _pos, _old),
-            )
-
-        # Migration: drop the "MVP - " prefix, and force note 1 onto the new
-        # text (older DBs still held the pre-rework note-1 body, so the
-        # body-matched replace above skipped it). Keyed on body <> target so it
-        # applies once on any prior DB state and is a no-op afterwards.
-        _notice_notes_final = [
+        # Migration: Notice.ai MVP notes — a short ordered list of key points
+        # shown on the app's first tab, stored here so the copy can be edited
+        # without a frontend rebuild. `body` is the French base; `body_en` holds
+        # the English copy (NULL falls back to `body` server-side). _NOTICE_NOTES
+        # is the single source of truth: rows are seeded on a fresh DB, and on
+        # every DB the UPDATE force-syncs each row to the list (keyed on
+        # body <> target, so it converges any prior wording and is a no-op once
+        # applied). To change a note, edit the text here — a manual row edit on
+        # the VM would be reverted on the next restart.
+        _NOTICE_NOTES = [
             (
                 1,
                 "ETAPE 1 : La vidéo d'assemblage devrait suivre les mêmes étapes que la notice papier. Pour cela, il faut commencer par identifier les étapes de montage dans la notice, et les numéros de pages associés. Même, plus précisément : il faut identifier les parties de pages concernées. Car certaines pages concernent plusieurs étapes à la fois. Pour chaque page, La liste des catégories possibles sont: sommaire, outils nécessaires, matériel fourni, assemblage - étape N, sécurité, liens divers.",
@@ -1547,37 +1399,45 @@ def init_db():
             ),
             (
                 3,
-                "ETAPE 3 : Ce numéro de référence sera utile pour obtenir de vraies images et/ou vidéos des pièces. C'est l'étape suivante : rassembler des données visuelles \"réelles\" des pièces concernées.",
-                "STEP 3: This reference number will be useful for obtaining real images and/or videos of the parts. That is the next step: gathering real visual data of the parts involved.",
+                "ETAPE 3 : Ce numéro de référence sera utile pour obtenir de vraies images et/ou vidéos des pièces. C'est l'étape suivante : rassembler des données visuelles \"réelles\" des pièces concernées. Si obtenir des images réelles des pièces n'est pas possible, une solution bis est d'utiliser un outil Image-to-3D, ou exploiter les fichiers CAD/STEP du produit, si les clients les ont.",
+                "STEP 3: This reference number will be useful for obtaining real images and/or videos of the parts. That is the next step: gathering real visual data of the parts involved. If obtaining real images of the parts is not possible, a fallback is to use an Image-to-3D tool, or to leverage the product's CAD/STEP files, if the clients have them.",
             ),
             (
                 4,
-                "ETAPE 4 : Utiliser un LLM pour comprendre la logique de l'étape de la notice en cours, et fournir cela + les données visuelles réelles des pièces pour générer une vidéo fièle à la réalité.",
-                "STEP 4: Use an LLM to understand the logic of the current instruction step, and provide that plus the real visual data of the parts to generate a video faithful to reality.",
+                "ETAPE 4 : Utiliser un LLM pour comprendre la logique de l'étape de la notice en cours, et fournir cela + les données visuelles réelles des pièces pour générer une vidéo fidèle à la réalité (Gemini + Runway). Si hallucinations: utiliser plutôt le LLM pour générer un script d'animation (JSON), à executer par un moteur 3D (Three.js, Blender, Unity).",
+                "STEP 4: Use an LLM to understand the logic of the current instruction step, and provide that plus the real visual data of the parts to generate a video faithful to reality (Gemini + Runway). If hallucinations occur, instead use the LLM to generate an animation script (JSON), to be run by a 3D engine (Three.js, Blender, Unity).",
             ),
             (
                 5,
-                "ETAPE 5 (optionnel) : Ajouter une voix-off qui décrit chaque étape, nomme les pièces, etc..",
-                "STEP 5 (optional): Add a voice-over that describes each step, names the parts, and so on.",
+                "ETAPE 5 (optionnel) : Ajouter une voix-off qui décrit chaque étape, nomme les pièces, etc.. (ElevenLabs, OpenAI Audio..)",
+                "STEP 5 (optional): Add a voice-over that describes each step, names the parts, and so on (ElevenLabs, OpenAI Audio, etc.).",
             ),
         ]
-        for _pos, _fr, _en in _notice_notes_final:
+        if not _table_exists(conn, 'notice_notes'):
+            conn.execute("""
+                CREATE TABLE notice_notes (
+                    id         SERIAL PRIMARY KEY,
+                    position   INTEGER NOT NULL,
+                    body       TEXT NOT NULL,
+                    body_en    TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("CREATE INDEX idx_notice_notes_position ON notice_notes(position)")
+            logger.info("Created notice_notes table")
+        # Older DBs created before body_en existed still need the column.
+        if not _column_exists(conn, 'notice_notes', 'body_en'):
+            conn.execute("ALTER TABLE notice_notes ADD COLUMN body_en TEXT")
+            logger.info("Added body_en column to notice_notes")
+        for _pos, _fr, _en in _NOTICE_NOTES:
+            conn.execute(
+                """INSERT INTO notice_notes (position, body, body_en)
+                   SELECT ?, ?, ?
+                   WHERE NOT EXISTS (SELECT 1 FROM notice_notes WHERE position = ?)""",
+                (_pos, _fr, _en, _pos),
+            )
             conn.execute(
                 "UPDATE notice_notes SET body = ?, body_en = ? "
                 "WHERE position = ? AND body <> ?",
                 (_fr, _en, _pos, _fr),
             )
-
-        # Migration: append the Image-to-3D / CAD-STEP fallback to note 3. Keyed
-        # on body <> target so it applies once and is a no-op afterwards.
-        _notice_note3_fr = (
-            "ETAPE 3 : Ce numéro de référence sera utile pour obtenir de vraies images et/ou vidéos des pièces. C'est l'étape suivante : rassembler des données visuelles \"réelles\" des pièces concernées. Si obtenir des images réelles des pièces n'est pas possible, une solution bis est d'utiliser un outil Image-to-3D, ou exploiter les fichiers CAD/STEP du produit, si les clients les ont."
-        )
-        _notice_note3_en = (
-            "STEP 3: This reference number will be useful for obtaining real images and/or videos of the parts. That is the next step: gathering real visual data of the parts involved. If obtaining real images of the parts is not possible, a fallback is to use an Image-to-3D tool, or to leverage the product's CAD/STEP files, if the clients have them."
-        )
-        conn.execute(
-            "UPDATE notice_notes SET body = ?, body_en = ? "
-            "WHERE position = 3 AND body <> ?",
-            (_notice_note3_fr, _notice_note3_en, _notice_note3_fr),
-        )
