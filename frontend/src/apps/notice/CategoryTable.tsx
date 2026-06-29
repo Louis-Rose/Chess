@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Square } from 'lucide-react';
+
+// How many pages to classify at once during a "find all" run. Each page already
+// fans out across the models, so this caps total in-flight Gemini requests
+// (pages x models) to keep clear of rate limits.
+const PAGE_CONCURRENCY = 5;
 import { NOTICE_MODELS } from './models';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -48,11 +53,16 @@ export function CategoryTable({
   const { t } = useLanguage();
   const [categories, setCategories] = useState<ByModelPage>({});
   const categoriesRef = useRef<ByModelPage>({});
+  // Per-cell failures (model -> page -> message), shown in the table instead of
+  // silently blanking the cell. Transient, not persisted.
+  const [cellErrors, setCellErrors] = useState<ByModelPage>({});
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<null | 'this' | 'all'>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Lets the user stop an in-flight run; aborting cancels pending requests.
+  const abortRef = useRef<AbortController | null>(null);
 
   const loadCosts = useCallback(async () => {
     try {
@@ -76,31 +86,56 @@ export function CategoryTable({
     const cats = loadMap('categories', docId);
     categoriesRef.current = cats;
     setCategories(cats);
+    setCellErrors({});
     setError(null);
     setProgress(null);
   }, [docId]);
 
-  // Record one (model, page) result, keeping only the most recent, and persist.
+  // Record one (model, page) result, keeping only the most recent, persist it,
+  // and clear any earlier failure for that cell.
   const setResult = (modelId: string, pageNum: number, category: string) => {
     const nextCats: ByModelPage = { ...categoriesRef.current };
     nextCats[modelId] = { ...(nextCats[modelId] || {}), [pageNum]: category };
     categoriesRef.current = nextCats;
     setCategories(nextCats);
     saveMap('categories', docId, nextCats);
+    clearCellError(modelId, pageNum);
   };
 
+  const clearCellError = (modelId: string, pageNum: number) =>
+    setCellErrors((prev) => {
+      if (prev[modelId]?.[pageNum] === undefined) return prev;
+      const forModel = { ...prev[modelId] };
+      delete forModel[pageNum];
+      return { ...prev, [modelId]: forModel };
+    });
+
+  const recordCellError = (modelId: string, pageNum: number, message: string) =>
+    setCellErrors((prev) => ({
+      ...prev,
+      [modelId]: { ...(prev[modelId] || {}), [pageNum]: message },
+    }));
+
   // Classify one page image across every model, storing results per (model, page).
-  const classify = async (image: string, pageNum: number) => {
+  // A cancelled request (the user pressed Stop) leaves the cell untouched; any
+  // other failure is surfaced in the cell.
+  const classify = async (image: string, pageNum: number, signal: AbortSignal) => {
     await Promise.all(
       NOTICE_MODELS.map(async (m) => {
         try {
           const { data } = await axios.post<{ category: string }>(
             '/api/notice/categorize',
             { image, model: m.id },
+            { signal },
           );
           setResult(m.id, pageNum, data.category);
-        } catch {
-          setResult(m.id, pageNum, '—');
+        } catch (e) {
+          if (axios.isCancel(e)) return;
+          const msg =
+            (axios.isAxiosError(e) && (e.response?.data as { error?: string })?.error) ||
+            (e instanceof Error && e.message) ||
+            t('notice.err.generic');
+          recordCellError(m.id, pageNum, msg);
         }
       }),
     );
@@ -114,34 +149,59 @@ export function CategoryTable({
     }
     setError(null);
     setBusy('this');
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      await classify(image, page);
+      await classify(image, page, controller.signal);
     } finally {
+      abortRef.current = null;
       setBusy(null);
       void loadCosts();
     }
   };
 
+  // Classify every page with a bounded pool of workers pulling from a shared
+  // cursor, so several pages render and call out at once without flooding the API.
   const findAllPages = async () => {
     if (numPages < 1) return;
     setError(null);
     setBusy('all');
     setProgress({ done: 0, total: numPages });
-    try {
-      for (let n = 1; n <= numPages; n++) {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
+
+    let nextPage = 1;
+    let done = 0;
+    const worker = async () => {
+      for (let n = nextPage++; n <= numPages && !signal.aborted; n = nextPage++) {
         const image = await renderPage(n);
-        if (image) await classify(image, n);
-        setProgress({ done: n, total: numPages });
+        if (signal.aborted) return;
+        if (image) await classify(image, n, signal);
+        setProgress({ done: ++done, total: numPages });
       }
+    };
+
+    try {
+      await Promise.all(
+        Array.from({ length: Math.min(PAGE_CONCURRENCY, numPages) }, worker),
+      );
     } finally {
+      abortRef.current = null;
       setBusy(null);
       setProgress(null);
       void loadCosts();
     }
   };
 
+  const stop = () => abortRef.current?.abort();
+
   const btnClass =
     'flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-emerald-500/10';
+  const stopBtnClass =
+    'flex items-center gap-2 rounded-lg border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition-colors hover:border-rose-500 hover:bg-rose-50 dark:border-rose-500/40 dark:bg-slate-800 dark:text-rose-300 dark:hover:bg-rose-500/10';
+
+  const failedCount = Object.values(cellErrors).reduce((sum, byPage) => sum + Object.keys(byPage).length, 0);
 
   return (
     <div className="mt-6">
@@ -155,9 +215,20 @@ export function CategoryTable({
           {t('notice.cat.allPages')}
           {busy === 'all' && progress ? ` · ${progress.done}/${progress.total}` : ''}
         </button>
+        {busy && (
+          <button type="button" onClick={stop} className={stopBtnClass}>
+            <Square className="h-4 w-4" />
+            {t('notice.cat.stop')}
+          </button>
+        )}
       </div>
 
       {error && <p className="mb-2 text-center text-sm text-rose-600 dark:text-rose-400">{error}</p>}
+      {failedCount > 0 && (
+        <p className="mb-2 text-center text-sm text-rose-600 dark:text-rose-400">
+          {failedCount} {t('notice.cat.failed')}
+        </p>
+      )}
 
       <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-lg">
         <table className="w-full text-center text-sm">
@@ -174,6 +245,7 @@ export function CategoryTable({
           <tbody>
             {NOTICE_MODELS.map((m) => {
               const cell = categories[m.id]?.[page];
+              const cellError = cellErrors[m.id]?.[page];
               return (
                 <tr
                   key={m.id}
@@ -183,7 +255,11 @@ export function CategoryTable({
                     {m.label}
                   </td>
                   <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
-                    {cell ?? (busy ? (
+                    {cellError ? (
+                      <span className="text-rose-600 dark:text-rose-400" title={cellError}>
+                        {cellError}
+                      </span>
+                    ) : cell ?? (busy ? (
                       <Loader2 className="mx-auto h-4 w-4 animate-spin text-slate-500" />
                     ) : (
                       '—'
