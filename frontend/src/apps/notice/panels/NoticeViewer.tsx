@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, Loader2, Upload } from 'lucide-react';
 import { PdfViewer } from '../PdfViewer';
-import { PageQA } from '../PageQA';
 import { CategoryTable } from '../CategoryTable';
+import { EtapeSection } from '../EtapeSection';
 import { SECTION_WIDTH } from '../sectionWidth';
 import { getFile, type NoticeFile } from '../noticeStore';
 import { useNoticeFiles } from '../useNoticeFiles';
@@ -91,8 +91,9 @@ export function NoticeViewer() {
       />
 
       {current ? (
-        // Open document: Upload control, then two columns — document left,
-        // asking window right (stacked on mobile).
+        // Open document: upload control, the manual centered, then the assembly
+        // steps stacked top to bottom (Etape 1 holds the page categories; the
+        // rest are placeholders for now).
         <div className="mx-auto flex w-full max-w-6xl flex-col">
           <div className="mb-3 flex justify-center">
             <button
@@ -112,49 +113,50 @@ export function NoticeViewer() {
             <span className="truncate text-lg font-semibold">{current.name}</span>
           </div>
 
-          <div className="flex flex-col gap-6 md:h-[75vh] md:flex-row">
-            {/* Document */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragging(true);
+          {/* The manual, centered */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+            className={`mx-auto h-[60vh] w-full max-w-4xl overflow-hidden rounded-2xl border shadow-sm dark:shadow-none md:h-[80vh] ${
+              dragging
+                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/5'
+                : 'border-slate-300 bg-white dark:border-slate-800 dark:bg-slate-800/30'
+            }`}
+          >
+            <PdfViewer
+              key={current.id}
+              file={current.data}
+              onPageImage={(fn) => {
+                getPageImage.current = fn;
               }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
-              className={`h-[60vh] overflow-hidden rounded-2xl border shadow-sm dark:shadow-none md:h-auto md:min-h-0 md:min-w-0 md:flex-1 ${
-                dragging
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/5'
-                  : 'border-slate-300 bg-white dark:border-slate-800 dark:bg-slate-800/30'
-              }`}
-            >
-              <PdfViewer
-                key={current.id}
-                file={current.data}
-                onPageImage={(fn) => {
-                  getPageImage.current = fn;
-                }}
-                onPage={setPageNum}
-                onNumPages={setNumPages}
-                onRenderPage={(fn) => {
-                  renderPage.current = fn;
-                }}
-              />
-            </div>
-
-            {/* Asking window */}
-            <div className="h-[34rem] md:h-auto md:min-h-0 md:min-w-0 md:flex-1">
-              <PageQA getPageImage={() => getPageImage.current?.() ?? null} />
-            </div>
+              onPage={setPageNum}
+              onNumPages={setNumPages}
+              onRenderPage={(fn) => {
+                renderPage.current = fn;
+              }}
+            />
           </div>
 
-          {/* Per-model page categories + Gemini cost */}
-          <CategoryTable
-            getPageImage={() => getPageImage.current?.() ?? null}
-            renderPage={(n) => renderPage.current?.(n) ?? Promise.resolve(null)}
-            numPages={numPages}
-            page={pageNum}
-            docId={current.id}
-          />
+          {/* Assembly steps, top to bottom */}
+          <div className="mt-10 flex flex-col gap-10">
+            <EtapeSection title={`${t('notice.step')} 1`}>
+              {/* Per-model page categories + Gemini cost */}
+              <CategoryTable
+                getPageImage={() => getPageImage.current?.() ?? null}
+                renderPage={(n) => renderPage.current?.(n) ?? Promise.resolve(null)}
+                numPages={numPages}
+                page={pageNum}
+                docId={current.id}
+              />
+            </EtapeSection>
+            <EtapeSection title={`${t('notice.step')} 2`} />
+            <EtapeSection title={`${t('notice.step')} 3`} />
+            <EtapeSection title={`${t('notice.step')} 4`} />
+          </div>
         </div>
       ) : (
         // No document: a square drop zone (loading / not-found / empty).

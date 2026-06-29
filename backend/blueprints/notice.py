@@ -36,18 +36,11 @@ ALLOWED_MODELS = {
     'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
 }
-DEFAULT_MODEL = 'gemini-3.5-flash'
 # Models that return reasoning ("thoughts"); others have nothing to show.
 THINKING_MODELS = {'gemini-3.1-pro-preview'}
 # Safety cap on the decoded page image (a rendered page is well under this).
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
-_PROMPT = (
-    "You are helping someone read a document. The attached image is the page "
-    "they are currently looking at. Answer their question using only what is "
-    "visible on this page. Be concise. If the answer is not on this page, say "
-    "so plainly.\n\nQuestion: {question}"
-)
 
 # Fixed set of page categories for an assembly manual. Assembly steps carry their
 # printed step number ("Assemblage - Etape N", N from 1 to 100).
@@ -143,35 +136,6 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None, want_
         retry_free_elapsed=retry_info.get('free_elapsed'), phase=phase,
     )
     return answer, thoughts
-
-
-@notice_bp.route('/api/notice/ask', methods=['POST'])
-@login_required
-def ask():
-    data = request.get_json(silent=True) or {}
-    question = (data.get('question') or '').strip()
-    model = (data.get('model') or '').strip()
-    if model not in ALLOWED_MODELS:
-        model = DEFAULT_MODEL
-    if not question:
-        return jsonify({'error': 'A question is required.'}), 400
-
-    image_bytes, err = _decode_image(data.get('image') or '')
-    if err:
-        return err
-
-    user_id = getattr(request, 'user_id', None)
-    try:
-        answer, _ = _gemini_on_image(model, image_bytes, _PROMPT.format(question=question), user_id, phase='ask')
-    except ValueError:
-        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
-    except Exception:
-        logger.exception('[notice] Gemini call failed')
-        return jsonify({'error': 'The assistant request failed. Please try again.'}), 502
-
-    if not answer:
-        return jsonify({'error': 'The assistant did not return an answer.'}), 502
-    return jsonify({'answer': answer})
 
 
 @notice_bp.route('/api/notice/categorize', methods=['POST'])
