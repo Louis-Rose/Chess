@@ -1389,7 +1389,7 @@ def init_db():
         _NOTICE_NOTES = [
             (
                 1,
-                "ETAPE 1 : La vidéo d'assemblage devrait suivre les mêmes étapes que la notice papier. Pour cela, il faut commencer par identifier les étapes de montage dans la notice, et les numéros de pages associés. Même, plus précisément : il faut identifier les parties de pages concernées. Car certaines pages concernent plusieurs étapes à la fois. Pour chaque page, La liste des catégories possibles sont: sommaire, outils nécessaires, matériel fourni, assemblage - étape N, sécurité, liens divers.",
+                "ETAPE 1 : La vidéo d'assemblage devrait suivre les mêmes étapes que la notice papier. Pour cela, il faut commencer par identifier les étapes de montage dans la notice, et les numéros de pages associés. Même, plus précisément : il faut identifier les parties de pages concernées. Car certaines pages concernent plusieurs étapes à la fois. Pour chaque page, la liste des catégories possibles sont: sommaire, outils nécessaires, matériel fourni, assemblage - étape N, sécurité, liens divers.",
                 "STEP 1: The assembly video should follow the same steps as the paper instructions. To do this, we first need to identify the assembly steps in the instructions and the associated page numbers. More precisely: we need to identify the parts of the pages involved, because some pages cover several steps at once. For each page, the list of possible categories is: summary, required tools, supplied parts, assembly - step N, safety, miscellaneous links.",
             ),
             (
