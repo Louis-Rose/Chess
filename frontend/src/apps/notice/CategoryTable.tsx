@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Sparkles, Square } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { startAll, startThisPage, stopRun, setRunError, useRun } from './categoryRun';
+import { startAll, startRange, startThisPage, stopRun, setRunError, useRun } from './categoryRun';
 
 // A table with one row per Gemini model: the model name, the category it assigns
 // to the page currently shown, and the running Gemini spend for that model in the
@@ -31,6 +31,19 @@ export function CategoryTable({
   const { busy, progress, active, categories, cellErrors, error } = useRun(docId);
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
+
+  // Page-range selection. `from` follows the page on screen and `to` defaults to
+  // the last page until the user edits either field (then it stays put).
+  const [from, setFrom] = useState(1);
+  const [to, setTo] = useState(0);
+  const touchedFrom = useRef(false);
+  const touchedTo = useRef(false);
+  useEffect(() => {
+    if (!touchedFrom.current) setFrom(page);
+  }, [page]);
+  useEffect(() => {
+    if (!touchedTo.current && numPages > 0) setTo(numPages);
+  }, [numPages]);
 
   const loadCosts = useCallback(async () => {
     try {
@@ -64,16 +77,72 @@ export function CategoryTable({
     'flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-emerald-500/10';
   const stopBtnClass =
     'flex items-center gap-2 rounded-lg border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition-colors hover:border-rose-500 hover:bg-rose-50 dark:border-rose-500/40 dark:bg-slate-800 dark:text-rose-300 dark:hover:bg-rose-500/10';
+  const numInputClass =
+    'w-14 rounded-md border border-slate-300 bg-white px-2 py-1 text-center text-sm text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
+
+  // Trailing " · done/total · N in progress" for whichever multi-page run is live.
+  const progressSuffix = (kind: 'all' | 'range') =>
+    busy === kind
+      ? `${progress ? ` · ${progress.done}/${progress.total}` : ''}${
+          active > 0 ? ` · ${active} ${t('notice.cat.inFlight')}` : ''
+        }`
+      : '';
+
+  const onFrom = (v: number) => {
+    touchedFrom.current = true;
+    setFrom(v);
+  };
+  const onTo = (v: number) => {
+    touchedTo.current = true;
+    setTo(v);
+  };
 
   const failedCount = Object.values(cellErrors).reduce((sum, byPage) => sum + Object.keys(byPage).length, 0);
 
   return (
     <div className="mt-6">
-      <div className="mb-3 flex flex-wrap justify-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-3">
         <button type="button" onClick={findThisPage} disabled={!!busy} className={btnClass}>
           {busy === 'this' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {t('notice.cat.thisPage')}
         </button>
+
+        {/* Run a contiguous page range */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.cat.from')}</span>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(numPages, 1)}
+            value={from}
+            onChange={(e) => onFrom(Number(e.target.value))}
+            disabled={!!busy || numPages < 1}
+            className={numInputClass}
+            aria-label={t('notice.cat.from')}
+          />
+          <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.cat.to')}</span>
+          <input
+            type="number"
+            min={1}
+            max={Math.max(numPages, 1)}
+            value={to}
+            onChange={(e) => onTo(Number(e.target.value))}
+            disabled={!!busy || numPages < 1}
+            className={numInputClass}
+            aria-label={t('notice.cat.to')}
+          />
+          <button
+            type="button"
+            onClick={() => void startRange(docId, file, from, to, t)}
+            disabled={!!busy || numPages < 1}
+            className={btnClass}
+          >
+            {busy === 'range' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {t('notice.cat.runRange')}
+            {progressSuffix('range')}
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={() => void startAll(docId, file, t)}
@@ -82,8 +151,7 @@ export function CategoryTable({
         >
           {busy === 'all' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {t('notice.cat.allPages')}
-          {busy === 'all' && progress ? ` · ${progress.done}/${progress.total}` : ''}
-          {busy === 'all' && active > 0 ? ` · ${active} ${t('notice.cat.inFlight')}` : ''}
+          {progressSuffix('all')}
         </button>
         {busy && (
           <button type="button" onClick={() => stopRun(docId)} className={stopBtnClass}>

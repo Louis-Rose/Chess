@@ -23,7 +23,7 @@ const PAGE_CONCURRENCY = 5;
 type ByModelPage = Record<string, Record<number, string>>;
 
 export type RunSnapshot = {
-  busy: null | 'this' | 'all';
+  busy: null | 'this' | 'all' | 'range';
   progress: { done: number; total: number } | null;
   // Pages currently rendering/classifying, so the UI can show that several run at
   // once rather than reading as one-by-one.
@@ -174,14 +174,31 @@ export async function startThisPage(
   }
 }
 
-// Classify every page with a bounded pool of workers pulling from a shared cursor,
-// so several pages render and call out at once without flooding the API. The run
-// owns its own PDF.js document (loaded from the stored blob) so it is independent
-// of the on-screen viewer and survives navigating away from the reader.
-export async function startAll(docId: string, file: Blob, t: (k: string) => string) {
+// Build the list of page numbers to run for a contiguous range, clamped to the
+// document and order-forgiving (from/to may be swapped).
+function pageRange(from: number, to: number, numPages: number): number[] {
+  const lo = Math.max(1, Math.min(from, to));
+  const hi = Math.min(numPages, Math.max(from, to));
+  const pages: number[] = [];
+  for (let n = lo; n <= hi; n++) pages.push(n);
+  return pages;
+}
+
+// Classify a set of pages with a bounded pool of workers pulling from a shared
+// cursor, so several pages render and call out at once without flooding the API.
+// The run owns its own PDF.js document (loaded from the stored blob) so it is
+// independent of the on-screen viewer and survives navigating away from the
+// reader. `range` null means every page; otherwise just that contiguous span.
+async function runPages(
+  docId: string,
+  file: Blob,
+  t: (k: string) => string,
+  busy: 'all' | 'range',
+  range: { from: number; to: number } | null,
+) {
   const entry = getEntry(docId);
   if (entry.snapshot.busy) return;
-  update(docId, { busy: 'all', error: null, progress: null, active: 0 });
+  update(docId, { busy, error: null, progress: null, active: 0 });
   const controller = new AbortController();
   entry.controller = controller;
   const { signal } = controller;
@@ -192,26 +209,30 @@ export async function startAll(docId: string, file: Blob, t: (k: string) => stri
     loadingTask = pdfjsLib.getDocument({ data: buf });
     const doc: PDFDocumentProxy = await loadingTask.promise;
     const numPages = doc.numPages;
-    if (numPages < 1) return;
-    update(docId, { progress: { done: 0, total: numPages } });
+    const pages = range
+      ? pageRange(range.from, range.to, numPages)
+      : Array.from({ length: numPages }, (_, i) => i + 1);
+    if (pages.length === 0) return;
+    update(docId, { progress: { done: 0, total: pages.length } });
 
-    let nextPage = 1;
+    let cursor = 0;
     let done = 0;
     const worker = async () => {
-      for (let n = nextPage++; n <= numPages && !signal.aborted; n = nextPage++) {
+      for (let i = cursor++; i < pages.length && !signal.aborted; i = cursor++) {
+        const n = pages[i];
         bumpActive(docId, 1);
         try {
           const image = await renderPdfPageToImage(doc, n);
           if (signal.aborted) return;
           if (image) await classify(docId, image, n, signal, t);
-          update(docId, { progress: { done: ++done, total: numPages } });
+          update(docId, { progress: { done: ++done, total: pages.length } });
         } finally {
           bumpActive(docId, -1);
         }
       }
     };
 
-    await Promise.all(Array.from({ length: Math.min(PAGE_CONCURRENCY, numPages) }, worker));
+    await Promise.all(Array.from({ length: Math.min(PAGE_CONCURRENCY, pages.length) }, worker));
   } catch {
     if (!signal.aborted) update(docId, { error: t('notice.err.rendering') });
   } finally {
@@ -219,6 +240,22 @@ export async function startAll(docId: string, file: Blob, t: (k: string) => stri
     update(docId, { busy: null, progress: null, active: 0 });
     void loadingTask?.destroy();
   }
+}
+
+// Classify every page in the document.
+export function startAll(docId: string, file: Blob, t: (k: string) => string) {
+  return runPages(docId, file, t, 'all', null);
+}
+
+// Classify a contiguous span of pages (from..to, inclusive).
+export function startRange(
+  docId: string,
+  file: Blob,
+  from: number,
+  to: number,
+  t: (k: string) => string,
+) {
+  return runPages(docId, file, t, 'range', { from, to });
 }
 
 export function stopRun(docId: string) {
