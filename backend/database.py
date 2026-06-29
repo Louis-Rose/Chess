@@ -1529,3 +1529,41 @@ def init_db():
                 "WHERE position = ? AND body = ?",
                 (_fr, _en, _pos, _old),
             )
+
+        # Migration: drop the "MVP - " prefix, and force note 1 onto the new
+        # text (older DBs still held the pre-rework note-1 body, so the
+        # body-matched replace above skipped it). Keyed on body <> target so it
+        # applies once on any prior DB state and is a no-op afterwards.
+        _notice_notes_final = [
+            (
+                1,
+                "ETAPE 1 : La vidéo d'assemblage devrait suivre les mêmes étapes que la notice papier. Pour cela, il faut commencer par identifier les étapes de montage dans la notice, et les numéros de pages associés. Même, plus précisément : il faut identifier les parties de pages concernées. Car certaines pages concernent plusieurs étapes à la fois. Pour chaque page, La liste des catégories possibles sont: sommaire, outils nécessaires, matériel fourni, assemblage - étape N, sécurité, liens divers.",
+                "STEP 1: The assembly video should follow the same steps as the paper instructions. To do this, we first need to identify the assembly steps in the instructions and the associated page numbers. More precisely: we need to identify the parts of the pages involved, because some pages cover several steps at once. For each page, the list of possible categories is: summary, required tools, supplied parts, assembly - step N, safety, miscellaneous links.",
+            ),
+            (
+                2,
+                "ETAPE 2 : Ensuite, pour chaque étape N, il faut lister les pièces nécessaires. Cela nécessite donc, en amont, de lister l'ensemble des pièces de la notice. Elles sont souvent groupées par sachets, et chaque pièce à un numéro de référence.",
+                "STEP 2: Next, for each step N, we need to list the required parts. This first requires listing all the parts in the instructions. They are often grouped in bags, and each part has a reference number.",
+            ),
+            (
+                3,
+                "ETAPE 3 : Ce numéro de référence sera utile pour obtenir de vraies images et/ou vidéos des pièces. C'est l'étape suivante : rassembler des données visuelles \"réelles\" des pièces concernées.",
+                "STEP 3: This reference number will be useful for obtaining real images and/or videos of the parts. That is the next step: gathering real visual data of the parts involved.",
+            ),
+            (
+                4,
+                "ETAPE 4 : Utiliser un LLM pour comprendre la logique de l'étape de la notice en cours, et fournir cela + les données visuelles réelles des pièces pour générer une vidéo fièle à la réalité.",
+                "STEP 4: Use an LLM to understand the logic of the current instruction step, and provide that plus the real visual data of the parts to generate a video faithful to reality.",
+            ),
+            (
+                5,
+                "ETAPE 5 (optionnel) : Ajouter une voix-off qui décrit chaque étape, nomme les pièces, etc..",
+                "STEP 5 (optional): Add a voice-over that describes each step, names the parts, and so on.",
+            ),
+        ]
+        for _pos, _fr, _en in _notice_notes_final:
+            conn.execute(
+                "UPDATE notice_notes SET body = ?, body_en = ? "
+                "WHERE position = ? AND body <> ?",
+                (_fr, _en, _pos, _fr),
+            )
