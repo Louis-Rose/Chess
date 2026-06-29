@@ -10,6 +10,11 @@ import { useNoticeFiles } from '../useNoticeFiles';
 import { useNoticeNotes } from '../useNoticeNotes';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
+// The "Reader" sidebar tab links to /notice/view without an id, so returning to
+// it would otherwise lose the open document. We remember the last opened id here
+// and reopen it.
+const LAST_DOC_KEY = 'notice.lastDocId';
+
 // The Viewer page: upload a PDF (button or drag-and-drop) and read it page by
 // page. When the route carries an :id, that stored document is shown.
 export function NoticeViewer() {
@@ -31,23 +36,45 @@ export function NoticeViewer() {
   // the page on screen). "Find all" renders pages itself, off the categorize run.
   const getPageImage = useRef<(() => string | null) | null>(null);
 
-  // Load the selected document from IndexedDB when the id changes.
+  // Load the selected document from IndexedDB when the id changes. With no id in
+  // the URL (the "Reader" tab), reopen the last document we still have, so
+  // navigating away and back doesn't blank the reader.
   useEffect(() => {
     let cancelled = false;
+
     if (!id) {
-      setCurrent(null);
-      return;
+      const last = localStorage.getItem(LAST_DOC_KEY);
+      if (!last) {
+        setCurrent(null);
+        return;
+      }
+      setLoading(true);
+      getFile(last).then((f) => {
+        if (cancelled) return;
+        if (f) {
+          navigate(`/notice/view/${last}`, { replace: true });
+        } else {
+          localStorage.removeItem(LAST_DOC_KEY);
+          setCurrent(null);
+          setLoading(false);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
     }
+
     setLoading(true);
     getFile(id).then((f) => {
       if (cancelled) return;
       setCurrent(f ?? null);
       setLoading(false);
+      if (f) localStorage.setItem(LAST_DOC_KEY, id);
     });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, navigate]);
 
   const onPick = useCallback(
     async (file: File | undefined) => {
