@@ -1567,3 +1567,17 @@ def init_db():
                 "WHERE position = ? AND body <> ?",
                 (_fr, _en, _pos, _fr),
             )
+
+        # Migration: append the Image-to-3D / CAD-STEP fallback to note 3. Keyed
+        # on body <> target so it applies once and is a no-op afterwards.
+        _notice_note3_fr = (
+            "ETAPE 3 : Ce numéro de référence sera utile pour obtenir de vraies images et/ou vidéos des pièces. C'est l'étape suivante : rassembler des données visuelles \"réelles\" des pièces concernées. Si obtenir des images réelles des pièces n'est pas possible, une solution bis est d'utiliser un outil Image-to-3D, ou exploiter les fichiers CAD/STEP du produit, si les clients les ont."
+        )
+        _notice_note3_en = (
+            "STEP 3: This reference number will be useful for obtaining real images and/or videos of the parts. That is the next step: gathering real visual data of the parts involved. If obtaining real images of the parts is not possible, a fallback is to use an Image-to-3D tool, or to leverage the product's CAD/STEP files, if the clients have them."
+        )
+        conn.execute(
+            "UPDATE notice_notes SET body = ?, body_en = ? "
+            "WHERE position = 3 AND body <> ?",
+            (_notice_note3_fr, _notice_note3_en, _notice_note3_fr),
+        )
