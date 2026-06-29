@@ -8,7 +8,6 @@ import {
   FileText,
   type LucideIcon,
 } from 'lucide-react';
-import { SoccerBall } from './mpp/SoccerBallIcon';
 
 export interface AppEntry {
   path: string;
@@ -30,7 +29,6 @@ export const APPS: AppEntry[] = [
   { path: '/yc', label: 'YC Advisor', labelKey: 'app.yc', Icon: Rocket },
   { path: '/clothing', label: 'Clothing', labelKey: 'app.clothing', Icon: Shirt },
   { path: '/notice', label: 'Notice.ai', labelKey: 'app.notice', Icon: FileText },
-  { path: '/mpp', label: 'MPP', labelKey: 'app.mpp', Icon: SoccerBall as LucideIcon, ownerOnly: true },
 ];
 
 export function appByLabel(label?: string): AppEntry | undefined {

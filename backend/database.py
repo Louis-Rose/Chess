@@ -1346,94 +1346,6 @@ def init_db():
             )
             logger.info("Created workblock_anon_items table")
 
-        # Migration: MPP (Mon Petit Prono) account — stores the owner's Auth0
-        # refresh token plus a cached access token for the api.mpp.football calls.
-        if not _table_exists(conn, 'mpp_account'):
-            conn.execute("""
-                CREATE TABLE mpp_account (
-                    user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-                    refresh_token     TEXT NOT NULL,
-                    access_token      TEXT,
-                    access_expires_at TIMESTAMP,
-                    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            logger.info("Created mpp_account table")
-
-        # The owner's own MPP user id, so their line/row can be highlighted.
-        if not _column_exists(conn, 'mpp_account', 'mpp_user_id'):
-            conn.execute("ALTER TABLE mpp_account ADD COLUMN mpp_user_id TEXT")
-            logger.info("Added mpp_user_id to mpp_account")
-
-        # Daily snapshot of each player's points/rank — MPP has no historical
-        # standings endpoint, so we accumulate one row per player per day to
-        # draw the progression chart.
-        if not _table_exists(conn, 'mpp_standings_history'):
-            conn.execute("""
-                CREATE TABLE mpp_standings_history (
-                    challenge_id  TEXT NOT NULL,
-                    user_id       TEXT NOT NULL,
-                    snapshot_date DATE NOT NULL,
-                    username      TEXT,
-                    points        INTEGER,
-                    rank          INTEGER,
-                    PRIMARY KEY (challenge_id, user_id, snapshot_date)
-                )
-            """)
-            conn.execute(
-                "CREATE INDEX idx_mpp_history_challenge "
-                "ON mpp_standings_history(challenge_id, snapshot_date)"
-            )
-            logger.info("Created mpp_standings_history table")
-
-        # Tests tab: every manual/initial fetch of a watched match's cotes (the
-        # 1/N/2 reward points) and prono split records one row here, so we can
-        # watch whether they drift over time. One row per match per fetch — the
-        # full history is kept, duplicates and all.
-        if not _table_exists(conn, 'mpp_cote_history'):
-            conn.execute("""
-                CREATE TABLE mpp_cote_history (
-                    id          SERIAL PRIMARY KEY,
-                    match_id    TEXT NOT NULL,
-                    fetched_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    batch_at    TIMESTAMP,
-                    home_team   TEXT,
-                    away_team   TEXT,
-                    match_date  TEXT,
-                    status      TEXT,
-                    cote_home   INTEGER,
-                    cote_draw   INTEGER,
-                    cote_away   INTEGER,
-                    prono_home  REAL,
-                    prono_draw  REAL,
-                    prono_away  REAL
-                )
-            """)
-            conn.execute(
-                "CREATE INDEX idx_mpp_cote_match "
-                "ON mpp_cote_history(match_id, fetched_at)"
-            )
-            logger.info("Created mpp_cote_history table")
-
-        # A single re-fetch snapshots all watched matches at once; batch_at ties
-        # those rows together so the Tests table can show / remove them as one
-        # column. Backfill older rows from their own fetch time.
-        if not _column_exists(conn, 'mpp_cote_history', 'batch_at'):
-            conn.execute("ALTER TABLE mpp_cote_history ADD COLUMN batch_at TIMESTAMP")
-            conn.execute(
-                "UPDATE mpp_cote_history SET batch_at = fetched_at WHERE batch_at IS NULL"
-            )
-            logger.info("Added batch_at to mpp_cote_history")
-
-        # Tests tab shows each fixture's flag in the first column, reusing the
-        # MPP crest URLs. Older rows have none and only get them on the next
-        # re-fetch; the payload carries the latest meta forward, so flags appear
-        # once a fresh snapshot lands.
-        if not _column_exists(conn, 'mpp_cote_history', 'home_crest'):
-            conn.execute("ALTER TABLE mpp_cote_history ADD COLUMN home_crest TEXT")
-            conn.execute("ALTER TABLE mpp_cote_history ADD COLUMN away_crest TEXT")
-            logger.info("Added crest columns to mpp_cote_history")
-
         # Migration: clothing agent job queue. A search request is enqueued here
         # by the web app and picked up by a worker running on the owner's own
         # machine (residential IP + real Chrome) so it can browse bot-protected
@@ -1566,4 +1478,54 @@ def init_db():
                    SELECT ?, ?, ?
                    WHERE NOT EXISTS (SELECT 1 FROM notice_notes WHERE position = ?)""",
                 (_pos, _fr, _en, _pos),
+            )
+
+        # Migration: replace the MVP notes with the 5-step pipeline write-up.
+        # Each row is matched on its prior body so this applies once and is a
+        # no-op afterwards, and never clobbers a later manual edit on the VM —
+        # the same idempotent pattern as the note-1 reword above.
+        _notice_notes_replace = [
+            (
+                1,
+                "Les étapes d'assemblage de la vidéo Notice.ai devraient suivre "
+                "les étapes de la notice papier. En cas de doute, les utilisateurs "
+                "pourront se référer aux deux sources indépendamment.",
+                "MVP - ETAPE 1 : La vidéo d'assemblage devrait suivre les mêmes étapes que la notice papier. Pour cela, il faut commencer par identifier les étapes de montage dans la notice, et les numéros de pages associés. Même, plus précisément : il faut identifier les parties de pages concernées. Car certaines pages concernent plusieurs étapes à la fois. Pour chaque page, La liste des catégories possibles sont: sommaire, outils nécessaires, matériel fourni, assemblage - étape N, sécurité, liens divers.",
+                "MVP - STEP 1: The assembly video should follow the same steps as the paper instructions. To do this, we first need to identify the assembly steps in the instructions and the associated page numbers. More precisely: we need to identify the parts of the pages involved, because some pages cover several steps at once. For each page, the list of possible categories is: summary, required tools, supplied parts, assembly - step N, safety, miscellaneous links.",
+            ),
+            (
+                2,
+                "Pour cela, chaque page de la notice doit être catégorisée. Les "
+                "catégories possibles sont: Sommaire, Outils nécessaires, Matériel "
+                "fourni, Assemblage - Etape N, Sécurité, Liens",
+                "MVP - ETAPE 2 : Ensuite, pour chaque étape N, il faut lister les pièces nécessaires. Cela nécessite donc, en amont, de lister l'ensemble des pièces de la notice. Elles sont souvent groupées par sachets, et chaque pièce à un numéro de référence.",
+                "MVP - STEP 2: Next, for each step N, we need to list the required parts. This first requires listing all the parts in the instructions. They are often grouped in bags, and each part has a reference number.",
+            ),
+            (
+                3,
+                "Pour chaque Etape d'assemblage, il faut trouver : la ou les pages "
+                "concernées. Et meme plus précisément : les sections de pages. Car "
+                "certaines pages présentent plusieurs étapes à la fois.",
+                "MVP - ETAPE 3 : Ce numéro de référence sera utile pour obtenir de vraies images et/ou vidéos des pièces. C'est l'étape suivante : rassembler des données visuelles \"réelles\" des pièces concernées.",
+                "MVP - STEP 3: This reference number will be useful for obtaining real images and/or videos of the parts. That is the next step: gathering real visual data of the parts involved.",
+            ),
+            (
+                4,
+                "Ensuite, pour chaque étape, il faut lister les pièces nécessaires. "
+                "Pour cela, les numéros de série sont essentiels.",
+                "MVP - ETAPE 4 : Utiliser un LLM pour comprendre la logique de l'étape de la notice en cours, et fournir cela + les données visuelles réelles des pièces pour générer une vidéo fièle à la réalité.",
+                "MVP - STEP 4: Use an LLM to understand the logic of the current instruction step, and provide that plus the real visual data of the parts to generate a video faithful to reality.",
+            ),
+            (
+                5,
+                "A faire",
+                "MVP - ETAPE 5 (optionnel) : Ajouter une voix-off qui décrit chaque étape, nomme les pièces, etc..",
+                "MVP - STEP 5 (optional): Add a voice-over that describes each step, names the parts, and so on.",
+            ),
+        ]
+        for _pos, _old, _fr, _en in _notice_notes_replace:
+            conn.execute(
+                "UPDATE notice_notes SET body = ?, body_en = ? "
+                "WHERE position = ? AND body = ?",
+                (_fr, _en, _pos, _old),
             )

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoginButton } from './LoginButton';
 import { FocusSettingsModal } from '../apps/focus/FocusSettings';
 
-// An app-specific action injected into the menu (e.g. MPP's "Disconnect").
+// An app-specific action injected into the menu (e.g. a "Disconnect" action).
 export interface ProfileMenuItem {
   icon: LucideIcon;
   label: string;

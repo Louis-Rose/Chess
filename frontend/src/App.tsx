@@ -20,7 +20,6 @@ const FocusPrivacy = lazy(() => import('./apps/focus/FocusPrivacy').then(m => ({
 const ChessApp = lazy(() => import('./apps/chess/ChessApp').then(m => ({ default: m.ChessApp })));
 const FideApp = lazy(() => import('./apps/fide/FideApp').then(m => ({ default: m.FideApp })));
 const NoticeApp = lazy(() => import('./apps/notice/NoticeApp').then(m => ({ default: m.NoticeApp })));
-const MppApp = lazy(() => import('./apps/mpp/MppApp').then(m => ({ default: m.MppApp })));
 const InvitePage = lazy(() => import('./apps/chesscoaches/panels/InvitePage').then(m => ({ default: m.InvitePage })));
 const WaitlistPage = lazy(() => import('./apps/chesscoaches/panels/WaitlistPage').then(m => ({ default: m.WaitlistPage })));
 
@@ -57,7 +56,6 @@ function App() {
         <Route path="/clothing/*" element={<ClothingApp />} />
         <Route path="/focus/privacy" element={<FocusPrivacy />} />
         <Route path="/notice/*" element={<NoticeApp />} />
-        <Route path="/mpp/*" element={<MppApp />} />
         <Route path="/chess/stats/*" element={<ChessApp />} />
         <Route path="/blitzcrewrankings/*" element={<FideApp />} />
         <Route path="/chess/app/*" element={<DemoGate><ChessCoachesApp /></DemoGate>} />
