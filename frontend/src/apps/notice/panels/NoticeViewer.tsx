@@ -121,7 +121,7 @@ export function NoticeViewer() {
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
-            className={`mx-auto h-[60vh] w-full max-w-4xl overflow-hidden rounded-2xl border shadow-sm dark:shadow-none md:h-[80vh] ${
+            className={`mx-auto h-[60vh] w-full max-w-2xl overflow-hidden rounded-2xl border shadow-sm dark:shadow-none md:h-[80vh] ${
               dragging
                 ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/5'
                 : 'border-slate-300 bg-white dark:border-slate-800 dark:bg-slate-800/30'
