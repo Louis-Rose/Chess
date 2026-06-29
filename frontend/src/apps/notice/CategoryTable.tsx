@@ -1,15 +1,14 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Sparkles } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-// model id -> page number -> value (category label, or thought summary)
+// model id -> page number -> category label
 type ByModelPage = Record<string, Record<number, string>>;
 
-// Categories and thoughts are remembered per PDF in this browser, keyed by
-// document id, so they survive reloads. Each (page, model) keeps only its most
-// recent result.
+// Categories are remembered per PDF in this browser, keyed by document id, so
+// they survive reloads. Each (page, model) keeps only its most recent result.
 const mapKey = (kind: string, docId: string) => `notice.${kind}.${docId}`;
 
 function loadMap(kind: string, docId: string): ByModelPage {
@@ -49,9 +48,6 @@ export function CategoryTable({
   const { t } = useLanguage();
   const [categories, setCategories] = useState<ByModelPage>({});
   const categoriesRef = useRef<ByModelPage>({});
-  const [thoughts, setThoughts] = useState<ByModelPage>({});
-  const thoughtsRef = useRef<ByModelPage>({});
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<null | 'this' | 'all'>(null);
@@ -75,33 +71,22 @@ export function CategoryTable({
     void loadCosts();
   }, [loadCosts]);
 
-  // Load this PDF's remembered categories + thoughts when the document changes.
+  // Load this PDF's remembered categories when the document changes.
   useEffect(() => {
     const cats = loadMap('categories', docId);
-    const ths = loadMap('thoughts', docId);
     categoriesRef.current = cats;
-    thoughtsRef.current = ths;
     setCategories(cats);
-    setThoughts(ths);
-    setExpanded({});
     setError(null);
     setProgress(null);
   }, [docId]);
 
-  // Record one (model, page) result (and its reasoning), keeping only the most
-  // recent, and persist.
-  const setResult = (modelId: string, pageNum: number, category: string, thought: string) => {
+  // Record one (model, page) result, keeping only the most recent, and persist.
+  const setResult = (modelId: string, pageNum: number, category: string) => {
     const nextCats: ByModelPage = { ...categoriesRef.current };
     nextCats[modelId] = { ...(nextCats[modelId] || {}), [pageNum]: category };
     categoriesRef.current = nextCats;
     setCategories(nextCats);
     saveMap('categories', docId, nextCats);
-
-    const nextThoughts: ByModelPage = { ...thoughtsRef.current };
-    nextThoughts[modelId] = { ...(nextThoughts[modelId] || {}), [pageNum]: thought };
-    thoughtsRef.current = nextThoughts;
-    setThoughts(nextThoughts);
-    saveMap('thoughts', docId, nextThoughts);
   };
 
   // Classify one page image across every model, storing results per (model, page).
@@ -109,13 +94,13 @@ export function CategoryTable({
     await Promise.all(
       NOTICE_MODELS.map(async (m) => {
         try {
-          const { data } = await axios.post<{ category: string; thoughts?: string }>(
+          const { data } = await axios.post<{ category: string }>(
             '/api/notice/categorize',
             { image, model: m.id },
           );
-          setResult(m.id, pageNum, data.category, data.thoughts || '');
+          setResult(m.id, pageNum, data.category);
         } catch {
-          setResult(m.id, pageNum, '—', '');
+          setResult(m.id, pageNum, '—');
         }
       }),
     );
@@ -189,56 +174,28 @@ export function CategoryTable({
           <tbody>
             {NOTICE_MODELS.map((m) => {
               const cell = categories[m.id]?.[page];
-              const thought = thoughts[m.id]?.[page];
-              const canShowThinking = !!m.thinking && !!thought;
-              const open = canShowThinking && !!expanded[m.id];
               return (
-                <Fragment key={m.id}>
-                  <tr
-                    className={`[&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:[&>td]:border-slate-800/60 ${
-                      open ? '' : 'border-b border-slate-200 last:border-0 dark:border-slate-800/60'
-                    }`}
-                  >
-                    <td className="px-4 py-2.5 font-semibold text-slate-900 dark:text-slate-100">
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <span>{m.label}</span>
-                        {canShowThinking && (
-                          <button
-                            type="button"
-                            onClick={() => setExpanded((e) => ({ ...e, [m.id]: !e[m.id] }))}
-                            className="rounded-md border border-emerald-500/50 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:border-emerald-500 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
-                          >
-                            {open ? t('notice.cat.hideThinking') : t('notice.cat.showThinking')}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
-                      {cell ?? (busy ? (
-                        <Loader2 className="mx-auto h-4 w-4 animate-spin text-slate-500" />
-                      ) : (
-                        '—'
-                      ))}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-emerald-600 dark:text-emerald-300">
-                      ${(costs[m.id] ?? 0).toFixed(2)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-slate-700 dark:text-slate-300">
-                      {times[m.id] ? `${times[m.id].toFixed(1)}s` : '—'}
-                    </td>
-                  </tr>
-                  {open && (
-                    <tr className="border-b border-slate-200 last:border-0 dark:border-slate-800/60">
-                      <td colSpan={4} className="px-4 pb-3">
-                        <textarea
-                          readOnly
-                          value={thought}
-                          className="h-44 w-full resize-y rounded-lg border border-slate-300 bg-slate-50 p-3 text-left text-xs leading-relaxed text-slate-700 focus:outline-none dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300"
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
+                <tr
+                  key={m.id}
+                  className="border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60"
+                >
+                  <td className="px-4 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
+                    {m.label}
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
+                    {cell ?? (busy ? (
+                      <Loader2 className="mx-auto h-4 w-4 animate-spin text-slate-500" />
+                    ) : (
+                      '—'
+                    ))}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-emerald-600 dark:text-emerald-300">
+                    ${(costs[m.id] ?? 0).toFixed(2)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-slate-700 dark:text-slate-300">
+                    {times[m.id] ? `${times[m.id].toFixed(1)}s` : '—'}
+                  </td>
+                </tr>
               );
             })}
           </tbody>

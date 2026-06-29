@@ -32,12 +32,9 @@ notice_bp = Blueprint('notice', __name__)
 # list (apps/notice/models.ts) and the admin GEMINI_PRICING table so usage cost
 # is tracked. Validated server-side so a client can't request an arbitrary model.
 ALLOWED_MODELS = {
-    'gemini-3.1-pro-preview',
     'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
 }
-# Models that return reasoning ("thoughts"); others have nothing to show.
-THINKING_MODELS = {'gemini-3.1-pro-preview'}
 # Safety cap on the decoded page image (a rendered page is well under this).
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
@@ -152,9 +149,8 @@ def categorize():
 
     user_id = getattr(request, 'user_id', None)
     try:
-        answer, thoughts = _gemini_on_image(
-            model, image_bytes, _CATEGORIZE_PROMPT, user_id,
-            phase='categorize', want_thoughts=model in THINKING_MODELS,
+        answer, _ = _gemini_on_image(
+            model, image_bytes, _CATEGORIZE_PROMPT, user_id, phase='categorize',
         )
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
@@ -165,7 +161,7 @@ def categorize():
     category = _normalize_category(answer)
     if not category:
         return jsonify({'error': 'No category returned.'}), 502
-    return jsonify({'category': category, 'thoughts': thoughts})
+    return jsonify({'category': category})
 
 
 def _normalize_category(text):
