@@ -60,6 +60,9 @@ export function CategoryTable({
   const [times, setTimes] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState<null | 'this' | 'all'>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  // Pages currently being rendered/classified, so the UI can show that several
+  // run at once rather than reading as one-by-one.
+  const [active, setActive] = useState(0);
   const [error, setError] = useState<string | null>(null);
   // Lets the user stop an in-flight run; aborting cancels pending requests.
   const abortRef = useRef<AbortController | null>(null);
@@ -167,6 +170,7 @@ export function CategoryTable({
     setError(null);
     setBusy('all');
     setProgress({ done: 0, total: numPages });
+    setActive(0);
     const controller = new AbortController();
     abortRef.current = controller;
     const { signal } = controller;
@@ -175,10 +179,15 @@ export function CategoryTable({
     let done = 0;
     const worker = async () => {
       for (let n = nextPage++; n <= numPages && !signal.aborted; n = nextPage++) {
-        const image = await renderPage(n);
-        if (signal.aborted) return;
-        if (image) await classify(image, n, signal);
-        setProgress({ done: ++done, total: numPages });
+        setActive((a) => a + 1);
+        try {
+          const image = await renderPage(n);
+          if (signal.aborted) return;
+          if (image) await classify(image, n, signal);
+          setProgress({ done: ++done, total: numPages });
+        } finally {
+          setActive((a) => a - 1);
+        }
       }
     };
 
@@ -190,6 +199,7 @@ export function CategoryTable({
       abortRef.current = null;
       setBusy(null);
       setProgress(null);
+      setActive(0);
       void loadCosts();
     }
   };
@@ -214,6 +224,7 @@ export function CategoryTable({
           {busy === 'all' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {t('notice.cat.allPages')}
           {busy === 'all' && progress ? ` · ${progress.done}/${progress.total}` : ''}
+          {busy === 'all' && active > 0 ? ` · ${active} ${t('notice.cat.inFlight')}` : ''}
         </button>
         {busy && (
           <button type="button" onClick={stop} className={stopBtnClass}>
