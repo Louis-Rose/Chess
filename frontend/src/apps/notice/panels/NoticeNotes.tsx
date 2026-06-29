@@ -1,33 +1,14 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { Lightbulb, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { useNoticeNotes } from '../useNoticeNotes';
 
 // The MVP Notes page: a simple, readable list of the key points that frame the
 // first version of Notice.ai. The points are stored in the backend
 // (GET /api/notice/notes) so the copy can be edited without a frontend rebuild.
 // The backend serves the English copy for `?lang=en`, French otherwise.
 export function NoticeNotes() {
-  const { language, t } = useLanguage();
-  const [notes, setNotes] = useState<string[] | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    setNotes(null);
-    setError(false);
-    axios
-      .get<{ notes: string[] }>('/api/notice/notes', { params: { lang: language } })
-      .then(({ data }) => {
-        if (active) setNotes(data.notes ?? []);
-      })
-      .catch(() => {
-        if (active) setError(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [language]);
+  const { t } = useLanguage();
+  const { notes, error } = useNoticeNotes();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">

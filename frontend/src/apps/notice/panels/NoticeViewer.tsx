@@ -7,6 +7,7 @@ import { EtapeSection } from '../EtapeSection';
 import { SECTION_WIDTH } from '../sectionWidth';
 import { getFile, type NoticeFile } from '../noticeStore';
 import { useNoticeFiles } from '../useNoticeFiles';
+import { useNoticeNotes } from '../useNoticeNotes';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 // The Viewer page: upload a PDF (button or drag-and-drop) and read it page by
@@ -15,6 +16,7 @@ export function NoticeViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { add } = useNoticeFiles();
+  const { notes } = useNoticeNotes();
   const { t } = useLanguage();
 
   const [current, setCurrent] = useState<NoticeFile | null>(null);
@@ -143,7 +145,7 @@ export function NoticeViewer() {
 
           {/* Assembly steps, top to bottom */}
           <div className="mt-10 flex flex-col gap-10">
-            <EtapeSection title={`${t('notice.step')} 1`}>
+            <EtapeSection title={`${t('notice.step')} 1`} info={notes?.[0]}>
               {/* Per-model page categories + Gemini cost */}
               <CategoryTable
                 getPageImage={() => getPageImage.current?.() ?? null}
@@ -153,9 +155,9 @@ export function NoticeViewer() {
                 docId={current.id}
               />
             </EtapeSection>
-            <EtapeSection title={`${t('notice.step')} 2`} />
-            <EtapeSection title={`${t('notice.step')} 3`} />
-            <EtapeSection title={`${t('notice.step')} 4`} />
+            <EtapeSection title={`${t('notice.step')} 2`} info={notes?.[1]} />
+            <EtapeSection title={`${t('notice.step')} 3`} info={notes?.[2]} />
+            <EtapeSection title={`${t('notice.step')} 4`} info={notes?.[3]} />
           </div>
         </div>
       ) : (
