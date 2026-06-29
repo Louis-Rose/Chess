@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import PdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
-
-// PDF.js renders pages off the main thread. Let Vite bundle and instantiate the
-// worker (?worker) rather than pointing workerSrc at a raw .mjs URL: the latter
-// is served as application/octet-stream by static hosts (nginx) and rejected by
-// strict module-script MIME checks. A single shared worker serves all documents.
-pdfjsLib.GlobalWorkerOptions.workerPort = new PdfjsWorker();
+// Side-effect import: configures the shared PDF.js worker (used here and by the
+// off-screen categorize run).
+import './pdfRender';
 
 // Renders a PDF one page at a time onto a canvas, filling the container width
 // (margins come from the narrow section the parent places this in). The header
@@ -20,13 +16,11 @@ export function PdfViewer({
   onPageImage,
   onPage,
   onNumPages,
-  onRenderPage,
 }: {
   file: Blob;
   onPageImage?: (getImage: () => string | null) => void;
   onPage?: (page: number) => void;
   onNumPages?: (n: number) => void;
-  onRenderPage?: (render: (n: number) => Promise<string | null>) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -164,30 +158,6 @@ export function PdfViewer({
   useEffect(() => {
     onNumPages?.(numPages);
   }, [numPages, onNumPages]);
-
-  // Render any page off-screen to a PNG data URL (for classifying all pages).
-  const renderPageImage = useCallback(async (n: number): Promise<string | null> => {
-    const doc = docRef.current;
-    if (!doc) return null;
-    try {
-      const pdfPage = await doc.getPage(n);
-      const base = pdfPage.getViewport({ scale: 1 });
-      const viewport = pdfPage.getViewport({ scale: 1000 / base.width });
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return null;
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      await pdfPage.render({ canvas, canvasContext: ctx, viewport }).promise;
-      return canvas.toDataURL('image/png');
-    } catch {
-      return null;
-    }
-  }, []);
-
-  useEffect(() => {
-    onRenderPage?.(renderPageImage);
-  }, [onRenderPage, renderPageImage]);
 
   // When zoomed, render the current page large enough to fill the viewport.
   useEffect(() => {

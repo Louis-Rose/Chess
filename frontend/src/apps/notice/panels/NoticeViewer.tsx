@@ -27,10 +27,9 @@ export function NoticeViewer() {
   const [dragging, setDragging] = useState(false);
   const [rejected, setRejected] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Getters handed up by PdfViewer: the current page as a PNG, and a renderer
-  // for any page (used to categorize all pages).
+  // Getter handed up by PdfViewer: the current page as a PNG (used to categorize
+  // the page on screen). "Find all" renders pages itself, off the categorize run.
   const getPageImage = useRef<(() => string | null) | null>(null);
-  const renderPage = useRef<((n: number) => Promise<string | null>) | null>(null);
 
   // Load the selected document from IndexedDB when the id changes.
   useEffect(() => {
@@ -137,9 +136,6 @@ export function NoticeViewer() {
               }}
               onPage={setPageNum}
               onNumPages={setNumPages}
-              onRenderPage={(fn) => {
-                renderPage.current = fn;
-              }}
             />
           </div>
 
@@ -149,10 +145,10 @@ export function NoticeViewer() {
               {/* Per-model page categories + Gemini cost */}
               <CategoryTable
                 getPageImage={() => getPageImage.current?.() ?? null}
-                renderPage={(n) => renderPage.current?.(n) ?? Promise.resolve(null)}
                 numPages={numPages}
                 page={pageNum}
                 docId={current.id}
+                file={current.data}
               />
             </EtapeSection>
             <EtapeSection title={`${t('notice.step')} 2`} info={notes?.[1]} />
