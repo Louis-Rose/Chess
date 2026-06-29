@@ -5,7 +5,7 @@ import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 import { NOTICE_MODELS } from './models';
 import { renderPdfPageToImage } from './pdfRender';
 
-// The "find all" categorize run lives here, at module scope, instead of inside
+// The page-range categorize run lives here, at module scope, instead of inside
 // the CategoryTable component. The reader (NoticeViewer) is a React Router route,
 // so navigating to another tab (Notes MVP, Library) unmounts it and its PdfViewer,
 // which destroys the PDF.js document. A run kept in component state would lose its
@@ -14,7 +14,7 @@ import { renderPdfPageToImage } from './pdfRender';
 // reporting) while the user is on another tab, and lets the table re-attach to the
 // live run when they come back.
 
-// How many pages to classify at once during a "find all" run. Each page already
+// How many pages to classify at once during a range run. Each page already
 // fans out across the models, so this caps total in-flight Gemini requests
 // (pages x models) to keep clear of rate limits.
 const PAGE_CONCURRENCY = 5;
@@ -23,7 +23,7 @@ const PAGE_CONCURRENCY = 5;
 type ByModelPage = Record<string, Record<number, string>>;
 
 export type RunSnapshot = {
-  busy: null | 'this' | 'all' | 'range';
+  busy: null | 'range';
   progress: { done: number; total: number } | null;
   // Pages currently rendering/classifying, so the UI can show that several run at
   // once rather than reading as one-by-one.
@@ -152,28 +152,6 @@ function bumpActive(docId: string, delta: number) {
   update(docId, { active: getEntry(docId).snapshot.active + delta });
 }
 
-// Classify just the current on-screen page. The image is captured by the caller
-// (it needs the live canvas), then handed to the shared run state so the busy
-// indicator is the same one the table reads.
-export async function startThisPage(
-  docId: string,
-  image: string,
-  pageNum: number,
-  t: (k: string) => string,
-) {
-  const entry = getEntry(docId);
-  if (entry.snapshot.busy) return;
-  update(docId, { busy: 'this', error: null });
-  const controller = new AbortController();
-  entry.controller = controller;
-  try {
-    await classify(docId, image, pageNum, controller.signal, t);
-  } finally {
-    entry.controller = null;
-    update(docId, { busy: null });
-  }
-}
-
 // Build the list of page numbers to run for a contiguous range, clamped to the
 // document and order-forgiving (from/to may be swapped).
 function pageRange(from: number, to: number, numPages: number): number[] {
@@ -184,21 +162,21 @@ function pageRange(from: number, to: number, numPages: number): number[] {
   return pages;
 }
 
-// Classify a set of pages with a bounded pool of workers pulling from a shared
-// cursor, so several pages render and call out at once without flooding the API.
-// The run owns its own PDF.js document (loaded from the stored blob) so it is
-// independent of the on-screen viewer and survives navigating away from the
-// reader. `range` null means every page; otherwise just that contiguous span.
-async function runPages(
+// Classify a contiguous span of pages (from..to, inclusive) with a bounded pool
+// of workers pulling from a shared cursor, so several pages render and call out
+// at once without flooding the API. The run owns its own PDF.js document (loaded
+// from the stored blob) so it is independent of the on-screen viewer and survives
+// navigating away from the reader.
+export async function startRange(
   docId: string,
   file: Blob,
+  from: number,
+  to: number,
   t: (k: string) => string,
-  busy: 'all' | 'range',
-  range: { from: number; to: number } | null,
 ) {
   const entry = getEntry(docId);
   if (entry.snapshot.busy) return;
-  update(docId, { busy, error: null, progress: null, active: 0 });
+  update(docId, { busy: 'range', error: null, progress: null, active: 0 });
   const controller = new AbortController();
   entry.controller = controller;
   const { signal } = controller;
@@ -208,10 +186,7 @@ async function runPages(
     const buf = await file.arrayBuffer();
     loadingTask = pdfjsLib.getDocument({ data: buf });
     const doc: PDFDocumentProxy = await loadingTask.promise;
-    const numPages = doc.numPages;
-    const pages = range
-      ? pageRange(range.from, range.to, numPages)
-      : Array.from({ length: numPages }, (_, i) => i + 1);
+    const pages = pageRange(from, to, doc.numPages);
     if (pages.length === 0) return;
     update(docId, { progress: { done: 0, total: pages.length } });
 
@@ -242,30 +217,8 @@ async function runPages(
   }
 }
 
-// Classify every page in the document.
-export function startAll(docId: string, file: Blob, t: (k: string) => string) {
-  return runPages(docId, file, t, 'all', null);
-}
-
-// Classify a contiguous span of pages (from..to, inclusive).
-export function startRange(
-  docId: string,
-  file: Blob,
-  from: number,
-  to: number,
-  t: (k: string) => string,
-) {
-  return runPages(docId, file, t, 'range', { from, to });
-}
-
 export function stopRun(docId: string) {
   getEntry(docId).controller?.abort();
-}
-
-// Surface a run-level error (e.g. the current page could not be rendered) on the
-// shared state so it shows whether or not a run is in flight.
-export function setRunError(docId: string, message: string) {
-  update(docId, { error: message });
 }
 
 // Subscribe a component to a document's run state. getSnapshot returns a stable

@@ -3,25 +3,23 @@ import axios from 'axios';
 import { Loader2, Sparkles, Square } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { startAll, startRange, startThisPage, stopRun, setRunError, useRun } from './categoryRun';
+import { startRange, stopRun, useRun } from './categoryRun';
 
 // A table with one row per Gemini model: the model name, the category it assigns
 // to the page currently shown, and the running Gemini spend for that model in the
-// Notice.ai feature. Two actions: classify just the current page, or every page
-// (cached per page, so the column fills in as you navigate).
+// Notice.ai feature. The run classifies a contiguous page range (cached per page,
+// so the column fills in as you navigate).
 //
 // The run itself (busy/progress/results) lives in categoryRun, keyed by document
 // id, so it survives leaving and returning to the reader tab. This component just
 // reads that shared state and renders it; the cost/time columns stay local since
 // they are only a display refresh.
 export function CategoryTable({
-  getPageImage,
   numPages,
   page,
   docId,
   file,
 }: {
-  getPageImage: () => string | null;
   numPages: number;
   page: number;
   docId: string;
@@ -64,15 +62,6 @@ export function CategoryTable({
     if (!busy) void loadCosts();
   }, [busy, loadCosts]);
 
-  const findThisPage = () => {
-    const image = getPageImage();
-    if (!image) {
-      setRunError(docId, t('notice.err.rendering'));
-      return;
-    }
-    void startThisPage(docId, image, page, t);
-  };
-
   const btnClass =
     'flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-emerald-500/10';
   const stopBtnClass =
@@ -80,9 +69,9 @@ export function CategoryTable({
   const numInputClass =
     'w-14 rounded-md border border-slate-300 bg-white px-2 py-1 text-center text-sm text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100';
 
-  // Trailing " · done/total · N in progress" for whichever multi-page run is live.
-  const progressSuffix = (kind: 'all' | 'range') =>
-    busy === kind
+  // Trailing " · done/total · N in progress" while the range run is live.
+  const progressSuffix =
+    busy === 'range'
       ? `${progress ? ` · ${progress.done}/${progress.total}` : ''}${
           active > 0 ? ` · ${active} ${t('notice.cat.inFlight')}` : ''
         }`
@@ -102,11 +91,6 @@ export function CategoryTable({
   return (
     <div className="mt-6">
       <div className="mb-3 flex flex-wrap items-center justify-center gap-3">
-        <button type="button" onClick={findThisPage} disabled={!!busy} className={btnClass}>
-          {busy === 'this' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {t('notice.cat.thisPage')}
-        </button>
-
         {/* Run a contiguous page range */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.cat.from')}</span>
@@ -139,20 +123,10 @@ export function CategoryTable({
           >
             {busy === 'range' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {t('notice.cat.runRange')}
-            {progressSuffix('range')}
+            {progressSuffix}
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => void startAll(docId, file, t)}
-          disabled={!!busy || numPages < 1}
-          className={btnClass}
-        >
-          {busy === 'all' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {t('notice.cat.allPages')}
-          {progressSuffix('all')}
-        </button>
         {busy && (
           <button type="button" onClick={() => stopRun(docId)} className={stopBtnClass}>
             <Square className="h-4 w-4" />

@@ -32,9 +32,6 @@ export function NoticeViewer() {
   const [dragging, setDragging] = useState(false);
   const [rejected, setRejected] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Getter handed up by PdfViewer: the current page as a PNG (used to categorize
-  // the page on screen). "Find all" renders pages itself, off the categorize run.
-  const getPageImage = useRef<(() => string | null) | null>(null);
 
   // Load the selected document from IndexedDB when the id changes. With no id in
   // the URL (the "Reader" tab), reopen the last document we still have, so
@@ -158,9 +155,6 @@ export function NoticeViewer() {
             <PdfViewer
               key={current.id}
               file={current.data}
-              onPageImage={(fn) => {
-                getPageImage.current = fn;
-              }}
               onPage={setPageNum}
               onNumPages={setNumPages}
             />
@@ -171,7 +165,6 @@ export function NoticeViewer() {
             <EtapeSection title={`${t('notice.step')} 1`} info={notes?.[0]}>
               {/* Per-model page categories + Gemini cost */}
               <CategoryTable
-                getPageImage={() => getPageImage.current?.() ?? null}
                 numPages={numPages}
                 page={pageNum}
                 docId={current.id}

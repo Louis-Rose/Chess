@@ -9,16 +9,13 @@ import './pdfRender';
 
 // Renders a PDF one page at a time onto a canvas, filling the container width
 // (margins come from the narrow section the parent places this in). The header
-// holds the page navigation. `onPageImage` receives a getter that returns the
-// currently-shown page as a PNG data URL (for the page Q&A).
+// holds the page navigation.
 export function PdfViewer({
   file,
-  onPageImage,
   onPage,
   onNumPages,
 }: {
   file: Blob;
-  onPageImage?: (getImage: () => string | null) => void;
   onPage?: (page: number) => void;
   onNumPages?: (n: number) => void;
 }) {
@@ -142,12 +139,6 @@ export function PdfViewer({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [go]);
-
-  // Hand the parent a getter for the current page as a PNG (canvasRef is stable,
-  // so this always reflects whatever page is on screen at call time).
-  useEffect(() => {
-    onPageImage?.(() => canvasRef.current?.toDataURL('image/png') ?? null);
-  }, [onPageImage]);
 
   // Report the current page number so the parent can react to navigation.
   useEffect(() => {
