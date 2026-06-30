@@ -184,8 +184,8 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   // One candidate tile: click toggles kept/discarded (which moves it between the
   // two rows), the corner button zooms, and the source site links below.
   const tile = (c: ImageHit, i: number) => (
-    <div key={i} className="flex w-32 flex-col items-center gap-1">
-      <div className="group relative h-32 w-32">
+    <div key={i} className="flex w-44 flex-col items-center gap-1">
+      <div className="group relative h-44 w-44">
         <button
           type="button"
           onClick={() => toggleKept(i)}
