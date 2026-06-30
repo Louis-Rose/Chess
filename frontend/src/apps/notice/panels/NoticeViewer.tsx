@@ -162,7 +162,7 @@ export function NoticeViewer() {
 
           {/* Assembly steps, top to bottom */}
           <div className="mt-10 flex flex-col gap-10">
-            <EtapeSection title={`${t('notice.step')} 1`} info={notes?.[0]}>
+            <EtapeSection title={`${t('notice.step')} 1${t('notice.step.sep')}${t('notice.step1.title')}`} info={notes?.[0]}>
               {/* Per-model page categories + Gemini cost */}
               <CategoryTable
                 numPages={numPages}
