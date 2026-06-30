@@ -40,6 +40,13 @@ ALLOWED_MODELS = {
     'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
 }
+# Approximate free-tier daily request limits (RPD) per model, for the Pricing
+# tab's "free calls used today" bar. Google doesn't expose these via API and
+# changes them periodically, so they're hardcoded estimates — edit when they move.
+FREE_DAILY_LIMITS = {
+    'gemini-3.5-flash': 250,
+    'gemini-3.1-flash-lite': 1000,
+}
 # Safety cap on the decoded page image (a rendered page is well under this).
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
@@ -579,6 +586,31 @@ def serper_quota():
         row = conn.execute('SELECT COALESCE(SUM(credits), 0) AS s FROM serper_usage').fetchone()
     used = base + int(row['s'] or 0)
     return jsonify({'used': used, 'total': total})
+
+
+@notice_bp.route('/api/notice/free-quota', methods=['GET'])
+@login_required
+def free_quota():
+    """Free-tier Gemini calls used today, per model, for the Pricing tab. Gemini
+    tries the free key first and falls back to paid, so a free-tier row is a call
+    the free key served. The day resets at midnight Pacific (where Google's free
+    quota resets); created_at is stored UTC-naive, so we shift it to PT to bucket.
+    The daily limits are approximate estimates (FREE_DAILY_LIMITS)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            """SELECT model_id, COUNT(*) AS n
+               FROM api_usage
+               WHERE feature = 'notice' AND COALESCE(billing_tier,'paid') = 'free'
+                 AND (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Los_Angeles')::date
+                     = (now() AT TIME ZONE 'America/Los_Angeles')::date
+               GROUP BY model_id""",
+        ).fetchall()
+    used = {dict(r)['model_id']: int(dict(r)['n'] or 0) for r in rows}
+    out = {
+        m: {'used': used.get(m, 0), 'limit': FREE_DAILY_LIMITS.get(m, 0)}
+        for m in ALLOWED_MODELS
+    }
+    return jsonify(out)
 
 
 @notice_bp.route('/api/notice/notes', methods=['GET'])

@@ -2,7 +2,22 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Wallet } from 'lucide-react';
 import { ModelStatsTable } from '../ModelStatsTable';
+import { NOTICE_MODELS } from '../models';
 import { useLanguage } from '../../../contexts/LanguageContext';
+
+// A thin used/total progress bar; turns rose once the limit is reached.
+function Bar({ used, total }: { used: number; total: number }) {
+  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  const over = total > 0 && used >= total;
+  return (
+    <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+      <div
+        className={`h-full rounded-full transition-[width] ${over ? 'bg-rose-500' : 'bg-emerald-500'}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
 
 // Per-phase economics keyed by model id (cost / avg time / call count / tokens).
 type PhaseStats = {
@@ -59,23 +74,26 @@ export function NoticePricing() {
   const [phases, setPhases] = useState<Record<string, PhaseStats>>({});
   const [pricing, setPricing] = useState<Record<string, { input: number; output: number }>>({});
   const [serper, setSerper] = useState<{ used: number; total: number } | null>(null);
+  const [freeQuota, setFreeQuota] = useState<Record<string, { used: number; limit: number }>>({});
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const [costs, quota] = await Promise.all([
+        const [costs, quota, free] = await Promise.all([
           axios.get<{
             phases: Record<string, PhaseStats>;
             pricing: Record<string, { input: number; output: number }>;
           }>('/api/notice/costs'),
           axios.get<{ used: number; total: number }>('/api/notice/serper-quota'),
+          axios.get<Record<string, { used: number; limit: number }>>('/api/notice/free-quota'),
         ]);
         if (cancelled) return;
         setPhases(costs.data.phases || {});
         setPricing(costs.data.pricing || {});
         setSerper(quota.data);
+        setFreeQuota(free.data || {});
       } catch {
         // non-fatal: leave the figures empty
       } finally {
@@ -124,14 +142,7 @@ export function NoticePricing() {
                             {serper.used.toLocaleString()} / {serper.total.toLocaleString()}
                           </span>
                         </div>
-                        <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                          <div
-                            className="h-full rounded-full bg-emerald-500 transition-[width]"
-                            style={{
-                              width: `${Math.min(100, serper.total > 0 ? (serper.used / serper.total) * 100 : 0)}%`,
-                            }}
-                          />
-                        </div>
+                        <Bar used={serper.used} total={serper.total} />
                       </div>
                     )}
                   </div>
@@ -147,6 +158,35 @@ export function NoticePricing() {
               </section>
             );
           })}
+
+          {/* Gemini free-tier daily usage (free key tried before the paid one). */}
+          <section>
+            <h2 className="mb-3 text-center text-lg font-semibold text-slate-800 dark:text-slate-200">
+              {t('notice.pricing.freeTier')}
+            </h2>
+            <div className="mx-auto flex max-w-md flex-col gap-4">
+              {NOTICE_MODELS.map((m) => {
+                const q = freeQuota[m.id] || { used: 0, limit: 0 };
+                return (
+                  <div key={m.id}>
+                    <div className="mb-1.5 flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: m.color }} aria-hidden />
+                        {m.label}
+                      </span>
+                      <span className="tabular-nums text-slate-600 dark:text-slate-400">
+                        {q.used.toLocaleString()} / {q.limit.toLocaleString()}
+                      </span>
+                    </div>
+                    <Bar used={q.used} total={q.limit} />
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mx-auto mt-3 max-w-md text-center text-xs text-slate-400 dark:text-slate-500">
+              {t('notice.pricing.freeNote')}
+            </p>
+          </section>
         </div>
       )}
     </div>
