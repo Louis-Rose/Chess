@@ -574,68 +574,53 @@ def notes():
 @notice_bp.route('/api/notice/costs', methods=['GET'])
 @login_required
 def costs():
-    """Per-model Gemini spend (paid calls) and average categorize time for the
-    Notice.ai feature."""
+    """Per-model Gemini spend (paid calls), average time and call count for the
+    Notice.ai feature, broken down by phase so the frontend can show one table
+    per assembly step: 'categorize' (Étape 1), 'parts' (Étape 2), 'brand'
+    (Étape 3, the brand that drives the real-image search)."""
     from blueprints.admin import GEMINI_PRICING
 
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT model_id,
+            """SELECT phase, model_id,
                    SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN input_tokens ELSE 0 END) AS paid_input,
                    SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN output_tokens ELSE 0 END) AS paid_output,
                    SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN COALESCE(thinking_tokens,0) ELSE 0 END) AS paid_thinking,
                    SUM(input_tokens) AS tok_input,
                    SUM(output_tokens) AS tok_output,
-                   SUM(COALESCE(thinking_tokens,0)) AS tok_thinking
+                   SUM(COALESCE(thinking_tokens,0)) AS tok_thinking,
+                   COUNT(*) AS n_calls,
+                   AVG(CASE WHEN error IS NULL THEN elapsed_seconds END) AS avg_seconds
                FROM api_usage
                WHERE feature = 'notice'
-               GROUP BY model_id""",
-        ).fetchall()
-        # Average wall-clock of successful page-category requests, per model.
-        time_rows = conn.execute(
-            """SELECT model_id, AVG(elapsed_seconds) AS avg_seconds
-               FROM api_usage
-               WHERE feature = 'notice' AND phase = 'categorize' AND error IS NULL
-               GROUP BY model_id""",
-        ).fetchall()
-        # Total page-category requests issued per model (successes + failures).
-        call_rows = conn.execute(
-            """SELECT model_id, COUNT(*) AS n
-               FROM api_usage
-               WHERE feature = 'notice' AND phase = 'categorize'
-               GROUP BY model_id""",
+               GROUP BY phase, model_id""",
         ).fetchall()
 
-    out = {}
-    tokens = {}
+    # One bucket per phase: { costs, times, calls, tokens } keyed by model id.
+    phases = {}
     for row in rows:
         r = dict(row)
+        bucket = phases.setdefault(
+            r['phase'] or '-', {'costs': {}, 'times': {}, 'calls': {}, 'tokens': {}}
+        )
         pricing = GEMINI_PRICING.get(r['model_id'], {'input': 0, 'output': 0})
         billed_output = (r['paid_output'] or 0) + (r['paid_thinking'] or 0)
-        out[r['model_id']] = (
+        bucket['costs'][r['model_id']] = (
             (r['paid_input'] or 0) * pricing['input'] + billed_output * pricing['output']
         ) / 1_000_000
-        tokens[r['model_id']] = {
+        bucket['tokens'][r['model_id']] = {
             'input': int(r['tok_input'] or 0),
             'output': int(r['tok_output'] or 0),
             'thinking': int(r['tok_thinking'] or 0),
         }
-
-    times = {}
-    for row in time_rows:
-        r = dict(row)
-        times[r['model_id']] = float(r['avg_seconds']) if r['avg_seconds'] is not None else 0.0
-
-    calls = {}
-    for row in call_rows:
-        r = dict(row)
-        calls[r['model_id']] = int(r['n'] or 0)
+        bucket['calls'][r['model_id']] = int(r['n_calls'] or 0)
+        bucket['times'][r['model_id']] = (
+            float(r['avg_seconds']) if r['avg_seconds'] is not None else 0.0
+        )
 
     # Per-model list price ($ per million tokens), for the selectable models.
     pricing = {
         m: GEMINI_PRICING.get(m, {'input': 0, 'output': 0}) for m in ALLOWED_MODELS
     }
 
-    return jsonify(
-        {'costs': out, 'times': times, 'calls': calls, 'tokens': tokens, 'pricing': pricing}
-    )
+    return jsonify({'phases': phases, 'pricing': pricing})
