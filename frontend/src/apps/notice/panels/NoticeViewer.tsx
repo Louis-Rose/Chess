@@ -25,7 +25,6 @@ export function NoticeViewer() {
   const { t } = useLanguage();
 
   const [current, setCurrent] = useState<NoticeFile | null>(null);
-  const [pageNum, setPageNum] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -155,7 +154,6 @@ export function NoticeViewer() {
             <PdfViewer
               key={current.id}
               file={current.data}
-              onPage={setPageNum}
               onNumPages={setNumPages}
             />
           </div>
@@ -166,7 +164,6 @@ export function NoticeViewer() {
               {/* Per-model page categories + Gemini cost */}
               <CategoryTable
                 numPages={numPages}
-                page={pageNum}
                 docId={current.id}
                 file={current.data}
               />

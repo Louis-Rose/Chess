@@ -12,11 +12,9 @@ import './pdfRender';
 // holds the page navigation.
 export function PdfViewer({
   file,
-  onPage,
   onNumPages,
 }: {
   file: Blob;
-  onPage?: (page: number) => void;
   onNumPages?: (n: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -139,11 +137,6 @@ export function PdfViewer({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [go]);
-
-  // Report the current page number so the parent can react to navigation.
-  useEffect(() => {
-    onPage?.(page);
-  }, [page, onPage]);
 
   // Report the page count.
   useEffect(() => {

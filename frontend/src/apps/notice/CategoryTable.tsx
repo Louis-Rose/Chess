@@ -17,12 +17,10 @@ import { startRange, stopRun, useRun } from './categoryRun';
 // they are only a display refresh.
 export function CategoryTable({
   numPages,
-  page,
   docId,
   file,
 }: {
   numPages: number;
-  page: number;
   docId: string;
   file: Blob;
 }) {
@@ -37,16 +35,13 @@ export function CategoryTable({
   const [pricing, setPricing] = useState<Record<string, { input: number; output: number }>>({});
 
   // Page-range selection. Held as strings so the field can be cleared while
-  // typing (a number input would snap an empty value back to 0). `from` follows
-  // the page on screen and `to` defaults to the last page until the user edits
-  // either field (then it stays put).
+  // typing (a number input would snap an empty value back to 0). `from` starts at
+  // 1; `to` defaults to the last page until the user edits it (then it stays put).
+  // Neither tracks the page on screen, so paging the reader (incl. with the arrow
+  // keys) leaves the range untouched.
   const [from, setFrom] = useState('1');
   const [to, setTo] = useState('');
-  const touchedFrom = useRef(false);
   const touchedTo = useRef(false);
-  useEffect(() => {
-    if (!touchedFrom.current) setFrom(String(page));
-  }, [page]);
   useEffect(() => {
     if (!touchedTo.current && numPages > 0) setTo(String(numPages));
   }, [numPages]);
@@ -92,7 +87,6 @@ export function CategoryTable({
       : '';
 
   const onFrom = (v: string) => {
-    touchedFrom.current = true;
     setFrom(v);
   };
   const onTo = (v: string) => {
@@ -162,7 +156,6 @@ export function CategoryTable({
       {/* 3. Category of every page */}
       <PageCategoriesTable
         numPages={numPages}
-        page={page}
         categories={categories}
         reasoning={reasoning}
         cellErrors={cellErrors}

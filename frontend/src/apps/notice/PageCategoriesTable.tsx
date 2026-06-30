@@ -9,13 +9,11 @@ import { useLanguage } from '../../contexts/LanguageContext';
 // thought summary, a brain badge reveals its reasoning on hover.
 export function PageCategoriesTable({
   numPages,
-  page,
   categories,
   reasoning,
   cellErrors,
 }: {
   numPages: number;
-  page: number;
   categories: Record<string, Record<number, string>>;
   reasoning: Record<string, Record<number, string>>;
   cellErrors: Record<string, Record<number, string>>;
@@ -42,9 +40,7 @@ export function PageCategoriesTable({
           {pages.map((n) => (
             <tr
               key={n}
-              className={`border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60 ${
-                n === page ? 'bg-emerald-50/70 dark:bg-emerald-500/10' : ''
-              }`}
+              className="border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60"
             >
               <td className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">{n}</td>
               {NOTICE_MODELS.map((m) => {
