@@ -640,8 +640,11 @@ _FILTER_PROMPT = (
     "DISCARD a candidate if it is any of: a line drawing, technical diagram or "
     "illustration; a logo, icon or plain text; product packaging with no clear "
     "view of the part; an unrelated object; a cluttered pile or heap of many parts "
-    "thrown together / overlapping so individual parts are hard to see; OR any "
-    "image carrying a visible watermark (text or a logo overlaid across the image).\n"
+    "thrown together / overlapping so individual parts are hard to see; a "
+    "watermark (text or logo overlaid across the image); OR any added text, "
+    "caption, banner or promotional/marketing graphic placed on or around the "
+    "photo (e.g. a seller banner like 'FOR IKEA FURNITURE' or 'GENUINE SPARE "
+    "PARTS / READY TO POST'). Keep only clean, unannotated photographs.\n"
     "Return ONLY a JSON array with one object per candidate, in the given order: "
     '[{"keep": true}, {"keep": false}, ...]. No prose, no code fences.'
 )
