@@ -5,7 +5,7 @@ import { renderPdfPageToImage } from './pdfRender';
 // Étape 3 helpers: brand detection, web image search, and persistence of the
 // detected brand (keyed by document).
 
-export type ImageHit = { url: string; thumbnail: string; title: string; context: string };
+export type ImageHit = { url: string; thumbnail: string; title: string; context: string; source: string };
 
 const brandKey = (docId: string) => `notice.brand.${docId}`;
 

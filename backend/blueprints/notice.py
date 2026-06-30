@@ -560,11 +560,19 @@ def part_images():
 
     images = []
     for it in payload.get('images') or []:
+        # The source site as a bare hostname (no path), for a small caption under
+        # each candidate. Prefer Serper's `domain`, else parse the page link.
+        source = (it.get('domain') or '').strip()
+        if not source:
+            source = urllib.parse.urlparse(it.get('link') or '').hostname or ''
+        if source.startswith('www.'):
+            source = source[4:]
         images.append({
             'url': it.get('imageUrl'),
             'thumbnail': it.get('thumbnailUrl') or it.get('imageUrl'),
             'title': it.get('title'),
             'context': it.get('link'),
+            'source': source,
         })
     return jsonify({'images': images, 'query': query})
 

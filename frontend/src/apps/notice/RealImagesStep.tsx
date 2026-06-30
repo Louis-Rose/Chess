@@ -119,20 +119,32 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
         {candidates.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {candidates.map((c, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setZoom(c.url)}
-                title={c.title}
-                className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-lg border-2 border-slate-300 bg-white p-1 transition-colors hover:border-emerald-400 dark:border-slate-700"
-              >
-                <img
-                  src={c.thumbnail}
-                  alt={c.title}
-                  loading="lazy"
-                  className="max-h-full max-w-full cursor-zoom-in object-contain"
-                />
-              </button>
+              <div key={i} className="flex w-32 flex-col items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setZoom(c.url)}
+                  title={c.title}
+                  className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-lg border-2 border-slate-300 bg-white p-1 transition-colors hover:border-emerald-400 dark:border-slate-700"
+                >
+                  <img
+                    src={c.thumbnail}
+                    alt={c.title}
+                    loading="lazy"
+                    className="max-h-full max-w-full cursor-zoom-in object-contain"
+                  />
+                </button>
+                {c.source && (
+                  <a
+                    href={c.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={c.source}
+                    className="max-w-full truncate text-xs text-slate-400 hover:text-emerald-500 hover:underline dark:text-slate-500"
+                  >
+                    {c.source}
+                  </a>
+                )}
+              </div>
             ))}
           </div>
         )}
