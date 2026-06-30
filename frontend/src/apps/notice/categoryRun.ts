@@ -7,52 +7,53 @@ import { renderPdfPageToImage } from './pdfRender';
 
 // The page-range categorize run lives here, at module scope, instead of inside
 // the CategoryTable component. The reader (NoticeViewer) is a React Router route,
-// so navigating to another tab (Notes MVP, Library) unmounts it and its PdfViewer,
-// which destroys the PDF.js document. A run kept in component state would lose its
-// progress UI and its document on every such navigation. Holding it here — keyed
-// by document id, with its own PDF.js document — lets a run keep going (and keep
-// reporting) while the user is on another tab, and lets the table re-attach to the
-// live run when they come back.
+// so navigating to another tab unmounts it and its PdfViewer, which destroys the
+// PDF.js document. Holding the run here — keyed by document id, with its own
+// PDF.js document — lets it keep going while the user is on another tab.
 
 // How many pages to classify at once during a range run. Each page already
-// fans out across the models, so this caps total in-flight Gemini requests
-// (pages x models) to keep clear of rate limits.
+// fans out across the models, so this caps total in-flight Gemini requests.
 const PAGE_CONCURRENCY = 5;
 
 // model id -> page number -> category label (or per-cell error message)
 type ByModelPage = Record<string, Record<number, string>>;
 
 // A mid-page section change: `y` is the boundary (0..1 from the top), `above` and
-// `below` the categories on each side. model id -> page number -> split.
+// `below` the categories on each side.
 export type Split = { y: number; above: string; below: string };
 type SplitMap = Record<string, Record<number, Split>>;
+
+// One categorize run: a self-contained result set for the models it called over
+// a page range. Runs are kept as a browsable history; a new run never merges into
+// a previous one, and a model that wasn't called has no results in that run.
+export type Run = {
+  models: string[];
+  from: number;
+  to: number;
+  categories: ByModelPage;
+  reasoning: ByModelPage;
+  raws: ByModelPage;
+  splits: SplitMap;
+};
 
 export type RunSnapshot = {
   busy: null | 'range';
   progress: { done: number; total: number } | null;
-  // Pages currently rendering/classifying, so the UI can show that several run at
-  // once rather than reading as one-by-one.
   active: number;
-  // Categories are remembered per PDF in this browser so they survive reloads;
-  // each (page, model) keeps only its most recent result. A page split into two
-  // sections is stored as "Above / Below".
+  // History of runs, and which one is currently displayed (-1 if none).
+  runs: Run[];
+  selected: number;
+  // Mirror of the selected run, so components read the displayed results directly.
   categories: ByModelPage;
-  // Thought summary behind each (page, model) classification (empty for models
-  // that don't reason). Persisted alongside the categories.
   reasoning: ByModelPage;
-  // The model's raw reply text for each (page, model). Persisted.
   raws: ByModelPage;
-  // Structured mid-page boundaries, used to draw the separator on the PDF. Only
-  // present for pages the model split. Persisted alongside the categories.
   splits: SplitMap;
-  // Per-cell failures, shown in the table instead of silently blanking the cell.
-  // Transient, not persisted.
+  runModels: string[];
+  // Per-cell failures of the active run (transient, not persisted).
   cellErrors: ByModelPage;
-  // A page the user asked the viewer to jump to (e.g. by clicking a table row).
-  // The viewer applies it then clears it. Transient.
+  // A page the user asked the viewer to jump to; the viewer applies then clears it.
   requestedPage: number | null;
-  // Models the user has muted (by clicking a model name): greyed out in the
-  // tables and hidden on the PDF. Persisted.
+  // Models the user has muted (greyed out, not called, hidden on the PDF).
   disabledModels: string[];
   error: string | null;
 };
@@ -60,25 +61,28 @@ export type RunSnapshot = {
 type Entry = {
   snapshot: RunSnapshot;
   controller: AbortController | null;
+  // Index of the run currently being filled (-1 when idle); setResult targets it.
+  activeRun: number;
   listeners: Set<() => void>;
 };
 
 const entries = new Map<string, Entry>();
 
-// Categories (and their reasoning) are persisted per document id so they survive
-// reloads, each under its own key.
-const mapKey = (docId: string) => `notice.categories.${docId}`;
-const reasoningKey = (docId: string) => `notice.reasoning.${docId}`;
-const rawsKey = (docId: string) => `notice.raws.${docId}`;
-const splitsKey = (docId: string) => `notice.splits.${docId}`;
+const runsKey = (docId: string) => `notice.runs.${docId}`;
+const selectedKey = (docId: string) => `notice.selected.${docId}`;
 const disabledKey = (docId: string) => `notice.disabled.${docId}`;
+// Pre-history single-result keys, migrated into one run on first load.
+const legacyCatKey = (docId: string) => `notice.categories.${docId}`;
+const legacyReasonKey = (docId: string) => `notice.reasoning.${docId}`;
+const legacyRawsKey = (docId: string) => `notice.raws.${docId}`;
+const legacySplitsKey = (docId: string) => `notice.splits.${docId}`;
 
-function loadStore<T>(key: string): T {
+function loadStore<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : ({} as T);
+    return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
-    return {} as T;
+    return fallback;
   }
 }
 
@@ -90,27 +94,62 @@ function saveStore(key: string, value: unknown) {
   }
 }
 
+function loadRuns(docId: string): Run[] {
+  const runs = loadStore<Run[]>(runsKey(docId), []);
+  if (Array.isArray(runs) && runs.length) return runs;
+  // Migrate a pre-history single result set into one run, if present.
+  const categories = loadStore<ByModelPage>(legacyCatKey(docId), {});
+  if (!Object.keys(categories).length) return [];
+  const migrated: Run = {
+    models: Object.keys(categories),
+    from: 1,
+    to: 0,
+    categories,
+    reasoning: loadStore<ByModelPage>(legacyReasonKey(docId), {}),
+    raws: loadStore<ByModelPage>(legacyRawsKey(docId), {}),
+    splits: loadStore<SplitMap>(legacySplitsKey(docId), {}),
+  };
+  saveStore(runsKey(docId), [migrated]);
+  return [migrated];
+}
+
+const EMPTY: ByModelPage = {};
+const EMPTY_SPLITS: SplitMap = {};
+
+// Derive the displayed maps from the selected run.
+function mirror(runs: Run[], selected: number) {
+  const r = runs[selected];
+  return {
+    categories: r?.categories ?? EMPTY,
+    reasoning: r?.reasoning ?? EMPTY,
+    raws: r?.raws ?? EMPTY,
+    splits: r?.splits ?? EMPTY_SPLITS,
+    runModels: r?.models ?? [],
+  };
+}
+
 function getEntry(docId: string): Entry {
   let entry = entries.get(docId);
   if (!entry) {
+    const runs = loadRuns(docId);
+    const storedSel = loadStore<number>(selectedKey(docId), runs.length - 1);
+    const selected = runs.length ? Math.min(Math.max(storedSel, 0), runs.length - 1) : -1;
+    const disabledRaw = loadStore<string[]>(disabledKey(docId), []);
     entry = {
       snapshot: {
         busy: null,
         progress: null,
         active: 0,
-        categories: loadStore<ByModelPage>(mapKey(docId)),
-        reasoning: loadStore<ByModelPage>(reasoningKey(docId)),
-        raws: loadStore<ByModelPage>(rawsKey(docId)),
-        splits: loadStore<SplitMap>(splitsKey(docId)),
+        runs,
+        selected,
+        ...mirror(runs, selected),
         cellErrors: {},
         requestedPage: null,
-        disabledModels: (() => {
-          const v = loadStore<string[]>(disabledKey(docId));
-          return Array.isArray(v) ? v : [];
-        })(),
+        disabledModels: Array.isArray(disabledRaw) ? disabledRaw : [],
         error: null,
       },
       controller: null,
+      activeRun: -1,
       listeners: new Set(),
     };
     entries.set(docId, entry);
@@ -118,19 +157,17 @@ function getEntry(docId: string): Entry {
   return entry;
 }
 
-// Replace a document's snapshot (immutably, so useSyncExternalStore sees a new
-// reference) and notify subscribers.
+// Replace a document's snapshot (immutably) and notify subscribers. The displayed
+// maps are always re-derived from the selected run.
 function update(docId: string, patch: Partial<RunSnapshot>) {
   const entry = getEntry(docId);
-  entry.snapshot = { ...entry.snapshot, ...patch };
+  const next = { ...entry.snapshot, ...patch };
+  entry.snapshot = { ...next, ...mirror(next.runs, next.selected) };
   entry.listeners.forEach((l) => l());
 }
 
-// Record one (model, page) result, keeping only the most recent, persist it, and
-// clear any earlier failure for that cell. The thought summary (may be empty) is
-// stored alongside. When `boundary`/`categoryBelow` describe a mid-page section
-// change, the cell label becomes "Above / Below" and a structured split is kept
-// for the PDF separator; otherwise any earlier split for the cell is dropped.
+// Record one (model, page) result into the run currently being filled. A page
+// split into two sections becomes "Above / Below" plus a structured split.
 function setResult(
   docId: string,
   modelId: string,
@@ -141,34 +178,29 @@ function setResult(
   boundary: number | null,
   categoryBelow: string | null,
 ) {
-  const snap = getEntry(docId).snapshot;
+  const entry = getEntry(docId);
+  const idx = entry.activeRun;
+  const runs = entry.snapshot.runs;
+  if (idx < 0 || !runs[idx]) return;
   const split = boundary != null && categoryBelow ? { y: boundary, above: category, below: categoryBelow } : null;
   const label = split ? `${category} / ${categoryBelow}` : category;
 
-  const nextCats: ByModelPage = { ...snap.categories };
-  nextCats[modelId] = { ...(nextCats[modelId] || {}), [pageNum]: label };
-  saveStore(mapKey(docId), nextCats);
-
-  const nextReasoning: ByModelPage = { ...snap.reasoning };
-  nextReasoning[modelId] = { ...(nextReasoning[modelId] || {}), [pageNum]: reasoning };
-  saveStore(reasoningKey(docId), nextReasoning);
-
-  const nextRaws: ByModelPage = { ...snap.raws };
-  nextRaws[modelId] = { ...(nextRaws[modelId] || {}), [pageNum]: raw };
-  saveStore(rawsKey(docId), nextRaws);
-
-  const nextSplits: SplitMap = { ...snap.splits, [modelId]: { ...(snap.splits[modelId] || {}) } };
+  const run = runs[idx];
+  const nextSplits: SplitMap = { ...run.splits, [modelId]: { ...(run.splits[modelId] || {}) } };
   if (split) nextSplits[modelId][pageNum] = split;
   else delete nextSplits[modelId][pageNum];
-  saveStore(splitsKey(docId), nextSplits);
 
-  update(docId, {
-    categories: nextCats,
-    reasoning: nextReasoning,
-    raws: nextRaws,
+  const nextRun: Run = {
+    ...run,
+    categories: { ...run.categories, [modelId]: { ...(run.categories[modelId] || {}), [pageNum]: label } },
+    reasoning: { ...run.reasoning, [modelId]: { ...(run.reasoning[modelId] || {}), [pageNum]: reasoning } },
+    raws: { ...run.raws, [modelId]: { ...(run.raws[modelId] || {}), [pageNum]: raw } },
     splits: nextSplits,
-    cellErrors: clearCell(snap.cellErrors, modelId, pageNum),
-  });
+  };
+  const nextRuns = runs.slice();
+  nextRuns[idx] = nextRun;
+  saveStore(runsKey(docId), nextRuns);
+  update(docId, { runs: nextRuns, cellErrors: clearCell(entry.snapshot.cellErrors, modelId, pageNum) });
 }
 
 function clearCell(map: ByModelPage, modelId: string, pageNum: number): ByModelPage {
@@ -185,9 +217,9 @@ function recordCellError(docId: string, modelId: string, pageNum: number, messag
   });
 }
 
-// Classify one page image across every model, storing results per (model, page).
-// A cancelled request (the user pressed Stop) leaves the cell untouched; any other
-// failure is surfaced in the cell.
+// Classify one page image across the enabled models, storing results in the
+// active run. A muted model is skipped (no API call, no cost). A cancelled
+// request leaves the cell untouched; any other failure is surfaced in the cell.
 async function classify(
   docId: string,
   image: string,
@@ -195,7 +227,6 @@ async function classify(
   signal: AbortSignal,
   t: (k: string) => string,
 ) {
-  // Skip models the user muted: no API call (so no cost) for a disabled model.
   const disabled = new Set(getEntry(docId).snapshot.disabledModels);
   await Promise.all(
     NOTICE_MODELS.filter((m) => !disabled.has(m.id)).map(async (m) => {
@@ -243,11 +274,9 @@ function pageRange(from: number, to: number, numPages: number): number[] {
   return pages;
 }
 
-// Classify a contiguous span of pages (from..to, inclusive) with a bounded pool
-// of workers pulling from a shared cursor, so several pages render and call out
-// at once without flooding the API. The run owns its own PDF.js document (loaded
-// from the stored blob) so it is independent of the on-screen viewer and survives
-// navigating away from the reader.
+// Start a new run over a page range. It appends a fresh result set (for the
+// enabled models) to the history and selects it, so previous outputs disappear
+// from view, then classifies each page with a bounded worker pool.
 export async function startRange(
   docId: string,
   file: Blob,
@@ -257,7 +286,24 @@ export async function startRange(
 ) {
   const entry = getEntry(docId);
   if (entry.snapshot.busy) return;
-  update(docId, { busy: 'range', error: null, progress: null, active: 0 });
+
+  const disabled = new Set(entry.snapshot.disabledModels);
+  const models = NOTICE_MODELS.map((m) => m.id).filter((id) => !disabled.has(id));
+  const newRun: Run = { models, from, to, categories: {}, reasoning: {}, raws: {}, splits: {} };
+  const runs = [...entry.snapshot.runs, newRun];
+  entry.activeRun = runs.length - 1;
+  saveStore(runsKey(docId), runs);
+  saveStore(selectedKey(docId), entry.activeRun);
+  update(docId, {
+    runs,
+    selected: entry.activeRun,
+    busy: 'range',
+    error: null,
+    progress: null,
+    active: 0,
+    cellErrors: {},
+  });
+
   const controller = new AbortController();
   entry.controller = controller;
   const { signal } = controller;
@@ -293,6 +339,7 @@ export async function startRange(
     if (!signal.aborted) update(docId, { error: t('notice.err.rendering') });
   } finally {
     entry.controller = null;
+    entry.activeRun = -1;
     update(docId, { busy: null, progress: null, active: 0 });
     void loadingTask?.destroy();
   }
@@ -302,14 +349,21 @@ export function stopRun(docId: string) {
   getEntry(docId).controller?.abort();
 }
 
-// Ask the viewer to jump to a page (or clear the request with null). The viewer
-// reads this from its snapshot, navigates, then clears it.
+// Browse the run history: show run #index. Tables and the PDF viewer follow.
+export function selectRun(docId: string, index: number) {
+  const { runs } = getEntry(docId).snapshot;
+  if (index < 0 || index >= runs.length) return;
+  saveStore(selectedKey(docId), index);
+  update(docId, { selected: index });
+}
+
+// Ask the viewer to jump to a page (or clear the request with null).
 export function requestPage(docId: string, page: number | null) {
   update(docId, { requestedPage: page });
 }
 
-// Mute / unmute a model (clicking its name): greys it out in the tables and
-// hides its boundary lines on the PDF. Persisted per document.
+// Mute / unmute a model (clicking its name): greyed out, not called, hidden on
+// the PDF. Persisted per document.
 export function toggleModel(docId: string, modelId: string) {
   const current = getEntry(docId).snapshot.disabledModels;
   const next = current.includes(modelId)
@@ -319,8 +373,7 @@ export function toggleModel(docId: string, modelId: string) {
   update(docId, { disabledModels: next });
 }
 
-// Subscribe a component to a document's run state. getSnapshot returns a stable
-// reference until the next update, so React only re-renders on real changes.
+// Subscribe a component to a document's run state.
 export function useRun(docId: string): RunSnapshot {
   const subscribe = useCallback(
     (cb: () => void) => {

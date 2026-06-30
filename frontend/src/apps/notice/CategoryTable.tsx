@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Sparkles, Square } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Sparkles, Square } from 'lucide-react';
 import { ModelStatsTable } from './ModelStatsTable';
 import { PageCategoriesTable } from './PageCategoriesTable';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { requestPage, startRange, stopRun, toggleModel, useRun } from './categoryRun';
+import { requestPage, selectRun, startRange, stopRun, toggleModel, useRun } from './categoryRun';
 
 // Etape 1: page classification. Stacked top to bottom:
 //   1. the per-model run economics (cost / time / calls / tokens),
@@ -25,7 +25,7 @@ export function CategoryTable({
   file: Blob;
 }) {
   const { t } = useLanguage();
-  const { busy, progress, active, categories, reasoning, raws, splits, cellErrors, disabledModels, error } =
+  const { busy, progress, active, categories, reasoning, raws, splits, cellErrors, disabledModels, runs, selected, error } =
     useRun(docId);
   const disabled = new Set(disabledModels);
   const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
@@ -83,6 +83,8 @@ export function CategoryTable({
     'flex items-center gap-2 rounded-lg border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition-colors hover:border-rose-500 hover:bg-rose-50 dark:border-rose-500/40 dark:bg-slate-800 dark:text-rose-300 dark:hover:bg-rose-500/10';
   const numInputClass =
     'w-14 rounded-md border border-slate-300 bg-white px-2 py-1 text-center text-sm text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
+  const navBtnClass =
+    'rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-emerald-500/10';
 
   // Trailing " · done/total · N in progress" while the range run is live.
   const progressSuffix =
@@ -158,6 +160,33 @@ export function CategoryTable({
             <Square className="h-4 w-4" />
             {t('notice.cat.stop')}
           </button>
+        )}
+
+        {/* Browse the run history; the tables and PDF follow the selected run. */}
+        {runs.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => selectRun(docId, selected - 1)}
+              disabled={selected <= 0}
+              className={navBtnClass}
+              aria-label={t('notice.cat.prevRun')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-[5rem] text-center text-sm tabular-nums text-slate-600 dark:text-slate-300">
+              {t('notice.cat.run')} {selected + 1}/{runs.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => selectRun(docId, selected + 1)}
+              disabled={selected >= runs.length - 1}
+              className={navBtnClass}
+              aria-label={t('notice.cat.nextRun')}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
 
