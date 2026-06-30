@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Brain, Info, Loader2, Sparkles, Square } from 'lucide-react';
-import { NOTICE_MODELS } from './models';
+import { Loader2, Sparkles, Square } from 'lucide-react';
+import { ModelStatsTable } from './ModelStatsTable';
+import { PageCategoriesTable } from './PageCategoriesTable';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { startRange, stopRun, useRun } from './categoryRun';
 
-// A table with one row per Gemini model: the model name, the category it assigns
-// to the page currently shown, and the running Gemini spend for that model in the
-// Notice.ai feature. The run classifies a contiguous page range (cached per page,
-// so the column fills in as you navigate).
+// Etape 1: page classification. Stacked top to bottom:
+//   1. the per-model run economics (cost / time / calls / tokens),
+//   2. the page-range controls (from / to + Lancer),
+//   3. the classification result for every page (one row per page).
 //
 // The run itself (busy/progress/results) lives in categoryRun, keyed by document
 // id, so it survives leaving and returning to the reader tab. This component just
-// reads that shared state and renders it; the cost/time columns stay local since
+// reads that shared state and renders it; the cost/time figures stay local since
 // they are only a display refresh.
 export function CategoryTable({
   numPages,
@@ -63,12 +64,12 @@ export function CategoryTable({
       setTokens(data.tokens || {});
       setPricing(data.pricing || {});
     } catch {
-      // non-fatal: leave the cost/time columns empty
+      // non-fatal: leave the cost/time figures empty
     }
   }, []);
 
-  // Refresh the cost/time columns on mount and whenever a run finishes (busy ->
-  // null), including a run that completed while the user was on another tab.
+  // Refresh the economics on mount and whenever a run finishes (busy -> null),
+  // including a run that completed while the user was on another tab.
   useEffect(() => {
     if (!busy) void loadCosts();
   }, [busy, loadCosts]);
@@ -100,9 +101,12 @@ export function CategoryTable({
   const failedCount = Object.values(cellErrors).reduce((sum, byPage) => sum + Object.keys(byPage).length, 0);
 
   return (
-    <div className="mt-6">
-      <div className="mb-3 flex flex-wrap items-center justify-center gap-3">
-        {/* Run a contiguous page range */}
+    <div className="mt-6 flex flex-col gap-6">
+      {/* 1. Per-model run economics */}
+      <ModelStatsTable costs={costs} times={times} calls={calls} tokens={tokens} pricing={pricing} />
+
+      {/* 2. Page-range controls */}
+      <div className="flex flex-wrap items-center justify-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.cat.from')}</span>
           <input
@@ -146,97 +150,20 @@ export function CategoryTable({
         )}
       </div>
 
-      {error && <p className="mb-2 text-center text-sm text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && <p className="-mt-2 text-center text-sm text-rose-600 dark:text-rose-400">{error}</p>}
       {failedCount > 0 && (
-        <p className="mb-2 text-center text-sm text-rose-600 dark:text-rose-400">
+        <p className="-mt-2 text-center text-sm text-rose-600 dark:text-rose-400">
           {failedCount} {t('notice.cat.failed')}
         </p>
       )}
 
-      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-lg">
-        <table className="w-full text-center text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-900 [&>th]:border-r [&>th]:border-slate-200 [&>th:last-child]:border-r-0 dark:border-slate-800 dark:text-white dark:[&>th]:border-slate-800/60">
-              <th className="px-4 py-2 font-medium">{t('notice.cat.model')}</th>
-              <th className="px-4 py-2 font-medium">
-                {t('notice.cat.category')} ({t('notice.pdf.page')} {page})
-              </th>
-              <th className="px-4 py-2 font-medium">{t('notice.cat.cost')}</th>
-              <th className="px-4 py-2 font-medium">{t('notice.cat.time')}</th>
-              <th className="px-4 py-2 font-medium">{t('notice.cat.calls')}</th>
-              <th className="px-4 py-2 font-medium">
-                {t('notice.cat.tokens')}
-                <br />
-                {t('notice.cat.tokensUnits')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {NOTICE_MODELS.map((m) => {
-              const cell = categories[m.id]?.[page];
-              const cellError = cellErrors[m.id]?.[page];
-              const price = pricing[m.id];
-              return (
-                <tr
-                  key={m.id}
-                  className="border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60"
-                >
-                  <td className="px-4 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
-                    <span className="inline-flex items-center justify-center gap-1.5">
-                      {m.label}
-                      {price && (
-                        <span className="group relative inline-flex">
-                          <Info className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-emerald-600 dark:text-slate-500 dark:group-hover:text-emerald-400" />
-                          <span
-                            role="tooltip"
-                            className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-normal leading-relaxed text-slate-700 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                          >
-                            {t('notice.cat.priceIn')}: ${price.input.toFixed(2)} / 1M
-                            <br />
-                            {t('notice.cat.priceOut')}: ${price.output.toFixed(2)} / 1M
-                          </span>
-                        </span>
-                      )}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
-                    {cellError ? (
-                      <span className="text-rose-600 dark:text-rose-400" title={cellError}>
-                        {cellError}
-                      </span>
-                    ) : cell ?? (busy ? (
-                      <Loader2 className="mx-auto h-4 w-4 animate-spin text-slate-500" />
-                    ) : (
-                      '—'
-                    ))}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-emerald-600 dark:text-emerald-300">
-                    ${(costs[m.id] ?? 0).toFixed(2)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-slate-700 dark:text-slate-300">
-                    {times[m.id] ? `${times[m.id].toFixed(1)}s` : '—'}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-slate-700 dark:text-slate-300">
-                    {calls[m.id] ?? 0}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-slate-700 dark:text-slate-300">
-                    {(tokens[m.id]?.input ?? 0).toLocaleString()}
-                    <span className="text-slate-400 dark:text-slate-500"> ↓ / </span>
-                    {(tokens[m.id]?.output ?? 0).toLocaleString()}
-                    <span className="text-slate-400 dark:text-slate-500"> ↑ / </span>
-                    {(tokens[m.id]?.thinking ?? 0).toLocaleString()}
-                    <Brain
-                      className="ml-1 inline h-3.5 w-3.5 align-text-bottom text-slate-400 dark:text-slate-500"
-                      aria-label={t('notice.cat.thinking')}
-                    />
-                    <span className="sr-only"> {t('notice.cat.thinking')}</span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* 3. Category of every page */}
+      <PageCategoriesTable
+        numPages={numPages}
+        page={page}
+        categories={categories}
+        cellErrors={cellErrors}
+      />
     </div>
   );
 }
