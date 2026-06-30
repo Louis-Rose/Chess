@@ -3,8 +3,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useDragScroll } from './useDragScroll';
 import { ReasoningBadge } from './ReasoningBadge';
-import { ImageLightbox } from './ImageLightbox';
 import { cropCanvas } from './partCrop';
+import { setSelectedPart, useSelectedPart } from './selectionStore';
 import type { PartItem } from './partsRun';
 // Side-effect import: configures the shared PDF.js worker.
 import './pdfRender';
@@ -16,16 +16,19 @@ export function PartsTable({
   file,
   items,
   reasoning,
+  docId,
 }: {
   file: Blob;
   items: PartItem[];
   reasoning: Record<number, string>;
+  docId: string;
 }) {
   const { t } = useLanguage();
   const [crops, setCrops] = useState<Record<number, string>>({});
-  // The piece image currently zoomed (its data URL), or null.
-  const [zoom, setZoom] = useState<string | null>(null);
   const scrollRef = useDragScroll<HTMLDivElement>();
+  // The part (ref) selected for the image search below; clicking a column sets it.
+  const selectedRef = useSelectedPart(docId);
+  const onPick = (p: PartItem) => p.ref && setSelectedPart(docId, p.ref as string);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +88,11 @@ export function PartsTable({
   const dataCellCls =
     'min-w-[8rem] border-r border-slate-200 px-4 py-2 text-center text-slate-700 dark:border-slate-700 dark:text-slate-300';
   const rowCls = 'border-b border-slate-200 last:border-0 dark:border-slate-700';
+  // A data cell, clickable to select its part's column (tinted when selected).
+  const cellCls = (p: PartItem, extra = '') =>
+    `${dataCellCls} ${extra} ${p.ref ? 'cursor-pointer' : ''} ${
+      p.ref && p.ref === selectedRef ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''
+    }`;
 
   return (
     <>
@@ -99,7 +107,8 @@ export function PartsTable({
             {items.map((p, i) => (
               <td
                 key={i}
-                className={`${dataCellCls} font-semibold text-slate-900 dark:text-slate-100`}
+                onClick={() => onPick(p)}
+                className={cellCls(p, 'font-semibold text-slate-900 dark:text-slate-100')}
               >
                 <span className="inline-flex items-center justify-center gap-1.5">
                   {p.page}
@@ -116,7 +125,7 @@ export function PartsTable({
             <tr className={rowCls}>
               <th className={labelCellCls}>{t('notice.parts.bag')}</th>
               {items.map((p, i) => (
-                <td key={i} className={dataCellCls}>{p.bag ?? '—'}</td>
+                <td key={i} onClick={() => onPick(p)} className={cellCls(p)}>{p.bag ?? '—'}</td>
               ))}
             </tr>
           )}
@@ -124,14 +133,18 @@ export function PartsTable({
             <tr className={rowCls}>
               <th className={labelCellCls}>{t('notice.parts.ref')}</th>
               {items.map((p, i) => (
-                <td key={i} className={`${dataCellCls} font-mono`}>{p.ref ?? '—'}</td>
+                <td key={i} onClick={() => onPick(p)} className={cellCls(p, 'font-mono')}>{p.ref ?? '—'}</td>
               ))}
             </tr>
           )}
           <tr className={rowCls}>
             <th className={labelCellCls}>{t('notice.parts.qty')}</th>
             {items.map((p, i) => (
-              <td key={i} className={`${dataCellCls} font-semibold tabular-nums text-slate-900 dark:text-slate-100`}>
+              <td
+                key={i}
+                onClick={() => onPick(p)}
+                className={cellCls(p, 'font-semibold tabular-nums text-slate-900 dark:text-slate-100')}
+              >
                 {p.qty != null ? `${p.qty}x` : '—'}
               </td>
             ))}
@@ -139,14 +152,12 @@ export function PartsTable({
           <tr className={rowCls}>
             <th className={labelCellCls}>{t('notice.parts.piece')}</th>
             {items.map((p, i) => (
-              <td key={i} className={dataCellCls}>
+              <td key={i} onClick={() => onPick(p)} className={cellCls(p)}>
                 {crops[i] ? (
                   <img
                     src={crops[i]}
                     alt={p.ref ?? t('notice.parts.piece')}
-                    onClick={() => setZoom(crops[i])}
-                    title={t('notice.pdf.zoom')}
-                    className="mx-auto max-h-24 w-auto cursor-zoom-in rounded bg-white"
+                    className="mx-auto max-h-24 w-auto rounded bg-white"
                   />
                 ) : (
                   <span className="text-slate-400">…</span>
@@ -157,8 +168,6 @@ export function PartsTable({
         </tbody>
       </table>
     </div>
-
-    <ImageLightbox src={zoom} alt={t('notice.parts.piece')} onClose={() => setZoom(null)} />
     </>
   );
 }

@@ -46,7 +46,7 @@ export function MaterialStep({ file, docId }: { file: Blob; docId: string }) {
       )}
 
       {error && <p className="text-center text-sm text-rose-600 dark:text-rose-400">{error}</p>}
-      {items.length > 0 && <PartsTable file={file} items={items} reasoning={reasoning} />}
+      {items.length > 0 && <PartsTable file={file} items={items} reasoning={reasoning} docId={docId} />}
     </div>
   );
 }
