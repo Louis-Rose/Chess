@@ -25,6 +25,35 @@ export function saveBrand(docId: string, brand: string) {
   }
 }
 
+// Persist each part's search results + kept/discarded verdicts per document, so
+// switching parts and coming back restores them (no re-search, no extra credit).
+export type PartImagesResult = { candidates: ImageHit[]; kept: boolean[] };
+const resultsKey = (docId: string) => `notice.realImages.${docId}`;
+
+function loadAllResults(docId: string): Record<string, PartImagesResult> {
+  try {
+    const raw = localStorage.getItem(resultsKey(docId));
+    const obj = raw ? (JSON.parse(raw) as Record<string, PartImagesResult>) : {};
+    return obj && typeof obj === 'object' ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+export function loadResult(docId: string, ref: string): PartImagesResult | undefined {
+  return loadAllResults(docId)[ref];
+}
+
+export function saveResult(docId: string, ref: string, result: PartImagesResult) {
+  try {
+    const all = loadAllResults(docId);
+    all[ref] = result;
+    localStorage.setItem(resultsKey(docId), JSON.stringify(all));
+  } catch {
+    // ignore (e.g. quota); the in-memory state still works for this session
+  }
+}
+
 // Render the cover (page 1) and ask the model for the manual's brand.
 export async function detectBrand(file: Blob): Promise<string> {
   const buf = await file.arrayBuffer();

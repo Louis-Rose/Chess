@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Loader2, Search, ZoomIn } from 'lucide-react';
 import { usePartsRun, type PartItem } from './partsRun';
 import { renderPartCrop } from './partCrop';
-import { searchPartImages, filterPartImages, type ImageHit } from './realImages';
+import { searchPartImages, filterPartImages, loadResult, saveResult, type ImageHit } from './realImages';
 import { ImageLightbox } from './ImageLightbox';
 import { useBrand } from './brandStore';
 import { runBtnClass } from './controls';
@@ -37,14 +37,15 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     if (!selectedRef && parts.length) setSelectedRef(parts[0].ref as string);
   }, [parts, selectedRef]);
 
-  // Render the selected part's drawing for side-by-side comparison; clear the
-  // previous search when the selection changes.
+  // On selection change, render the part's drawing and restore any saved search
+  // results for that part (so switching parts and coming back keeps them).
   useEffect(() => {
     let cancelled = false;
     setCrop(null);
-    setCandidates([]);
-    setKept([]);
     setError(null);
+    const saved = selected ? loadResult(docId, selected.ref as string) : undefined;
+    setCandidates(saved?.candidates ?? []);
+    setKept(saved?.kept ?? []);
     if (!selected) return;
     renderPartCrop(file, selected).then((c) => {
       if (!cancelled) setCrop(c);
@@ -57,14 +58,16 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
 
   const search = async () => {
     if (!selected?.ref) return;
+    const ref = selected.ref as string;
     setSearching(true);
     setError(null);
     setCandidates([]);
     setKept([]);
     try {
-      const imgs = await searchPartImages(selected.ref, brand);
+      const imgs = await searchPartImages(ref, brand);
       setCandidates(imgs);
-      setKept(imgs.map(() => true)); // provisional until the filter returns
+      let keptArr = imgs.map(() => true); // provisional until the filter returns
+      setKept(keptArr);
       if (!imgs.length) {
         setError(t('notice.step3.noResults'));
         return;
@@ -72,19 +75,16 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
       // Ask Gemini which candidates are real photos of the actual part.
       setFiltering(true);
       try {
-        const keep = await filterPartImages(
-          imgs.map((c) => c.thumbnail),
-          selected.ref as string,
-          brand,
-          crop,
-        );
-        if (keep.length === imgs.length) setKept(keep);
+        const keep = await filterPartImages(imgs.map((c) => c.thumbnail), ref, brand, crop);
+        if (keep.length === imgs.length) keptArr = keep;
       } catch {
         // on failure, default everything to discarded (the user can toggle back)
-        setKept(imgs.map(() => false));
+        keptArr = imgs.map(() => false);
       } finally {
+        setKept(keptArr);
         setFiltering(false);
       }
+      saveResult(docId, ref, { candidates: imgs, kept: keptArr });
     } catch (e) {
       setError(
         (axios.isAxiosError(e) && (e.response?.data as { error?: string })?.error) ||
@@ -95,7 +95,11 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     }
   };
 
-  const toggleKept = (i: number) => setKept((prev) => prev.map((k, j) => (j === i ? !k : k)));
+  const toggleKept = (i: number) => {
+    const next = kept.map((k, j) => (j === i ? !k : k));
+    setKept(next);
+    if (selected?.ref) saveResult(docId, selected.ref as string, { candidates, kept: next });
+  };
 
   const label = (p: PartItem) =>
     `${p.ref}${p.bag ? ` (${p.bag}, ${t('notice.pdf.page')} ${p.page})` : ` (${t('notice.pdf.page')} ${p.page})`}`;
