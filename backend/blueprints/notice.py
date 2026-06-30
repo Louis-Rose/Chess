@@ -574,14 +574,14 @@ def part_images():
 def serper_quota():
     """Serper image-search credit usage for the Pricing tab's quota bar. Serper
     exposes no balance API, so we sum the credits our own calls reported and
-    compare to the plan size. `used` adds a configurable baseline for credits
-    spent before tracking began (SERPER_CREDITS_USED); the plan size is
-    SERPER_PLAN_CREDITS (defaults to the 2,500 free tier)."""
+    compare to the plan size. `used` adds a baseline for credits spent before
+    tracking began (3 already consumed; override with SERPER_CREDITS_USED). The
+    plan size is SERPER_PLAN_CREDITS (defaults to the 2,500 free tier)."""
     try:
         total = int(os.getenv('SERPER_PLAN_CREDITS') or 2500)
-        base = int(os.getenv('SERPER_CREDITS_USED') or 0)
+        base = int(os.getenv('SERPER_CREDITS_USED') or 3)
     except ValueError:
-        total, base = 2500, 0
+        total, base = 2500, 3
     with get_db() as conn:
         row = conn.execute('SELECT COALESCE(SUM(credits), 0) AS s FROM serper_usage').fetchone()
     used = base + int(row['s'] or 0)

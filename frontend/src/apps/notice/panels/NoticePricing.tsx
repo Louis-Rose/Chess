@@ -167,6 +167,9 @@ export function NoticePricing() {
                   </span>
                 </div>
                 <Bar used={serper.used} total={serper.total} />
+                <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
+                  {t('notice.pricing.serperCost')}
+                </p>
               </div>
             )}
 
