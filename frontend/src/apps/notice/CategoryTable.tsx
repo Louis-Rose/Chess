@@ -4,7 +4,7 @@ import { Loader2, Sparkles, Square } from 'lucide-react';
 import { ModelStatsTable } from './ModelStatsTable';
 import { PageCategoriesTable } from './PageCategoriesTable';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { startRange, stopRun, useRun } from './categoryRun';
+import { requestPage, startRange, stopRun, useRun } from './categoryRun';
 
 // Etape 1: page classification. Stacked top to bottom:
 //   1. the per-model run economics (cost / time / calls / tokens),
@@ -160,6 +160,10 @@ export function CategoryTable({
         reasoning={reasoning}
         splits={splits}
         cellErrors={cellErrors}
+        onSelectPage={(p) => {
+          requestPage(docId, p);
+          document.getElementById('notice-pdf')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
       />
     </div>
   );

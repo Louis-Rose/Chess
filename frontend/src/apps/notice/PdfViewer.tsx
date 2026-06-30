@@ -4,7 +4,7 @@ import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs
 import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { NOTICE_MODELS } from './models';
-import { useRun } from './categoryRun';
+import { requestPage, useRun } from './categoryRun';
 // Side-effect import: configures the shared PDF.js worker (used here and by the
 // off-screen categorize run).
 import './pdfRender';
@@ -30,7 +30,7 @@ export function PdfViewer({
   const zoomTaskRef = useRef<RenderTask | null>(null);
   const { t } = useLanguage();
   // Section boundaries detected by the categorize run, to overlay on the page.
-  const { categories, splits } = useRun(docId);
+  const { categories, splits, requestedPage } = useRun(docId);
 
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
@@ -147,6 +147,14 @@ export function PdfViewer({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [go]);
+
+  // Jump to a page requested from elsewhere (e.g. a category table row), then
+  // clear the request so the same row can be clicked again.
+  useEffect(() => {
+    if (requestedPage == null || numPages === 0) return;
+    setPage(Math.min(numPages, Math.max(1, requestedPage)));
+    requestPage(docId, null);
+  }, [requestedPage, numPages, docId]);
 
   // Report the page count.
   useEffect(() => {

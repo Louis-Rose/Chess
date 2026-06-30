@@ -16,12 +16,14 @@ export function PageCategoriesTable({
   reasoning,
   splits,
   cellErrors,
+  onSelectPage,
 }: {
   numPages: number;
   categories: Record<string, Record<number, string>>;
   reasoning: Record<string, Record<number, string>>;
   splits: Record<string, Record<number, Split>>;
   cellErrors: Record<string, Record<number, string>>;
+  onSelectPage?: (page: number) => void;
 }) {
   const { t } = useLanguage();
   if (numPages < 1) return null;
@@ -106,7 +108,11 @@ export function PageCategoriesTable({
             const bg = new Set(keys).size > 1 ? 'bg-red-100 dark:bg-red-500/20' : '';
 
             return (
-              <tr key={n} className={`border-b border-slate-200 last:border-0 ${trCells} dark:border-slate-800/60 ${bg}`}>
+              <tr
+                key={n}
+                onClick={() => onSelectPage?.(n)}
+                className={`cursor-pointer border-b border-slate-200 last:border-0 ${trCells} transition-colors hover:bg-emerald-50 dark:border-slate-800/60 dark:hover:bg-emerald-500/10 ${bg}`}
+              >
                 <td className={pageCellCls}>{n}</td>
                 {cells.map((c) => (
                   <td key={c.model.id} className={catCellCls}>

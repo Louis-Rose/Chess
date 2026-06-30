@@ -46,6 +46,9 @@ export type RunSnapshot = {
   // Per-cell failures, shown in the table instead of silently blanking the cell.
   // Transient, not persisted.
   cellErrors: ByModelPage;
+  // A page the user asked the viewer to jump to (e.g. by clicking a table row).
+  // The viewer applies it then clears it. Transient.
+  requestedPage: number | null;
   error: string | null;
 };
 
@@ -92,6 +95,7 @@ function getEntry(docId: string): Entry {
         reasoning: loadStore<ByModelPage>(reasoningKey(docId)),
         splits: loadStore<SplitMap>(splitsKey(docId)),
         cellErrors: {},
+        requestedPage: null,
         error: null,
       },
       controller: null,
@@ -274,6 +278,12 @@ export async function startRange(
 
 export function stopRun(docId: string) {
   getEntry(docId).controller?.abort();
+}
+
+// Ask the viewer to jump to a page (or clear the request with null). The viewer
+// reads this from its snapshot, navigates, then clears it.
+export function requestPage(docId: string, page: number | null) {
+  update(docId, { requestedPage: page });
 }
 
 // Subscribe a component to a document's run state. getSnapshot returns a stable

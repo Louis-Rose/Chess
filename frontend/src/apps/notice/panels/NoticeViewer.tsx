@@ -139,6 +139,7 @@ export function NoticeViewer() {
 
           {/* The manual, centered */}
           <div
+            id="notice-pdf"
             onDragOver={(e) => {
               e.preventDefault();
               setDragging(true);
