@@ -547,11 +547,10 @@ def brand():
 
 
 # Sites to exclude from the part-image search up front, via Google `-site:`
-# operators. Empty by default (no exclusion); excluding a site still returns the
-# full `num` results — Google backfills from the rest — and never costs extra
-# credits. Set the env var SERPER_EXCLUDE_SITES (comma-separated) to enable it,
-# e.g. to drop watermark-heavy stock-photo hosts.
-_DEFAULT_EXCLUDE_SITES = ()
+# operators. Excluding a site still returns the full `num` results — Google
+# backfills from the rest — and never costs extra credits. Override with the env
+# var SERPER_EXCLUDE_SITES (comma-separated; set it empty to disable exclusion).
+_DEFAULT_EXCLUDE_SITES = ('printables.com',)
 
 
 def _exclude_sites():
