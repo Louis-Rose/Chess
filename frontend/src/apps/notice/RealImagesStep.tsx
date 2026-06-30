@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Search, ZoomIn } from 'lucide-react';
 import { usePartsRun, type PartItem } from './partsRun';
-import { renderPartCrop } from './partCrop';
+import { renderPartCrops } from './partCrop';
 import { searchPartImages, filterPartImages, loadResult, loadResults, saveResult, type ImageHit } from './realImages';
 import { ImageLightbox } from './ImageLightbox';
+import { useDragScroll } from './useDragScroll';
 import { useBrand } from './brandStore';
 import { runBtnClass } from './controls';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -22,7 +23,7 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const { brand } = useBrand(docId);
 
   const [selectedRef, setSelectedRef] = useState('');
-  const [crop, setCrop] = useState<string | null>(null);
+  const [crops, setCrops] = useState<(string | null)[]>([]);
   const [searching, setSearching] = useState(false);
   // Whether the selected part has a result (even an empty one), to tell "not
   // searched yet" from "searched, no photos".
@@ -33,7 +34,10 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState<string | null>(null);
 
-  const selected = parts.find((p) => p.ref === selectedRef) ?? null;
+  const selIdx = parts.findIndex((p) => p.ref === selectedRef);
+  const selected = selIdx >= 0 ? parts[selIdx] : null;
+  const selectedCrop = crops[selIdx] ?? null;
+  const stripRef = useDragScroll<HTMLDivElement>();
 
   // Latest brand / selection, read inside the long-running batch without making
   // it a dependency (which would restart it).
@@ -46,6 +50,20 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   useEffect(() => {
     if (!selectedRef && parts.length) setSelectedRef(parts[0].ref as string);
   }, [parts, selectedRef]);
+
+  // Render every part's drawing once (one PDF load, cached pages) for the picker
+  // strip and the large preview.
+  useEffect(() => {
+    let cancelled = false;
+    setCrops([]);
+    renderPartCrops(file, parts).then((cs) => {
+      if (!cancelled) setCrops(cs);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, parts.length]);
 
   // Search + triage one part and persist it. No UI state, so it's shared by the
   // manual search and the auto-run batch. `refImage` (the part drawing) is sent
@@ -106,25 +124,16 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parts.length, docId]);
 
-  // On selection change, render the part's drawing and restore any saved search
-  // results for that part (so switching parts and coming back keeps them).
+  // On selection change, restore any saved search results for that part (so
+  // switching parts and coming back keeps them).
   useEffect(() => {
-    let cancelled = false;
-    setCrop(null);
     setError(null);
     const saved = selected ? loadResult(docId, selected.ref as string) : undefined;
     setCandidates(saved?.candidates ?? []);
     setKept(saved?.kept ?? []);
     setSearched(saved !== undefined);
-    if (!selected) return;
-    renderPartCrop(file, selected).then((c) => {
-      if (!cancelled) setCrop(c);
-    });
-    return () => {
-      cancelled = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRef, file]);
+  }, [selectedRef]);
 
   // Manual (re-)search of the selected part, sending its rendered drawing as the
   // filter reference. Shows the spinner until the kept/discarded verdicts are in.
@@ -135,7 +144,7 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     setCandidates([]);
     setKept([]);
     try {
-      await processPart(selected.ref as string, crop);
+      await processPart(selected.ref as string, selectedCrop);
     } catch (e) {
       setError(
         (axios.isAxiosError(e) && (e.response?.data as { error?: string })?.error) ||
@@ -212,23 +221,43 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Part picker + search */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <select
-          value={selectedRef}
-          onChange={(e) => setSelectedRef(e.target.value)}
-          className="max-w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-        >
-          {parts.map((p, i) => (
-            <option
-              key={i}
-              value={p.ref as string}
-              style={(p.ref as string) in done ? undefined : { color: '#94a3b8' }}
-            >
-              {label(p)}
-            </option>
-          ))}
-        </select>
+      {/* Part picker: a draggable strip of every part's drawing. Click to select
+          (highlighted); parts not yet triaged are dimmed. Drag to scroll. */}
+      <div ref={stripRef} className="flex cursor-grab gap-2 overflow-x-auto pb-1">
+        {parts.map((p, i) => {
+          const isSel = p.ref === selectedRef;
+          const isDone = (p.ref as string) in done;
+          return (
+            <div key={i} className="flex shrink-0 flex-col items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setSelectedRef(p.ref as string)}
+                title={label(p)}
+                className={`flex h-24 w-24 items-center justify-center rounded-lg border-2 bg-white p-1 transition-colors ${
+                  isSel
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/40'
+                    : 'border-slate-300 hover:border-emerald-400 dark:border-slate-700'
+                }`}
+              >
+                {crops[i] ? (
+                  <img
+                    src={crops[i] as string}
+                    alt={p.ref as string}
+                    className={`max-h-full max-w-full object-contain ${isDone ? '' : 'opacity-40'}`}
+                  />
+                ) : (
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                )}
+              </button>
+              <span className="w-24 truncate text-center text-[10px] text-slate-400 dark:text-slate-500">
+                {p.ref}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-center">
         <button type="button" onClick={() => void search()} disabled={searching || !selected} className={runBtnClass}>
           {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           {t('notice.step3.search')}
@@ -250,14 +279,14 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
           {t('notice.parts.piece')}
         </div>
-        {crop ? (
+        {selectedCrop ? (
           <button
             type="button"
-            onClick={() => setZoom(crop)}
+            onClick={() => setZoom(selectedCrop)}
             title={t('notice.pdf.zoom')}
             className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700"
           >
-            <img src={crop} alt="" className="max-h-full max-w-full cursor-zoom-in object-contain" />
+            <img src={selectedCrop} alt="" className="max-h-full max-w-full cursor-zoom-in object-contain" />
           </button>
         ) : (
           <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700">

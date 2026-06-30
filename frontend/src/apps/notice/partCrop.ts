@@ -48,3 +48,41 @@ export async function renderPartCrop(file: Blob, item: PartItem): Promise<string
     void task.destroy();
   }
 }
+
+// Render every part's crop in one pass: load the doc once and cache each rendered
+// page canvas, so many parts on the same pages share a single render. Returns a
+// crop (PNG data URL) or null per item, in order.
+export async function renderPartCrops(file: Blob, items: PartItem[]): Promise<(string | null)[]> {
+  const buf = await file.arrayBuffer();
+  const task = pdfjsLib.getDocument({ data: buf });
+  const doc = await task.promise;
+  const pageCache = new Map<number, HTMLCanvasElement>();
+  const renderPage = async (n: number) => {
+    const hit = pageCache.get(n);
+    if (hit) return hit;
+    const pdfPage = await doc.getPage(n);
+    const base = pdfPage.getViewport({ scale: 1 });
+    const viewport = pdfPage.getViewport({ scale: 1600 / base.width });
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('no 2d context');
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    await pdfPage.render({ canvas, canvasContext: ctx, viewport }).promise;
+    pageCache.set(n, canvas);
+    return canvas;
+  };
+  try {
+    const out: (string | null)[] = [];
+    for (const item of items) {
+      try {
+        out.push(cropCanvas(await renderPage(item.page), item.bbox));
+      } catch {
+        out.push(null);
+      }
+    }
+    return out;
+  } finally {
+    void task.destroy();
+  }
+}
