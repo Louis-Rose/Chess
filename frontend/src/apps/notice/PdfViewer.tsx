@@ -277,7 +277,7 @@ export function PdfViewer({
         key={ln.key}
         className="pointer-events-none absolute inset-x-0"
         style={{
-          top: `${Math.min(Math.max(ln.y, 0.04), 0.96) * 100}%`,
+          top: `${Math.min(Math.max(ln.y, 0.01), 0.99) * 100}%`,
           borderTop: `2px dashed ${ln.color}`,
           transform: `translateY(${ln.offset}px)`,
         }}
@@ -299,7 +299,7 @@ export function PdfViewer({
   return (
     <div className="flex h-full flex-col">
       {/* Page canvas */}
-      <div ref={containerRef} className="flex-1 overflow-auto bg-slate-50 p-4 dark:bg-slate-950/40">
+      <div ref={containerRef} className="flex-1 overflow-auto bg-slate-50 px-4 pb-4 pt-12 dark:bg-slate-950/40">
         {loading && (
           <div className="flex h-full items-center justify-center text-slate-400">
             <Loader2 className="h-6 w-6 animate-spin" />
