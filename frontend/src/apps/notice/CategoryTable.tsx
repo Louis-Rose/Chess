@@ -30,6 +30,7 @@ export function CategoryTable({
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
   const [calls, setCalls] = useState<Record<string, number>>({});
+  const [tokens, setTokens] = useState<Record<string, { input: number; output: number }>>({});
 
   // Page-range selection. `from` follows the page on screen and `to` defaults to
   // the last page until the user edits either field (then it stays put).
@@ -50,10 +51,12 @@ export function CategoryTable({
         costs: Record<string, number>;
         times: Record<string, number>;
         calls: Record<string, number>;
+        tokens: Record<string, { input: number; output: number }>;
       }>('/api/notice/costs');
       setCosts(data.costs || {});
       setTimes(data.times || {});
       setCalls(data.calls || {});
+      setTokens(data.tokens || {});
     } catch {
       // non-fatal: leave the cost/time columns empty
     }
@@ -156,6 +159,7 @@ export function CategoryTable({
               <th className="px-4 py-2 font-medium">{t('notice.cat.cost')}</th>
               <th className="px-4 py-2 font-medium">{t('notice.cat.time')}</th>
               <th className="px-4 py-2 font-medium">{t('notice.cat.calls')}</th>
+              <th className="px-4 py-2 font-medium">{t('notice.cat.tokens')}</th>
             </tr>
           </thead>
           <tbody>
@@ -189,6 +193,12 @@ export function CategoryTable({
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-slate-700 dark:text-slate-300">
                     {calls[m.id] ?? 0}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-slate-700 dark:text-slate-300">
+                    {(tokens[m.id]?.input ?? 0).toLocaleString()}
+                    <span className="text-slate-400 dark:text-slate-500"> ↓ / </span>
+                    {(tokens[m.id]?.output ?? 0).toLocaleString()}
+                    <span className="text-slate-400 dark:text-slate-500"> ↑</span>
                   </td>
                 </tr>
               );

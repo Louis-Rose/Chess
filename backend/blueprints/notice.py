@@ -203,7 +203,9 @@ def costs():
             """SELECT model_id,
                    SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN input_tokens ELSE 0 END) AS paid_input,
                    SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN output_tokens ELSE 0 END) AS paid_output,
-                   SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN COALESCE(thinking_tokens,0) ELSE 0 END) AS paid_thinking
+                   SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN COALESCE(thinking_tokens,0) ELSE 0 END) AS paid_thinking,
+                   SUM(input_tokens) AS tok_input,
+                   SUM(output_tokens + COALESCE(thinking_tokens,0)) AS tok_output
                FROM api_usage
                WHERE feature = 'notice'
                GROUP BY model_id""",
@@ -224,6 +226,7 @@ def costs():
         ).fetchall()
 
     out = {}
+    tokens = {}
     for row in rows:
         r = dict(row)
         pricing = GEMINI_PRICING.get(r['model_id'], {'input': 0, 'output': 0})
@@ -231,6 +234,10 @@ def costs():
         out[r['model_id']] = (
             (r['paid_input'] or 0) * pricing['input'] + billed_output * pricing['output']
         ) / 1_000_000
+        tokens[r['model_id']] = {
+            'input': int(r['tok_input'] or 0),
+            'output': int(r['tok_output'] or 0),
+        }
 
     times = {}
     for row in time_rows:
@@ -242,4 +249,4 @@ def costs():
         r = dict(row)
         calls[r['model_id']] = int(r['n'] or 0)
 
-    return jsonify({'costs': out, 'times': times, 'calls': calls})
+    return jsonify({'costs': out, 'times': times, 'calls': calls, 'tokens': tokens})
