@@ -546,16 +546,12 @@ def brand():
     return jsonify({'brand': b})
 
 
-# Sites excluded from the part-image search up front, via Google `-site:`
-# operators. Mostly stock-photo hosts whose images are watermarked or generic,
-# plus Pinterest (low-quality reposts). Excluding here saves both candidate slots
-# and Serper credits versus discarding them after. Override with the env var
-# SERPER_EXCLUDE_SITES (comma-separated; set it empty to disable exclusion).
-_DEFAULT_EXCLUDE_SITES = (
-    'shutterstock.com', 'istockphoto.com', 'alamy.com', 'dreamstime.com',
-    '123rf.com', 'gettyimages.com', 'depositphotos.com', 'vectorstock.com',
-    'freepik.com', 'stock.adobe.com', 'canstockphoto.com', 'pinterest.com',
-)
+# Sites to exclude from the part-image search up front, via Google `-site:`
+# operators. Empty by default (no exclusion); excluding a site still returns the
+# full `num` results — Google backfills from the rest — and never costs extra
+# credits. Set the env var SERPER_EXCLUDE_SITES (comma-separated) to enable it,
+# e.g. to drop watermark-heavy stock-photo hosts.
+_DEFAULT_EXCLUDE_SITES = ()
 
 
 def _exclude_sites():
