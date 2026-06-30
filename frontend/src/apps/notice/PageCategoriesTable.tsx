@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Brain } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
@@ -40,16 +40,40 @@ export function PageCategoriesTable({
   const pageCellCls = 'px-4 py-2 font-semibold text-slate-900 dark:text-slate-100';
   const catCellCls = 'px-4 py-2 text-slate-700 dark:text-slate-300';
 
-  // One category cell's content: the label plus, for reasoning models, the brain
-  // badge revealing the thought summary.
-  const cellInner = (label: string | undefined, showBadge: boolean, reasonText: string) => (
-    <span className="inline-flex items-center justify-center gap-1.5">
-      {label ?? '—'}
-      {showBadge && (
-        <ReasoningBadge text={reasonText || t('notice.cat.noReasoning')} label={t('notice.cat.thinking')} />
-      )}
-    </span>
-  );
+  // One category cell. A split page stacks its two sections on two lines (the
+  // second prefixed with "&"); the brain badge, when shown, is vertically
+  // centered against the whole cell.
+  const renderCell = (c: {
+    err?: string;
+    split?: Split;
+    cat?: string;
+    reasonText: string;
+    reasons: boolean;
+  }) => {
+    if (c.err) {
+      return (
+        <span className="text-rose-600 dark:text-rose-400" title={c.err}>
+          {c.err}
+        </span>
+      );
+    }
+    const badge = c.reasons ? (
+      <ReasoningBadge text={c.reasonText || t('notice.cat.noReasoning')} label={t('notice.cat.thinking')} />
+    ) : null;
+    return (
+      <span className="inline-flex items-center justify-center gap-1.5">
+        {c.split ? (
+          <span className="flex flex-col">
+            <span>{c.split.above}</span>
+            <span>&amp; {c.split.below}</span>
+          </span>
+        ) : (
+          c.cat ?? '—'
+        )}
+        {(c.split || c.cat) && badge}
+      </span>
+    );
+  };
 
   return (
     <div className="mx-auto max-h-[70vh] max-w-3xl overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-lg">
@@ -74,8 +98,6 @@ export function PageCategoriesTable({
               reasonText: reasoning[m.id]?.[n] || '',
               reasons: reasoningModels.has(m.id),
             }));
-            // A page needs two rows when any model split it into two sections.
-            const twoRows = cells.some((c) => c.split);
             // Flag a page where the models landed on different results, so the
             // disagreements stand out (needs at least two distinct non-empty labels).
             const keys = cells
@@ -83,62 +105,15 @@ export function PageCategoriesTable({
               .filter(Boolean);
             const bg = new Set(keys).size > 1 ? 'bg-red-100 dark:bg-red-500/20' : '';
 
-            const errOrCell = (c: (typeof cells)[number]) =>
-              c.err ? (
-                <span className="text-rose-600 dark:text-rose-400" title={c.err}>
-                  {c.err}
-                </span>
-              ) : (
-                cellInner(c.cat, c.reasons && !!c.cat, c.reasonText)
-              );
-
-            if (!twoRows) {
-              return (
-                <tr key={n} className={`border-b border-slate-200 last:border-0 ${trCells} dark:border-slate-800/60 ${bg}`}>
-                  <td className={pageCellCls}>{n}</td>
-                  {cells.map((c) => (
-                    <td key={c.model.id} className={catCellCls}>
-                      {errOrCell(c)}
-                    </td>
-                  ))}
-                </tr>
-              );
-            }
-
-            // Split page: the top sections sit in the first row, the bottom
-            // sections in the second; the page number and any non-split model span
-            // both rows. A thin top border in the split columns divides the two.
             return (
-              <Fragment key={n}>
-                <tr className={`${trCells} dark:border-slate-800/60 ${bg}`}>
-                  <td rowSpan={2} className={pageCellCls}>
-                    {n}
+              <tr key={n} className={`border-b border-slate-200 last:border-0 ${trCells} dark:border-slate-800/60 ${bg}`}>
+                <td className={pageCellCls}>{n}</td>
+                {cells.map((c) => (
+                  <td key={c.model.id} className={catCellCls}>
+                    {renderCell(c)}
                   </td>
-                  {cells.map((c) =>
-                    c.split ? (
-                      <td key={c.model.id} className={catCellCls}>
-                        {cellInner(c.split.above, c.reasons, c.reasonText)}
-                      </td>
-                    ) : (
-                      <td key={c.model.id} rowSpan={2} className={catCellCls}>
-                        {errOrCell(c)}
-                      </td>
-                    ),
-                  )}
-                </tr>
-                <tr className={`border-b border-slate-200 last:border-0 ${trCells} dark:border-slate-800/60 ${bg}`}>
-                  {cells
-                    .filter((c) => c.split)
-                    .map((c) => (
-                      <td
-                        key={c.model.id}
-                        className={`${catCellCls} border-t border-slate-200 dark:border-slate-800/60`}
-                      >
-                        {cellInner(c.split!.below, false, '')}
-                      </td>
-                    ))}
-                </tr>
-              </Fragment>
+                ))}
+              </tr>
             );
           })}
         </tbody>
