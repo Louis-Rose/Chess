@@ -56,16 +56,16 @@ export function PageCategoriesTable({
                     ) : (
                       <span className="inline-flex items-center justify-center gap-1.5">
                         {cell ?? '—'}
-                        {cell && reason && (
+                        {cell && (
                           <span className="group relative inline-flex">
                             <span className="inline-flex items-center justify-center rounded-full border border-slate-300 p-0.5 text-slate-400 transition-colors group-hover:border-emerald-500 group-hover:text-emerald-600 dark:border-slate-600 dark:text-slate-500 dark:group-hover:border-emerald-400 dark:group-hover:text-emerald-400">
                               <Brain className="h-3 w-3" aria-label={t('notice.cat.thinking')} />
                             </span>
                             <span
                               role="tooltip"
-                              className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-72 -translate-x-1/2 whitespace-pre-line rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-normal leading-relaxed text-slate-700 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                              className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[36rem] max-w-[90vw] -translate-x-1/2 whitespace-pre-line rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-normal leading-relaxed text-slate-700 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                             >
-                              {reason}
+                              {reason || t('notice.cat.noReasoning')}
                             </span>
                           </span>
                         )}
