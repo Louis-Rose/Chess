@@ -142,11 +142,12 @@ def _split_thoughts(response):
     return ans, '\n'.join(thoughts).strip()
 
 
-def _gemini_on_images(model, images, text_prompt, user_id, phase=None, want_thoughts=False):
+def _gemini_on_images(model, images, text_prompt, user_id, phase=None, want_thoughts=False, pages=None):
     """Run one Gemini vision call on one or more page images, log usage, return
     (answer, thoughts). Each image is labelled in order so the model can map its
     output back to a page. `phase` tags the usage row ('ask' / 'categorize') so
-    timing can be split; `want_thoughts` asks thinking models for their reasoning.
+    timing can be split; `want_thoughts` asks thinking models for their reasoning;
+    `pages` (the page numbers in the block) is shown in the log line.
     May raise ValueError (not configured) or other exceptions (call failed)."""
     client_paid, client_free = _init_gemini_clients('notice')
     from google.genai import types
@@ -177,10 +178,16 @@ def _gemini_on_images(model, images, text_prompt, user_id, phase=None, want_thou
     answer, thoughts = _split_thoughts(response)
     in_tok, out_tok, think_tok = _extract_usage_tokens(response)
     retry_info = retry_info or {}
+    # Describe the block: page span + image count (just the count if no pages given).
+    if pages:
+        span = f"{pages[0]}-{pages[-1]}" if len(pages) > 1 else f"{pages[0]}"
+        block = f"pages {span} ({len(images)} img)"
+    else:
+        block = f"{len(images)} img"
     # One line per call so the logs show which key (free/paid) actually served it.
     logger.info(
-        "[notice] %s | %s KEY | %s | %d img | %ds | tokens in=%d out=%d think=%d%s",
-        model, billing_tier.upper(), phase or '-', len(images), elapsed, in_tok, out_tok, think_tok,
+        "[notice] %s | %s KEY | %s | %s | %ds | tokens in=%d out=%d think=%d%s",
+        model, billing_tier.upper(), phase or '-', block, elapsed, in_tok, out_tok, think_tok,
         ' | free key fell back' if retry_info.get('free_error') else '',
     )
     _log_api_usage(
@@ -235,6 +242,7 @@ def categorize_batch():
     try:
         answer, thoughts = _gemini_on_images(
             model, images, prompt, user_id, phase='categorize', want_thoughts=True,
+            pages=page_numbers,
         )
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
