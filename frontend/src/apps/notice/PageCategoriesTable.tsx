@@ -46,10 +46,17 @@ export function PageCategoriesTable({
           </tr>
         </thead>
         <tbody>
-          {pages.map((n) => (
+          {pages.map((n) => {
+            // Flag a page where the models landed on different categories, so the
+            // disagreements stand out (needs at least two distinct non-empty labels).
+            const disagree =
+              new Set(NOTICE_MODELS.map((m) => categories[m.id]?.[n]).filter(Boolean)).size > 1;
+            return (
             <tr
               key={n}
-              className="border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60"
+              className={`border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60 ${
+                disagree ? 'bg-rose-50 dark:bg-rose-500/10' : ''
+              }`}
             >
               <td className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">{n}</td>
               {NOTICE_MODELS.map((m) => {
@@ -74,7 +81,8 @@ export function PageCategoriesTable({
                 );
               })}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
