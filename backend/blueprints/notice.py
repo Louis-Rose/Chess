@@ -149,8 +149,9 @@ def categorize():
 
     user_id = getattr(request, 'user_id', None)
     try:
-        answer, _ = _gemini_on_image(
+        answer, thoughts = _gemini_on_image(
             model, image_bytes, _CATEGORIZE_PROMPT, user_id, phase='categorize',
+            want_thoughts=True,
         )
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
@@ -161,7 +162,8 @@ def categorize():
     category = _normalize_category(answer)
     if not category:
         return jsonify({'error': 'No category returned.'}), 502
-    return jsonify({'category': category})
+    # `reasoning` is the model's thought summary (empty for non-thinking models).
+    return jsonify({'category': category, 'reasoning': thoughts or ''})
 
 
 def _normalize_category(text):

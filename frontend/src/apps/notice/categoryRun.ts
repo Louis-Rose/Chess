@@ -31,6 +31,9 @@ export type RunSnapshot = {
   // Categories are remembered per PDF in this browser so they survive reloads;
   // each (page, model) keeps only its most recent result.
   categories: ByModelPage;
+  // Thought summary behind each (page, model) classification (empty for models
+  // that don't reason). Persisted alongside the categories.
+  reasoning: ByModelPage;
   // Per-cell failures, shown in the table instead of silently blanking the cell.
   // Transient, not persisted.
   cellErrors: ByModelPage;
@@ -45,21 +48,23 @@ type Entry = {
 
 const entries = new Map<string, Entry>();
 
-// Categories are persisted per document id so they survive reloads.
+// Categories (and their reasoning) are persisted per document id so they survive
+// reloads, each under its own key.
 const mapKey = (docId: string) => `notice.categories.${docId}`;
+const reasoningKey = (docId: string) => `notice.reasoning.${docId}`;
 
-function loadCategories(docId: string): ByModelPage {
+function loadMap(key: string): ByModelPage {
   try {
-    const raw = localStorage.getItem(mapKey(docId));
+    const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as ByModelPage) : {};
   } catch {
     return {};
   }
 }
 
-function saveCategories(docId: string, value: ByModelPage) {
+function saveMap(key: string, value: ByModelPage) {
   try {
-    localStorage.setItem(mapKey(docId), JSON.stringify(value));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
     // ignore quota / serialization errors
   }
@@ -73,7 +78,8 @@ function getEntry(docId: string): Entry {
         busy: null,
         progress: null,
         active: 0,
-        categories: loadCategories(docId),
+        categories: loadMap(mapKey(docId)),
+        reasoning: loadMap(reasoningKey(docId)),
         cellErrors: {},
         error: null,
       },
@@ -94,13 +100,29 @@ function update(docId: string, patch: Partial<RunSnapshot>) {
 }
 
 // Record one (model, page) result, keeping only the most recent, persist it, and
-// clear any earlier failure for that cell.
-function setResult(docId: string, modelId: string, pageNum: number, category: string) {
-  const { categories, cellErrors } = getEntry(docId).snapshot;
-  const nextCats: ByModelPage = { ...categories };
+// clear any earlier failure for that cell. The thought summary (may be empty) is
+// stored and persisted alongside.
+function setResult(
+  docId: string,
+  modelId: string,
+  pageNum: number,
+  category: string,
+  reasoning: string,
+) {
+  const snap = getEntry(docId).snapshot;
+  const nextCats: ByModelPage = { ...snap.categories };
   nextCats[modelId] = { ...(nextCats[modelId] || {}), [pageNum]: category };
-  saveCategories(docId, nextCats);
-  update(docId, { categories: nextCats, cellErrors: clearCell(cellErrors, modelId, pageNum) });
+  saveMap(mapKey(docId), nextCats);
+
+  const nextReasoning: ByModelPage = { ...snap.reasoning };
+  nextReasoning[modelId] = { ...(nextReasoning[modelId] || {}), [pageNum]: reasoning };
+  saveMap(reasoningKey(docId), nextReasoning);
+
+  update(docId, {
+    categories: nextCats,
+    reasoning: nextReasoning,
+    cellErrors: clearCell(snap.cellErrors, modelId, pageNum),
+  });
 }
 
 function clearCell(map: ByModelPage, modelId: string, pageNum: number): ByModelPage {
@@ -130,12 +152,12 @@ async function classify(
   await Promise.all(
     NOTICE_MODELS.map(async (m) => {
       try {
-        const { data } = await axios.post<{ category: string }>(
+        const { data } = await axios.post<{ category: string; reasoning?: string }>(
           '/api/notice/categorize',
           { image, model: m.id },
           { signal },
         );
-        setResult(docId, m.id, pageNum, data.category);
+        setResult(docId, m.id, pageNum, data.category, data.reasoning || '');
       } catch (e) {
         if (axios.isCancel(e)) return;
         const msg =
