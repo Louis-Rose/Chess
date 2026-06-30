@@ -215,6 +215,13 @@ def costs():
                WHERE feature = 'notice' AND phase = 'categorize' AND error IS NULL
                GROUP BY model_id""",
         ).fetchall()
+        # Total page-category requests issued per model (successes + failures).
+        call_rows = conn.execute(
+            """SELECT model_id, COUNT(*) AS n
+               FROM api_usage
+               WHERE feature = 'notice' AND phase = 'categorize'
+               GROUP BY model_id""",
+        ).fetchall()
 
     out = {}
     for row in rows:
@@ -230,4 +237,9 @@ def costs():
         r = dict(row)
         times[r['model_id']] = float(r['avg_seconds']) if r['avg_seconds'] is not None else 0.0
 
-    return jsonify({'costs': out, 'times': times})
+    calls = {}
+    for row in call_rows:
+        r = dict(row)
+        calls[r['model_id']] = int(r['n'] or 0)
+
+    return jsonify({'costs': out, 'times': times, 'calls': calls})
