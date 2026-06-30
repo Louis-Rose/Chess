@@ -32,15 +32,27 @@ const EMPTY: PhaseStats = { costs: {}, times: {}, calls: {}, tokens: {} };
 const sectionHeaderCls =
   'border-b border-slate-200 pb-2 text-center text-xl font-bold text-slate-900 dark:border-slate-700 dark:text-slate-100';
 
-// Each assembly step maps to the backend phase(s) whose Gemini usage it covers,
-// and the model rows to show. Étape 1 runs the page classification + brand
-// detection (Lancer fires both). Étape 3's image search runs on Serper (credits,
-// not tokens); its only Gemini cost is the Flash-Lite filter that keeps real
-// photos, so it shows that model and a Serper note.
-const ETAPES: { n: number; phases: string[]; models?: NoticeModel[]; serper?: boolean }[] = [
-  { n: 1, phases: ['categorize', 'brand'] },
-  { n: 2, phases: ['parts'] },
-  { n: 3, phases: ['filter'], models: [FILTER_MODEL], serper: true },
+// Each reader step maps to the backend phase(s) whose Gemini usage it covers,
+// the model rows to show, and the title key(s) to join. Étape 1 runs the page
+// classification + brand detection (Lancer fires both). Étape 2 now bundles the
+// supplied-parts extraction (Flash) and the real-image search: the image search
+// itself runs on Serper (credits, not tokens, hence a note), and its only Gemini
+// cost is the Flash-Lite filter that keeps real photos — so both models show.
+const ETAPES: {
+  n: number;
+  titleKeys: string[];
+  phases: string[];
+  models?: NoticeModel[];
+  serper?: boolean;
+}[] = [
+  { n: 1, titleKeys: ['notice.step1.title'], phases: ['categorize', 'brand'] },
+  {
+    n: 2,
+    titleKeys: ['notice.step2.title', 'notice.step3.title'],
+    phases: ['parts', 'filter'],
+    models: [...NOTICE_MODELS, FILTER_MODEL],
+    serper: true,
+  },
 ];
 
 // Sum several phase buckets into one. Cost / calls / tokens add up; the average
@@ -126,14 +138,14 @@ export function NoticePricing() {
           {/* Tarifs: per-étape Gemini cost tables (Étape 3 runs on Serper). */}
           <div className="flex flex-col gap-10">
             <h2 className={sectionHeaderCls}>{t('notice.pricing.tarifs')}</h2>
-            {ETAPES.map(({ n, phases: keys, models, serper: serperPhase }) => {
+            {ETAPES.map(({ n, titleKeys, phases: keys, models, serper: serperPhase }) => {
               const stats = mergePhases(keys.map((k) => phases[k] || EMPTY));
               return (
                 <section key={n}>
                   <h3 className="mb-3 text-center text-lg font-semibold text-slate-800 dark:text-slate-200">
                     {t('notice.step')} {n}
                     {t('notice.step.sep')}
-                    {t(`notice.step${n}.title`)}
+                    {titleKeys.map((k) => t(k)).join(' & ')}
                   </h3>
                   {serperPhase && (
                     <p className="mx-auto mb-4 max-w-md text-center text-sm text-slate-500 dark:text-slate-400">
@@ -179,7 +191,7 @@ export function NoticePricing() {
                 {t('notice.pricing.freeTier')}
               </h3>
               <div className="mx-auto flex max-w-md flex-col gap-4">
-                {NOTICE_MODELS.map((m) => {
+                {[...NOTICE_MODELS, FILTER_MODEL].map((m) => {
                   const q = freeQuota[m.id] || { used: 0, limit: 0 };
                   return (
                     <div key={m.id}>
