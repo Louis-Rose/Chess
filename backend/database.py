@@ -1399,18 +1399,18 @@ def init_db():
             ),
             (
                 3,
-                "ETAPE 3 : Ce numéro de référence sera utile pour obtenir de vraies images et/ou vidéos des pièces. C'est l'étape suivante : rassembler des données visuelles \"réelles\" des pièces concernées. Si obtenir des images réelles des pièces n'est pas possible, une solution bis est d'utiliser un outil Image-to-3D, ou exploiter les fichiers CAD/STEP du produit, si les clients les ont.",
-                "STEP 3: This reference number will be useful for obtaining real images and/or videos of the parts. That is the next step: gathering real visual data of the parts involved. If obtaining real images of the parts is not possible, a fallback is to use an Image-to-3D tool, or to leverage the product's CAD/STEP files, if the clients have them.",
+                "Ce numéro de référence sert aussi à obtenir de vraies images et/ou vidéos des pièces : rassembler des données visuelles \"réelles\" des pièces concernées. Si obtenir des images réelles des pièces n'est pas possible, une solution bis est d'utiliser un outil Image-to-3D, ou exploiter les fichiers CAD/STEP du produit, si les clients les ont.",
+                "This reference number also serves to obtain real images and/or videos of the parts: gathering real visual data of the parts involved. If obtaining real images of the parts is not possible, a fallback is to use an Image-to-3D tool, or to leverage the product's CAD/STEP files, if the clients have them.",
             ),
             (
                 4,
-                "ETAPE 4 : Utiliser un LLM pour comprendre la logique de l'étape de la notice en cours, et fournir cela + les données visuelles réelles des pièces pour générer une vidéo fidèle à la réalité (Gemini + Runway). Si hallucinations: utiliser plutôt le LLM pour générer un script d'animation (JSON), à executer par un moteur 3D (Three.js, Blender, Unity).",
-                "STEP 4: Use an LLM to understand the logic of the current instruction step, and provide that plus the real visual data of the parts to generate a video faithful to reality (Gemini + Runway). If hallucinations occur, instead use the LLM to generate an animation script (JSON), to be run by a 3D engine (Three.js, Blender, Unity).",
+                "ETAPE 3 : Utiliser un LLM pour comprendre la logique de l'étape de la notice en cours, et fournir cela + les données visuelles réelles des pièces pour générer une vidéo fidèle à la réalité (Gemini + Runway). Si hallucinations: utiliser plutôt le LLM pour générer un script d'animation (JSON), à executer par un moteur 3D (Three.js, Blender, Unity).",
+                "STEP 3: Use an LLM to understand the logic of the current instruction step, and provide that plus the real visual data of the parts to generate a video faithful to reality (Gemini + Runway). If hallucinations occur, instead use the LLM to generate an animation script (JSON), to be run by a 3D engine (Three.js, Blender, Unity).",
             ),
             (
                 5,
-                "ETAPE 5 (optionnel) : Ajouter une voix-off qui décrit chaque étape, nomme les pièces, etc.. (ElevenLabs, OpenAI Audio..)",
-                "STEP 5 (optional): Add a voice-over that describes each step, names the parts, and so on (ElevenLabs, OpenAI Audio, etc.).",
+                "ETAPE 4 (optionnel) : Ajouter une voix-off qui décrit chaque étape, nomme les pièces, etc.. (ElevenLabs, OpenAI Audio..)",
+                "STEP 4 (optional): Add a voice-over that describes each step, names the parts, and so on (ElevenLabs, OpenAI Audio, etc.).",
             ),
         ]
         if not _table_exists(conn, 'notice_notes'):

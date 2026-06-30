@@ -24,7 +24,7 @@ export function EtapeSection({ title, info, children }: { title: string; info?: 
             </button>
             <span
               role="tooltip"
-              className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-[36rem] max-w-[90vw] -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-4 text-left text-sm font-normal leading-relaxed text-slate-700 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-[36rem] max-w-[90vw] -translate-x-1/2 whitespace-pre-line rounded-lg border border-slate-200 bg-white p-4 text-left text-sm font-normal leading-relaxed text-slate-700 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
               {info}
             </span>

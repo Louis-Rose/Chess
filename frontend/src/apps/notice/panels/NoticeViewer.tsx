@@ -174,15 +174,21 @@ export function NoticeViewer() {
                 file={current.data}
               />
             </EtapeSection>
-            <EtapeSection title={`${t('notice.step')} 2${t('notice.step.sep')}${t('notice.step2.title')}`} info={notes?.[1]}>
-              {/* The "Matériel fourni" pages + extracted supplied-parts table */}
-              <MaterialStep file={current.data} docId={current.id} />
+            {/* Étapes 2 + 3 are merged: extract the supplied parts, then find a
+                real photo of each. The tooltip joins both methodology notes. */}
+            <EtapeSection
+              title={`${t('notice.step')} 2${t('notice.step.sep')}${t('notice.step2.title')} & ${t('notice.step3.title')}`}
+              info={[notes?.[1], notes?.[2]].filter(Boolean).join('\n\n')}
+            >
+              <div className="flex flex-col gap-10">
+                {/* The "Matériel fourni" pages + extracted supplied-parts table */}
+                <MaterialStep file={current.data} docId={current.id} />
+                <hr className="border-slate-200 dark:border-slate-800" />
+                {/* Real photos of each part via brand + reference image search */}
+                <RealImagesStep file={current.data} docId={current.id} />
+              </div>
             </EtapeSection>
-            <EtapeSection title={`${t('notice.step')} 3${t('notice.step.sep')}${t('notice.step3.title')}`} info={notes?.[2]}>
-              {/* Real photos of each part via brand + reference image search */}
-              <RealImagesStep file={current.data} docId={current.id} />
-            </EtapeSection>
-            <EtapeSection title={`${t('notice.step')} 4`} info={notes?.[3]} />
+            <EtapeSection title={`${t('notice.step')} 3`} info={notes?.[3]} />
           </div>
         </div>
       ) : (
