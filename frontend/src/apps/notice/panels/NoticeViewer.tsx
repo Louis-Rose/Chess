@@ -101,7 +101,7 @@ export function NoticeViewer() {
   );
 
   return (
-    <div className="flex min-h-[24rem] flex-1 flex-col px-4 py-4 sm:px-6">
+    <div className="flex min-h-[24rem] flex-col px-4 py-4 sm:px-6">
       {/* Hidden picker, shared by the viewer's upload button and the drop zone */}
       <input
         ref={inputRef}
@@ -160,8 +160,9 @@ export function NoticeViewer() {
             />
           </div>
 
-          {/* Assembly steps, top to bottom */}
-          <div className="mt-10 flex flex-col gap-10">
+          {/* Assembly steps, top to bottom. A closing border under the last step
+              mirrors the rule above each step. */}
+          <div className="mb-4 mt-10 flex flex-col gap-10 border-b border-slate-200 pb-10 dark:border-slate-800">
             <EtapeSection title={`${t('notice.step')} 1${t('notice.step.sep')}${t('notice.step1.title')}`} info={notes?.[0]}>
               {/* Per-model page categories + Gemini cost */}
               <CategoryTable
