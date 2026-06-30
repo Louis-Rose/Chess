@@ -77,41 +77,59 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
   const hasBag = items.some((p) => p.bag);
   const hasRef = items.some((p) => p.ref);
 
-  const thCls = 'px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-900 dark:text-white';
-  const tdCls = 'border-t border-slate-200 px-4 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-300';
+  // Transposed: one row per field (the labels are the sticky first column), one
+  // column per part, scrolling horizontally. The sticky column's right edge is a
+  // box-shadow (a border vanishes on a sticky cell while the row scrolls under).
+  const labelCellCls =
+    'sticky left-0 z-20 w-40 bg-white px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-900 shadow-[inset_-2px_0_0_0_#cbd5e1] dark:bg-slate-900 dark:text-white dark:shadow-[inset_-2px_0_0_0_#334155]';
+  const dataCellCls =
+    'min-w-[8rem] border-r border-slate-200 px-4 py-2 text-center text-slate-700 dark:border-slate-700 dark:text-slate-300';
+  const rowCls = 'border-b border-slate-200 last:border-0 dark:border-slate-700';
 
   return (
-    <div className="mx-auto w-full max-w-3xl overflow-x-auto rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b-2 border-slate-300 dark:border-slate-700">
-            {hasBag && <th className={thCls}>{t('notice.parts.bag')}</th>}
-            {hasRef && <th className={thCls}>{t('notice.parts.ref')}</th>}
-            <th className={`${thCls} text-center`}>{t('notice.parts.qty')}</th>
-            <th className={`${thCls} text-center`}>{t('notice.parts.piece')}</th>
-          </tr>
-        </thead>
+    <div className="mx-auto max-w-5xl overflow-x-auto rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
+      <table className="w-full text-sm">
         <tbody>
-          {items.map((p, i) => (
-            <tr key={i}>
-              {hasBag && <td className={tdCls}>{p.bag ?? '—'}</td>}
-              {hasRef && <td className={`${tdCls} font-mono`}>{p.ref ?? '—'}</td>}
-              <td className={`${tdCls} text-center font-semibold tabular-nums text-slate-900 dark:text-slate-100`}>
+          {hasBag && (
+            <tr className={rowCls}>
+              <th className={labelCellCls}>{t('notice.parts.bag')}</th>
+              {items.map((p, i) => (
+                <td key={i} className={dataCellCls}>{p.bag ?? '—'}</td>
+              ))}
+            </tr>
+          )}
+          {hasRef && (
+            <tr className={rowCls}>
+              <th className={labelCellCls}>{t('notice.parts.ref')}</th>
+              {items.map((p, i) => (
+                <td key={i} className={`${dataCellCls} font-mono`}>{p.ref ?? '—'}</td>
+              ))}
+            </tr>
+          )}
+          <tr className={rowCls}>
+            <th className={labelCellCls}>{t('notice.parts.qty')}</th>
+            {items.map((p, i) => (
+              <td key={i} className={`${dataCellCls} font-semibold tabular-nums text-slate-900 dark:text-slate-100`}>
                 {p.qty}x
               </td>
-              <td className={`${tdCls} text-center`}>
+            ))}
+          </tr>
+          <tr className={rowCls}>
+            <th className={labelCellCls}>{t('notice.parts.piece')}</th>
+            {items.map((p, i) => (
+              <td key={i} className={dataCellCls}>
                 {crops[i] ? (
                   <img
                     src={crops[i]}
                     alt={p.ref ?? t('notice.parts.piece')}
-                    className="mx-auto max-h-20 w-auto rounded bg-white"
+                    className="mx-auto max-h-24 w-auto rounded bg-white"
                   />
                 ) : (
                   <span className="text-slate-400">…</span>
                 )}
               </td>
-            </tr>
-          ))}
+            ))}
+          </tr>
         </tbody>
       </table>
     </div>
