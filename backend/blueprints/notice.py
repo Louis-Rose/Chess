@@ -240,7 +240,8 @@ def categorize_batch():
         return jsonify({'error': 'No page images were provided.'}), 400
     if not isinstance(page_numbers, list) or len(page_numbers) != len(images_b64):
         return jsonify({'error': 'Pages and images do not line up.'}), 400
-    if len(images_b64) > 25:
+    # Defensive cap against an abusive client; the app sends BATCH_SIZE (5) per call.
+    if len(images_b64) > 50:
         return jsonify({'error': 'Too many pages in one block.'}), 400
 
     images = []
