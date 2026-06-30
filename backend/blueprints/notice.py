@@ -205,7 +205,8 @@ def costs():
                    SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN output_tokens ELSE 0 END) AS paid_output,
                    SUM(CASE WHEN COALESCE(billing_tier,'paid')='paid' THEN COALESCE(thinking_tokens,0) ELSE 0 END) AS paid_thinking,
                    SUM(input_tokens) AS tok_input,
-                   SUM(output_tokens + COALESCE(thinking_tokens,0)) AS tok_output
+                   SUM(output_tokens) AS tok_output,
+                   SUM(COALESCE(thinking_tokens,0)) AS tok_thinking
                FROM api_usage
                WHERE feature = 'notice'
                GROUP BY model_id""",
@@ -237,6 +238,7 @@ def costs():
         tokens[r['model_id']] = {
             'input': int(r['tok_input'] or 0),
             'output': int(r['tok_output'] or 0),
+            'thinking': int(r['tok_thinking'] or 0),
         }
 
     times = {}

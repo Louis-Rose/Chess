@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Info, Loader2, Sparkles, Square } from 'lucide-react';
+import { Brain, Info, Loader2, Sparkles, Square } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { startRange, stopRun, useRun } from './categoryRun';
@@ -30,7 +30,9 @@ export function CategoryTable({
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
   const [calls, setCalls] = useState<Record<string, number>>({});
-  const [tokens, setTokens] = useState<Record<string, { input: number; output: number }>>({});
+  const [tokens, setTokens] = useState<
+    Record<string, { input: number; output: number; thinking: number }>
+  >({});
   const [pricing, setPricing] = useState<Record<string, { input: number; output: number }>>({});
 
   // Page-range selection. `from` follows the page on screen and `to` defaults to
@@ -52,7 +54,7 @@ export function CategoryTable({
         costs: Record<string, number>;
         times: Record<string, number>;
         calls: Record<string, number>;
-        tokens: Record<string, { input: number; output: number }>;
+        tokens: Record<string, { input: number; output: number; thinking: number }>;
         pricing: Record<string, { input: number; output: number }>;
       }>('/api/notice/costs');
       setCosts(data.costs || {});
@@ -217,7 +219,13 @@ export function CategoryTable({
                     {(tokens[m.id]?.input ?? 0).toLocaleString()}
                     <span className="text-slate-400 dark:text-slate-500"> ↓ / </span>
                     {(tokens[m.id]?.output ?? 0).toLocaleString()}
-                    <span className="text-slate-400 dark:text-slate-500"> ↑</span>
+                    <span className="text-slate-400 dark:text-slate-500"> ↑ / </span>
+                    {(tokens[m.id]?.thinking ?? 0).toLocaleString()}
+                    <Brain
+                      className="ml-1 inline h-3.5 w-3.5 align-text-bottom text-slate-400 dark:text-slate-500"
+                      aria-label={t('notice.cat.thinking')}
+                    />
+                    <span className="sr-only"> {t('notice.cat.thinking')}</span>
                   </td>
                 </tr>
               );
