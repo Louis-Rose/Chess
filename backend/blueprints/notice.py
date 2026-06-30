@@ -354,7 +354,8 @@ _PARTS_PROMPT = (
     "- box_2d: the bounding box of that part's DRAWING ONLY (not its number/label), "
     "as [ymin, xmin, ymax, xmax] normalized to 0-1000.\n"
     "- qty: the quantity printed next to it (the number in 'Nx', 'x N' or 'N x'), as "
-    "an integer; if no number is shown use 1.\n"
+    "an integer. If NO number is printed (e.g. an overview thumbnail of all parts), "
+    "use null. Do NOT assume 1.\n"
     "- ref: the printed reference/article number if any (e.g. \"100345\", \"151706\"), "
     "else null.\n"
     "- bag: the bag/sachet label if the parts are grouped in labelled bags, else null.\n"
@@ -403,11 +404,15 @@ def parts():
 
 
 def _parts_qty(v):
-    """Coerce a quantity to a positive int, tolerating '8', 8, '8x', 'x8'."""
+    """Coerce a quantity to a positive int, tolerating '8', 8, '8x', 'x8'. Returns
+    None when no number is present (e.g. an overview thumbnail), so the client can
+    tell a real list entry from an overview duplicate."""
+    if v is None:
+        return None
     if isinstance(v, (int, float)):
         return max(1, int(v))
-    m = re.search(r'\d+', str(v or ''))
-    return max(1, int(m.group())) if m else 1
+    m = re.search(r'\d+', str(v))
+    return max(1, int(m.group())) if m else None
 
 
 def _parse_parts(answer):

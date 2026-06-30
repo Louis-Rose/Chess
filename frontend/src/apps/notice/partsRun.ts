@@ -15,10 +15,37 @@ import type { Bands } from './categoryBands';
 export type PartItem = {
   page: number;
   bbox: [number, number, number, number];
-  qty: number;
+  // null when no count is printed (e.g. an overview thumbnail of all parts).
+  qty: number | null;
   ref: string | null;
   bag: string | null;
 };
+
+// Collapse the false duplicates that come from a part appearing on more than one
+// "Matériel fourni" section (an overview thumbnail without counts, plus the
+// detailed list with quantities and reference numbers):
+//   - drop overview entries: no quantity AND no reference,
+//   - dedup by reference, keeping the entry that carries a quantity.
+function dedupeParts(items: PartItem[]): PartItem[] {
+  const real = items.filter((p) => p.qty != null || p.ref);
+  const keptByRef = new Map<string, PartItem>();
+  const out: PartItem[] = [];
+  for (const p of real) {
+    if (!p.ref) {
+      out.push(p);
+      continue;
+    }
+    const existing = keptByRef.get(p.ref);
+    if (!existing) {
+      keptByRef.set(p.ref, p);
+      out.push(p);
+    } else if (existing.qty == null && p.qty != null) {
+      out[out.indexOf(existing)] = p; // prefer the appearance that has a count
+      keptByRef.set(p.ref, p);
+    }
+  }
+  return out;
+}
 
 type Snapshot = {
   busy: boolean;
@@ -107,7 +134,7 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
       }
 
       const { data } = await axios.post<{
-        parts: { bbox: [number, number, number, number]; qty: number; ref: string | null; bag: string | null }[];
+        parts: { bbox: [number, number, number, number]; qty: number | null; ref: string | null; bag: string | null }[];
       }>('/api/notice/parts', { model: bands.model, image, page }, { signal });
 
       const span = band.bottom - band.top;
@@ -117,13 +144,15 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
           page,
           // box is relative to the band image; map y back onto the full page.
           bbox: [bx0, band.top + by0 * span, bx1, band.top + by1 * span],
-          qty: p.qty,
+          qty: p.qty ?? null,
           ref: p.ref ?? null,
           bag: p.bag ?? null,
         });
       }
-      saveItems(docId, items.slice());
-      update(docId, { items: items.slice(), progress: { done: ++done, total } });
+      // Show the deduplicated list (false duplicates collapsed across pages).
+      const shown = dedupeParts(items);
+      saveItems(docId, shown);
+      update(docId, { items: shown, progress: { done: ++done, total } });
     }
   } catch (e) {
     if (!axios.isCancel(e)) {

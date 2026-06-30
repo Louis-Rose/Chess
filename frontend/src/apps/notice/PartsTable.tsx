@@ -129,7 +129,7 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
             <th className={labelCellCls}>{t('notice.parts.qty')}</th>
             {items.map((p, i) => (
               <td key={i} className={`${dataCellCls} font-semibold tabular-nums text-slate-900 dark:text-slate-100`}>
-                {p.qty}x
+                {p.qty != null ? `${p.qty}x` : '—'}
               </td>
             ))}
           </tr>
