@@ -389,7 +389,7 @@ def parts():
     try:
         answer, _ = _gemini_on_images(
             model, [image_bytes], _PARTS_PROMPT, user_id, phase='parts',
-            pages=[page] if page else None,
+            pages=[page] if page else None, want_thoughts=True,
         )
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
