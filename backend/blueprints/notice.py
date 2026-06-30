@@ -73,6 +73,13 @@ _CATEGORY_GUIDANCE = (
     "IGNORE the range and emit one step per number (Etape 4, then Etape 5), each as "
     "its own segment. When several steps appear on one page, cut the page into one "
     "segment per step.\n"
+    "Once an assembly step is in progress, it CONTINUES until a NEW printed "
+    "step/section title appears. A page with no new title (only diagrams, or "
+    "wall-anchoring / 'secure-it' safety info) stays in the current step; it does "
+    "NOT become a separate Sécurité section. Use Sécurité only for a standalone "
+    'safety section that is not inside a step. Example: "ÉTAPE 22" announced, then a '
+    "secure-it safety page, then the A/B/C wall-fixing diagrams = all one continuous "
+    "Etape 22, with no Sécurité in the middle.\n"
 )
 _BOUNDARY_PLACEMENT = (
     "A section/step title belongs to the section it introduces, so set a segment's "
