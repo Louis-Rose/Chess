@@ -252,7 +252,7 @@ export function PdfViewer({
             {!loading &&
               boundaryLines.map((ln) => {
                 const xClass = ln.side === 'left' ? 'left-2' : 'right-2';
-                const labelCls = `absolute ${xClass} whitespace-nowrap rounded px-1 text-[10px] font-semibold text-white`;
+                const labelCls = `absolute z-10 ${xClass} whitespace-nowrap rounded px-1 text-[10px] font-semibold text-white`;
                 return (
                   <div
                     key={ln.key}
