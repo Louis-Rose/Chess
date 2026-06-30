@@ -45,6 +45,8 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   brandRef.current = brand;
   const selectedRefRef = useRef(selectedRef);
   selectedRefRef.current = selectedRef;
+  const cropsRef = useRef(crops);
+  cropsRef.current = crops;
 
   // Default the selected part to the first one once parts are available.
   useEffect(() => {
@@ -106,14 +108,18 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   useEffect(() => {
     if (!parts.length || batchDocRef.current === docId) return;
     batchDocRef.current = docId;
-    const todo = parts.filter((p) => p.ref && !loadResult(docId, p.ref as string));
+    const todo = parts
+      .map((p, idx) => ({ p, idx }))
+      .filter(({ p }) => p.ref && !loadResult(docId, p.ref as string));
     if (!todo.length) return;
     void (async () => {
       setBatch({ done: 0, total: todo.length });
       for (let i = 0; i < todo.length; i++) {
         if (!mountedRef.current || batchDocRef.current !== docId) return;
         try {
-          await processPart(todo[i].ref as string, null);
+          // Send the part's drawing (rendered for the strip) as the filter
+          // reference so the model can reject mismatched parts.
+          await processPart(todo[i].p.ref as string, cropsRef.current[todo[i].idx] ?? null);
         } catch {
           // skip this part; the user can search it manually
         }
