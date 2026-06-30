@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, ZoomIn } from 'lucide-react';
 import { usePartsRun, type PartItem } from './partsRun';
 import { renderPartCrop } from './partCrop';
-import { searchPartImages, type ImageHit } from './realImages';
+import { searchPartImages, filterPartImages, type ImageHit } from './realImages';
 import { ImageLightbox } from './ImageLightbox';
 import { useBrand } from './brandStore';
 import { runBtnClass } from './controls';
@@ -11,8 +11,10 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 // Étape 3: find a real photo of each supplied part. The brand is auto-detected
 // from the cover; a dropdown lists the parts found in Étape 2 (those with a
-// reference); searching runs one part at a time and shows candidate images
-// next to the manual's drawing. Clicking a candidate zooms it in the lightbox.
+// reference). Searching runs one part at a time, then Gemini Flash-Lite filters
+// the candidates to real photos of the actual part: kept ones are framed green,
+// discarded ones red. The user can click a candidate to flip its verdict, or use
+// the corner button to zoom it.
 export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const { t } = useLanguage();
   const { items } = usePartsRun(docId);
@@ -22,7 +24,9 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const [selectedRef, setSelectedRef] = useState('');
   const [crop, setCrop] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
+  const [filtering, setFiltering] = useState(false);
   const [candidates, setCandidates] = useState<ImageHit[]>([]);
+  const [kept, setKept] = useState<boolean[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState<string | null>(null);
 
@@ -39,6 +43,7 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     let cancelled = false;
     setCrop(null);
     setCandidates([]);
+    setKept([]);
     setError(null);
     if (!selected) return;
     renderPartCrop(file, selected).then((c) => {
@@ -55,10 +60,30 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     setSearching(true);
     setError(null);
     setCandidates([]);
+    setKept([]);
     try {
       const imgs = await searchPartImages(selected.ref, brand);
       setCandidates(imgs);
-      if (!imgs.length) setError(t('notice.step3.noResults'));
+      setKept(imgs.map(() => true)); // provisional until the filter returns
+      if (!imgs.length) {
+        setError(t('notice.step3.noResults'));
+        return;
+      }
+      // Ask Gemini which candidates are real photos of the actual part.
+      setFiltering(true);
+      try {
+        const keep = await filterPartImages(
+          imgs.map((c) => c.thumbnail),
+          selected.ref as string,
+          brand,
+          crop,
+        );
+        if (keep.length === imgs.length) setKept(keep);
+      } catch {
+        // non-fatal: leave every candidate kept (the user can still toggle)
+      } finally {
+        setFiltering(false);
+      }
     } catch (e) {
       setError(
         (axios.isAxiosError(e) && (e.response?.data as { error?: string })?.error) ||
@@ -68,6 +93,8 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
       setSearching(false);
     }
   };
+
+  const toggleKept = (i: number) => setKept((prev) => prev.map((k, j) => (j === i ? !k : k)));
 
   const label = (p: PartItem) =>
     `${p.ref}${p.bag ? ` (${p.bag}, ${t('notice.pdf.page')} ${p.page})` : ` (${t('notice.pdf.page')} ${p.page})`}`;
@@ -117,35 +144,58 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
         </div>
 
         {candidates.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {candidates.map((c, i) => (
-              <div key={i} className="flex w-32 flex-col items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setZoom(c.url)}
-                  title={c.title}
-                  className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-lg border-2 border-slate-300 bg-white p-1 transition-colors hover:border-emerald-400 dark:border-slate-700"
-                >
-                  <img
-                    src={c.thumbnail}
-                    alt={c.title}
-                    loading="lazy"
-                    className="max-h-full max-w-full cursor-zoom-in object-contain"
-                  />
-                </button>
-                {c.source && (
-                  <a
-                    href={c.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={c.source}
-                    className="max-w-full truncate text-xs text-slate-400 hover:text-emerald-500 hover:underline dark:text-slate-500"
-                  >
-                    {c.source}
-                  </a>
-                )}
-              </div>
-            ))}
+          <div className="flex flex-col items-center gap-3">
+            <p className="flex items-center gap-2 text-center text-xs text-slate-400 dark:text-slate-500">
+              {filtering && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {filtering ? t('notice.step3.filtering') : t('notice.step3.filterHint')}
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {candidates.map((c, i) => (
+                <div key={i} className="flex w-32 flex-col items-center gap-1">
+                  <div className="group relative h-32 w-32">
+                    <button
+                      type="button"
+                      onClick={() => toggleKept(i)}
+                      title={c.title}
+                      className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-1 transition-colors ${
+                        filtering
+                          ? 'border-slate-300 dark:border-slate-700'
+                          : kept[i]
+                            ? 'border-emerald-500'
+                            : 'border-rose-500 opacity-60'
+                      }`}
+                    >
+                      <img
+                        src={c.thumbnail}
+                        alt={c.title}
+                        loading="lazy"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setZoom(c.url)}
+                      aria-label={t('notice.pdf.zoom')}
+                      title={t('notice.pdf.zoom')}
+                      className="absolute right-1 top-1 rounded-md bg-black/45 p-1 text-white opacity-70 transition-opacity hover:bg-black/70 hover:opacity-100"
+                    >
+                      <ZoomIn className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {c.source && (
+                    <a
+                      href={c.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={c.source}
+                      className="max-w-full truncate text-xs text-slate-400 hover:text-emerald-500 hover:underline dark:text-slate-500"
+                    >
+                      {c.source}
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

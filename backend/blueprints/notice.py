@@ -9,6 +9,7 @@ admin usage tracking.
 """
 
 import base64
+import concurrent.futures
 import json
 import logging
 import os
@@ -156,6 +157,36 @@ def _decode_image(image_b64):
     return image_bytes, None
 
 
+def _guess_mime(data):
+    """Best-effort image mime from magic bytes, for web images of unknown type.
+    Defaults to JPEG (the common web case) so Gemini still gets a sane type."""
+    if data[:3] == b'\xff\xd8\xff':
+        return 'image/jpeg'
+    if data[:8] == b'\x89PNG\r\n\x1a\n':
+        return 'image/png'
+    if data[:6] in (b'GIF87a', b'GIF89a'):
+        return 'image/gif'
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+        return 'image/webp'
+    return 'image/jpeg'
+
+
+def _fetch_image(url, timeout=8):
+    """Download a candidate web image for classification. Returns (bytes, mime)
+    or (None, None) on any failure (bad host, timeout, too large, not data)."""
+    if not isinstance(url, str) or not url.startswith(('http://', 'https://')):
+        return None, None
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = resp.read(MAX_IMAGE_BYTES + 1)
+    except Exception:
+        return None, None
+    if not data or len(data) > MAX_IMAGE_BYTES:
+        return None, None
+    return data, _guess_mime(data)
+
+
 def _split_thoughts(response):
     """Split a response into (answer_text, thought_summary). Thought parts carry
     part.thought == True; everything else is the answer. Falls back to
@@ -173,21 +204,27 @@ def _split_thoughts(response):
     return ans, '\n'.join(thoughts).strip()
 
 
-def _gemini_on_images(model, images, text_prompt, user_id, phase=None, want_thoughts=False, pages=None):
+def _gemini_on_images(model, images, text_prompt, user_id, phase=None, want_thoughts=False,
+                      pages=None, labels=None, mimes=None):
     """Run one Gemini vision call on one or more page images, log usage, return
     (answer, thoughts). Each image is labelled in order so the model can map its
     output back to a page. `phase` tags the usage row ('ask' / 'categorize') so
     timing can be split; `want_thoughts` asks thinking models for their reasoning;
-    `pages` (the page numbers in the block) is shown in the log line.
+    `pages` (the page numbers in the block) is shown in the log line. `labels`
+    overrides the default "Page image N of M" caption per image; `mimes` overrides
+    the default image/png mime per image (for non-PNG web images).
     May raise ValueError (not configured) or other exceptions (call failed)."""
     client_paid, client_free = _init_gemini_clients('notice')
     from google.genai import types
 
     contents = []
     for i, image_bytes in enumerate(images):
-        if len(images) > 1:
+        if labels is not None:
+            contents.append(labels[i])
+        elif len(images) > 1:
             contents.append(f"Page image {i + 1} of {len(images)}:")
-        contents.append(types.Part.from_bytes(data=image_bytes, mime_type='image/png'))
+        mime = mimes[i] if mimes is not None else 'image/png'
+        contents.append(types.Part.from_bytes(data=image_bytes, mime_type=mime))
     contents.append(text_prompt)
 
     config = None
@@ -575,6 +612,103 @@ def part_images():
             'source': source,
         })
     return jsonify({'images': images, 'query': query})
+
+
+_FILTER_PROMPT = (
+    "You are shown CANDIDATE web images for one furniture/hardware part (a "
+    "reference line drawing of the part may be given first). For EACH candidate, "
+    "in order, decide whether to KEEP or DISCARD it.\n"
+    "KEEP a candidate ONLY if it is a real photograph of the actual physical part "
+    "(the part may appear alone or among other parts).\n"
+    "DISCARD a candidate if it is any of: a line drawing, technical diagram or "
+    "illustration; a logo, icon or plain text; product packaging with no clear "
+    "view of the part; an unrelated object; OR any image carrying a visible "
+    "watermark (text or a logo overlaid across the image).\n"
+    "Return ONLY a JSON array with one object per candidate, in the given order: "
+    '[{"keep": true}, {"keep": false}, ...]. No prose, no code fences.'
+)
+
+
+def _parse_filter(answer, n):
+    """Parse the model's JSON array of {keep: bool} into a list of n booleans.
+    Anything unparseable defaults to keep=True (never hide what we can't judge)."""
+    text = (answer or '').strip()
+    if text.startswith('```'):
+        text = text.strip('`')
+        text = text.split('\n', 1)[1] if '\n' in text else text
+    arr = None
+    try:
+        arr = json.loads(text)
+    except Exception:
+        m = re.search(r'\[.*\]', text, re.S)
+        if m:
+            try:
+                arr = json.loads(m.group(0))
+            except Exception:
+                arr = None
+    arr = arr if isinstance(arr, list) else []
+    keep = []
+    for i in range(n):
+        item = arr[i] if i < len(arr) else None
+        keep.append(bool(item.get('keep', True)) if isinstance(item, dict) else True)
+    return keep
+
+
+@notice_bp.route('/api/notice/filter-images', methods=['POST'])
+@login_required
+def filter_images():
+    """Classify candidate web images with Gemini Flash-Lite: KEEP real photos of
+    the actual part, DISCARD drawings/diagrams/logos/packaging/unrelated/watermarked
+    images. Returns a `keep` boolean per candidate in the order received. Images we
+    can't download, and any model/parse failure, default to keep=True so nothing is
+    hidden silently (the user reviews and can toggle each one)."""
+    data = request.get_json(silent=True) or {}
+    ref = (data.get('ref') or '').strip()
+    brand = (data.get('brand') or '').strip()
+    thumbs = data.get('thumbnails') or []
+    if not isinstance(thumbs, list) or not thumbs:
+        return jsonify({'keep': []})
+    thumbs = thumbs[:12]  # safety cap on fan-out
+    keep = [True] * len(thumbs)
+
+    # Download candidates in parallel; failures stay keep=True.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(9, len(thumbs))) as ex:
+        fetched = list(ex.map(_fetch_image, thumbs))
+    imgs, mimes, idx_map = [], [], []
+    for i, (b, mime) in enumerate(fetched):
+        if b:
+            imgs.append(b)
+            mimes.append(mime)
+            idx_map.append(i)
+    if not imgs:
+        return jsonify({'keep': keep})
+
+    # Lead with the part's reference drawing when the client sends it.
+    labels, content_imgs, content_mimes = [], [], []
+    ref_bytes, _ = _decode_image(data.get('refImage') or '')
+    if ref_bytes:
+        labels.append(f"Reference line drawing of part {ref or '(unknown)'} (brand: {brand or 'unknown'}):")
+        content_imgs.append(ref_bytes)
+        content_mimes.append('image/png')
+    for n in range(len(imgs)):
+        labels.append(f"Candidate {n + 1}:")
+    content_imgs.extend(imgs)
+    content_mimes.extend(mimes)
+
+    user_id = getattr(request, 'user_id', None)
+    try:
+        answer, _ = _gemini_on_images(
+            'gemini-3.1-flash-lite', content_imgs, _FILTER_PROMPT, user_id,
+            phase='filter', labels=labels, mimes=content_mimes,
+        )
+    except Exception:
+        logger.exception('[notice] filter-images failed')
+        return jsonify({'keep': keep})
+
+    verdicts = _parse_filter(answer, len(imgs))
+    for pos, cand_idx in enumerate(idx_map):
+        keep[cand_idx] = verdicts[pos]
+    return jsonify({'keep': keep})
 
 
 @notice_bp.route('/api/notice/serper-quota', methods=['GET'])

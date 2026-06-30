@@ -47,3 +47,21 @@ export async function searchPartImages(ref: string, brand: string): Promise<Imag
   });
   return data.images || [];
 }
+
+// Ask Gemini Flash-Lite which candidates are real photos of the actual part.
+// Returns a keep boolean per thumbnail (same order); empty on failure so the
+// caller can fall back to keeping everything. `refImage` is the part's drawing.
+export async function filterPartImages(
+  thumbnails: string[],
+  ref: string,
+  brand: string,
+  refImage: string | null,
+): Promise<boolean[]> {
+  const { data } = await axios.post<{ keep: boolean[] }>('/api/notice/filter-images', {
+    thumbnails,
+    ref,
+    brand,
+    refImage,
+  });
+  return data.keep || [];
+}
