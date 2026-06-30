@@ -81,14 +81,17 @@ export function PageCategoriesTable({
   // One category cell. Each category label stays on a single line; a split page
   // stacks its two sections with the "&" alone on its own middle line. The brain
   // badge, shown on every classified cell, is vertically centered.
-  const renderCell = (c: {
-    err?: string;
-    split?: Split;
-    cat?: string;
-    reasonText: string;
-    rawText: string;
-    reasons: boolean;
-  }) => {
+  const renderCell = (
+    c: {
+      err?: string;
+      split?: Split;
+      cat?: string;
+      reasonText: string;
+      rawText: string;
+      reasons: boolean;
+    },
+    muted = false,
+  ) => {
     if (c.err) {
       return (
         <span className="text-rose-600 dark:text-rose-400" title={c.err}>
@@ -108,7 +111,7 @@ export function PageCategoriesTable({
         ) : (
           <span className="whitespace-nowrap">{c.cat ?? '—'}</span>
         )}
-        {classified && (
+        {classified && !muted && (
           <ReasoningBadge content={tooltipContent(c)} label={t('notice.cat.thinking')} reasons={c.reasons} />
         )}
       </span>
@@ -182,7 +185,7 @@ export function PageCategoriesTable({
                     onClick={() => onSelectPage?.(col.n)}
                     className={`${dataCellCls} text-slate-700 dark:text-slate-300 ${col.bg} ${off ? 'opacity-40' : ''}`}
                   >
-                    {renderCell(col.cells[mi])}
+                    {renderCell(col.cells[mi], off)}
                   </td>
                 ))}
               </tr>
