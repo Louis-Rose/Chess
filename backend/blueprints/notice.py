@@ -9,9 +9,13 @@ admin usage tracking.
 """
 
 import base64
+import json
 import logging
+import os
 import re
 import time
+import urllib.parse
+import urllib.request
 
 from flask import Blueprint, jsonify, request
 
@@ -460,6 +464,82 @@ def _parse_parts(answer):
             'bag': bag or None,
         })
     return out
+
+
+_BRAND_PROMPT = (
+    "This is the cover / first page of a furniture assembly manual. Reply with ONLY "
+    'the brand or manufacturer name (e.g. "IKEA"), nothing else, no punctuation. If '
+    'you cannot tell, reply "Unknown".'
+)
+
+
+@notice_bp.route('/api/notice/brand', methods=['POST'])
+@login_required
+def brand():
+    """Detect the manufacturer/brand from the manual's cover page, so the parts
+    image search can be qualified (e.g. 'IKEA 147968' rather than a bare number)."""
+    data = request.get_json(silent=True) or {}
+    model = (data.get('model') or 'gemini-3.5-flash').strip()
+    if model not in ALLOWED_MODELS:
+        model = 'gemini-3.5-flash'
+    image_bytes, err = _decode_image(data.get('image') or '')
+    if err:
+        return err
+
+    user_id = getattr(request, 'user_id', None)
+    try:
+        answer, _ = _gemini_on_images(model, [image_bytes], _BRAND_PROMPT, user_id, phase='brand')
+    except ValueError:
+        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
+    except Exception:
+        logger.exception('[notice] brand failed')
+        return jsonify({'error': 'Brand detection failed.'}), 502
+
+    b = (answer or '').strip().strip('."').splitlines()[0].strip() if answer else ''
+    if b.lower() in ('unknown', ''):
+        b = ''
+    return jsonify({'brand': b})
+
+
+@notice_bp.route('/api/notice/part-images', methods=['GET'])
+@login_required
+def part_images():
+    """Search the web for real photos of a part by its reference, qualified by the
+    brand (Google Programmable Search, image mode). Returns a few candidates for
+    the user to pick from; quality varies, so we never auto-select."""
+    ref = (request.args.get('ref') or '').strip()
+    brand_q = (request.args.get('brand') or '').strip()
+    if not ref:
+        return jsonify({'error': 'No reference provided.'}), 400
+
+    key = os.getenv('GOOGLE_CSE_KEY')
+    cx = os.getenv('GOOGLE_CSE_CX')
+    if not key or not cx:
+        return jsonify({'error': 'Image search is not configured on the server.'}), 503
+
+    query = f'{brand_q} {ref}'.strip()
+    params = urllib.parse.urlencode({
+        'key': key, 'cx': cx, 'q': query,
+        'searchType': 'image', 'num': 6, 'safe': 'active',
+    })
+    url = f'https://www.googleapis.com/customsearch/v1?{params}'
+    try:
+        with urllib.request.urlopen(url, timeout=15) as resp:
+            payload = json.loads(resp.read().decode('utf-8'))
+    except Exception:
+        logger.exception('[notice] part-images search failed')
+        return jsonify({'error': 'Image search failed.'}), 502
+
+    images = []
+    for it in payload.get('items') or []:
+        img = it.get('image') or {}
+        images.append({
+            'url': it.get('link'),
+            'thumbnail': img.get('thumbnailLink') or it.get('link'),
+            'title': it.get('title'),
+            'context': img.get('contextLink'),
+        })
+    return jsonify({'images': images, 'query': query})
 
 
 @notice_bp.route('/api/notice/notes', methods=['GET'])

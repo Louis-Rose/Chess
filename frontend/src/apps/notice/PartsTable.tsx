@@ -4,26 +4,10 @@ import { X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useDragScroll } from './useDragScroll';
 import { ReasoningBadge } from './ReasoningBadge';
+import { cropCanvas } from './partCrop';
 import type { PartItem } from './partsRun';
 // Side-effect import: configures the shared PDF.js worker.
 import './pdfRender';
-
-// Crop a normalized bbox (x0,y0,x1,y1 in 0..1) out of a rendered page canvas,
-// with a little margin to absorb bounding-box imprecision, as a PNG data URL.
-function cropCanvas(src: HTMLCanvasElement, bbox: [number, number, number, number], margin = 0.015): string {
-  const [x0, y0, x1, y1] = bbox;
-  const sx = Math.max(0, x0 - margin) * src.width;
-  const sy = Math.max(0, y0 - margin) * src.height;
-  const sw = Math.min(1, x1 + margin) * src.width - sx;
-  const sh = Math.min(1, y1 + margin) * src.height - sy;
-  const out = document.createElement('canvas');
-  out.width = Math.max(1, Math.round(sw));
-  out.height = Math.max(1, Math.round(sh));
-  const ctx = out.getContext('2d');
-  if (!ctx) return '';
-  ctx.drawImage(src, sx, sy, sw, sh, 0, 0, out.width, out.height);
-  return out.toDataURL('image/png');
-}
 
 // The extracted supplied-parts list: one row per part, with its piece image
 // cropped from the PDF on the fly (so nothing big is persisted). The bag and
