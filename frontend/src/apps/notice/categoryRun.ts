@@ -40,6 +40,8 @@ export type RunSnapshot = {
   // Thought summary behind each (page, model) classification (empty for models
   // that don't reason). Persisted alongside the categories.
   reasoning: ByModelPage;
+  // The model's raw reply text for each (page, model). Persisted.
+  raws: ByModelPage;
   // Structured mid-page boundaries, used to draw the separator on the PDF. Only
   // present for pages the model split. Persisted alongside the categories.
   splits: SplitMap;
@@ -64,6 +66,7 @@ const entries = new Map<string, Entry>();
 // reloads, each under its own key.
 const mapKey = (docId: string) => `notice.categories.${docId}`;
 const reasoningKey = (docId: string) => `notice.reasoning.${docId}`;
+const rawsKey = (docId: string) => `notice.raws.${docId}`;
 const splitsKey = (docId: string) => `notice.splits.${docId}`;
 
 function loadStore<T>(key: string): T {
@@ -93,6 +96,7 @@ function getEntry(docId: string): Entry {
         active: 0,
         categories: loadStore<ByModelPage>(mapKey(docId)),
         reasoning: loadStore<ByModelPage>(reasoningKey(docId)),
+        raws: loadStore<ByModelPage>(rawsKey(docId)),
         splits: loadStore<SplitMap>(splitsKey(docId)),
         cellErrors: {},
         requestedPage: null,
@@ -125,6 +129,7 @@ function setResult(
   pageNum: number,
   category: string,
   reasoning: string,
+  raw: string,
   boundary: number | null,
   categoryBelow: string | null,
 ) {
@@ -140,6 +145,10 @@ function setResult(
   nextReasoning[modelId] = { ...(nextReasoning[modelId] || {}), [pageNum]: reasoning };
   saveStore(reasoningKey(docId), nextReasoning);
 
+  const nextRaws: ByModelPage = { ...snap.raws };
+  nextRaws[modelId] = { ...(nextRaws[modelId] || {}), [pageNum]: raw };
+  saveStore(rawsKey(docId), nextRaws);
+
   const nextSplits: SplitMap = { ...snap.splits, [modelId]: { ...(snap.splits[modelId] || {}) } };
   if (split) nextSplits[modelId][pageNum] = split;
   else delete nextSplits[modelId][pageNum];
@@ -148,6 +157,7 @@ function setResult(
   update(docId, {
     categories: nextCats,
     reasoning: nextReasoning,
+    raws: nextRaws,
     splits: nextSplits,
     cellErrors: clearCell(snap.cellErrors, modelId, pageNum),
   });
@@ -183,6 +193,7 @@ async function classify(
         const { data } = await axios.post<{
           category: string;
           reasoning?: string;
+          raw?: string;
           boundary?: number | null;
           categoryBelow?: string | null;
         }>('/api/notice/categorize', { image, model: m.id }, { signal });
@@ -192,6 +203,7 @@ async function classify(
           pageNum,
           data.category,
           data.reasoning || '',
+          data.raw || '',
           data.boundary ?? null,
           data.categoryBelow ?? null,
         );

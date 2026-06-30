@@ -180,6 +180,7 @@ def categorize():
     return jsonify({
         'category': category,
         'reasoning': thoughts or '',
+        'raw': answer or '',
         'boundary': boundary,
         'categoryBelow': category_below,
     })

@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Brain } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
@@ -14,6 +14,7 @@ export function PageCategoriesTable({
   numPages,
   categories,
   reasoning,
+  raws,
   splits,
   cellErrors,
   onSelectPage,
@@ -21,6 +22,7 @@ export function PageCategoriesTable({
   numPages: number;
   categories: Record<string, Record<number, string>>;
   reasoning: Record<string, Record<number, string>>;
+  raws: Record<string, Record<number, string>>;
   splits: Record<string, Record<number, Split>>;
   cellErrors: Record<string, Record<number, string>>;
   onSelectPage?: (page: number) => void;
@@ -43,14 +45,39 @@ export function PageCategoriesTable({
   const dataCellCls =
     'min-w-[10rem] cursor-pointer border-r-2 border-slate-300 px-3 py-2 transition-colors hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-emerald-500/10';
 
+  // The hover tooltip for a cell. A reasoning model shows two captioned sections
+  // (reasoning + raw output); a non-reasoning model shows just its raw output.
+  const tooltipContent = (c: { reasonText: string; rawText: string; reasons: boolean }): ReactNode => {
+    const section = (title: string | null, body: string) => (
+      <div>
+        {title && (
+          <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            {title}
+          </div>
+        )}
+        <div className="whitespace-pre-line">{body || '—'}</div>
+      </div>
+    );
+    if (c.reasons) {
+      return (
+        <div className="space-y-3">
+          {section(t('notice.cat.reasoningTitle'), c.reasonText || t('notice.cat.noReasoning'))}
+          {section(t('notice.cat.rawOutputTitle'), c.rawText)}
+        </div>
+      );
+    }
+    return section(null, c.rawText);
+  };
+
   // One category cell. A split page stacks its two sections on two lines (the
-  // second prefixed with "&"); the brain badge, when shown, is vertically
-  // centered against the whole cell.
+  // second prefixed with "&"); the brain badge, shown on every classified cell,
+  // is vertically centered against the whole cell.
   const renderCell = (c: {
     err?: string;
     split?: Split;
     cat?: string;
     reasonText: string;
+    rawText: string;
     reasons: boolean;
   }) => {
     if (c.err) {
@@ -60,9 +87,7 @@ export function PageCategoriesTable({
         </span>
       );
     }
-    const badge = c.reasons ? (
-      <ReasoningBadge text={c.reasonText || t('notice.cat.noReasoning')} label={t('notice.cat.thinking')} />
-    ) : null;
+    const classified = !!(c.split || c.cat);
     return (
       <span className="inline-flex items-center justify-center gap-1.5">
         {c.split ? (
@@ -73,7 +98,7 @@ export function PageCategoriesTable({
         ) : (
           c.cat ?? '—'
         )}
-        {(c.split || c.cat) && badge}
+        {classified && <ReasoningBadge content={tooltipContent(c)} label={t('notice.cat.thinking')} />}
       </span>
     );
   };
@@ -85,6 +110,7 @@ export function PageCategoriesTable({
       split: splits[m.id]?.[n],
       cat: categories[m.id]?.[n],
       reasonText: reasoning[m.id]?.[n] || '',
+      rawText: raws[m.id]?.[n] || '',
       reasons: reasoningModels.has(m.id),
     }));
     const keys = cells
@@ -149,7 +175,7 @@ export function PageCategoriesTable({
 // open while the pointer is over the tooltip itself, so long text can be scrolled.
 const MARGIN = 12;
 
-function ReasoningBadge({ text, label }: { text: string; label: string }) {
+function ReasoningBadge({ content, label }: { content: ReactNode; label: string }) {
   const iconRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -199,9 +225,9 @@ function ReasoningBadge({ text, label }: { text: string; label: string }) {
             onMouseEnter={openTip}
             onMouseLeave={scheduleClose}
             style={{ position: 'fixed', left: coords.left, top: coords.top, transform: 'translateX(-50%)' }}
-            className="z-50 max-h-[92vh] w-[52rem] max-w-[94vw] overflow-y-auto overscroll-contain whitespace-pre-line rounded-lg border border-slate-200 bg-white px-5 py-4 text-left text-sm font-normal leading-relaxed text-slate-700 shadow-xl dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            className="z-50 max-h-[92vh] w-[52rem] max-w-[94vw] overflow-y-auto overscroll-contain rounded-lg border border-slate-200 bg-white px-5 py-4 text-left text-sm font-normal leading-relaxed text-slate-700 shadow-xl dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
-            {text}
+            {content}
           </div>,
           document.body,
         )}
