@@ -213,7 +213,13 @@ export function PdfViewer({
   const debut = t('notice.cat.sectionStart');
   const boundaryLines = NOTICE_MODELS.flatMap((m, i) => {
     const side = i === 0 ? 'left' : 'right';
-    const out: { key: string; y: number; color: string; side: string; above: string; below: string }[] = [];
+    const out: { key: string; y: number; color: string; side: string; above?: string; below?: string }[] = [];
+    // Very first section start: top of page 1 (no section ends above it).
+    if (page === 1) {
+      const cur = segment(m.id, 1).top;
+      if (cur) out.push({ key: `${m.id}-start`, y: 0, color: m.color, side, below: `${cur} (${debut})` });
+    }
+    // Page-break transition: drawn at the top of this page.
     if (page > 1) {
       const prev = segment(m.id, page - 1).bottom;
       const cur = segment(m.id, page).top;
@@ -221,9 +227,15 @@ export function PdfViewer({
         out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, above: `${prev} (${fin})`, below: `${cur} (${debut})` });
       }
     }
+    // Mid-page split.
     const s = splits[m.id]?.[page];
     if (s) {
       out.push({ key: `${m.id}-split`, y: s.y, color: m.color, side, above: `${s.above} (${fin})`, below: `${s.below} (${debut})` });
+    }
+    // Very last section end: bottom of the last page (no section starts below it).
+    if (page === numPages) {
+      const cur = segment(m.id, page).bottom;
+      if (cur) out.push({ key: `${m.id}-end`, y: 1, color: m.color, side, above: `${cur} (${fin})` });
     }
     return out;
   });
@@ -259,12 +271,16 @@ export function PdfViewer({
                     className="pointer-events-none absolute inset-x-0"
                     style={{ top: `${Math.min(Math.max(ln.y, 0.04), 0.96) * 100}%`, borderTop: `2px dashed ${ln.color}` }}
                   >
-                    <span className={`${labelCls} bottom-0.5`} style={{ backgroundColor: ln.color }}>
-                      {ln.above}
-                    </span>
-                    <span className={`${labelCls} top-0.5`} style={{ backgroundColor: ln.color }}>
-                      {ln.below}
-                    </span>
+                    {ln.above && (
+                      <span className={`${labelCls} bottom-0.5`} style={{ backgroundColor: ln.color }}>
+                        {ln.above}
+                      </span>
+                    )}
+                    {ln.below && (
+                      <span className={`${labelCls} top-0.5`} style={{ backgroundColor: ln.color }}>
+                        {ln.below}
+                      </span>
+                    )}
                   </div>
                 );
               })}
