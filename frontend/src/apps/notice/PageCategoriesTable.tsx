@@ -43,7 +43,7 @@ export function PageCategoriesTable({
 
   // Sticky first column (row labels) + one column per page.
   const labelCellCls =
-    'sticky left-0 z-20 w-56 border-r-2 border-slate-300 bg-white px-4 py-2 text-left dark:border-slate-700 dark:bg-slate-900';
+    'sticky left-0 z-20 w-56 border-r-2 border-slate-300 bg-white px-4 py-2 text-center dark:border-slate-700 dark:bg-slate-900';
   const dataCellCls =
     'min-w-[10rem] cursor-pointer border-r-2 border-slate-300 px-3 py-2 transition-colors hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-emerald-500/10';
   // Mirror the stats table's first-column width when known (overrides the w-56
@@ -74,9 +74,9 @@ export function PageCategoriesTable({
     return section(null, c.rawText);
   };
 
-  // One category cell. A split page stacks its two sections on two lines (the
-  // second prefixed with "&"); the brain badge, shown on every classified cell,
-  // is vertically centered against the whole cell.
+  // One category cell. Each category label stays on a single line; a split page
+  // stacks its two sections with the "&" alone on its own middle line. The brain
+  // badge, shown on every classified cell, is vertically centered.
   const renderCell = (c: {
     err?: string;
     split?: Split;
@@ -96,12 +96,13 @@ export function PageCategoriesTable({
     return (
       <span className="inline-flex items-center justify-center gap-1.5">
         {c.split ? (
-          <span className="flex flex-col">
+          <span className="flex flex-col whitespace-nowrap">
             <span>{c.split.above}</span>
-            <span>&amp; {c.split.below}</span>
+            <span>&amp;</span>
+            <span>{c.split.below}</span>
           </span>
         ) : (
-          c.cat ?? '—'
+          <span className="whitespace-nowrap">{c.cat ?? '—'}</span>
         )}
         {classified && (
           <ReasoningBadge content={tooltipContent(c)} label={t('notice.cat.thinking')} reasons={c.reasons} />

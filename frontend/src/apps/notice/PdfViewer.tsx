@@ -261,9 +261,9 @@ export function PdfViewer({
       }
     }
 
-    // Nudge each model's lines by a couple of pixels so two boundaries at the
-    // same height don't overlap and hide one another.
-    return out.map((o) => ({ ...o, offset: i * 3 }));
+    // Nudge each model's lines by a pixel so two boundaries at the same height
+    // don't overlap and hide one another.
+    return out.map((o) => ({ ...o, offset: i }));
   });
 
   // The overlay (dashed lines + labels) drawn over a page canvas. Labels sit
