@@ -122,7 +122,10 @@ case "$1" in
                 echo "✓ Completed in ${ELAPSED}s"
                 echo ""
                 echo "=== Tailing logs (Ctrl+C to exit) ==="
-                sudo journalctl -u chess-backend -f | grep -v '\[INFO\]'
+                # Hide INFO noise, but KEEP [notice] lines (per-call classification
+                # logs: pages / image count / MB / tokens). -P negative lookahead:
+                # drop a line only if it has [INFO] and no [notice] after it.
+                sudo journalctl -u chess-backend -f | grep --line-buffered -Pv '\[INFO\](?!.*\[notice\])'
                 ;;
 
             status)
