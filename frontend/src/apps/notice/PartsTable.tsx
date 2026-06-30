@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useDragScroll } from './useDragScroll';
 import type { PartItem } from './partsRun';
 // Side-effect import: configures the shared PDF.js worker.
 import './pdfRender';
@@ -31,6 +32,7 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
   const [crops, setCrops] = useState<Record<number, string>>({});
   // The piece image currently zoomed (its data URL), or null.
   const [zoom, setZoom] = useState<string | null>(null);
+  const scrollRef = useDragScroll<HTMLDivElement>();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -100,7 +102,11 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
   const rowCls = 'border-b border-slate-200 last:border-0 dark:border-slate-700';
 
   return (
-    <div className="mx-auto max-w-5xl overflow-x-auto rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
+    <>
+    <div
+      ref={scrollRef}
+      className="mx-auto max-w-5xl cursor-grab overflow-x-auto rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg"
+    >
       <table className="w-full text-sm">
         <tbody>
           {hasBag && (
@@ -147,9 +153,10 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
           </tr>
         </tbody>
       </table>
+    </div>
 
-      {/* Lightbox: click the backdrop (or Escape) to close. */}
-      {zoom && (
+    {/* Lightbox: click the backdrop (or Escape) to close. */}
+    {zoom && (
         <div
           onClick={() => setZoom(null)}
           className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-4"
@@ -170,6 +177,6 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
           />
         </div>
       )}
-    </div>
+    </>
   );
 }

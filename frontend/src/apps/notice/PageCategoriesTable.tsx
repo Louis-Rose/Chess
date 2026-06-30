@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ArrowUp, Brain } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 import type { Segment } from './categoryRun';
+import { useDragScroll } from './useDragScroll';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 // The classification result for every page, all at once: one row per page, one
@@ -34,6 +35,7 @@ export function PageCategoriesTable({
   labelWidth?: number | null;
 }) {
   const { t } = useLanguage();
+  const scrollRef = useDragScroll<HTMLDivElement>();
   if (numPages < 1) return null;
 
   const pages = Array.from({ length: numPages }, (_, i) => i + 1);
@@ -144,7 +146,10 @@ export function PageCategoriesTable({
   });
 
   return (
-    <div className="mx-auto max-w-5xl overflow-x-auto rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
+    <div
+      ref={scrollRef}
+      className="mx-auto max-w-5xl cursor-grab overflow-x-auto rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg"
+    >
       <table className="w-full text-center text-sm">
         <tbody>
           {/* Page numbers */}
