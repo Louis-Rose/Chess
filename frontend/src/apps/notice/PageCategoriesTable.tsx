@@ -41,7 +41,7 @@ export function PageCategoriesTable({
 
   // Sticky first column (row labels) + one column per page.
   const labelCellCls =
-    'sticky left-0 z-20 border-r-2 border-slate-300 bg-white px-4 py-2 text-left dark:border-slate-700 dark:bg-slate-900';
+    'sticky left-0 z-20 w-56 border-r-2 border-slate-300 bg-white px-4 py-2 text-left dark:border-slate-700 dark:bg-slate-900';
   const dataCellCls =
     'min-w-[10rem] cursor-pointer border-r-2 border-slate-300 px-3 py-2 transition-colors hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-emerald-500/10';
 

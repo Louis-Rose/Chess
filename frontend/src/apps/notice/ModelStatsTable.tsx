@@ -26,7 +26,7 @@ export function ModelStatsTable({
       <table className="w-full text-center text-sm">
         <thead>
           <tr className="border-b-2 border-slate-300 text-xs uppercase tracking-wide text-slate-900 [&>th]:border-r-2 [&>th]:border-slate-300 [&>th:last-child]:border-r-0 dark:border-slate-600 dark:text-white dark:[&>th]:border-slate-700">
-            <th className="px-4 py-2 font-medium">{t('notice.cat.model')}</th>
+            <th className="w-56 px-4 py-2 font-medium">{t('notice.cat.model')}</th>
             <th className="px-4 py-2 font-medium">{t('notice.cat.cost')}</th>
             <th className="px-4 py-2 font-medium">{t('notice.cat.time')}</th>
             <th className="px-4 py-2 font-medium">{t('notice.cat.calls')}</th>
@@ -45,7 +45,7 @@ export function ModelStatsTable({
                 key={m.id}
                 className="border-b-2 border-slate-300 last:border-0 [&>td]:border-r-2 [&>td]:border-slate-300 [&>td:last-child]:border-r-0 dark:border-slate-700 dark:[&>td]:border-slate-700"
               >
-                <td className="px-4 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
+                <td className="w-56 px-4 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
                   <span className="inline-flex items-center justify-center gap-1.5">
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
