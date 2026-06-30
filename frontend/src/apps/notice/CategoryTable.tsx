@@ -25,7 +25,7 @@ export function CategoryTable({
   file: Blob;
 }) {
   const { t } = useLanguage();
-  const { busy, progress, active, categories, reasoning, cellErrors, error } = useRun(docId);
+  const { busy, progress, active, categories, reasoning, splits, cellErrors, error } = useRun(docId);
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
   const [calls, setCalls] = useState<Record<string, number>>({});
@@ -158,6 +158,7 @@ export function CategoryTable({
         numPages={numPages}
         categories={categories}
         reasoning={reasoning}
+        splits={splits}
         cellErrors={cellErrors}
       />
     </div>
