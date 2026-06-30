@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, Loader2, Upload } from 'lucide-react';
 import { PdfViewer } from '../PdfViewer';
 import { CategoryTable } from '../CategoryTable';
+import { BrandField } from '../BrandField';
 import { MaterialStep } from '../MaterialStep';
 import { RealImagesStep } from '../RealImagesStep';
 import { EtapeSection } from '../EtapeSection';
@@ -166,6 +167,10 @@ export function NoticeViewer() {
               mirrors the rule above each step. */}
           <div className="mb-4 mt-10 flex flex-col gap-10 border-b border-slate-200 pb-10 dark:border-slate-800">
             <EtapeSection title={`${t('notice.step')} 1${t('notice.step.sep')}${t('notice.step1.title')}`} info={notes?.[0]}>
+              {/* Document brand (auto-detected, editable; reused by Étape 3) */}
+              <div className="mb-6">
+                <BrandField file={current.data} docId={current.id} />
+              </div>
               {/* Per-model page categories + Gemini cost */}
               <CategoryTable
                 numPages={numPages}

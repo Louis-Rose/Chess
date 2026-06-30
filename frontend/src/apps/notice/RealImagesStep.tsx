@@ -1,17 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Check, Loader2, Search } from 'lucide-react';
 import { usePartsRun, type PartItem } from './partsRun';
 import { renderPartCrop } from './partCrop';
-import {
-  detectBrand,
-  loadBrand,
-  saveBrand,
-  loadChosen,
-  saveChosen,
-  searchPartImages,
-  type ImageHit,
-} from './realImages';
+import { loadChosen, saveChosen, searchPartImages, type ImageHit } from './realImages';
+import { useBrand } from './brandStore';
 import { runBtnClass } from './controls';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -23,16 +16,14 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const { t } = useLanguage();
   const { items } = usePartsRun(docId);
   const parts = items.filter((p) => p.ref);
+  const { brand } = useBrand(docId);
 
-  const [brand, setBrand] = useState(() => loadBrand(docId));
-  const [detecting, setDetecting] = useState(false);
   const [selectedRef, setSelectedRef] = useState('');
   const [crop, setCrop] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [candidates, setCandidates] = useState<ImageHit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<Record<string, string>>(() => loadChosen(docId));
-  const triedDetect = useRef(false);
 
   const selected = parts.find((p) => p.ref === selectedRef) ?? null;
 
@@ -40,22 +31,6 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   useEffect(() => {
     if (!selectedRef && parts.length) setSelectedRef(parts[0].ref as string);
   }, [parts, selectedRef]);
-
-  // Auto-detect the brand once if we don't have one yet.
-  useEffect(() => {
-    if (triedDetect.current || brand || !parts.length) return;
-    triedDetect.current = true;
-    setDetecting(true);
-    detectBrand(file)
-      .then((b) => {
-        if (b) {
-          setBrand(b);
-          saveBrand(docId, b);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setDetecting(false));
-  }, [brand, parts.length, file, docId]);
 
   // Render the selected part's drawing for side-by-side comparison; clear the
   // previous search when the selection changes.
@@ -73,24 +48,6 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRef, file]);
-
-  const onBrand = (v: string) => {
-    setBrand(v);
-    saveBrand(docId, v);
-  };
-
-  const runDetect = () => {
-    setDetecting(true);
-    detectBrand(file)
-      .then((b) => {
-        if (b) {
-          setBrand(b);
-          saveBrand(docId, b);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setDetecting(false));
-  };
 
   const search = async () => {
     if (!selected?.ref) return;
@@ -129,24 +86,6 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Brand (auto-detected, editable) */}
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.step3.brand')}</span>
-        <input
-          value={brand}
-          onChange={(e) => onBrand(e.target.value)}
-          className="w-48 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
-        />
-        <button
-          type="button"
-          onClick={runDetect}
-          disabled={detecting}
-          className="text-sm font-medium text-emerald-600 hover:underline disabled:opacity-50 dark:text-emerald-400"
-        >
-          {detecting ? <Loader2 className="inline h-4 w-4 animate-spin" /> : t('notice.step3.detect')}
-        </button>
-      </div>
-
       {/* Part picker + search */}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <select
