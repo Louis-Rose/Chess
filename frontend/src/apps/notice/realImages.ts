@@ -30,7 +30,7 @@ export function saveBrand(docId: string, brand: string) {
 export type PartImagesResult = { candidates: ImageHit[]; kept: boolean[] };
 const resultsKey = (docId: string) => `notice.realImages.${docId}`;
 
-function loadAllResults(docId: string): Record<string, PartImagesResult> {
+export function loadResults(docId: string): Record<string, PartImagesResult> {
   try {
     const raw = localStorage.getItem(resultsKey(docId));
     const obj = raw ? (JSON.parse(raw) as Record<string, PartImagesResult>) : {};
@@ -41,12 +41,12 @@ function loadAllResults(docId: string): Record<string, PartImagesResult> {
 }
 
 export function loadResult(docId: string, ref: string): PartImagesResult | undefined {
-  return loadAllResults(docId)[ref];
+  return loadResults(docId)[ref];
 }
 
 export function saveResult(docId: string, ref: string, result: PartImagesResult) {
   try {
-    const all = loadAllResults(docId);
+    const all = loadResults(docId);
     all[ref] = result;
     localStorage.setItem(resultsKey(docId), JSON.stringify(all));
   } catch {

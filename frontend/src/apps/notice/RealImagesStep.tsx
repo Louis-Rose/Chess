@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Loader2, Search, ZoomIn } from 'lucide-react';
 import { usePartsRun, type PartItem } from './partsRun';
 import { renderPartCrop } from './partCrop';
-import { searchPartImages, filterPartImages, loadResult, saveResult, type ImageHit } from './realImages';
+import { searchPartImages, filterPartImages, loadResult, loadResults, saveResult, type ImageHit } from './realImages';
 import { ImageLightbox } from './ImageLightbox';
 import { useBrand } from './brandStore';
 import { runBtnClass } from './controls';
@@ -206,6 +206,9 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const busy = searching || (!searched && !!batch);
   const keptList = candidates.map((c, i) => ({ c, i })).filter(({ i }) => kept[i]);
   const discardedList = candidates.map((c, i) => ({ c, i })).filter(({ i }) => !kept[i]);
+  // Which parts already have a result, so the picker can grey out the rest. Recomputed
+  // each render, so options un-grey as the batch progresses (it bumps `batch`).
+  const done = loadResults(docId);
 
   return (
     <div className="flex flex-col gap-5">
@@ -217,7 +220,11 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
           className="max-w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
         >
           {parts.map((p, i) => (
-            <option key={i} value={p.ref as string}>
+            <option
+              key={i}
+              value={p.ref as string}
+              style={(p.ref as string) in done ? undefined : { color: '#94a3b8' }}
+            >
               {label(p)}
             </option>
           ))}
