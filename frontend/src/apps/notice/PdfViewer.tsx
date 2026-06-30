@@ -271,7 +271,7 @@ export function PdfViewer({
   // never hide page content. Shared by the inline viewer and the zoom modal.
   const boundaryOverlay = boundaryLines.map((ln) => {
     const sideCls = ln.side === 'left' ? 'right-full mr-2' : 'left-full ml-2';
-    const labelCls = `absolute z-10 ${sideCls} whitespace-nowrap rounded px-1 text-[10px] font-semibold text-white`;
+    const labelCls = `absolute z-10 ${sideCls} whitespace-nowrap rounded px-1 text-[12px] font-semibold text-white`;
     return (
       <div
         key={ln.key}
