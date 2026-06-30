@@ -546,6 +546,25 @@ def brand():
     return jsonify({'brand': b})
 
 
+# Sites excluded from the part-image search up front, via Google `-site:`
+# operators. Mostly stock-photo hosts whose images are watermarked or generic,
+# plus Pinterest (low-quality reposts). Excluding here saves both candidate slots
+# and Serper credits versus discarding them after. Override with the env var
+# SERPER_EXCLUDE_SITES (comma-separated; set it empty to disable exclusion).
+_DEFAULT_EXCLUDE_SITES = (
+    'shutterstock.com', 'istockphoto.com', 'alamy.com', 'dreamstime.com',
+    '123rf.com', 'gettyimages.com', 'depositphotos.com', 'vectorstock.com',
+    'freepik.com', 'stock.adobe.com', 'canstockphoto.com', 'pinterest.com',
+)
+
+
+def _exclude_sites():
+    """The domains to exclude from the image search (env override or default)."""
+    raw = os.getenv('SERPER_EXCLUDE_SITES')
+    sites = raw.split(',') if raw is not None else _DEFAULT_EXCLUDE_SITES
+    return [s.strip() for s in sites if s.strip()]
+
+
 @notice_bp.route('/api/notice/part-images', methods=['GET'])
 @login_required
 def part_images():
@@ -565,7 +584,10 @@ def part_images():
         return jsonify({'error': 'Image search is not configured on the server.'}), 503
 
     query = f'{brand_q} {ref}'.strip()
-    body = json.dumps({'q': query, 'num': 9}).encode('utf-8')
+    # Send Google `-site:` exclusions with the request, but keep the displayed
+    # query clean (just brand + ref).
+    q = query + ''.join(f' -site:{d}' for d in _exclude_sites())
+    body = json.dumps({'q': q, 'num': 9}).encode('utf-8')
     req = urllib.request.Request(
         'https://google.serper.dev/images', data=body, method='POST',
         headers={'X-API-KEY': api_key, 'Content-Type': 'application/json'},
