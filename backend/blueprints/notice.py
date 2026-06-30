@@ -57,9 +57,11 @@ _CATEGORIZE_PROMPT = (
     "- Sécurité\n"
     "- Liens\n"
     "- Produit fini (monté)  (the finished, fully assembled product)\n"
-    "A page usually belongs to a single category. Occasionally a NEW section "
-    "visibly begins partway down the page (a new section title/marker appears "
-    "below earlier content). \n"
+    "Printed text (section titles, step numbers, French labels) is part of the "
+    "original manual and authoritative; rely on it. The manual is NOT wordless and "
+    "nothing was added afterwards. A page is usually one section, but a NEW section "
+    "begins where its title appears, even if that title sits at the very bottom "
+    "with no content beneath it (its content starts on the next page).\n"
     "Reply with ONLY a JSON object, no prose, no code fence:\n"
     '{"category": "<category of the page, or of its TOP part if a new section '
     'begins partway down>", "boundary": <number strictly between 0 and 1 = the '
