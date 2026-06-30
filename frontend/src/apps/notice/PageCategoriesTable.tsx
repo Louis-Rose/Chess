@@ -37,10 +37,11 @@ export function PageCategoriesTable({
     ).map((m) => m.id),
   );
 
-  const trCells =
-    '[&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:[&>td]:border-slate-800/60';
-  const pageCellCls = 'px-4 py-2 font-semibold text-slate-900 dark:text-slate-100';
-  const catCellCls = 'px-4 py-2 text-slate-700 dark:text-slate-300';
+  // Sticky first column (row labels) + one column per page.
+  const labelCellCls =
+    'sticky left-0 z-20 border-r border-slate-200 bg-white px-4 py-2 text-left dark:border-slate-800/60 dark:bg-slate-900';
+  const dataCellCls =
+    'min-w-[10rem] cursor-pointer border-r border-slate-200 px-3 py-2 transition-colors hover:bg-emerald-50 dark:border-slate-800/60 dark:hover:bg-emerald-500/10';
 
   // One category cell. A split page stacks its two sections on two lines (the
   // second prefixed with "&"); the brain badge, when shown, is vertically
@@ -77,51 +78,64 @@ export function PageCategoriesTable({
     );
   };
 
+  // One column per page; disagreement (the models differ) tints the column red.
+  const cols = pages.map((n) => {
+    const cells = NOTICE_MODELS.map((m) => ({
+      err: cellErrors[m.id]?.[n],
+      split: splits[m.id]?.[n],
+      cat: categories[m.id]?.[n],
+      reasonText: reasoning[m.id]?.[n] || '',
+      reasons: reasoningModels.has(m.id),
+    }));
+    const keys = cells
+      .map((c) => (c.err ? '' : c.split ? `${c.split.above} / ${c.split.below}` : c.cat || ''))
+      .filter(Boolean);
+    return { n, cells, bg: new Set(keys).size > 1 ? 'bg-red-100 dark:bg-red-500/20' : '' };
+  });
+
   return (
-    <div className="mx-auto max-h-[70vh] max-w-3xl overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-lg">
+    <div className="mx-auto max-w-5xl overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-lg">
       <table className="w-full text-center text-sm">
-        <thead className="sticky top-0 z-10 bg-white dark:bg-slate-900">
-          <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-900 [&>th]:border-r [&>th]:border-slate-200 [&>th:last-child]:border-r-0 dark:border-slate-800 dark:text-white dark:[&>th]:border-slate-800/60">
-            <th className="px-4 py-2 font-medium">{t('notice.pdf.page')}</th>
-            {NOTICE_MODELS.map((m) => (
-              <th key={m.id} className="px-4 py-2 font-medium">
-                {m.label}
-              </th>
+        <tbody>
+          {/* Page numbers */}
+          <tr className="border-b border-slate-200 dark:border-slate-800/60">
+            <th className={`${labelCellCls} text-xs font-medium uppercase tracking-wide text-slate-900 dark:text-white`}>
+              {t('notice.pdf.page')}
+            </th>
+            {cols.map((col) => (
+              <td
+                key={col.n}
+                onClick={() => onSelectPage?.(col.n)}
+                className={`${dataCellCls} font-semibold text-slate-900 dark:text-slate-100 ${col.bg}`}
+              >
+                {col.n}
+              </td>
             ))}
           </tr>
-        </thead>
-        <tbody>
-          {pages.map((n) => {
-            const cells = NOTICE_MODELS.map((m) => ({
-              model: m,
-              err: cellErrors[m.id]?.[n],
-              split: splits[m.id]?.[n],
-              cat: categories[m.id]?.[n],
-              reasonText: reasoning[m.id]?.[n] || '',
-              reasons: reasoningModels.has(m.id),
-            }));
-            // Flag a page where the models landed on different results, so the
-            // disagreements stand out (needs at least two distinct non-empty labels).
-            const keys = cells
-              .map((c) => (c.err ? '' : c.split ? `${c.split.above} / ${c.split.below}` : c.cat || ''))
-              .filter(Boolean);
-            const bg = new Set(keys).size > 1 ? 'bg-red-100 dark:bg-red-500/20' : '';
-
-            return (
-              <tr
-                key={n}
-                onClick={() => onSelectPage?.(n)}
-                className={`cursor-pointer border-b border-slate-200 last:border-0 ${trCells} transition-colors hover:bg-emerald-50 dark:border-slate-800/60 dark:hover:bg-emerald-500/10 ${bg}`}
-              >
-                <td className={pageCellCls}>{n}</td>
-                {cells.map((c) => (
-                  <td key={c.model.id} className={catCellCls}>
-                    {renderCell(c)}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+          {/* One row per model */}
+          {NOTICE_MODELS.map((m, mi) => (
+            <tr key={m.id} className="border-b border-slate-200 last:border-0 dark:border-slate-800/60">
+              <th className={`${labelCellCls} font-semibold text-slate-900 dark:text-slate-100`}>
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: m.color }}
+                    aria-hidden
+                  />
+                  {m.label}
+                </span>
+              </th>
+              {cols.map((col) => (
+                <td
+                  key={col.n}
+                  onClick={() => onSelectPage?.(col.n)}
+                  className={`${dataCellCls} text-slate-700 dark:text-slate-300 ${col.bg}`}
+                >
+                  {renderCell(col.cells[mi])}
+                </td>
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
