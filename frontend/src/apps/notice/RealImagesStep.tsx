@@ -30,7 +30,6 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
 
   const selIdx = parts.findIndex((p) => p.ref === selectedRef);
   const selected = selIdx >= 0 ? parts[selIdx] : null;
-  const selectedCrop = crops[selIdx] ?? null;
 
   // Latest brand / selection, read inside the long-running batch without making
   // it a dependency (which would restart it).
@@ -246,27 +245,6 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
           {t('notice.step3.batch')} {batch.done}/{batch.total}
         </p>
       )}
-
-      {/* The selected part's drawing, centered */}
-      <div className="flex flex-col items-center gap-1">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          {t('notice.parts.piece')}
-        </div>
-        {selectedCrop ? (
-          <button
-            type="button"
-            onClick={() => setZoom(selectedCrop)}
-            title={t('notice.pdf.zoom')}
-            className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700"
-          >
-            <img src={selectedCrop} alt="" className="max-h-full max-w-full cursor-zoom-in object-contain" />
-          </button>
-        ) : (
-          <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700">
-            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-          </div>
-        )}
-      </div>
 
       {/* Candidates appear only once the kept/discarded verdicts are decided, so
           nothing reflows: a kept zone over a discarded zone. Drag a tile into the
