@@ -55,7 +55,7 @@ export function PageCategoriesTable({
             <tr
               key={n}
               className={`border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60 ${
-                disagree ? 'bg-rose-50 dark:bg-rose-500/10' : ''
+                disagree ? 'bg-red-100 dark:bg-red-500/20' : ''
               }`}
             >
               <td className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">{n}</td>
