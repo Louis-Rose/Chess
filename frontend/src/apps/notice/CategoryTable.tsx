@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, Sparkles, Square } from 'lucide-react';
-import { ModelStatsTable } from './ModelStatsTable';
 import { PageCategoriesTable } from './PageCategoriesTable';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { requestPage, selectRun, startRange, stopRun, toggleModel, useRun } from './categoryRun';
@@ -30,16 +28,6 @@ export function CategoryTable({
     useRun(docId);
   const disabled = new Set(disabledModels);
   const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
-  const [costs, setCosts] = useState<Record<string, number>>({});
-  const [times, setTimes] = useState<Record<string, number>>({});
-  const [calls, setCalls] = useState<Record<string, number>>({});
-  const [tokens, setTokens] = useState<
-    Record<string, { input: number; output: number; thinking: number }>
-  >({});
-  const [pricing, setPricing] = useState<Record<string, { input: number; output: number }>>({});
-  // Width of the stats table's first column, mirrored onto the category table's
-  // first column so they line up.
-  const [labelWidth, setLabelWidth] = useState<number | null>(null);
 
   // Page-range selection. Held as strings so the field can be cleared while
   // typing (a number input would snap an empty value back to 0). `from` starts at
@@ -52,31 +40,6 @@ export function CategoryTable({
   useEffect(() => {
     if (!touchedTo.current && numPages > 0) setTo(String(numPages));
   }, [numPages]);
-
-  const loadCosts = useCallback(async () => {
-    try {
-      const { data } = await axios.get<{
-        costs: Record<string, number>;
-        times: Record<string, number>;
-        calls: Record<string, number>;
-        tokens: Record<string, { input: number; output: number; thinking: number }>;
-        pricing: Record<string, { input: number; output: number }>;
-      }>('/api/notice/costs');
-      setCosts(data.costs || {});
-      setTimes(data.times || {});
-      setCalls(data.calls || {});
-      setTokens(data.tokens || {});
-      setPricing(data.pricing || {});
-    } catch {
-      // non-fatal: leave the cost/time figures empty
-    }
-  }, []);
-
-  // Refresh the economics on mount and whenever a run finishes (busy -> null),
-  // including a run that completed while the user was on another tab.
-  useEffect(() => {
-    if (!busy) void loadCosts();
-  }, [busy, loadCosts]);
 
   const numInputClass =
     'w-14 rounded-md border border-slate-300 bg-white px-2 py-1 text-center text-sm text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
@@ -103,19 +66,7 @@ export function CategoryTable({
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* 1. Per-model run economics */}
-      <ModelStatsTable
-        costs={costs}
-        times={times}
-        calls={calls}
-        tokens={tokens}
-        pricing={pricing}
-        disabled={disabled}
-        onToggleModel={onToggleModel}
-        onFirstColWidth={setLabelWidth}
-      />
-
-      {/* 2. Page-range controls */}
+      {/* 1. Page-range controls */}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.cat.from')}</span>
@@ -194,7 +145,7 @@ export function CategoryTable({
         </p>
       )}
 
-      {/* 3. Category of every page */}
+      {/* 2. Category of every page */}
       <PageCategoriesTable
         numPages={numPages}
         categories={categories}
@@ -204,7 +155,6 @@ export function CategoryTable({
         cellErrors={cellErrors}
         disabled={disabled}
         onToggleModel={onToggleModel}
-        labelWidth={labelWidth}
         onSelectPage={(p) => {
           requestPage(docId, p);
           document.getElementById('notice-pdf')?.scrollIntoView({ behavior: 'smooth', block: 'start' });

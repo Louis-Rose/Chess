@@ -20,7 +20,6 @@ export function PageCategoriesTable({
   onSelectPage,
   disabled,
   onToggleModel,
-  labelWidth,
 }: {
   numPages: number;
   categories: Record<string, Record<number, string>>;
@@ -31,7 +30,6 @@ export function PageCategoriesTable({
   onSelectPage?: (page: number) => void;
   disabled: Set<string>;
   onToggleModel: (modelId: string) => void;
-  labelWidth?: number | null;
 }) {
   const { t } = useLanguage();
   const scrollRef = useDragScroll<HTMLDivElement>();
@@ -54,9 +52,6 @@ export function PageCategoriesTable({
     'sticky left-0 z-20 w-56 bg-white px-4 py-2 text-center shadow-[inset_-2px_0_0_0_#cbd5e1] dark:bg-slate-900 dark:shadow-[inset_-2px_0_0_0_#334155]';
   const dataCellCls =
     'min-w-[10rem] cursor-pointer border-r-2 border-slate-300 px-3 py-2 transition-colors hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-emerald-500/10';
-  // Mirror the stats table's first-column width when known (overrides the w-56
-  // fallback in labelCellCls), so the two tables' first columns line up exactly.
-  const labelStyle = labelWidth ? { width: labelWidth, minWidth: labelWidth } : undefined;
 
   // The hover tooltip for a cell. A reasoning model shows two captioned sections
   // (reasoning + raw output); a non-reasoning model shows just its raw output.
@@ -154,7 +149,6 @@ export function PageCategoriesTable({
           {/* Page numbers */}
           <tr className="border-b-2 border-slate-300 dark:border-slate-700">
             <th
-              style={labelStyle}
               className={`${labelCellCls} text-xs font-medium uppercase tracking-wide text-slate-900 dark:text-white`}
             >
               {t('notice.pdf.page')}
@@ -174,7 +168,7 @@ export function PageCategoriesTable({
             const off = disabled.has(m.id);
             return (
               <tr key={m.id} className="border-b-2 border-slate-300 last:border-0 dark:border-slate-700">
-                <th style={labelStyle} className={`${labelCellCls} font-semibold text-slate-900 dark:text-slate-100`}>
+                <th className={`${labelCellCls} font-semibold text-slate-900 dark:text-slate-100`}>
                   <span className="inline-flex items-center gap-1.5">
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"

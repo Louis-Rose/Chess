@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { FileText, Library, Lightbulb, Lock } from 'lucide-react';
+import { FileText, Library, Lightbulb, Lock, Wallet } from 'lucide-react';
 import { TabbedSidebarLayout, type TabNavItem } from '../../components/TabbedSidebarLayout';
 import { LangToggle } from '../../components/LangToggle';
 import { LoginButton } from '../../components/LoginButton';
@@ -23,6 +23,7 @@ export function NoticeLayout() {
     { to: '/notice/notes', label: t('notice.nav.notes'), icon: Lightbulb },
     { to: '/notice/view', label: t('notice.nav.viewer'), icon: FileText },
     { to: '/notice/library', label: t('notice.nav.library'), icon: Library },
+    { to: '/notice/pricing', label: t('notice.nav.pricing'), icon: Wallet },
   ];
 
   return (
