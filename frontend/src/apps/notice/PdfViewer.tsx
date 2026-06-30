@@ -237,7 +237,9 @@ export function PdfViewer({
       const cur = segment(m.id, page).bottom;
       if (cur) out.push({ key: `${m.id}-end`, y: 1, color: m.color, side, above: `${cur} (${fin})` });
     }
-    return out;
+    // Nudge each model's lines by a couple of pixels so two boundaries at the
+    // same height don't overlap and hide one another.
+    return out.map((o) => ({ ...o, offset: i * 3 }));
   });
 
   return (
@@ -269,7 +271,11 @@ export function PdfViewer({
                   <div
                     key={ln.key}
                     className="pointer-events-none absolute inset-x-0"
-                    style={{ top: `${Math.min(Math.max(ln.y, 0.04), 0.96) * 100}%`, borderTop: `2px dashed ${ln.color}` }}
+                    style={{
+                      top: `${Math.min(Math.max(ln.y, 0.04), 0.96) * 100}%`,
+                      borderTop: `2px dashed ${ln.color}`,
+                      transform: `translateY(${ln.offset}px)`,
+                    }}
                   >
                     {ln.above && (
                       <span className={`${labelCls} bottom-0.5`} style={{ backgroundColor: ln.color }}>
