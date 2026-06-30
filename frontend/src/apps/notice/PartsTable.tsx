@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import type { PartItem } from './partsRun';
 // Side-effect import: configures the shared PDF.js worker.
@@ -28,6 +29,16 @@ function cropCanvas(src: HTMLCanvasElement, bbox: [number, number, number, numbe
 export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
   const { t } = useLanguage();
   const [crops, setCrops] = useState<Record<number, string>>({});
+  // The piece image currently zoomed (its data URL), or null.
+  const [zoom, setZoom] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setZoom(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +53,9 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
         if (hit) return hit;
         const pdfPage = await doc.getPage(n);
         const base = pdfPage.getViewport({ scale: 1 });
-        const viewport = pdfPage.getViewport({ scale: 1600 / base.width });
+        // Render the page large so a small part still has enough pixels to stay
+        // crisp when its crop is zoomed (the PDF is vector, so this is sharp).
+        const viewport = pdfPage.getViewport({ scale: 2400 / base.width });
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('no 2d context');
@@ -122,7 +135,9 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
                   <img
                     src={crops[i]}
                     alt={p.ref ?? t('notice.parts.piece')}
-                    className="mx-auto max-h-24 w-auto rounded bg-white"
+                    onClick={() => setZoom(crops[i])}
+                    title={t('notice.pdf.zoom')}
+                    className="mx-auto max-h-24 w-auto cursor-zoom-in rounded bg-white"
                   />
                 ) : (
                   <span className="text-slate-400">…</span>
@@ -132,6 +147,29 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
           </tr>
         </tbody>
       </table>
+
+      {/* Lightbox: click the backdrop (or Escape) to close. */}
+      {zoom && (
+        <div
+          onClick={() => setZoom(null)}
+          className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-4"
+        >
+          <button
+            type="button"
+            onClick={() => setZoom(null)}
+            aria-label={t('notice.pdf.close')}
+            className="absolute right-4 top-4 cursor-pointer rounded-lg border border-slate-600 bg-slate-800/80 p-2 text-slate-200 transition-colors hover:bg-slate-700"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={zoom}
+            alt={t('notice.parts.piece')}
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] max-w-[90vw] cursor-default rounded-lg bg-white shadow-2xl"
+          />
+        </div>
+      )}
     </div>
   );
 }
