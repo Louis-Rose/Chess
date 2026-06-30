@@ -103,7 +103,8 @@ export function PdfViewer({
         const base = pdfPage.getViewport({ scale: 1 });
         // Fit the whole page inside the container (contain), so it never needs
         // scrolling: limited by width or height, whichever is tighter, with a
-        // little breathing room.
+        // little breathing room. The container is wide, so a portrait page is
+        // height-limited and leaves black side bands for the labels.
         const scale = Math.min(size.w / base.width, size.h / base.height) * 0.96;
         const viewport = pdfPage.getViewport({ scale });
         const ctx = canvas.getContext('2d');
