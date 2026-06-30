@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Brain, Info } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -12,21 +13,35 @@ export function ModelStatsTable({
   calls,
   tokens,
   pricing,
+  onFirstColWidth,
 }: {
   costs: Record<string, number>;
   times: Record<string, number>;
   calls: Record<string, number>;
   tokens: Record<string, { input: number; output: number; thinking: number }>;
   pricing: Record<string, { input: number; output: number }>;
+  // Report the rendered width of the first column so the category table can
+  // align its own first column to it.
+  onFirstColWidth?: (width: number) => void;
 }) {
   const { t } = useLanguage();
+  const firstColRef = useRef<HTMLTableCellElement>(null);
+
+  useEffect(() => {
+    const el = firstColRef.current;
+    if (!el || !onFirstColWidth) return;
+    onFirstColWidth(el.offsetWidth);
+    const ro = new ResizeObserver(() => onFirstColWidth(el.offsetWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [onFirstColWidth]);
 
   return (
     <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
       <table className="w-full text-center text-sm">
         <thead>
           <tr className="border-b-2 border-slate-300 text-xs uppercase tracking-wide text-slate-900 [&>th]:border-r-2 [&>th]:border-slate-300 [&>th:last-child]:border-r-0 dark:border-slate-600 dark:text-white dark:[&>th]:border-slate-700">
-            <th className="w-56 px-4 py-2 font-medium">{t('notice.cat.model')}</th>
+            <th ref={firstColRef} className="w-56 px-4 py-2 font-medium">{t('notice.cat.model')}</th>
             <th className="px-4 py-2 font-medium">{t('notice.cat.cost')}</th>
             <th className="px-4 py-2 font-medium">{t('notice.cat.time')}</th>
             <th className="px-4 py-2 font-medium">{t('notice.cat.calls')}</th>

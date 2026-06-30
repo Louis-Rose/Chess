@@ -33,6 +33,9 @@ export function CategoryTable({
     Record<string, { input: number; output: number; thinking: number }>
   >({});
   const [pricing, setPricing] = useState<Record<string, { input: number; output: number }>>({});
+  // Width of the stats table's first column, mirrored onto the category table's
+  // first column so they line up.
+  const [labelWidth, setLabelWidth] = useState<number | null>(null);
 
   // Page-range selection. Held as strings so the field can be cleared while
   // typing (a number input would snap an empty value back to 0). `from` starts at
@@ -99,7 +102,14 @@ export function CategoryTable({
   return (
     <div className="mt-6 flex flex-col gap-6">
       {/* 1. Per-model run economics */}
-      <ModelStatsTable costs={costs} times={times} calls={calls} tokens={tokens} pricing={pricing} />
+      <ModelStatsTable
+        costs={costs}
+        times={times}
+        calls={calls}
+        tokens={tokens}
+        pricing={pricing}
+        onFirstColWidth={setLabelWidth}
+      />
 
       {/* 2. Page-range controls */}
       <div className="flex flex-wrap items-center justify-center gap-3">
@@ -161,6 +171,7 @@ export function CategoryTable({
         raws={raws}
         splits={splits}
         cellErrors={cellErrors}
+        labelWidth={labelWidth}
         onSelectPage={(p) => {
           requestPage(docId, p);
           document.getElementById('notice-pdf')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
