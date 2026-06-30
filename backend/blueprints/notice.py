@@ -63,13 +63,16 @@ _CATEGORY_LABELS = (
 _CATEGORY_GUIDANCE = (
     "Printed text (section titles, step numbers, French labels) is part of the "
     "original manual and authoritative; rely on it. The manual is NOT wordless and "
-    "nothing was added afterwards. A page is usually one section, but a NEW section "
-    "begins where its title appears, even if that title sits at the very bottom "
-    "with no content beneath it (its content starts on the next page).\n"
-    "Each individually numbered assembly diagram is its OWN step. A printed header "
-    'may group several steps under one range (e.g. "ÉTAPE 4-5"): IGNORE the range '
-    "and emit one step per number (Etape 4, then Etape 5), each as its own segment. "
-    "When several steps appear on one page, cut the page into one segment per step.\n"
+    "nothing was added afterwards. EVERY printed section/step title starts a new "
+    "section: whenever a title appears you MUST open a segment just above it, even "
+    "a small step title sitting at the very BOTTOM of the page with nothing beneath "
+    "it (its content is on the next page). Example: a page showing step 16 with "
+    '"ÉTAPE 17" printed near the bottom has TWO segments, Etape 16 (start 0) then '
+    "Etape 17. Each individually numbered assembly diagram is its OWN step. A "
+    'printed header may group several steps under one range (e.g. "ÉTAPE 4-5"): '
+    "IGNORE the range and emit one step per number (Etape 4, then Etape 5), each as "
+    "its own segment. When several steps appear on one page, cut the page into one "
+    "segment per step.\n"
 )
 _BOUNDARY_PLACEMENT = (
     "A section/step title belongs to the section it introduces, so set a segment's "
