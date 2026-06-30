@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Sparkles, Square } from 'lucide-react';
+import { Info, Loader2, Sparkles, Square } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { startRange, stopRun, useRun } from './categoryRun';
@@ -31,6 +31,7 @@ export function CategoryTable({
   const [times, setTimes] = useState<Record<string, number>>({});
   const [calls, setCalls] = useState<Record<string, number>>({});
   const [tokens, setTokens] = useState<Record<string, { input: number; output: number }>>({});
+  const [pricing, setPricing] = useState<Record<string, { input: number; output: number }>>({});
 
   // Page-range selection. `from` follows the page on screen and `to` defaults to
   // the last page until the user edits either field (then it stays put).
@@ -52,11 +53,13 @@ export function CategoryTable({
         times: Record<string, number>;
         calls: Record<string, number>;
         tokens: Record<string, { input: number; output: number }>;
+        pricing: Record<string, { input: number; output: number }>;
       }>('/api/notice/costs');
       setCosts(data.costs || {});
       setTimes(data.times || {});
       setCalls(data.calls || {});
       setTokens(data.tokens || {});
+      setPricing(data.pricing || {});
     } catch {
       // non-fatal: leave the cost/time columns empty
     }
@@ -166,13 +169,29 @@ export function CategoryTable({
             {NOTICE_MODELS.map((m) => {
               const cell = categories[m.id]?.[page];
               const cellError = cellErrors[m.id]?.[page];
+              const price = pricing[m.id];
               return (
                 <tr
                   key={m.id}
                   className="border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60"
                 >
                   <td className="px-4 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
-                    {m.label}
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      {m.label}
+                      {price && (
+                        <span className="group relative inline-flex">
+                          <Info className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-emerald-600 dark:text-slate-500 dark:group-hover:text-emerald-400" />
+                          <span
+                            role="tooltip"
+                            className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-normal leading-relaxed text-slate-700 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                          >
+                            {t('notice.cat.priceIn')}: ${price.input.toFixed(2)} / 1M
+                            <br />
+                            {t('notice.cat.priceOut')}: ${price.output.toFixed(2)} / 1M
+                          </span>
+                        </span>
+                      )}
+                    </span>
                   </td>
                   <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
                     {cellError ? (

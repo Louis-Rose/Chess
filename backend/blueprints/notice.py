@@ -249,4 +249,11 @@ def costs():
         r = dict(row)
         calls[r['model_id']] = int(r['n'] or 0)
 
-    return jsonify({'costs': out, 'times': times, 'calls': calls, 'tokens': tokens})
+    # Per-model list price ($ per million tokens), for the selectable models.
+    pricing = {
+        m: GEMINI_PRICING.get(m, {'input': 0, 'output': 0}) for m in ALLOWED_MODELS
+    }
+
+    return jsonify(
+        {'costs': out, 'times': times, 'calls': calls, 'tokens': tokens, 'pricing': pricing}
+    )
