@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { Loader2, Search, ZoomIn } from 'lucide-react';
 import { usePartsRun, type PartItem } from './partsRun';
@@ -24,18 +24,87 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const [selectedRef, setSelectedRef] = useState('');
   const [crop, setCrop] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-  const [filtering, setFiltering] = useState(false);
+  // Whether the selected part has a result (even an empty one), to tell "not
+  // searched yet" from "searched, no photos".
+  const [searched, setSearched] = useState(false);
   const [candidates, setCandidates] = useState<ImageHit[]>([]);
   const [kept, setKept] = useState<boolean[]>([]);
+  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState<string | null>(null);
 
   const selected = parts.find((p) => p.ref === selectedRef) ?? null;
 
+  // Latest brand / selection, read inside the long-running batch without making
+  // it a dependency (which would restart it).
+  const brandRef = useRef(brand);
+  brandRef.current = brand;
+  const selectedRefRef = useRef(selectedRef);
+  selectedRefRef.current = selectedRef;
+
   // Default the selected part to the first one once parts are available.
   useEffect(() => {
     if (!selectedRef && parts.length) setSelectedRef(parts[0].ref as string);
   }, [parts, selectedRef]);
+
+  // Search + triage one part and persist it. No UI state, so it's shared by the
+  // manual search and the auto-run batch. `refImage` (the part drawing) is sent
+  // only when readily available (the selected part) to keep the batch light.
+  const processPart = async (ref: string, refImage: string | null): Promise<void> => {
+    const imgs = await searchPartImages(ref, brandRef.current);
+    let keptArr = imgs.map(() => true);
+    if (imgs.length) {
+      try {
+        const keep = await filterPartImages(imgs.map((c) => c.thumbnail), ref, brandRef.current, refImage);
+        keptArr = keep.length === imgs.length ? keep : imgs.map(() => false);
+      } catch {
+        // discard-on-failure: keep only what the model confirmed
+        keptArr = imgs.map(() => false);
+      }
+    }
+    saveResult(docId, ref, { candidates: imgs, kept: keptArr });
+    // Reflect into the view if this is the part on screen.
+    if (ref === selectedRefRef.current) {
+      setCandidates(imgs);
+      setKept(keptArr);
+      setSearched(true);
+    }
+  };
+
+  // Track mount so the long-running batch can stop on unmount without a
+  // cleanup-based cancel (which StrictMode / re-renders would trip).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // On entering Étape 3, auto-run the search + triage for every part that has no
+  // saved result yet (the filter LLM is cheap). Latched once per document; cached
+  // parts are skipped. Sequential, to stay under the search/LLM rate limits.
+  const batchDocRef = useRef('');
+  useEffect(() => {
+    if (!parts.length || batchDocRef.current === docId) return;
+    batchDocRef.current = docId;
+    const todo = parts.filter((p) => p.ref && !loadResult(docId, p.ref as string));
+    if (!todo.length) return;
+    void (async () => {
+      setBatch({ done: 0, total: todo.length });
+      for (let i = 0; i < todo.length; i++) {
+        if (!mountedRef.current || batchDocRef.current !== docId) return;
+        try {
+          await processPart(todo[i].ref as string, null);
+        } catch {
+          // skip this part; the user can search it manually
+        }
+        if (mountedRef.current) setBatch({ done: i + 1, total: todo.length });
+      }
+      if (mountedRef.current) setBatch(null);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parts.length, docId]);
 
   // On selection change, render the part's drawing and restore any saved search
   // results for that part (so switching parts and coming back keeps them).
@@ -46,6 +115,7 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     const saved = selected ? loadResult(docId, selected.ref as string) : undefined;
     setCandidates(saved?.candidates ?? []);
     setKept(saved?.kept ?? []);
+    setSearched(saved !== undefined);
     if (!selected) return;
     renderPartCrop(file, selected).then((c) => {
       if (!cancelled) setCrop(c);
@@ -56,35 +126,16 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRef, file]);
 
+  // Manual (re-)search of the selected part, sending its rendered drawing as the
+  // filter reference. Shows the spinner until the kept/discarded verdicts are in.
   const search = async () => {
     if (!selected?.ref) return;
-    const ref = selected.ref as string;
     setSearching(true);
     setError(null);
     setCandidates([]);
     setKept([]);
     try {
-      const imgs = await searchPartImages(ref, brand);
-      setCandidates(imgs);
-      let keptArr = imgs.map(() => true); // provisional until the filter returns
-      setKept(keptArr);
-      if (!imgs.length) {
-        setError(t('notice.step3.noResults'));
-        return;
-      }
-      // Ask Gemini which candidates are real photos of the actual part.
-      setFiltering(true);
-      try {
-        const keep = await filterPartImages(imgs.map((c) => c.thumbnail), ref, brand, crop);
-        if (keep.length === imgs.length) keptArr = keep;
-      } catch {
-        // on failure, default everything to discarded (the user can toggle back)
-        keptArr = imgs.map(() => false);
-      } finally {
-        setKept(keptArr);
-        setFiltering(false);
-      }
-      saveResult(docId, ref, { candidates: imgs, kept: keptArr });
+      await processPart(selected.ref as string, crop);
     } catch (e) {
       setError(
         (axios.isAxiosError(e) && (e.response?.data as { error?: string })?.error) ||
@@ -149,9 +200,10 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     );
   }
 
-  // Candidates are revealed only once the kept/discarded verdicts are in, then
-  // split into a kept row (top) and a discarded row (bottom).
-  const loading = searching || filtering;
+  // The selected part is "busy" while it's being searched manually, or while the
+  // auto-run batch hasn't reached it yet. Candidates are revealed only once the
+  // kept/discarded verdicts are in, split into a kept row over a discarded row.
+  const busy = searching || (!searched && !!batch);
   const keptList = candidates.map((c, i) => ({ c, i })).filter(({ i }) => kept[i]);
   const discardedList = candidates.map((c, i) => ({ c, i })).filter(({ i }) => !kept[i]);
 
@@ -175,6 +227,14 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
           {t('notice.step3.search')}
         </button>
       </div>
+
+      {/* Auto-run progress across all parts. */}
+      {batch && (
+        <p className="flex items-center justify-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          {t('notice.step3.batch')} {batch.done}/{batch.total}
+        </p>
+      )}
 
       {error && <p className="text-center text-sm text-rose-600 dark:text-rose-400">{error}</p>}
 
@@ -201,31 +261,35 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
 
       {/* Candidates appear only once the kept/discarded verdicts are decided, so
           nothing reflows: a kept row on top, a discarded row below. */}
-      {loading ? (
+      {busy ? (
         <p className="flex items-center justify-center gap-2 text-sm text-slate-400 dark:text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin" />
-          {filtering ? t('notice.step3.filtering') : t('notice.step3.search')}
+          {t('notice.step3.filtering')}
         </p>
+      ) : candidates.length > 0 ? (
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-center text-xs text-slate-400 dark:text-slate-500">
+            {t('notice.step3.filterHint')}
+          </p>
+          {keptList.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3">
+              {keptList.map(({ c, i }) => tile(c, i))}
+            </div>
+          )}
+          {keptList.length > 0 && discardedList.length > 0 && (
+            <hr className="w-full max-w-sm border-slate-200 dark:border-slate-700" />
+          )}
+          {discardedList.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3">
+              {discardedList.map(({ c, i }) => tile(c, i))}
+            </div>
+          )}
+        </div>
       ) : (
-        candidates.length > 0 && (
-          <div className="flex flex-col items-center gap-4">
-            <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-              {t('notice.step3.filterHint')}
-            </p>
-            {keptList.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3">
-                {keptList.map(({ c, i }) => tile(c, i))}
-              </div>
-            )}
-            {keptList.length > 0 && discardedList.length > 0 && (
-              <hr className="w-full max-w-sm border-slate-200 dark:border-slate-700" />
-            )}
-            {discardedList.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3">
-                {discardedList.map(({ c, i }) => tile(c, i))}
-              </div>
-            )}
-          </div>
+        searched && (
+          <p className="text-center text-sm text-slate-400 dark:text-slate-500">
+            {t('notice.step3.noResults')}
+          </p>
         )
       )}
 
