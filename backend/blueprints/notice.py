@@ -45,17 +45,25 @@ _FIXED_CATEGORIES = ['Sommaire', 'Outils nécessaires', 'Matériel fourni', 'Sé
 _STEP_RE = re.compile(r'^Assemblage - Etape ([1-9]\d?|100)$')
 
 _CATEGORIZE_PROMPT = (
-    "You are classifying ONE page of a furniture assembly manual. Look at the "
-    "attached page image and choose the single category it best matches, from "
-    "exactly this list:\n"
+    "You are classifying ONE page of a furniture assembly manual. Categories, use "
+    "EXACTLY these labels:\n"
     "- Sommaire\n"
     "- Outils nécessaires\n"
     "- Matériel fourni\n"
     "- Assemblage - Etape N  (replace N with the assembly step number printed on the page)\n"
     "- Sécurité\n"
     "- Liens\n"
-    "Reply with ONLY the category label, nothing else. For an assembly step, "
-    'write it exactly like "Assemblage - Etape 3".'
+    "A page usually belongs to a single category. Occasionally a NEW section "
+    "visibly begins partway down the page (a new section title/marker appears "
+    "below earlier content). \n"
+    "Reply with ONLY a JSON object, no prose, no code fence:\n"
+    '{"category": "<category of the page, or of its TOP part if a new section '
+    'begins partway down>", "boundary": <number strictly between 0 and 1 = the '
+    'vertical position, measured from the top of the page, where the new section '
+    'begins; or null>, "category_below": "<category of the part BELOW the '
+    'boundary, or null>"}\n'
+    'For an assembly step write it exactly like "Assemblage - Etape 3". If the '
+    "whole page is a single section, set boundary and category_below to null."
 )
 
 
@@ -159,11 +167,18 @@ def categorize():
         logger.exception('[notice] categorize failed')
         return jsonify({'error': 'Classification failed.'}), 502
 
-    category = _normalize_category(answer)
+    category, boundary, category_below = _parse_categorize(answer)
     if not category:
         return jsonify({'error': 'No category returned.'}), 502
     # `reasoning` is the model's thought summary (empty for non-thinking models).
-    return jsonify({'category': category, 'reasoning': thoughts or ''})
+    # `boundary` (0..1 from the top) + `categoryBelow` describe a mid-page section
+    # change, or are null when the whole page is one section.
+    return jsonify({
+        'category': category,
+        'reasoning': thoughts or '',
+        'boundary': boundary,
+        'categoryBelow': category_below,
+    })
 
 
 def _normalize_category(text):
@@ -172,6 +187,32 @@ def _normalize_category(text):
     if t in _FIXED_CATEGORIES or _STEP_RE.match(t):
         return t
     return t or None
+
+
+def _parse_categorize(answer):
+    """Parse the model's JSON reply into (category, boundary, category_below).
+    Falls back to treating the whole reply as a single label if it isn't valid
+    JSON. A boundary is only kept when it sits strictly inside the page and the
+    lower category is a different known label."""
+    import json
+
+    txt = (answer or '').strip()
+    try:
+        obj = json.loads(txt[txt.index('{'):txt.rindex('}') + 1])
+    except (ValueError, json.JSONDecodeError):
+        return _normalize_category(txt), None, None
+
+    category = _normalize_category(str(obj.get('category') or ''))
+    below_raw = obj.get('category_below')
+    below = _normalize_category(str(below_raw)) if below_raw else None
+    try:
+        boundary = float(obj.get('boundary')) if obj.get('boundary') is not None else None
+    except (TypeError, ValueError):
+        boundary = None
+
+    if boundary is None or not (0 < boundary < 1) or not below or below == category:
+        return category, None, None
+    return category, boundary, below
 
 
 @notice_bp.route('/api/notice/notes', methods=['GET'])

@@ -22,6 +22,11 @@ const PAGE_CONCURRENCY = 5;
 // model id -> page number -> category label (or per-cell error message)
 type ByModelPage = Record<string, Record<number, string>>;
 
+// A mid-page section change: `y` is the boundary (0..1 from the top), `above` and
+// `below` the categories on each side. model id -> page number -> split.
+export type Split = { y: number; above: string; below: string };
+type SplitMap = Record<string, Record<number, Split>>;
+
 export type RunSnapshot = {
   busy: null | 'range';
   progress: { done: number; total: number } | null;
@@ -29,11 +34,15 @@ export type RunSnapshot = {
   // once rather than reading as one-by-one.
   active: number;
   // Categories are remembered per PDF in this browser so they survive reloads;
-  // each (page, model) keeps only its most recent result.
+  // each (page, model) keeps only its most recent result. A page split into two
+  // sections is stored as "Above / Below".
   categories: ByModelPage;
   // Thought summary behind each (page, model) classification (empty for models
   // that don't reason). Persisted alongside the categories.
   reasoning: ByModelPage;
+  // Structured mid-page boundaries, used to draw the separator on the PDF. Only
+  // present for pages the model split. Persisted alongside the categories.
+  splits: SplitMap;
   // Per-cell failures, shown in the table instead of silently blanking the cell.
   // Transient, not persisted.
   cellErrors: ByModelPage;
@@ -52,17 +61,18 @@ const entries = new Map<string, Entry>();
 // reloads, each under its own key.
 const mapKey = (docId: string) => `notice.categories.${docId}`;
 const reasoningKey = (docId: string) => `notice.reasoning.${docId}`;
+const splitsKey = (docId: string) => `notice.splits.${docId}`;
 
-function loadMap(key: string): ByModelPage {
+function loadStore<T>(key: string): T {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as ByModelPage) : {};
+    return raw ? (JSON.parse(raw) as T) : ({} as T);
   } catch {
-    return {};
+    return {} as T;
   }
 }
 
-function saveMap(key: string, value: ByModelPage) {
+function saveStore(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
@@ -78,8 +88,9 @@ function getEntry(docId: string): Entry {
         busy: null,
         progress: null,
         active: 0,
-        categories: loadMap(mapKey(docId)),
-        reasoning: loadMap(reasoningKey(docId)),
+        categories: loadStore<ByModelPage>(mapKey(docId)),
+        reasoning: loadStore<ByModelPage>(reasoningKey(docId)),
+        splits: loadStore<SplitMap>(splitsKey(docId)),
         cellErrors: {},
         error: null,
       },
@@ -101,26 +112,39 @@ function update(docId: string, patch: Partial<RunSnapshot>) {
 
 // Record one (model, page) result, keeping only the most recent, persist it, and
 // clear any earlier failure for that cell. The thought summary (may be empty) is
-// stored and persisted alongside.
+// stored alongside. When `boundary`/`categoryBelow` describe a mid-page section
+// change, the cell label becomes "Above / Below" and a structured split is kept
+// for the PDF separator; otherwise any earlier split for the cell is dropped.
 function setResult(
   docId: string,
   modelId: string,
   pageNum: number,
   category: string,
   reasoning: string,
+  boundary: number | null,
+  categoryBelow: string | null,
 ) {
   const snap = getEntry(docId).snapshot;
+  const split = boundary != null && categoryBelow ? { y: boundary, above: category, below: categoryBelow } : null;
+  const label = split ? `${category} / ${categoryBelow}` : category;
+
   const nextCats: ByModelPage = { ...snap.categories };
-  nextCats[modelId] = { ...(nextCats[modelId] || {}), [pageNum]: category };
-  saveMap(mapKey(docId), nextCats);
+  nextCats[modelId] = { ...(nextCats[modelId] || {}), [pageNum]: label };
+  saveStore(mapKey(docId), nextCats);
 
   const nextReasoning: ByModelPage = { ...snap.reasoning };
   nextReasoning[modelId] = { ...(nextReasoning[modelId] || {}), [pageNum]: reasoning };
-  saveMap(reasoningKey(docId), nextReasoning);
+  saveStore(reasoningKey(docId), nextReasoning);
+
+  const nextSplits: SplitMap = { ...snap.splits, [modelId]: { ...(snap.splits[modelId] || {}) } };
+  if (split) nextSplits[modelId][pageNum] = split;
+  else delete nextSplits[modelId][pageNum];
+  saveStore(splitsKey(docId), nextSplits);
 
   update(docId, {
     categories: nextCats,
     reasoning: nextReasoning,
+    splits: nextSplits,
     cellErrors: clearCell(snap.cellErrors, modelId, pageNum),
   });
 }
@@ -152,12 +176,21 @@ async function classify(
   await Promise.all(
     NOTICE_MODELS.map(async (m) => {
       try {
-        const { data } = await axios.post<{ category: string; reasoning?: string }>(
-          '/api/notice/categorize',
-          { image, model: m.id },
-          { signal },
+        const { data } = await axios.post<{
+          category: string;
+          reasoning?: string;
+          boundary?: number | null;
+          categoryBelow?: string | null;
+        }>('/api/notice/categorize', { image, model: m.id }, { signal });
+        setResult(
+          docId,
+          m.id,
+          pageNum,
+          data.category,
+          data.reasoning || '',
+          data.boundary ?? null,
+          data.categoryBelow ?? null,
         );
-        setResult(docId, m.id, pageNum, data.category, data.reasoning || '');
       } catch (e) {
         if (axios.isCancel(e)) return;
         const msg =

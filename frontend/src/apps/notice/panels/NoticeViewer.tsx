@@ -154,6 +154,7 @@ export function NoticeViewer() {
             <PdfViewer
               key={current.id}
               file={current.data}
+              docId={current.id}
               onNumPages={setNumPages}
             />
           </div>

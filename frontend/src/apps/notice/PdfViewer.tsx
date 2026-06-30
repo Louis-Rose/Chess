@@ -3,6 +3,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { NOTICE_MODELS } from './models';
+import { useRun } from './categoryRun';
 // Side-effect import: configures the shared PDF.js worker (used here and by the
 // off-screen categorize run).
 import './pdfRender';
@@ -12,9 +14,11 @@ import './pdfRender';
 // holds the page navigation.
 export function PdfViewer({
   file,
+  docId,
   onNumPages,
 }: {
   file: Blob;
+  docId: string;
   onNumPages?: (n: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,6 +29,8 @@ export function PdfViewer({
   const zoomCanvasRef = useRef<HTMLCanvasElement>(null);
   const zoomTaskRef = useRef<RenderTask | null>(null);
   const { t } = useLanguage();
+  // Section boundaries detected by the categorize run, to overlay on the page.
+  const { splits } = useRun(docId);
 
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
@@ -197,12 +203,34 @@ export function PdfViewer({
         )}
         {error && <p className="py-12 text-center text-sm text-red-600 dark:text-red-400">{error}</p>}
         {!error && (
-          <canvas
-            ref={canvasRef}
-            onClick={() => !loading && numPages > 0 && setZoomed(true)}
-            title={t('notice.pdf.zoom')}
-            className={`mx-auto max-w-full cursor-zoom-in rounded-lg shadow-lg ${loading ? 'hidden' : ''}`}
-          />
+          <div className={`relative mx-auto w-fit ${loading ? 'hidden' : ''}`}>
+            <canvas
+              ref={canvasRef}
+              onClick={() => !loading && numPages > 0 && setZoomed(true)}
+              title={t('notice.pdf.zoom')}
+              className="block max-w-full cursor-zoom-in rounded-lg shadow-lg"
+            />
+            {/* Section-boundary lines for this page, one per model (color-coded). */}
+            {!loading &&
+              NOTICE_MODELS.map((m) => {
+                const s = splits[m.id]?.[page];
+                if (!s) return null;
+                return (
+                  <div
+                    key={m.id}
+                    className="pointer-events-none absolute inset-x-0"
+                    style={{ top: `${s.y * 100}%`, borderTop: `2px dashed ${m.color}` }}
+                  >
+                    <span
+                      className="absolute right-1 top-0.5 rounded px-1 text-[10px] font-semibold text-white"
+                      style={{ backgroundColor: m.color }}
+                    >
+                      {s.below}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
         )}
       </div>
 
