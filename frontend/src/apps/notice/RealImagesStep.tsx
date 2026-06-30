@@ -212,17 +212,31 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
           className="max-h-full max-w-full cursor-zoom-in object-contain"
         />
       </button>
-      {c.source && (
-        <a
-          href={c.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={c.source}
-          className="max-w-full truncate text-xs text-slate-400 hover:text-emerald-500 hover:underline dark:text-slate-500"
-        >
-          {c.source}
-        </a>
-      )}
+      <div className="flex w-full flex-col items-center">
+        {/* The listing page where the image was found (first), then the raw image. */}
+        {c.context && (
+          <a
+            href={c.context}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={c.title || c.context}
+            className="max-w-full truncate text-xs text-slate-500 hover:text-emerald-500 hover:underline dark:text-slate-400"
+          >
+            {t('notice.step3.listing')}
+          </a>
+        )}
+        {c.source && (
+          <a
+            href={c.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={c.source}
+            className="max-w-full truncate text-xs text-slate-400 hover:text-emerald-500 hover:underline dark:text-slate-500"
+          >
+            {c.source}
+          </a>
+        )}
+      </div>
     </div>
   );
 
