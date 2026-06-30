@@ -506,31 +506,33 @@ def brand():
 @login_required
 def part_images():
     """Search the web for real photos of a part by its reference, qualified by the
-    brand (Google Programmable Search, image mode). Returns a few candidates for
-    the user to pick from; quality varies, so we never auto-select."""
+    brand (Serper.dev Google Images proxy). Returns a few candidates for the user
+    to pick from; quality varies, so we never auto-select.
+
+    Note: Google's own Custom Search JSON API is closed to new GCP projects (403
+    "does not have the access"), so we proxy Google Images through Serper instead."""
     ref = (request.args.get('ref') or '').strip()
     brand_q = (request.args.get('brand') or '').strip()
     if not ref:
         return jsonify({'error': 'No reference provided.'}), 400
 
-    key = os.getenv('GOOGLE_CSE_KEY')
-    cx = os.getenv('GOOGLE_CSE_CX')
-    if not key or not cx:
+    api_key = os.getenv('SERPER_API_KEY')
+    if not api_key:
         return jsonify({'error': 'Image search is not configured on the server.'}), 503
 
     query = f'{brand_q} {ref}'.strip()
-    params = urllib.parse.urlencode({
-        'key': key, 'cx': cx, 'q': query,
-        'searchType': 'image', 'num': 6, 'safe': 'active',
-    })
-    url = f'https://www.googleapis.com/customsearch/v1?{params}'
+    body = json.dumps({'q': query, 'num': 6}).encode('utf-8')
+    req = urllib.request.Request(
+        'https://google.serper.dev/images', data=body, method='POST',
+        headers={'X-API-KEY': api_key, 'Content-Type': 'application/json'},
+    )
     try:
-        with urllib.request.urlopen(url, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=15) as resp:
             payload = json.loads(resp.read().decode('utf-8'))
     except urllib.error.HTTPError as e:
-        # Surface Google's actual reason (e.g. a 403 "API blocked") to the UI.
+        # Surface the provider's actual reason (e.g. a 403 "API blocked") to the UI.
         try:
-            msg = json.loads(e.read().decode('utf-8')).get('error', {}).get('message', '')
+            msg = json.loads(e.read().decode('utf-8')).get('message', '')
         except Exception:
             msg = ''
         logger.warning('[notice] part-images %s: %s', e.code, msg or '(no detail)')
@@ -540,13 +542,12 @@ def part_images():
         return jsonify({'error': 'Image search failed.'}), 502
 
     images = []
-    for it in payload.get('items') or []:
-        img = it.get('image') or {}
+    for it in payload.get('images') or []:
         images.append({
-            'url': it.get('link'),
-            'thumbnail': img.get('thumbnailLink') or it.get('link'),
+            'url': it.get('imageUrl'),
+            'thumbnail': it.get('thumbnailUrl') or it.get('imageUrl'),
             'title': it.get('title'),
-            'context': img.get('contextLink'),
+            'context': it.get('link'),
         })
     return jsonify({'images': images, 'query': query})
 
