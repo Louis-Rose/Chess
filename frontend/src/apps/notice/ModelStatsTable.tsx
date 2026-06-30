@@ -22,10 +22,10 @@ export function ModelStatsTable({
   const { t } = useLanguage();
 
   return (
-    <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-lg">
+    <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
       <table className="w-full text-center text-sm">
         <thead>
-          <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-900 [&>th]:border-r [&>th]:border-slate-200 [&>th:last-child]:border-r-0 dark:border-slate-800 dark:text-white dark:[&>th]:border-slate-800/60">
+          <tr className="border-b-2 border-slate-300 text-xs uppercase tracking-wide text-slate-900 [&>th]:border-r-2 [&>th]:border-slate-300 [&>th:last-child]:border-r-0 dark:border-slate-600 dark:text-white dark:[&>th]:border-slate-700">
             <th className="px-4 py-2 font-medium">{t('notice.cat.model')}</th>
             <th className="px-4 py-2 font-medium">{t('notice.cat.cost')}</th>
             <th className="px-4 py-2 font-medium">{t('notice.cat.time')}</th>
@@ -43,7 +43,7 @@ export function ModelStatsTable({
             return (
               <tr
                 key={m.id}
-                className="border-b border-slate-200 last:border-0 [&>td]:border-r [&>td]:border-slate-200 [&>td:last-child]:border-r-0 dark:border-slate-800/60 dark:[&>td]:border-slate-800/60"
+                className="border-b-2 border-slate-300 last:border-0 [&>td]:border-r-2 [&>td]:border-slate-300 [&>td:last-child]:border-r-0 dark:border-slate-700 dark:[&>td]:border-slate-700"
               >
                 <td className="px-4 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
                   <span className="inline-flex items-center justify-center gap-1.5">
