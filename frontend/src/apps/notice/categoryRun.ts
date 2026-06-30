@@ -195,8 +195,10 @@ async function classify(
   signal: AbortSignal,
   t: (k: string) => string,
 ) {
+  // Skip models the user muted: no API call (so no cost) for a disabled model.
+  const disabled = new Set(getEntry(docId).snapshot.disabledModels);
   await Promise.all(
-    NOTICE_MODELS.map(async (m) => {
+    NOTICE_MODELS.filter((m) => !disabled.has(m.id)).map(async (m) => {
       try {
         const { data } = await axios.post<{
           category: string;
