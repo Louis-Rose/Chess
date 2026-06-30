@@ -631,7 +631,8 @@ _FILTER_PROMPT = (
 
 def _parse_filter(answer, n):
     """Parse the model's JSON array of {keep: bool} into a list of n booleans.
-    Anything unparseable defaults to keep=True (never hide what we can't judge)."""
+    Anything unparseable defaults to keep=False (only keep what the model
+    explicitly confirmed as a real photo of the part)."""
     text = (answer or '').strip()
     if text.startswith('```'):
         text = text.strip('`')
@@ -650,7 +651,7 @@ def _parse_filter(answer, n):
     keep = []
     for i in range(n):
         item = arr[i] if i < len(arr) else None
-        keep.append(bool(item.get('keep', True)) if isinstance(item, dict) else True)
+        keep.append(bool(item.get('keep', False)) if isinstance(item, dict) else False)
     return keep
 
 
@@ -660,8 +661,8 @@ def filter_images():
     """Classify candidate web images with Gemini Flash-Lite: KEEP real photos of
     the actual part, DISCARD drawings/diagrams/logos/packaging/unrelated/watermarked
     images. Returns a `keep` boolean per candidate in the order received. Images we
-    can't download, and any model/parse failure, default to keep=True so nothing is
-    hidden silently (the user reviews and can toggle each one)."""
+    can't download, and any model/parse failure, default to keep=False (discarded):
+    only confirmed real photos are kept; the user reviews and can toggle each one."""
     data = request.get_json(silent=True) or {}
     ref = (data.get('ref') or '').strip()
     brand = (data.get('brand') or '').strip()
@@ -669,9 +670,9 @@ def filter_images():
     if not isinstance(thumbs, list) or not thumbs:
         return jsonify({'keep': []})
     thumbs = thumbs[:12]  # safety cap on fan-out
-    keep = [True] * len(thumbs)
+    keep = [False] * len(thumbs)
 
-    # Download candidates in parallel; failures stay keep=True.
+    # Download candidates in parallel; failures stay keep=False (discarded).
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(9, len(thumbs))) as ex:
         fetched = list(ex.map(_fetch_image, thumbs))
     imgs, mimes, idx_map = [], [], []

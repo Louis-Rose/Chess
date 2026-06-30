@@ -11,8 +11,15 @@ export interface NoticeModel {
 
 export const NOTICE_MODELS: NoticeModel[] = [
   { id: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash', color: '#10b981' }, // emerald-500
-  // Gemini 3.1 Flash-Lite was retired from the app (single-model flow). Its
-  // pricing + allowlist + free-tier limit are kept in the backend, so it can be
-  // brought back by re-adding this entry:
-  // { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite', color: '#f59e0b' }, // amber-500
+  // Gemini 3.1 Flash-Lite was retired from the user-facing model picker (the run
+  // is single-model). Re-add it here to bring it back to Étapes 1-2.
 ];
+
+// Retired from the picker, but still run server-side for the Étape 3 real-image
+// filter (and kept in the backend allowlist/pricing). Exposed so the Pricing tab
+// can label that filter's usage.
+export const FILTER_MODEL: NoticeModel = {
+  id: 'gemini-3.1-flash-lite',
+  label: 'Gemini 3.1 Flash-Lite',
+  color: '#f59e0b', // amber-500
+};

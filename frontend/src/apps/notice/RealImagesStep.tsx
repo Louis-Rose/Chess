@@ -80,7 +80,8 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
         );
         if (keep.length === imgs.length) setKept(keep);
       } catch {
-        // non-fatal: leave every candidate kept (the user can still toggle)
+        // on failure, default everything to discarded (the user can toggle back)
+        setKept(imgs.map(() => false));
       } finally {
         setFiltering(false);
       }

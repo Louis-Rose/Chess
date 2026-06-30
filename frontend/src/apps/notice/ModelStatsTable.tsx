@@ -1,5 +1,5 @@
 import { Brain, Info } from 'lucide-react';
-import { NOTICE_MODELS } from './models';
+import { NOTICE_MODELS, type NoticeModel } from './models';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 // Per-model run economics for the Notice.ai categorize feature: cost, average
@@ -13,12 +13,15 @@ export function ModelStatsTable({
   calls,
   tokens,
   pricing,
+  models = NOTICE_MODELS,
 }: {
   costs: Record<string, number>;
   times: Record<string, number>;
   calls: Record<string, number>;
   tokens: Record<string, { input: number; output: number; thinking: number }>;
   pricing: Record<string, { input: number; output: number }>;
+  // Which models to show as rows (defaults to the user-facing run models).
+  models?: NoticeModel[];
 }) {
   const { t } = useLanguage();
 
@@ -39,7 +42,7 @@ export function ModelStatsTable({
           </tr>
         </thead>
         <tbody>
-          {NOTICE_MODELS.map((m) => {
+          {models.map((m) => {
             const price = pricing[m.id];
             return (
               <tr
