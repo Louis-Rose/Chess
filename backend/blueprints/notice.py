@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -526,6 +527,14 @@ def part_images():
     try:
         with urllib.request.urlopen(url, timeout=15) as resp:
             payload = json.loads(resp.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        # Surface Google's actual reason (e.g. a 403 "API blocked") to the UI.
+        try:
+            msg = json.loads(e.read().decode('utf-8')).get('error', {}).get('message', '')
+        except Exception:
+            msg = ''
+        logger.warning('[notice] part-images %s: %s', e.code, msg or '(no detail)')
+        return jsonify({'error': f'Image search failed ({e.code}): {msg or "blocked"}'}), 502
     except Exception:
         logger.exception('[notice] part-images search failed')
         return jsonify({'error': 'Image search failed.'}), 502
