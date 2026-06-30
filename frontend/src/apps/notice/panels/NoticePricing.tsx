@@ -13,9 +13,42 @@ type PhaseStats = {
 };
 const EMPTY: PhaseStats = { costs: {}, times: {}, calls: {}, tokens: {} };
 
-// The backend tags each Gemini call with a phase; map each one to its assembly
-// step so the tab shows one table per Étape, in order.
-const ETAPES = [{ phase: 'categorize', n: 1 }, { phase: 'parts', n: 2 }, { phase: 'brand', n: 3 }];
+// Each assembly step maps to the backend phase(s) whose Gemini usage it covers.
+// Étape 1 runs both the page classification and the brand detection (fired in
+// parallel by Lancer). Étape 3's real-image search runs on Serper, which is
+// billed in credits rather than Gemini tokens, so it has no Gemini phase.
+const ETAPES: { n: number; phases: string[]; serper?: boolean }[] = [
+  { n: 1, phases: ['categorize', 'brand'] },
+  { n: 2, phases: ['parts'] },
+  { n: 3, phases: [], serper: true },
+];
+
+// Sum several phase buckets into one. Cost / calls / tokens add up; the average
+// time is recombined as a call-weighted mean (averaging averages would be wrong).
+function mergePhases(buckets: PhaseStats[]): PhaseStats {
+  const out: PhaseStats = { costs: {}, times: {}, calls: {}, tokens: {} };
+  const weightedTime: Record<string, number> = {};
+  for (const b of buckets) {
+    for (const [m, n] of Object.entries(b.calls)) out.calls[m] = (out.calls[m] || 0) + n;
+    for (const [m, c] of Object.entries(b.costs)) out.costs[m] = (out.costs[m] || 0) + c;
+    for (const [m, tk] of Object.entries(b.tokens)) {
+      const cur = out.tokens[m] || { input: 0, output: 0, thinking: 0 };
+      out.tokens[m] = {
+        input: cur.input + tk.input,
+        output: cur.output + tk.output,
+        thinking: cur.thinking + tk.thinking,
+      };
+    }
+    for (const [m, avg] of Object.entries(b.times)) {
+      weightedTime[m] = (weightedTime[m] || 0) + avg * (b.calls[m] || 0);
+    }
+  }
+  for (const [m, total] of Object.entries(weightedTime)) {
+    const c = out.calls[m] || 0;
+    out.times[m] = c > 0 ? total / c : 0;
+  }
+  return out;
+}
 
 // Pricing & Quotas: a read-only view of the per-model run economics (cost, average
 // time, number of calls, token usage), one table per assembly step. The figures
@@ -62,22 +95,28 @@ export function NoticePricing() {
         </div>
       ) : (
         <div className="flex flex-col gap-10">
-          {ETAPES.map(({ phase, n }) => {
-            const stats = phases[phase] || EMPTY;
+          {ETAPES.map(({ n, phases: keys, serper }) => {
+            const stats = mergePhases(keys.map((k) => phases[k] || EMPTY));
             return (
-              <section key={phase}>
+              <section key={n}>
                 <h2 className="mb-3 text-center text-lg font-semibold text-slate-800 dark:text-slate-200">
                   {t('notice.step')} {n}
                   {t('notice.step.sep')}
                   {t(`notice.step${n}.title`)}
                 </h2>
-                <ModelStatsTable
-                  costs={stats.costs}
-                  times={stats.times}
-                  calls={stats.calls}
-                  tokens={stats.tokens}
-                  pricing={pricing}
-                />
+                {serper ? (
+                  <p className="mx-auto max-w-md text-center text-sm text-slate-500 dark:text-slate-400">
+                    {t('notice.pricing.serper')}
+                  </p>
+                ) : (
+                  <ModelStatsTable
+                    costs={stats.costs}
+                    times={stats.times}
+                    calls={stats.calls}
+                    tokens={stats.tokens}
+                    pricing={pricing}
+                  />
+                )}
               </section>
             );
           })}
