@@ -66,6 +66,10 @@ _CATEGORIZE_PROMPT = (
     'vertical position, measured from the top of the page, where the new section '
     'begins; or null>, "category_below": "<category of the part BELOW the '
     'boundary, or null>"}\n'
+    "A section title/heading belongs to the section it introduces, so place the "
+    "boundary IMMEDIATELY ABOVE that title (in the blank gap between the previous "
+    "content and the new section's title), never on the title or below it. The "
+    "new section's title must fall below the boundary line.\n"
     'For an assembly step write it exactly like "Assemblage - Etape 3". If the '
     "whole page is a single section, set boundary and category_below to null."
 )
