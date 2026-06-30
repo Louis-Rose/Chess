@@ -144,6 +144,12 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None, want_
     answer, thoughts = _split_thoughts(response)
     in_tok, out_tok, think_tok = _extract_usage_tokens(response)
     retry_info = retry_info or {}
+    # One line per call so the logs show which key (free/paid) actually served it.
+    logger.info(
+        "[notice] %s | %s KEY | %s | %ds | tokens in=%d out=%d think=%d%s",
+        model, billing_tier.upper(), phase or '-', elapsed, in_tok, out_tok, think_tok,
+        ' | free key fell back' if retry_info.get('free_error') else '',
+    )
     _log_api_usage(
         'notice', model, in_tok, out_tok, elapsed,
         thinking_tokens=think_tok, billing_tier=billing_tier, user_id=user_id,
