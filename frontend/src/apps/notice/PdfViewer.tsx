@@ -30,7 +30,7 @@ export function PdfViewer({
   const zoomTaskRef = useRef<RenderTask | null>(null);
   const { t } = useLanguage();
   // Section boundaries detected by the categorize run, to overlay on the page.
-  const { splits } = useRun(docId);
+  const { categories, splits } = useRun(docId);
 
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
@@ -195,6 +195,39 @@ export function PdfViewer({
     };
   }, [zoomed, page]);
 
+  // The category at the top and bottom of a page for a model (a split page has a
+  // different category on each side; otherwise both are the single category).
+  const segment = (modelId: string, p: number): { top?: string; bottom?: string } => {
+    const s = splits[modelId]?.[p];
+    if (s) return { top: s.above, bottom: s.below };
+    const c = categories[modelId]?.[p];
+    return { top: c, bottom: c };
+  };
+
+  // Dashed section-boundary lines to draw on the current page, per model: every
+  // section start/end gets a line. A page-break boundary (the section changes
+  // from one page to the next) is drawn at the top of this page; a mid-page
+  // boundary at its vertical position. Each line is labelled "<above> (fin)" and
+  // "<below> (début)". Models are placed on opposite sides so labels stay legible.
+  const fin = t('notice.cat.sectionEnd');
+  const debut = t('notice.cat.sectionStart');
+  const boundaryLines = NOTICE_MODELS.flatMap((m, i) => {
+    const side = i === 0 ? 'left' : 'right';
+    const out: { key: string; y: number; color: string; side: string; above: string; below: string }[] = [];
+    if (page > 1) {
+      const prev = segment(m.id, page - 1).bottom;
+      const cur = segment(m.id, page).top;
+      if (prev && cur && prev !== cur) {
+        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, above: `${prev} (${fin})`, below: `${cur} (${debut})` });
+      }
+    }
+    const s = splits[m.id]?.[page];
+    if (s) {
+      out.push({ key: `${m.id}-split`, y: s.y, color: m.color, side, above: `${s.above} (${fin})`, below: `${s.below} (${debut})` });
+    }
+    return out;
+  });
+
   return (
     <div className="flex h-full flex-col">
       {/* Page canvas */}
@@ -213,22 +246,24 @@ export function PdfViewer({
               title={t('notice.pdf.zoom')}
               className="block max-w-full cursor-zoom-in rounded-lg shadow-lg"
             />
-            {/* Section-boundary lines for this page, one per model (color-coded). */}
+            {/* Dashed section-boundary lines for this page, color-coded per model
+                with "(fin)" above and "(début)" below. Lines near the page edges
+                are nudged inwards so both labels stay visible. */}
             {!loading &&
-              NOTICE_MODELS.map((m) => {
-                const s = splits[m.id]?.[page];
-                if (!s) return null;
+              boundaryLines.map((ln) => {
+                const xClass = ln.side === 'left' ? 'left-2' : 'right-2';
+                const labelCls = `absolute ${xClass} whitespace-nowrap rounded px-1 text-[10px] font-semibold text-white`;
                 return (
                   <div
-                    key={m.id}
+                    key={ln.key}
                     className="pointer-events-none absolute inset-x-0"
-                    style={{ top: `${s.y * 100}%`, borderTop: `2px dashed ${m.color}` }}
+                    style={{ top: `${Math.min(Math.max(ln.y, 0.04), 0.96) * 100}%`, borderTop: `2px dashed ${ln.color}` }}
                   >
-                    <span
-                      className="absolute right-1 top-0.5 rounded px-1 text-[10px] font-semibold text-white"
-                      style={{ backgroundColor: m.color }}
-                    >
-                      {s.below}
+                    <span className={`${labelCls} bottom-0.5`} style={{ backgroundColor: ln.color }}>
+                      {ln.above}
+                    </span>
+                    <span className={`${labelCls} top-0.5`} style={{ backgroundColor: ln.color }}>
+                      {ln.below}
                     </span>
                   </div>
                 );

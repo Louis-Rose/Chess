@@ -41,7 +41,10 @@ MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 # Fixed set of page categories for an assembly manual. Assembly steps carry their
 # printed step number ("Assemblage - Etape N", N from 1 to 100).
-_FIXED_CATEGORIES = ['Sommaire', 'Outils nécessaires', 'Matériel fourni', 'Sécurité', 'Liens']
+_FIXED_CATEGORIES = [
+    'Sommaire', 'Outils nécessaires', 'Matériel fourni', 'Sécurité', 'Liens',
+    'Produit fini (monté)',
+]
 _STEP_RE = re.compile(r'^Assemblage - Etape ([1-9]\d?|100)$')
 
 _CATEGORIZE_PROMPT = (
@@ -53,6 +56,7 @@ _CATEGORIZE_PROMPT = (
     "- Assemblage - Etape N  (replace N with the assembly step number printed on the page)\n"
     "- Sécurité\n"
     "- Liens\n"
+    "- Produit fini (monté)  (the finished, fully assembled product)\n"
     "A page usually belongs to a single category. Occasionally a NEW section "
     "visibly begins partway down the page (a new section title/marker appears "
     "below earlier content). \n"
