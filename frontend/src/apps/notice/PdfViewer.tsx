@@ -224,40 +224,40 @@ export function PdfViewer({
   const boundaryLines = NOTICE_MODELS.flatMap((m, i) => {
     const side = i === 0 ? 'left' : 'right';
     const out: { key: string; y: number; color: string; side: string; above?: string; below?: string }[] = [];
-    const topCat = segment(m.id, page).top;
-    const bottomCat = segment(m.id, page).bottom;
+    const top = segment(m.id, page).top;
+    const bottom = segment(m.id, page).bottom;
+    const split = splits[m.id]?.[page];
+    const prev = page > 1 ? segment(m.id, page - 1).bottom : undefined;
+    const next = page < numPages ? segment(m.id, page + 1).top : undefined;
+    // A page fully inside one section: a single category carried in from the
+    // previous page and out to the next (no split, no start, no end here). Only
+    // such a page is "en cours"; pages holding a start or an end are not.
+    const interior = !split && page > 1 && page < numPages && !!top && prev === top && next === bottom;
 
-    // Top edge: the first section starts here, a new section begins (page-break
-    // transition), or the section is carried over from the previous page.
-    if (topCat) {
+    // Top edge: first section start, a new section (page-break transition), or —
+    // for an interior page only — the carried-over section.
+    if (top) {
       if (page === 1) {
-        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${topCat} (${debut})` });
-      } else {
-        const prev = segment(m.id, page - 1).bottom;
-        if (prev && prev !== topCat) {
-          out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, above: `${prev} (${fin})`, below: `${topCat} (${debut})` });
-        } else if (prev) {
-          out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${topCat} (${enCours})` });
-        }
+        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${debut})` });
+      } else if (prev && prev !== top) {
+        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, above: `${prev} (${fin})`, below: `${top} (${debut})` });
+      } else if (interior) {
+        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${enCours})` });
       }
     }
 
     // Mid-page split.
-    const s = splits[m.id]?.[page];
-    if (s) {
-      out.push({ key: `${m.id}-split`, y: s.y, color: m.color, side, above: `${s.above} (${fin})`, below: `${s.below} (${debut})` });
+    if (split) {
+      out.push({ key: `${m.id}-split`, y: split.y, color: m.color, side, above: `${split.above} (${fin})`, below: `${split.below} (${debut})` });
     }
 
-    // Bottom edge: the last section ends here, or the section carries over to the
-    // next page (the start of a *new* section is drawn at the top of that page).
-    if (bottomCat) {
+    // Bottom edge: the last section ends here, or — for an interior page only —
+    // the carried-over section. A transition to the next page is drawn there.
+    if (bottom) {
       if (page === numPages) {
-        out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottomCat} (${fin})` });
-      } else {
-        const next = segment(m.id, page + 1).top;
-        if (next && next === bottomCat) {
-          out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottomCat} (${enCours})` });
-        }
+        out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottom} (${fin})` });
+      } else if (interior) {
+        out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottom} (${enCours})` });
       }
     }
 
