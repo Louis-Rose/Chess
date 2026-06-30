@@ -46,8 +46,11 @@ export function PageCategoriesTable({
   );
 
   // Sticky first column (row labels) + one column per page.
+  // The right separator is a box-shadow rather than border-r: a sticky table
+  // cell's border vanishes while the rest of the row scrolls under it, but its
+  // box-shadow stays painted.
   const labelCellCls =
-    'sticky left-0 z-20 w-56 border-r-2 border-slate-300 bg-white px-4 py-2 text-center dark:border-slate-700 dark:bg-slate-900';
+    'sticky left-0 z-20 w-56 bg-white px-4 py-2 text-center shadow-[inset_-2px_0_0_0_#cbd5e1] dark:bg-slate-900 dark:shadow-[inset_-2px_0_0_0_#334155]';
   const dataCellCls =
     'min-w-[10rem] cursor-pointer border-r-2 border-slate-300 px-3 py-2 transition-colors hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-emerald-500/10';
   // Mirror the stats table's first-column width when known (overrides the w-56
