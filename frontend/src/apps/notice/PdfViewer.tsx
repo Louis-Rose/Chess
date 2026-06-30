@@ -234,13 +234,14 @@ export function PdfViewer({
     // such a page is "en cours"; pages holding a start or an end are not.
     const interior = !split && page > 1 && page < numPages && !!top && prev === top && next === bottom;
 
-    // Top edge: first section start, a new section (page-break transition), or —
-    // for an interior page only — the carried-over section.
+    // Top edge: first section start, the start of a new section (page-break
+    // transition — only "(début)" here; that section's "(fin)" sits at the bottom
+    // of the previous page), or — for an interior page — the carried-over section.
     if (top) {
       if (page === 1) {
         out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${debut})` });
       } else if (prev && prev !== top) {
-        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, above: `${prev} (${fin})`, below: `${top} (${debut})` });
+        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${debut})` });
       } else if (interior) {
         out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${enCours})` });
       }
@@ -251,10 +252,11 @@ export function PdfViewer({
       out.push({ key: `${m.id}-split`, y: split.y, color: m.color, side, above: `${split.above} (${fin})`, below: `${split.below} (${debut})` });
     }
 
-    // Bottom edge: the last section ends here, or — for an interior page only —
-    // the carried-over section. A transition to the next page is drawn there.
+    // Bottom edge: the section ends here — the last page, or a page-break where
+    // the next page starts a different section (its "(fin)" shows here) — or, for
+    // an interior page, the carried-over section.
     if (bottom) {
-      if (page === numPages) {
+      if (page === numPages || (next && next !== bottom)) {
         out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottom} (${fin})` });
       } else if (interior) {
         out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottom} (${enCours})` });
