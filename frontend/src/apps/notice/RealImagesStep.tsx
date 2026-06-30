@@ -161,6 +161,23 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     if (selected?.ref) saveResult(docId, selected.ref as string, { candidates, kept: next });
   };
 
+  // Left/right arrows move the selection along the strip when it has focus. Stop
+  // propagation so they don't also page the PDF viewer (its own window handler).
+  const onStripKey = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const next = Math.min(parts.length - 1, Math.max(0, selIdx + (e.key === 'ArrowRight' ? 1 : -1)));
+    if (next !== selIdx) setSelectedRef(parts[next].ref as string);
+  };
+
+  // Keep the selected drawing scrolled into view as the selection moves.
+  useEffect(() => {
+    const el = stripRef.current?.children[selIdx] as HTMLElement | undefined;
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selIdx]);
+
   const label = (p: PartItem) =>
     `${p.ref}${p.bag ? ` (${p.bag}, ${t('notice.pdf.page')} ${p.page})` : ` (${t('notice.pdf.page')} ${p.page})`}`;
 
@@ -223,7 +240,12 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     <div className="flex flex-col gap-5">
       {/* Part picker: a draggable strip of every part's drawing. Click to select
           (highlighted); parts not yet triaged are dimmed. Drag to scroll. */}
-      <div ref={stripRef} className="flex cursor-grab gap-2 overflow-x-auto pb-1">
+      <div
+        ref={stripRef}
+        tabIndex={0}
+        onKeyDown={onStripKey}
+        className="flex cursor-grab gap-2 overflow-x-auto pb-1 outline-none"
+      >
         {parts.map((p, i) => {
           const isSel = p.ref === selectedRef;
           const isDone = (p.ref as string) in done;
@@ -304,9 +326,6 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
         </p>
       ) : candidates.length > 0 ? (
         <div className="flex flex-col items-center gap-4">
-          <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-            {t('notice.step3.filterHint')}
-          </p>
           {keptList.length > 0 && (
             <div className="flex flex-wrap justify-center gap-3">
               {keptList.map(({ c, i }) => tile(c, i))}
