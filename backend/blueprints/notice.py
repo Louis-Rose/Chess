@@ -178,12 +178,14 @@ def _gemini_on_images(model, images, text_prompt, user_id, phase=None, want_thou
     answer, thoughts = _split_thoughts(response)
     in_tok, out_tok, think_tok = _extract_usage_tokens(response)
     retry_info = retry_info or {}
-    # Describe the block: page span + image count (just the count if no pages given).
+    # Describe the block: page span + image count + payload size in MB (the size
+    # that matters for nginx's body limit). Just count + size if no pages given.
+    size_mb = sum(len(img) for img in images) / (1024 * 1024)
     if pages:
         span = f"{pages[0]}-{pages[-1]}" if len(pages) > 1 else f"{pages[0]}"
-        block = f"pages {span} ({len(images)} img)"
+        block = f"pages {span} ({len(images)} img, {size_mb:.1f} MB)"
     else:
-        block = f"{len(images)} img"
+        block = f"{len(images)} img, {size_mb:.1f} MB"
     # One line per call so the logs show which key (free/paid) actually served it.
     logger.info(
         "[notice] %s | %s KEY | %s | %s | %ds | tokens in=%d out=%d think=%d%s",
