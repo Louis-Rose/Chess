@@ -47,6 +47,11 @@ export function ModelStatsTable({
               >
                 <td className="px-4 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
                   <span className="inline-flex items-center justify-center gap-1.5">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: m.color }}
+                      aria-hidden
+                    />
                     {m.label}
                     {price && (
                       <span className="group relative inline-flex">
