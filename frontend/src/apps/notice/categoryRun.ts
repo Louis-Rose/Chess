@@ -20,10 +20,12 @@ const BATCH_SIZE = 5;
 // model id -> page number -> category label (or per-cell error message)
 type ByModelPage = Record<string, Record<number, string>>;
 
-// A mid-page section change: `y` is the boundary (0..1 from the top), `above` and
-// `below` the categories on each side.
-export type Split = { y: number; above: string; below: string };
-type SplitMap = Record<string, Record<number, Split>>;
+// A page is an ordered top-to-bottom list of sections. Each segment is a category
+// plus the `start` (0..1 from the top) where it begins; the first segment starts
+// at 0. A single-section page has one segment. This supports a page that holds
+// several assembly steps (e.g. 4, 5 and the start of 6), not just two.
+export type Segment = { category: string; start: number };
+type SegmentsMap = Record<string, Record<number, Segment[]>>;
 
 // One categorize run: a self-contained result set for the models it called over
 // a page range. Runs are kept as a browsable history; a new run never merges into
@@ -35,7 +37,7 @@ export type Run = {
   categories: ByModelPage;
   reasoning: ByModelPage;
   raws: ByModelPage;
-  splits: SplitMap;
+  segments: SegmentsMap;
 };
 
 export type RunSnapshot = {
@@ -49,7 +51,7 @@ export type RunSnapshot = {
   categories: ByModelPage;
   reasoning: ByModelPage;
   raws: ByModelPage;
-  splits: SplitMap;
+  segments: SegmentsMap;
   runModels: string[];
   // Per-cell failures of the active run (transient, not persisted).
   cellErrors: ByModelPage;
@@ -96,27 +98,51 @@ function saveStore(key: string, value: unknown) {
   }
 }
 
+// Bring a stored run up to the current shape: older runs (and the pre-history
+// single result set) carried a one-boundary `splits` map instead of `segments`.
+// Convert each split into a two-segment list, single categories into one segment.
+type LegacySplit = { y: number; above: string; below: string };
+function migrateRun(run: Run & { splits?: Record<string, Record<number, LegacySplit>> }): Run {
+  if (run.segments) return run;
+  const splits = run.splits || {};
+  const categories = run.categories || {};
+  const segments: SegmentsMap = {};
+  for (const modelId of Object.keys(categories)) {
+    segments[modelId] = {};
+    for (const pageStr of Object.keys(categories[modelId])) {
+      const page = Number(pageStr);
+      const sp = splits[modelId]?.[page];
+      segments[modelId][page] = sp
+        ? [{ category: sp.above, start: 0 }, { category: sp.below, start: sp.y }]
+        : [{ category: categories[modelId][page], start: 0 }];
+    }
+  }
+  const { splits: _drop, ...rest } = run;
+  return { ...rest, segments };
+}
+
 function loadRuns(docId: string): Run[] {
-  const runs = loadStore<Run[]>(runsKey(docId), []);
-  if (Array.isArray(runs) && runs.length) return runs;
+  const stored = loadStore<Run[]>(runsKey(docId), []);
+  if (Array.isArray(stored) && stored.length) return stored.map(migrateRun);
   // Migrate a pre-history single result set into one run, if present.
   const categories = loadStore<ByModelPage>(legacyCatKey(docId), {});
   if (!Object.keys(categories).length) return [];
-  const migrated: Run = {
+  const migrated = migrateRun({
     models: Object.keys(categories),
     from: 1,
     to: 0,
     categories,
     reasoning: loadStore<ByModelPage>(legacyReasonKey(docId), {}),
     raws: loadStore<ByModelPage>(legacyRawsKey(docId), {}),
-    splits: loadStore<SplitMap>(legacySplitsKey(docId), {}),
-  };
+    segments: undefined as unknown as SegmentsMap,
+    splits: loadStore<Record<string, Record<number, LegacySplit>>>(legacySplitsKey(docId), {}),
+  });
   saveStore(runsKey(docId), [migrated]);
   return [migrated];
 }
 
 const EMPTY: ByModelPage = {};
-const EMPTY_SPLITS: SplitMap = {};
+const EMPTY_SEGMENTS: SegmentsMap = {};
 
 // Derive the displayed maps from the selected run.
 function mirror(runs: Run[], selected: number) {
@@ -125,7 +151,7 @@ function mirror(runs: Run[], selected: number) {
     categories: r?.categories ?? EMPTY,
     reasoning: r?.reasoning ?? EMPTY,
     raws: r?.raws ?? EMPTY,
-    splits: r?.splits ?? EMPTY_SPLITS,
+    segments: r?.segments ?? EMPTY_SEGMENTS,
     runModels: r?.models ?? [],
   };
 }
@@ -168,36 +194,29 @@ function update(docId: string, patch: Partial<RunSnapshot>) {
   entry.listeners.forEach((l) => l());
 }
 
-// Record one (model, page) result into the run currently being filled. A page
-// split into two sections becomes "Above / Below" plus a structured split.
+// Record one (model, page) result into the run currently being filled. A page is
+// an ordered list of segments; its display label joins their categories with "&".
 function setResult(
   docId: string,
   modelId: string,
   pageNum: number,
-  category: string,
+  segments: Segment[],
   reasoning: string,
   raw: string,
-  boundary: number | null,
-  categoryBelow: string | null,
 ) {
   const entry = getEntry(docId);
   const idx = entry.activeRun;
   const runs = entry.snapshot.runs;
   if (idx < 0 || !runs[idx]) return;
-  const split = boundary != null && categoryBelow ? { y: boundary, above: category, below: categoryBelow } : null;
-  const label = split ? `${category} / ${categoryBelow}` : category;
+  const label = segments.map((s) => s.category).join(' & ');
 
   const run = runs[idx];
-  const nextSplits: SplitMap = { ...run.splits, [modelId]: { ...(run.splits[modelId] || {}) } };
-  if (split) nextSplits[modelId][pageNum] = split;
-  else delete nextSplits[modelId][pageNum];
-
   const nextRun: Run = {
     ...run,
     categories: { ...run.categories, [modelId]: { ...(run.categories[modelId] || {}), [pageNum]: label } },
     reasoning: { ...run.reasoning, [modelId]: { ...(run.reasoning[modelId] || {}), [pageNum]: reasoning } },
     raws: { ...run.raws, [modelId]: { ...(run.raws[modelId] || {}), [pageNum]: raw } },
-    splits: nextSplits,
+    segments: { ...run.segments, [modelId]: { ...(run.segments[modelId] || {}), [pageNum]: segments } },
   };
   const nextRuns = runs.slice();
   nextRuns[idx] = nextRun;
@@ -220,11 +239,9 @@ function recordCellError(docId: string, modelId: string, pageNum: number, messag
 }
 
 type BatchResult = {
-  category: string;
+  segments: Segment[];
   reasoning?: string;
   raw?: string;
-  boundary?: number | null;
-  categoryBelow?: string | null;
 };
 
 // Classify one block of pages for one model in a single call, storing results in
@@ -251,20 +268,12 @@ async function classifyBlock(
     const results = data.results || [];
     pages.forEach((n, i) => {
       const r = results[i];
-      if (!r) return;
-      setResult(
-        docId,
-        modelId,
-        n,
-        r.category,
-        r.reasoning || '',
-        r.raw || '',
-        r.boundary ?? null,
-        r.categoryBelow ?? null,
-      );
+      if (!r || !r.segments?.length) return;
+      setResult(docId, modelId, n, r.segments, r.reasoning || '', r.raw || '');
     });
-    const last = results[results.length - 1];
-    return last ? last.categoryBelow || last.category : prevCategory;
+    // Carry the bottom-most category of the last page forward to the next block.
+    const last = results[results.length - 1]?.segments;
+    return last?.length ? last[last.length - 1].category : prevCategory;
   } catch (e) {
     if (axios.isCancel(e)) return prevCategory;
     const msg =
@@ -312,7 +321,7 @@ export async function startRange(
 
   const disabled = new Set(entry.snapshot.disabledModels);
   const models = NOTICE_MODELS.map((m) => m.id).filter((id) => !disabled.has(id));
-  const newRun: Run = { models, from, to, categories: {}, reasoning: {}, raws: {}, splits: {} };
+  const newRun: Run = { models, from, to, categories: {}, reasoning: {}, raws: {}, segments: {} };
   const runs = [...entry.snapshot.runs, newRun];
   entry.activeRun = runs.length - 1;
   saveStore(runsKey(docId), runs);

@@ -29,8 +29,8 @@ export function PdfViewer({
   const zoomCanvasRef = useRef<HTMLCanvasElement>(null);
   const zoomTaskRef = useRef<RenderTask | null>(null);
   const { t } = useLanguage();
-  // Section boundaries detected by the categorize run, to overlay on the page.
-  const { categories, splits, requestedPage, disabledModels } = useRun(docId);
+  // Section segments detected by the categorize run, to overlay on the page.
+  const { segments, requestedPage, disabledModels } = useRun(docId);
   const disabled = new Set(disabledModels);
 
   const [numPages, setNumPages] = useState(0);
@@ -205,64 +205,66 @@ export function PdfViewer({
     };
   }, [zoomed, page]);
 
-  // The category at the top and bottom of a page for a model (a split page has a
-  // different category on each side; otherwise both are the single category).
-  const segment = (modelId: string, p: number): { top?: string; bottom?: string } => {
-    const s = splits[modelId]?.[p];
-    if (s) return { top: s.above, bottom: s.below };
-    const c = categories[modelId]?.[p];
-    return { top: c, bottom: c };
+  // First / last segment category of a page for a model (the categories carried
+  // in at the top and out at the bottom of that page).
+  const firstCat = (modelId: string, p: number) => segments[modelId]?.[p]?.[0]?.category;
+  const lastCat = (modelId: string, p: number) => {
+    const s = segments[modelId]?.[p];
+    return s && s.length ? s[s.length - 1].category : undefined;
   };
 
-  // Dashed section-boundary lines to draw on the current page, per model: every
-  // section start/end gets a line. A page-break boundary (the section changes
-  // from one page to the next) is drawn at the top of this page; a mid-page
-  // boundary at its vertical position. Each line is labelled "<above> (fin)" and
-  // "<below> (début)". Models are placed on opposite sides so labels stay legible.
+  // Dashed section-boundary lines to draw on the current page, per model. A page
+  // is a list of segments; each boundary BETWEEN two segments gets a mid-page
+  // line, and the page's top/bottom edges get a line when a section starts/ends
+  // there. A page-break boundary draws "(début)" at the top of this page (the
+  // matching "(fin)" sits at the bottom of the previous page). Models are placed
+  // on opposite sides so labels stay legible.
   const fin = t('notice.cat.sectionEnd');
   const debut = t('notice.cat.sectionStart');
   const enCours = t('notice.cat.sectionOngoing');
   const boundaryLines = NOTICE_MODELS.flatMap((m, i) => {
     if (disabled.has(m.id)) return [];
+    const segs = segments[m.id]?.[page];
+    if (!segs || segs.length === 0) return [];
     const side = i === 0 ? 'left' : 'right';
     const out: { key: string; y: number; color: string; side: string; above?: string; below?: string }[] = [];
-    const top = segment(m.id, page).top;
-    const bottom = segment(m.id, page).bottom;
-    const split = splits[m.id]?.[page];
-    const prev = page > 1 ? segment(m.id, page - 1).bottom : undefined;
-    const next = page < numPages ? segment(m.id, page + 1).top : undefined;
-    // A page fully inside one section: a single category carried in from the
-    // previous page and out to the next (no split, no start, no end here). Only
-    // such a page is "en cours"; pages holding a start or an end are not.
-    const interior = !split && page > 1 && page < numPages && !!top && prev === top && next === bottom;
+    const top = segs[0].category;
+    const bottom = segs[segs.length - 1].category;
+    const prev = page > 1 ? lastCat(m.id, page - 1) : undefined;
+    const next = page < numPages ? firstCat(m.id, page + 1) : undefined;
+    // A page wholly inside one section: a single segment carried in from the
+    // previous page and out to the next. Only such a page is "en cours"; pages
+    // holding a start or an end are not.
+    const interior = segs.length === 1 && page > 1 && page < numPages && prev === top && next === bottom;
 
-    // Top edge: first section start, the start of a new section (page-break
-    // transition — only "(début)" here; that section's "(fin)" sits at the bottom
-    // of the previous page), or — for an interior page — the carried-over section.
-    if (top) {
-      if (page === 1) {
-        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${debut})` });
-      } else if (prev && prev !== top) {
-        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${debut})` });
-      } else if (interior) {
-        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${enCours})` });
-      }
+    // Top edge: first page, or a page-break where a new section starts here (only
+    // "(début)"; that section's "(fin)" sits at the bottom of the previous page),
+    // or — for an interior page — the carried-over section.
+    if (page === 1 || (prev && prev !== top)) {
+      out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${debut})` });
+    } else if (interior) {
+      out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${top} (${enCours})` });
     }
 
-    // Mid-page split.
-    if (split) {
-      out.push({ key: `${m.id}-split`, y: split.y, color: m.color, side, above: `${split.above} (${fin})`, below: `${split.below} (${debut})` });
+    // Mid-page boundaries: one line between each pair of consecutive segments.
+    for (let s = 1; s < segs.length; s++) {
+      out.push({
+        key: `${m.id}-seg${s}`,
+        y: segs[s].start,
+        color: m.color,
+        side,
+        above: `${segs[s - 1].category} (${fin})`,
+        below: `${segs[s].category} (${debut})`,
+      });
     }
 
-    // Bottom edge: the section ends here — the last page, or a page-break where
-    // the next page starts a different section (its "(fin)" shows here) — or, for
-    // an interior page, the carried-over section.
-    if (bottom) {
-      if (page === numPages || (next && next !== bottom)) {
-        out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottom} (${fin})` });
-      } else if (interior) {
-        out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottom} (${enCours})` });
-      }
+    // Bottom edge: the last page, a page-break where the next page starts a
+    // different section (its "(fin)" shows here), or — for an interior page — the
+    // carried-over section.
+    if (page === numPages || (next && next !== bottom)) {
+      out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottom} (${fin})` });
+    } else if (interior) {
+      out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottom} (${enCours})` });
     }
 
     // Nudge each model's lines by a pixel so two boundaries at the same height

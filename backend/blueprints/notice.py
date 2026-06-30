@@ -47,14 +47,15 @@ _FIXED_CATEGORIES = [
 ]
 _STEP_RE = re.compile(r'^Assemblage - Etape ([1-9]\d?|100)$')
 
-# Shared prompt pieces, composed into the single-page and batch prompts so the
-# label list and boundary rules are defined once.
+# Shared prompt pieces, composed into the batch prompt so the label list and
+# placement rules are defined once.
 _CATEGORY_LABELS = (
     "Categories, use EXACTLY these labels:\n"
     "- Sommaire\n"
     "- Outils nécessaires\n"
     "- Matériel fourni\n"
-    "- Assemblage - Etape N  (replace N with the assembly step number printed on the page)\n"
+    "- Assemblage - Etape N  (N is ONE assembly step number, ALWAYS a single number, "
+    'NEVER a range: never "Etape 4-5", always a separate "Etape 4" and "Etape 5")\n'
     "- Sécurité\n"
     "- Liens\n"
     "- Produit fini (monté)  (the finished, fully assembled product)\n"
@@ -65,19 +66,26 @@ _CATEGORY_GUIDANCE = (
     "nothing was added afterwards. A page is usually one section, but a NEW section "
     "begins where its title appears, even if that title sits at the very bottom "
     "with no content beneath it (its content starts on the next page).\n"
+    "Each individually numbered assembly diagram is its OWN step. A printed header "
+    'may group several steps under one range (e.g. "ÉTAPE 4-5"): IGNORE the range '
+    "and emit one step per number (Etape 4, then Etape 5), each as its own segment. "
+    "When several steps appear on one page, cut the page into one segment per step.\n"
 )
 _BOUNDARY_PLACEMENT = (
-    "A section title/heading belongs to the section it introduces, so place the "
-    "boundary IMMEDIATELY ABOVE that title (in the blank gap between the previous "
-    "content and the new section's title), never on the title or below it. The "
-    "new section's title must fall below the boundary line.\n"
-    'For an assembly step write it exactly like "Assemblage - Etape 3".'
+    "A section/step title belongs to the section it introduces, so set a segment's "
+    "start IMMEDIATELY ABOVE that title (in the blank gap between the previous "
+    "content and the new title), never on the title or below it. The new title must "
+    'fall just below that start. Write an assembly step exactly like "Assemblage - '
+    'Etape 3".'
 )
+
 
 def _batch_prompt(page_numbers, prev_category):
     """Prompt for classifying a block of consecutive pages in one call. The model
     sees the pages in order and is told the category in effect just before the
-    block, so assembly step numbers stay consistent across block seams."""
+    block, so assembly step numbers stay consistent across block seams. Each page
+    is returned as an ordered top-to-bottom list of segments so a page holding
+    several steps is cut into one segment per step."""
     n = len(page_numbers)
     listing = ", ".join(str(p) for p in page_numbers)
     ctx = (
@@ -98,10 +106,11 @@ def _batch_prompt(page_numbers, prev_category):
         + ctx +
         f"Reply with ONLY a JSON array of EXACTLY {n} objects, in the same page "
         "order, no prose, no code fence. The i-th object classifies the i-th page. "
-        'Each object: {"category": <page, or its TOP part if a new section begins '
-        'partway down>, "boundary": <number strictly between 0 and 1 from the top '
-        'where the new section begins, or null>, "category_below": <category below '
-        'the boundary, or null>}.\n'
+        'Each object is {"segments": [...]}: an ordered TOP-to-BOTTOM list of the '
+        'sections on that page. Each segment is {"category": <label>, "start": '
+        "<number from 0 to 1 = where this segment begins, measured from the top of "
+        "the page>}. The FIRST segment's start is 0. A page that is a single section "
+        'has exactly one segment with start 0.\n'
         + _BOUNDARY_PLACEMENT
     )
 
@@ -201,12 +210,15 @@ def _gemini_on_images(model, images, text_prompt, user_id, phase=None, want_thou
     return answer, thoughts
 
 
-def _normalize_category(text):
-    """Snap the model's reply to one of the known labels (best-effort)."""
+def _normalize_step(text):
+    """Snap a label to one of the known categories. A single-number assembly step
+    or a fixed category passes; anything else (notably a range like "Etape 4-5")
+    is rejected with None so it can't slip through."""
     t = (text or '').strip().strip('."')
+    t = t.replace('Étape', 'Etape').replace('étape', 'Etape')
     if t in _FIXED_CATEGORIES or _STEP_RE.match(t):
         return t
-    return t or None
+    return None
 
 
 @notice_bp.route('/api/notice/categorize-batch', methods=['POST'])
@@ -258,22 +270,18 @@ def categorize_batch():
 
     # One thought stream covers the whole block, so it is shared across its pages.
     results = [
-        {
-            'category': cat,
-            'reasoning': thoughts or '',
-            'raw': raw,
-            'boundary': boundary,
-            'categoryBelow': below,
-        }
-        for cat, boundary, below, raw in parsed
+        {'segments': segments, 'reasoning': thoughts or '', 'raw': raw}
+        for segments, raw in parsed
     ]
     return jsonify({'results': results})
 
 
 def _parse_categorize_batch(answer, expected):
-    """Parse the model's JSON array into a list of (category, boundary,
-    category_below, raw) tuples, one per page. Returns None (the whole block
-    fails) if the reply isn't a JSON array of exactly `expected` valid objects."""
+    """Parse the model's JSON array into a list of (segments, raw) tuples, one per
+    page. `segments` is an ordered top-to-bottom list of {category, start} (the
+    first start forced to 0, the rest strictly increasing within (0, 1)). Returns
+    None — the whole block fails — if the reply isn't a JSON array of exactly
+    `expected` objects, or any segment carries an invalid/range category."""
     import json
 
     txt = (answer or '').strip()
@@ -288,18 +296,43 @@ def _parse_categorize_batch(answer, expected):
     for obj in arr:
         if not isinstance(obj, dict):
             return None
-        category = _normalize_category(str(obj.get('category') or ''))
-        if not category:
-            return None
-        below_raw = obj.get('category_below')
-        below = _normalize_category(str(below_raw)) if below_raw else None
-        try:
-            boundary = float(obj.get('boundary')) if obj.get('boundary') is not None else None
-        except (TypeError, ValueError):
-            boundary = None
-        if boundary is None or not (0 < boundary < 1) or not below or below == category:
-            boundary, below = None, None
-        out.append((category, boundary, below, json.dumps(obj, ensure_ascii=False)))
+        raw = json.dumps(obj, ensure_ascii=False)
+
+        seg_src = obj.get('segments')
+        if not isinstance(seg_src, list) or not seg_src:
+            # Tolerate a flat single-section object {"category": ...}.
+            if obj.get('category'):
+                seg_src = [{'category': obj.get('category'), 'start': 0}]
+            else:
+                return None
+
+        segments = []
+        for j, s in enumerate(seg_src):
+            if not isinstance(s, dict):
+                return None
+            cat = _normalize_step(str(s.get('category') or ''))
+            if not cat:
+                return None
+            try:
+                start = float(s.get('start')) if s.get('start') is not None else 0.0
+            except (TypeError, ValueError):
+                start = 0.0
+            if j == 0:
+                start = 0.0
+            elif not (0 < start < 1):
+                return None
+            segments.append({'category': cat, 'start': start})
+
+        # Starts must strictly increase top to bottom.
+        for a, b in zip(segments, segments[1:]):
+            if b['start'] <= a['start']:
+                return None
+        # Collapse a boundary between two identical categories (meaningless).
+        merged = [segments[0]]
+        for s in segments[1:]:
+            if s['category'] != merged[-1]['category']:
+                merged.append(s)
+        out.append((merged, raw))
     return out
 
 

@@ -25,7 +25,7 @@ export function CategoryTable({
   file: Blob;
 }) {
   const { t } = useLanguage();
-  const { busy, progress, active, categories, reasoning, raws, splits, cellErrors, disabledModels, runs, selected, error } =
+  const { busy, progress, active, categories, reasoning, raws, segments, cellErrors, disabledModels, runs, selected, error } =
     useRun(docId);
   const disabled = new Set(disabledModels);
   const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
@@ -203,7 +203,7 @@ export function CategoryTable({
         categories={categories}
         reasoning={reasoning}
         raws={raws}
-        splits={splits}
+        segments={segments}
         cellErrors={cellErrors}
         disabled={disabled}
         onToggleModel={onToggleModel}

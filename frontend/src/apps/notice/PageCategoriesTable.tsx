@@ -1,8 +1,8 @@
-import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, type ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowUp, Brain } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
-import type { Split } from './categoryRun';
+import type { Segment } from './categoryRun';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 // The classification result for every page, all at once: one row per page, one
@@ -15,7 +15,7 @@ export function PageCategoriesTable({
   categories,
   reasoning,
   raws,
-  splits,
+  segments,
   cellErrors,
   onSelectPage,
   disabled,
@@ -26,7 +26,7 @@ export function PageCategoriesTable({
   categories: Record<string, Record<number, string>>;
   reasoning: Record<string, Record<number, string>>;
   raws: Record<string, Record<number, string>>;
-  splits: Record<string, Record<number, Split>>;
+  segments: Record<string, Record<number, Segment[]>>;
   cellErrors: Record<string, Record<number, string>>;
   onSelectPage?: (page: number) => void;
   disabled: Set<string>;
@@ -81,13 +81,13 @@ export function PageCategoriesTable({
     return section(null, c.rawText);
   };
 
-  // One category cell. Each category label stays on a single line; a split page
-  // stacks its two sections with the "&" alone on its own middle line. The brain
-  // badge, shown on every classified cell, is vertically centered.
+  // One category cell. Each category label stays on a single line; a page split
+  // into several sections stacks them with a "&" alone on its own line between
+  // each pair. The brain badge, shown on every classified cell, is centered.
   const renderCell = (
     c: {
       err?: string;
-      split?: Split;
+      segs?: Segment[];
       cat?: string;
       reasonText: string;
       rawText: string;
@@ -102,17 +102,20 @@ export function PageCategoriesTable({
         </span>
       );
     }
-    const classified = !!(c.split || c.cat);
+    const classified = !!(c.segs?.length || c.cat);
     return (
       <span className="inline-flex items-center justify-center gap-1.5">
-        {c.split ? (
+        {c.segs && c.segs.length > 1 ? (
           <span className="flex flex-col whitespace-nowrap">
-            <span>{c.split.above}</span>
-            <span>&amp;</span>
-            <span>{c.split.below}</span>
+            {c.segs.map((s, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span>&amp;</span>}
+                <span>{s.category}</span>
+              </Fragment>
+            ))}
           </span>
         ) : (
-          <span className="whitespace-nowrap">{c.cat ?? '—'}</span>
+          <span className="whitespace-nowrap">{c.segs?.[0]?.category ?? c.cat ?? '—'}</span>
         )}
         {classified && !muted && (
           <ReasoningBadge content={tooltipContent(c)} label={t('notice.cat.thinking')} reasons={c.reasons} />
@@ -126,7 +129,7 @@ export function PageCategoriesTable({
     const cells = NOTICE_MODELS.map((m) => ({
       id: m.id,
       err: cellErrors[m.id]?.[n],
-      split: splits[m.id]?.[n],
+      segs: segments[m.id]?.[n],
       cat: categories[m.id]?.[n],
       reasonText: reasoning[m.id]?.[n] || '',
       rawText: raws[m.id]?.[n] || '',
@@ -135,7 +138,7 @@ export function PageCategoriesTable({
     // Only compare ENABLED models; a muted model is excluded from disagreement.
     const keys = cells
       .filter((c) => !disabled.has(c.id))
-      .map((c) => (c.err ? '' : c.split ? `${c.split.above} / ${c.split.below}` : c.cat || ''))
+      .map((c) => (c.err ? '' : c.segs?.length ? c.segs.map((s) => s.category).join(' / ') : c.cat || ''))
       .filter(Boolean);
     return { n, cells, bg: new Set(keys).size > 1 ? 'bg-red-100 dark:bg-red-500/20' : '' };
   });
