@@ -220,32 +220,47 @@ export function PdfViewer({
   // "<below> (début)". Models are placed on opposite sides so labels stay legible.
   const fin = t('notice.cat.sectionEnd');
   const debut = t('notice.cat.sectionStart');
+  const enCours = t('notice.cat.sectionOngoing');
   const boundaryLines = NOTICE_MODELS.flatMap((m, i) => {
     const side = i === 0 ? 'left' : 'right';
     const out: { key: string; y: number; color: string; side: string; above?: string; below?: string }[] = [];
-    // Very first section start: top of page 1 (no section ends above it).
-    if (page === 1) {
-      const cur = segment(m.id, 1).top;
-      if (cur) out.push({ key: `${m.id}-start`, y: 0, color: m.color, side, below: `${cur} (${debut})` });
-    }
-    // Page-break transition: drawn at the top of this page.
-    if (page > 1) {
-      const prev = segment(m.id, page - 1).bottom;
-      const cur = segment(m.id, page).top;
-      if (prev && cur && prev !== cur) {
-        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, above: `${prev} (${fin})`, below: `${cur} (${debut})` });
+    const topCat = segment(m.id, page).top;
+    const bottomCat = segment(m.id, page).bottom;
+
+    // Top edge: the first section starts here, a new section begins (page-break
+    // transition), or the section is carried over from the previous page.
+    if (topCat) {
+      if (page === 1) {
+        out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${topCat} (${debut})` });
+      } else {
+        const prev = segment(m.id, page - 1).bottom;
+        if (prev && prev !== topCat) {
+          out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, above: `${prev} (${fin})`, below: `${topCat} (${debut})` });
+        } else if (prev) {
+          out.push({ key: `${m.id}-top`, y: 0, color: m.color, side, below: `${topCat} (${enCours})` });
+        }
       }
     }
+
     // Mid-page split.
     const s = splits[m.id]?.[page];
     if (s) {
       out.push({ key: `${m.id}-split`, y: s.y, color: m.color, side, above: `${s.above} (${fin})`, below: `${s.below} (${debut})` });
     }
-    // Very last section end: bottom of the last page (no section starts below it).
-    if (page === numPages) {
-      const cur = segment(m.id, page).bottom;
-      if (cur) out.push({ key: `${m.id}-end`, y: 1, color: m.color, side, above: `${cur} (${fin})` });
+
+    // Bottom edge: the last section ends here, or the section carries over to the
+    // next page (the start of a *new* section is drawn at the top of that page).
+    if (bottomCat) {
+      if (page === numPages) {
+        out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottomCat} (${fin})` });
+      } else {
+        const next = segment(m.id, page + 1).top;
+        if (next && next === bottomCat) {
+          out.push({ key: `${m.id}-bottom`, y: 1, color: m.color, side, above: `${bottomCat} (${enCours})` });
+        }
+      }
     }
+
     // Nudge each model's lines by a couple of pixels so two boundaries at the
     // same height don't overlap and hide one another.
     return out.map((o) => ({ ...o, offset: i * 3 }));
