@@ -34,7 +34,7 @@ export function PdfViewer({
 
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState({ w: 0, h: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState(false);
@@ -75,24 +75,25 @@ export function PdfViewer({
     };
   }, [file]);
 
-  // Track the available width so pages re-render crisply on resize.
+  // Track the available width and height so a page fits the viewport (and
+  // re-renders crisply on resize).
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    setWidth(el.clientWidth);
+    setSize({ w: el.clientWidth, h: el.clientHeight });
     const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w) setWidth(w);
+      const r = entries[0]?.contentRect;
+      if (r) setSize({ w: r.width, h: r.height });
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  // Render the current page whenever it, the document, or the width changes.
+  // Render the current page whenever it, the document, or the size changes.
   useEffect(() => {
     const doc = docRef.current;
     const canvas = canvasRef.current;
-    if (!doc || !canvas || numPages === 0 || width === 0) return;
+    if (!doc || !canvas || numPages === 0 || size.w === 0 || size.h === 0) return;
     let cancelled = false;
 
     (async () => {
@@ -100,8 +101,10 @@ export function PdfViewer({
         const pdfPage = await doc.getPage(page);
         if (cancelled) return;
         const base = pdfPage.getViewport({ scale: 1 });
-        // Render at 80% of the column width, leaving padding around the page.
-        const scale = (width * 0.8) / base.width;
+        // Fit the whole page inside the container (contain), so it never needs
+        // scrolling: limited by width or height, whichever is tighter, with a
+        // little breathing room.
+        const scale = Math.min(size.w / base.width, size.h / base.height) * 0.96;
         const viewport = pdfPage.getViewport({ scale });
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -126,7 +129,7 @@ export function PdfViewer({
       cancelled = true;
       taskRef.current?.cancel();
     };
-  }, [page, numPages, width]);
+  }, [page, numPages, size.w, size.h]);
 
   const go = useCallback(
     (delta: number) => setPage((p) => Math.min(numPages, Math.max(1, p + delta))),
