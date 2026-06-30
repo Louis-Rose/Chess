@@ -1,18 +1,19 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { detectBrand, loadBrand, saveBrand } from './realImages';
 
-// The manual's brand, shared (and reactive) across Étape 1 (where it is detected
-// and editable) and Étape 3 (where it qualifies the part image search). Module
-// scope + localStorage so it survives navigation, like the other notice stores.
+// The manual's brand, shared (and reactive) across Étape 1 (where it is detected,
+// read-only, as a parallel call when the classification run starts) and Étape 3
+// (where it qualifies the part image search). Module scope + localStorage so it
+// survives navigation, like the other notice stores.
 type Snapshot = { brand: string; detecting: boolean };
-type Entry = { snapshot: Snapshot; listeners: Set<() => void>; tried: boolean };
+type Entry = { snapshot: Snapshot; listeners: Set<() => void> };
 
 const entries = new Map<string, Entry>();
 
 function getEntry(docId: string): Entry {
   let entry = entries.get(docId);
   if (!entry) {
-    entry = { snapshot: { brand: loadBrand(docId), detecting: false }, listeners: new Set(), tried: false };
+    entry = { snapshot: { brand: loadBrand(docId), detecting: false }, listeners: new Set() };
     entries.set(docId, entry);
   }
   return entry;
@@ -24,7 +25,7 @@ function update(docId: string, patch: Partial<Snapshot>) {
   entry.listeners.forEach((l) => l());
 }
 
-export function setBrand(docId: string, brand: string) {
+function setBrand(docId: string, brand: string) {
   saveBrand(docId, brand);
   update(docId, { brand });
 }
@@ -41,14 +42,6 @@ export async function runDetect(docId: string, file: Blob) {
   } finally {
     update(docId, { detecting: false });
   }
-}
-
-// Auto-detect once per document if we have no brand yet.
-export function ensureBrand(docId: string, file: Blob) {
-  const entry = getEntry(docId);
-  if (entry.tried || entry.snapshot.brand || entry.snapshot.detecting) return;
-  entry.tried = true;
-  void runDetect(docId, file);
 }
 
 export function useBrand(docId: string): Snapshot {

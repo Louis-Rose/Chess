@@ -4,16 +4,17 @@ import { PageCategoriesTable } from './PageCategoriesTable';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { requestPage, selectRun, startRange, stopRun, toggleModel, useRun } from './categoryRun';
 import { runBtnClass, stopBtnClass } from './controls';
+import { runDetect, useBrand } from './brandStore';
 
 // Etape 1: page classification. Stacked top to bottom:
-//   1. the per-model run economics (cost / time / calls / tokens),
-//   2. the page-range controls (from / to + Lancer),
-//   3. the classification result for every page (one row per page).
+//   1. the page-range controls (from / to + Lancer, plus the detected brand),
+//   2. the classification result for every page (one row per page).
 //
 // The run itself (busy/progress/results) lives in categoryRun, keyed by document
 // id, so it survives leaving and returning to the reader tab. This component just
-// reads that shared state and renders it; the cost/time figures stay local since
-// they are only a display refresh.
+// reads that shared state and renders it. Clicking Lancer also fires the brand
+// detection as a parallel call (shown read-only beside the controls); the brand
+// is reused by Étape 3's part image search.
 export function CategoryTable({
   numPages,
   docId,
@@ -28,6 +29,7 @@ export function CategoryTable({
     useRun(docId);
   const disabled = new Set(disabledModels);
   const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
+  const { brand, detecting } = useBrand(docId);
 
   // Page-range selection. Held as strings so the field can be cleared while
   // typing (a number input would snap an empty value back to 0). `from` starts at
@@ -62,6 +64,13 @@ export function CategoryTable({
     setTo(v);
   };
 
+  // Lancer kicks off the page classification and, in parallel, the brand
+  // detection (only when the brand isn't already known, to spare a Gemini call).
+  const onRun = () => {
+    void startRange(docId, file, Number(from) || 1, Number(to) || numPages, t);
+    if (!brand.trim()) void runDetect(docId, file);
+  };
+
   const failedCount = Object.values(cellErrors).reduce((sum, byPage) => sum + Object.keys(byPage).length, 0);
 
   return (
@@ -93,7 +102,7 @@ export function CategoryTable({
           />
           <button
             type="button"
-            onClick={() => void startRange(docId, file, Number(from) || 1, Number(to) || numPages, t)}
+            onClick={onRun}
             disabled={!!busy || numPages < 1}
             className={runBtnClass}
           >
@@ -102,6 +111,18 @@ export function CategoryTable({
             {progressSuffix}
           </button>
         </div>
+
+        {/* Detected brand (read-only), reused by Étape 3's part image search. */}
+        {(detecting || brand.trim()) && (
+          <span className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+            {t('notice.step3.brand')}
+            {detecting && !brand.trim() ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <span className="font-semibold text-slate-900 dark:text-slate-100">{brand}</span>
+            )}
+          </span>
+        )}
 
         {busy && (
           <button type="button" onClick={() => stopRun(docId)} className={stopBtnClass}>
