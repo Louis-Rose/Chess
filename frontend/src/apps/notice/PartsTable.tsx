@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useDragScroll } from './useDragScroll';
+import { ReasoningBadge } from './ReasoningBadge';
 import type { PartItem } from './partsRun';
 // Side-effect import: configures the shared PDF.js worker.
 import './pdfRender';
@@ -27,7 +28,15 @@ function cropCanvas(src: HTMLCanvasElement, bbox: [number, number, number, numbe
 // The extracted supplied-parts list: one row per part, with its piece image
 // cropped from the PDF on the fly (so nothing big is persisted). The bag and
 // reference columns appear only when at least one part carries that field.
-export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
+export function PartsTable({
+  file,
+  items,
+  reasoning,
+}: {
+  file: Blob;
+  items: PartItem[];
+  reasoning: Record<number, string>;
+}) {
   const { t } = useLanguage();
   const [crops, setCrops] = useState<Record<number, string>>({});
   // The piece image currently zoomed (its data URL), or null.
@@ -109,6 +118,24 @@ export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
     >
       <table className="w-full text-sm">
         <tbody>
+          <tr className={rowCls}>
+            <th className={labelCellCls}>{t('notice.pdf.page')}</th>
+            {items.map((p, i) => (
+              <td
+                key={i}
+                className={`${dataCellCls} font-semibold text-slate-900 dark:text-slate-100`}
+              >
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  {p.page}
+                  <ReasoningBadge
+                    content={<div className="whitespace-pre-line">{reasoning[p.page] || t('notice.cat.noReasoning')}</div>}
+                    label={t('notice.cat.thinking')}
+                    reasons
+                  />
+                </span>
+              </td>
+            ))}
+          </tr>
           {hasBag && (
             <tr className={rowCls}>
               <th className={labelCellCls}>{t('notice.parts.bag')}</th>

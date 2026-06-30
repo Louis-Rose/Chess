@@ -51,6 +51,8 @@ type Snapshot = {
   busy: boolean;
   items: PartItem[];
   error: string | null;
+  // The model's reasoning per page (shown in the PAGE row's tooltip).
+  reasoning: Record<number, string>;
   // Pages done / total while extracting (null when idle), shown like Étape 1.
   progress: { done: number; total: number } | null;
 };
@@ -58,6 +60,7 @@ type Entry = { snapshot: Snapshot; controller: AbortController | null; listeners
 
 const entries = new Map<string, Entry>();
 const partsKey = (docId: string) => `notice.parts.${docId}`;
+const reasonKey = (docId: string) => `notice.partsReason.${docId}`;
 
 function loadItems(docId: string): PartItem[] {
   try {
@@ -77,11 +80,29 @@ function saveItems(docId: string, items: PartItem[]) {
   }
 }
 
+function loadReason(docId: string): Record<number, string> {
+  try {
+    const raw = localStorage.getItem(reasonKey(docId));
+    const obj = raw ? (JSON.parse(raw) as Record<number, string>) : {};
+    return obj && typeof obj === 'object' ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveReason(docId: string, reasoning: Record<number, string>) {
+  try {
+    localStorage.setItem(reasonKey(docId), JSON.stringify(reasoning));
+  } catch {
+    // ignore quota / serialization errors
+  }
+}
+
 function getEntry(docId: string): Entry {
   let entry = entries.get(docId);
   if (!entry) {
     entry = {
-      snapshot: { busy: false, items: loadItems(docId), error: null, progress: null },
+      snapshot: { busy: false, items: loadItems(docId), error: null, reasoning: loadReason(docId), progress: null },
       controller: null,
       listeners: new Set(),
     };
@@ -111,8 +132,9 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
   const controller = new AbortController();
   entry.controller = controller;
   const { signal } = controller;
-  update(docId, { busy: true, error: null, items: [], progress: { done: 0, total: bands.pages.length } });
+  update(docId, { busy: true, error: null, items: [], reasoning: {}, progress: { done: 0, total: bands.pages.length } });
   saveItems(docId, []);
+  saveReason(docId, {});
 
   let loadingTask: PDFDocumentLoadingTask | null = null;
   try {
@@ -120,6 +142,7 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
     loadingTask = pdfjsLib.getDocument({ data: buf });
     const doc: PDFDocumentProxy = await loadingTask.promise;
     const items: PartItem[] = [];
+    const reasoning: Record<number, string> = {};
     let done = 0;
     const total = bands.pages.length;
 
@@ -135,8 +158,10 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
 
       const { data } = await axios.post<{
         parts: { bbox: [number, number, number, number]; qty: number | null; ref: string | null; bag: string | null }[];
+        reasoning?: string;
       }>('/api/notice/parts', { model: bands.model, image, page }, { signal });
 
+      reasoning[page] = data.reasoning || '';
       const span = band.bottom - band.top;
       for (const p of data.parts || []) {
         const [bx0, by0, bx1, by1] = p.bbox;
@@ -152,7 +177,8 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
       // Show the deduplicated list (false duplicates collapsed across pages).
       const shown = dedupeParts(items);
       saveItems(docId, shown);
-      update(docId, { items: shown, progress: { done: ++done, total } });
+      saveReason(docId, { ...reasoning });
+      update(docId, { items: shown, reasoning: { ...reasoning }, progress: { done: ++done, total } });
     }
   } catch (e) {
     if (!axios.isCancel(e)) {

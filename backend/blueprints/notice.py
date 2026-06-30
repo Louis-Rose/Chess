@@ -387,7 +387,7 @@ def parts():
 
     user_id = getattr(request, 'user_id', None)
     try:
-        answer, _ = _gemini_on_images(
+        answer, thoughts = _gemini_on_images(
             model, [image_bytes], _PARTS_PROMPT, user_id, phase='parts',
             pages=[page] if page else None, want_thoughts=True,
         )
@@ -400,7 +400,7 @@ def parts():
     items = _parse_parts(answer)
     if items is None:
         return jsonify({'error': 'The parts list could not be read.'}), 502
-    return jsonify({'parts': items})
+    return jsonify({'parts': items, 'reasoning': thoughts or ''})
 
 
 def _parts_qty(v):
