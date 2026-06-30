@@ -1,0 +1,119 @@
+import { useEffect, useState } from 'react';
+import * as pdfjsLib from 'pdfjs-dist';
+import { useLanguage } from '../../contexts/LanguageContext';
+import type { PartItem } from './partsRun';
+// Side-effect import: configures the shared PDF.js worker.
+import './pdfRender';
+
+// Crop a normalized bbox (x0,y0,x1,y1 in 0..1) out of a rendered page canvas,
+// with a little margin to absorb bounding-box imprecision, as a PNG data URL.
+function cropCanvas(src: HTMLCanvasElement, bbox: [number, number, number, number], margin = 0.015): string {
+  const [x0, y0, x1, y1] = bbox;
+  const sx = Math.max(0, x0 - margin) * src.width;
+  const sy = Math.max(0, y0 - margin) * src.height;
+  const sw = Math.min(1, x1 + margin) * src.width - sx;
+  const sh = Math.min(1, y1 + margin) * src.height - sy;
+  const out = document.createElement('canvas');
+  out.width = Math.max(1, Math.round(sw));
+  out.height = Math.max(1, Math.round(sh));
+  const ctx = out.getContext('2d');
+  if (!ctx) return '';
+  ctx.drawImage(src, sx, sy, sw, sh, 0, 0, out.width, out.height);
+  return out.toDataURL('image/png');
+}
+
+// The extracted supplied-parts list: one row per part, with its piece image
+// cropped from the PDF on the fly (so nothing big is persisted). The bag and
+// reference columns appear only when at least one part carries that field.
+export function PartsTable({ file, items }: { file: Blob; items: PartItem[] }) {
+  const { t } = useLanguage();
+  const [crops, setCrops] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    setCrops({});
+    (async () => {
+      const buf = await file.arrayBuffer();
+      const task = pdfjsLib.getDocument({ data: buf });
+      const doc = await task.promise;
+      const cache = new Map<number, HTMLCanvasElement>();
+      const renderPage = async (n: number) => {
+        const hit = cache.get(n);
+        if (hit) return hit;
+        const pdfPage = await doc.getPage(n);
+        const base = pdfPage.getViewport({ scale: 1 });
+        const viewport = pdfPage.getViewport({ scale: 1600 / base.width });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('no 2d context');
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        await pdfPage.render({ canvas, canvasContext: ctx, viewport }).promise;
+        cache.set(n, canvas);
+        return canvas;
+      };
+
+      const next: Record<number, string> = {};
+      for (let i = 0; i < items.length; i++) {
+        if (cancelled) {
+          void task.destroy();
+          return;
+        }
+        try {
+          const canvas = await renderPage(items[i].page);
+          next[i] = cropCanvas(canvas, items[i].bbox);
+        } catch {
+          // skip a page that fails to render
+        }
+      }
+      if (!cancelled) setCrops(next);
+      void task.destroy();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [file, items]);
+
+  const hasBag = items.some((p) => p.bag);
+  const hasRef = items.some((p) => p.ref);
+
+  const thCls = 'px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-900 dark:text-white';
+  const tdCls = 'border-t border-slate-200 px-4 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-300';
+
+  return (
+    <div className="mx-auto w-full max-w-3xl overflow-x-auto rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
+      <table className="w-full text-left text-sm">
+        <thead>
+          <tr className="border-b-2 border-slate-300 dark:border-slate-700">
+            {hasBag && <th className={thCls}>{t('notice.parts.bag')}</th>}
+            {hasRef && <th className={thCls}>{t('notice.parts.ref')}</th>}
+            <th className={`${thCls} text-center`}>{t('notice.parts.qty')}</th>
+            <th className={`${thCls} text-center`}>{t('notice.parts.piece')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((p, i) => (
+            <tr key={i}>
+              {hasBag && <td className={tdCls}>{p.bag ?? '—'}</td>}
+              {hasRef && <td className={`${tdCls} font-mono`}>{p.ref ?? '—'}</td>}
+              <td className={`${tdCls} text-center font-semibold tabular-nums text-slate-900 dark:text-slate-100`}>
+                {p.qty}x
+              </td>
+              <td className={`${tdCls} text-center`}>
+                {crops[i] ? (
+                  <img
+                    src={crops[i]}
+                    alt={p.ref ?? t('notice.parts.piece')}
+                    className="mx-auto max-h-20 w-auto rounded bg-white"
+                  />
+                ) : (
+                  <span className="text-slate-400">…</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

@@ -31,3 +31,40 @@ export async function renderPdfPageToImage(
     return null;
   }
 }
+
+// Render a page and return only the vertical band [top, bottom] (0..1 from the
+// top) as a PNG data URL. Used to send just the in-category section of a page to
+// the model. A full-page band (0..1) returns the whole page.
+export async function renderPdfPageBand(
+  doc: PDFDocumentProxy,
+  n: number,
+  top: number,
+  bottom: number,
+  targetWidth = 1100,
+): Promise<string | null> {
+  try {
+    const pdfPage = await doc.getPage(n);
+    const base = pdfPage.getViewport({ scale: 1 });
+    const viewport = pdfPage.getViewport({ scale: targetWidth / base.width });
+    const full = document.createElement('canvas');
+    const fctx = full.getContext('2d');
+    if (!fctx) return null;
+    full.width = Math.floor(viewport.width);
+    full.height = Math.floor(viewport.height);
+    await pdfPage.render({ canvas: full, canvasContext: fctx, viewport }).promise;
+    if (top <= 0 && bottom >= 1) return full.toDataURL('image/png');
+
+    const y0 = Math.max(0, Math.floor(top * full.height));
+    const y1 = Math.min(full.height, Math.ceil(bottom * full.height));
+    const h = Math.max(1, y1 - y0);
+    const band = document.createElement('canvas');
+    const bctx = band.getContext('2d');
+    if (!bctx) return null;
+    band.width = full.width;
+    band.height = h;
+    bctx.drawImage(full, 0, y0, full.width, h, 0, 0, full.width, h);
+    return band.toDataURL('image/png');
+  } catch {
+    return null;
+  }
+}

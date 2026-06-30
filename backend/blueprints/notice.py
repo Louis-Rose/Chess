@@ -347,6 +347,116 @@ def _parse_categorize_batch(answer, expected):
     return out
 
 
+_PARTS_PROMPT = (
+    "This image is the 'supplied parts / hardware' (Matériel fourni) section of a "
+    "furniture assembly manual. List EVERY distinct part/fitting drawn (screws, "
+    "cams, dowels, plates, etc.). For each part return one JSON object:\n"
+    "- box_2d: the bounding box of that part's DRAWING ONLY (not its number/label), "
+    "as [ymin, xmin, ymax, xmax] normalized to 0-1000.\n"
+    "- qty: the quantity printed next to it (the number in 'Nx', 'x N' or 'N x'), as "
+    "an integer; if no number is shown use 1.\n"
+    "- ref: the printed reference/article number if any (e.g. \"100345\", \"151706\"), "
+    "else null.\n"
+    "- bag: the bag/sachet label if the parts are grouped in labelled bags, else null.\n"
+    "Reply with ONLY a JSON array, no prose, no code fence, one object per part: "
+    '{"box_2d": [ymin, xmin, ymax, xmax], "qty": <int>, "ref": <string|null>, '
+    '"bag": <string|null>}.'
+)
+
+
+@notice_bp.route('/api/notice/parts', methods=['POST'])
+@login_required
+def parts():
+    """Extract the supplied-parts list from one Matériel fourni page (or the
+    cropped material section). Returns one entry per part with its quantity,
+    optional reference/bag, and a bounding box (normalized 0..1, x0/y0/x1/y1) of
+    its drawing, so the client can crop the piece image."""
+    data = request.get_json(silent=True) or {}
+    model = (data.get('model') or '').strip()
+    if model not in ALLOWED_MODELS:
+        return jsonify({'error': 'Unknown model.'}), 400
+
+    image_bytes, err = _decode_image(data.get('image') or '')
+    if err:
+        return err
+    try:
+        page = int(data.get('page')) if data.get('page') is not None else None
+    except (TypeError, ValueError):
+        page = None
+
+    user_id = getattr(request, 'user_id', None)
+    try:
+        answer, _ = _gemini_on_images(
+            model, [image_bytes], _PARTS_PROMPT, user_id, phase='parts',
+            pages=[page] if page else None,
+        )
+    except ValueError:
+        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
+    except Exception:
+        logger.exception('[notice] parts failed')
+        return jsonify({'error': 'Parts extraction failed.'}), 502
+
+    items = _parse_parts(answer)
+    if items is None:
+        return jsonify({'error': 'The parts list could not be read.'}), 502
+    return jsonify({'parts': items})
+
+
+def _parts_qty(v):
+    """Coerce a quantity to a positive int, tolerating '8', 8, '8x', 'x8'."""
+    if isinstance(v, (int, float)):
+        return max(1, int(v))
+    m = re.search(r'\d+', str(v or ''))
+    return max(1, int(m.group())) if m else 1
+
+
+def _parse_parts(answer):
+    """Parse the model's JSON array into a list of
+    {bbox:[x0,y0,x1,y1], qty, ref, bag}. box_2d ([ymin,xmin,ymax,xmax], 0-1000) is
+    converted to a normalized x0/y0/x1/y1 (0..1). Returns None only if the reply
+    isn't a JSON array; individual malformed entries are skipped."""
+    import json
+
+    txt = (answer or '').strip()
+    try:
+        arr = json.loads(txt[txt.index('['):txt.rindex(']') + 1])
+    except (ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(arr, list):
+        return None
+
+    out = []
+    for obj in arr:
+        if not isinstance(obj, dict):
+            continue
+        box = obj.get('box_2d')
+        if not (isinstance(box, list) and len(box) == 4):
+            continue
+        try:
+            ymin, xmin, ymax, xmax = (float(v) for v in box)
+        except (TypeError, ValueError):
+            continue
+        x0 = min(xmin, xmax) / 1000
+        y0 = min(ymin, ymax) / 1000
+        x1 = max(xmin, xmax) / 1000
+        y1 = max(ymin, ymax) / 1000
+        x0, y0 = max(0.0, x0), max(0.0, y0)
+        x1, y1 = min(1.0, x1), min(1.0, y1)
+        if x1 <= x0 or y1 <= y0:
+            continue
+        ref = obj.get('ref')
+        ref = str(ref).strip() if ref else None
+        bag = obj.get('bag')
+        bag = str(bag).strip() if bag else None
+        out.append({
+            'bbox': [round(x0, 4), round(y0, 4), round(x1, 4), round(y1, 4)],
+            'qty': _parts_qty(obj.get('qty')),
+            'ref': ref or None,
+            'bag': bag or None,
+        })
+    return out
+
+
 @notice_bp.route('/api/notice/notes', methods=['GET'])
 @login_required
 def notes():

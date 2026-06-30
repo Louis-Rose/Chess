@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, Loader2, Upload } from 'lucide-react';
 import { PdfViewer } from '../PdfViewer';
 import { CategoryTable } from '../CategoryTable';
-import { CategoryViewer } from '../CategoryViewer';
+import { MaterialStep } from '../MaterialStep';
 import { EtapeSection } from '../EtapeSection';
 import { SECTION_WIDTH } from '../sectionWidth';
 import { getFile, type NoticeFile } from '../noticeStore';
@@ -173,8 +173,8 @@ export function NoticeViewer() {
               />
             </EtapeSection>
             <EtapeSection title={`${t('notice.step')} 2${t('notice.step.sep')}${t('notice.step2.title')}`} info={notes?.[1]}>
-              {/* The "Matériel fourni" pages, off-category parts blacked out */}
-              <CategoryViewer file={current.data} docId={current.id} category="Matériel fourni" />
+              {/* The "Matériel fourni" pages + extracted supplied-parts table */}
+              <MaterialStep file={current.data} docId={current.id} />
             </EtapeSection>
             <EtapeSection title={`${t('notice.step')} 3`} info={notes?.[2]} />
             <EtapeSection title={`${t('notice.step')} 4`} info={notes?.[3]} />
