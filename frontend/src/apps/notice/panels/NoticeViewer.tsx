@@ -176,7 +176,7 @@ export function NoticeViewer() {
               {/* The "Matériel fourni" pages + extracted supplied-parts table */}
               <MaterialStep file={current.data} docId={current.id} />
             </EtapeSection>
-            <EtapeSection title={`${t('notice.step')} 3`} info={notes?.[2]} />
+            <EtapeSection title={`${t('notice.step')} 3${t('notice.step.sep')}${t('notice.step3.title')}`} info={notes?.[2]} />
             <EtapeSection title={`${t('notice.step')} 4`} info={notes?.[3]} />
           </div>
         </div>
