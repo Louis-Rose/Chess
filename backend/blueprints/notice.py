@@ -528,7 +528,7 @@ def part_images():
         return jsonify({'error': 'Image search is not configured on the server.'}), 503
 
     query = f'{brand_q} {ref}'.strip()
-    body = json.dumps({'q': query, 'num': 6}).encode('utf-8')
+    body = json.dumps({'q': query, 'num': 9}).encode('utf-8')
     req = urllib.request.Request(
         'https://google.serper.dev/images', data=body, method='POST',
         headers={'X-API-KEY': api_key, 'Content-Type': 'application/json'},

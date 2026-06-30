@@ -3,12 +3,11 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { renderPdfPageToImage } from './pdfRender';
 
 // Étape 3 helpers: brand detection, web image search, and persistence of the
-// detected brand and the user's chosen image per part (keyed by reference).
+// detected brand (keyed by document).
 
 export type ImageHit = { url: string; thumbnail: string; title: string; context: string };
 
 const brandKey = (docId: string) => `notice.brand.${docId}`;
-const chosenKey = (docId: string) => `notice.partImages.${docId}`;
 
 export function loadBrand(docId: string): string {
   try {
@@ -21,24 +20,6 @@ export function loadBrand(docId: string): string {
 export function saveBrand(docId: string, brand: string) {
   try {
     localStorage.setItem(brandKey(docId), brand);
-  } catch {
-    // ignore
-  }
-}
-
-export function loadChosen(docId: string): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(chosenKey(docId));
-    const obj = raw ? (JSON.parse(raw) as Record<string, string>) : {};
-    return obj && typeof obj === 'object' ? obj : {};
-  } catch {
-    return {};
-  }
-}
-
-export function saveChosen(docId: string, chosen: Record<string, string>) {
-  try {
-    localStorage.setItem(chosenKey(docId), JSON.stringify(chosen));
   } catch {
     // ignore
   }

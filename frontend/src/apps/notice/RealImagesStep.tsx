@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Check, Loader2, Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { usePartsRun, type PartItem } from './partsRun';
 import { renderPartCrop } from './partCrop';
-import { loadChosen, saveChosen, searchPartImages, type ImageHit } from './realImages';
+import { searchPartImages, type ImageHit } from './realImages';
+import { ImageLightbox } from './ImageLightbox';
 import { useBrand } from './brandStore';
 import { runBtnClass } from './controls';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -11,7 +12,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 // Étape 3: find a real photo of each supplied part. The brand is auto-detected
 // from the cover; a dropdown lists the parts found in Étape 2 (those with a
 // reference); searching runs one part at a time and shows candidate images
-// next to the manual's drawing, and the chosen one is remembered per part.
+// next to the manual's drawing. Clicking a candidate zooms it in the lightbox.
 export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const { t } = useLanguage();
   const { items } = usePartsRun(docId);
@@ -23,7 +24,7 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const [searching, setSearching] = useState(false);
   const [candidates, setCandidates] = useState<ImageHit[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [chosen, setChosen] = useState<Record<string, string>>(() => loadChosen(docId));
+  const [zoom, setZoom] = useState<string | null>(null);
 
   const selected = parts.find((p) => p.ref === selectedRef) ?? null;
 
@@ -66,13 +67,6 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     } finally {
       setSearching(false);
     }
-  };
-
-  const pick = (url: string) => {
-    if (!selectedRef) return;
-    const next = { ...chosen, [selectedRef]: url };
-    setChosen(next);
-    saveChosen(docId, next);
   };
 
   const label = (p: PartItem) =>
@@ -124,32 +118,27 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
 
         {candidates.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {candidates.map((c, i) => {
-              const picked = chosen[selectedRef] === c.url;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => pick(c.url)}
-                  title={c.title}
-                  className={`relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-1 transition-colors ${
-                    picked
-                      ? 'border-emerald-500 ring-2 ring-emerald-500/40'
-                      : 'border-slate-300 hover:border-emerald-400 dark:border-slate-700'
-                  }`}
-                >
-                  <img src={c.thumbnail} alt={c.title} loading="lazy" className="max-h-full max-w-full object-contain" />
-                  {picked && (
-                    <span className="absolute right-1 top-1 rounded-full bg-emerald-500 p-0.5 text-white">
-                      <Check className="h-3 w-3" />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            {candidates.map((c, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setZoom(c.url)}
+                title={c.title}
+                className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-lg border-2 border-slate-300 bg-white p-1 transition-colors hover:border-emerald-400 dark:border-slate-700"
+              >
+                <img
+                  src={c.thumbnail}
+                  alt={c.title}
+                  loading="lazy"
+                  className="max-h-full max-w-full cursor-zoom-in object-contain"
+                />
+              </button>
+            ))}
           </div>
         )}
       </div>
+
+      <ImageLightbox src={zoom} alt={selected?.ref ?? undefined} onClose={() => setZoom(null)} />
     </div>
   );
 }

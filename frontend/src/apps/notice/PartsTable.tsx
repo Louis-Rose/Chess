@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { X } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useDragScroll } from './useDragScroll';
 import { ReasoningBadge } from './ReasoningBadge';
+import { ImageLightbox } from './ImageLightbox';
 import { cropCanvas } from './partCrop';
 import type { PartItem } from './partsRun';
 // Side-effect import: configures the shared PDF.js worker.
@@ -26,14 +26,6 @@ export function PartsTable({
   // The piece image currently zoomed (its data URL), or null.
   const [zoom, setZoom] = useState<string | null>(null);
   const scrollRef = useDragScroll<HTMLDivElement>();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setZoom(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -166,28 +158,7 @@ export function PartsTable({
       </table>
     </div>
 
-    {/* Lightbox: click the backdrop (or Escape) to close. */}
-    {zoom && (
-        <div
-          onClick={() => setZoom(null)}
-          className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/80 p-4"
-        >
-          <button
-            type="button"
-            onClick={() => setZoom(null)}
-            aria-label={t('notice.pdf.close')}
-            className="absolute right-4 top-4 cursor-pointer rounded-lg border border-slate-600 bg-slate-800/80 p-2 text-slate-200 transition-colors hover:bg-slate-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={zoom}
-            alt={t('notice.parts.piece')}
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] max-w-[90vw] cursor-default rounded-lg bg-white shadow-2xl"
-          />
-        </div>
-      )}
+    <ImageLightbox src={zoom} alt={t('notice.parts.piece')} onClose={() => setZoom(null)} />
     </>
   );
 }
