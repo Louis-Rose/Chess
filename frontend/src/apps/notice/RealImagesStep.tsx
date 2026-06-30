@@ -100,11 +100,56 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const label = (p: PartItem) =>
     `${p.ref}${p.bag ? ` (${p.bag}, ${t('notice.pdf.page')} ${p.page})` : ` (${t('notice.pdf.page')} ${p.page})`}`;
 
+  // One candidate tile: click toggles kept/discarded (which moves it between the
+  // two rows), the corner button zooms, and the source site links below.
+  const tile = (c: ImageHit, i: number) => (
+    <div key={i} className="flex w-32 flex-col items-center gap-1">
+      <div className="group relative h-32 w-32">
+        <button
+          type="button"
+          onClick={() => toggleKept(i)}
+          title={c.title}
+          className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-1 transition-colors ${
+            kept[i] ? 'border-emerald-500' : 'border-rose-500 opacity-60'
+          }`}
+        >
+          <img src={c.thumbnail} alt={c.title} loading="lazy" className="max-h-full max-w-full object-contain" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setZoom(c.url)}
+          aria-label={t('notice.pdf.zoom')}
+          title={t('notice.pdf.zoom')}
+          className="absolute right-1 top-1 rounded-md bg-black/45 p-1 text-white opacity-70 transition-opacity hover:bg-black/70 hover:opacity-100"
+        >
+          <ZoomIn className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {c.source && (
+        <a
+          href={c.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={c.source}
+          className="max-w-full truncate text-xs text-slate-400 hover:text-emerald-500 hover:underline dark:text-slate-500"
+        >
+          {c.source}
+        </a>
+      )}
+    </div>
+  );
+
   if (!parts.length) {
     return (
       <p className="text-center text-sm text-slate-500 dark:text-slate-400">{t('notice.step3.noParts')}</p>
     );
   }
+
+  // Candidates are revealed only once the kept/discarded verdicts are in, then
+  // split into a kept row (top) and a discarded row (bottom).
+  const loading = searching || filtering;
+  const keptList = candidates.map((c, i) => ({ c, i })).filter(({ i }) => kept[i]);
+  const discardedList = candidates.map((c, i) => ({ c, i })).filter(({ i }) => !kept[i]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -129,77 +174,49 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
 
       {error && <p className="text-center text-sm text-rose-600 dark:text-rose-400">{error}</p>}
 
-      {/* Drawing from the manual + candidate web images */}
-      <div className="flex flex-col items-center gap-6 md:flex-row md:items-start md:justify-center">
-        <div className="shrink-0 text-center">
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            {t('notice.parts.piece')}
-          </div>
-          <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700">
-            {crop ? (
-              <img src={crop} alt="" className="max-h-full max-w-full object-contain" />
-            ) : (
-              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+      {/* The manual's drawing, centered */}
+      <div className="flex flex-col items-center gap-1">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          {t('notice.parts.piece')}
+        </div>
+        <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700">
+          {crop ? (
+            <img src={crop} alt="" className="max-h-full max-w-full object-contain" />
+          ) : (
+            <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+          )}
+        </div>
+      </div>
+
+      {/* Candidates appear only once the kept/discarded verdicts are decided, so
+          nothing reflows: a kept row on top, a discarded row below. */}
+      {loading ? (
+        <p className="flex items-center justify-center gap-2 text-sm text-slate-400 dark:text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {filtering ? t('notice.step3.filtering') : t('notice.step3.search')}
+        </p>
+      ) : (
+        candidates.length > 0 && (
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-center text-xs text-slate-400 dark:text-slate-500">
+              {t('notice.step3.filterHint')}
+            </p>
+            {keptList.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-3">
+                {keptList.map(({ c, i }) => tile(c, i))}
+              </div>
+            )}
+            {keptList.length > 0 && discardedList.length > 0 && (
+              <hr className="w-full max-w-sm border-slate-200 dark:border-slate-700" />
+            )}
+            {discardedList.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-3">
+                {discardedList.map(({ c, i }) => tile(c, i))}
+              </div>
             )}
           </div>
-        </div>
-
-        {candidates.length > 0 && (
-          <div className="flex flex-col items-center gap-3">
-            <p className="flex items-center gap-2 text-center text-xs text-slate-400 dark:text-slate-500">
-              {filtering && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {filtering ? t('notice.step3.filtering') : t('notice.step3.filterHint')}
-            </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {candidates.map((c, i) => (
-                <div key={i} className="flex w-32 flex-col items-center gap-1">
-                  <div className="group relative h-32 w-32">
-                    <button
-                      type="button"
-                      onClick={() => toggleKept(i)}
-                      title={c.title}
-                      className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-1 transition-colors ${
-                        filtering
-                          ? 'border-slate-300 dark:border-slate-700'
-                          : kept[i]
-                            ? 'border-emerald-500'
-                            : 'border-rose-500 opacity-60'
-                      }`}
-                    >
-                      <img
-                        src={c.thumbnail}
-                        alt={c.title}
-                        loading="lazy"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setZoom(c.url)}
-                      aria-label={t('notice.pdf.zoom')}
-                      title={t('notice.pdf.zoom')}
-                      className="absolute right-1 top-1 rounded-md bg-black/45 p-1 text-white opacity-70 transition-opacity hover:bg-black/70 hover:opacity-100"
-                    >
-                      <ZoomIn className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  {c.source && (
-                    <a
-                      href={c.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={c.source}
-                      className="max-w-full truncate text-xs text-slate-400 hover:text-emerald-500 hover:underline dark:text-slate-500"
-                    >
-                      {c.source}
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        )
+      )}
 
       <ImageLightbox src={zoom} alt={selected?.ref ?? undefined} onClose={() => setZoom(null)} />
     </div>
