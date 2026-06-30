@@ -28,6 +28,10 @@ type PhaseStats = {
 };
 const EMPTY: PhaseStats = { costs: {}, times: {}, calls: {}, tokens: {} };
 
+// The two top-level dividers: Tarifs (cost tables) and Quotas (usage bars).
+const sectionHeaderCls =
+  'border-b border-slate-200 pb-2 text-center text-xl font-bold text-slate-900 dark:border-slate-700 dark:text-slate-100';
+
 // Each assembly step maps to the backend phase(s) whose Gemini usage it covers.
 // Étape 1 runs both the page classification and the brand detection (fired in
 // parallel by Lancer). Étape 3's real-image search runs on Serper, which is
@@ -117,76 +121,83 @@ export function NoticePricing() {
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : (
-        <div className="flex flex-col gap-10">
-          {ETAPES.map(({ n, phases: keys, serper: serperPhase }) => {
-            const stats = mergePhases(keys.map((k) => phases[k] || EMPTY));
-            return (
-              <section key={n}>
-                <h2 className="mb-3 text-center text-lg font-semibold text-slate-800 dark:text-slate-200">
-                  {t('notice.step')} {n}
-                  {t('notice.step.sep')}
-                  {t(`notice.step${n}.title`)}
-                </h2>
-                {serperPhase ? (
-                  <div className="mx-auto max-w-md">
-                    <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+        <div className="flex flex-col gap-14">
+          {/* Tarifs: per-étape Gemini cost tables (Étape 3 runs on Serper). */}
+          <div className="flex flex-col gap-10">
+            <h2 className={sectionHeaderCls}>{t('notice.pricing.tarifs')}</h2>
+            {ETAPES.map(({ n, phases: keys, serper: serperPhase }) => {
+              const stats = mergePhases(keys.map((k) => phases[k] || EMPTY));
+              return (
+                <section key={n}>
+                  <h3 className="mb-3 text-center text-lg font-semibold text-slate-800 dark:text-slate-200">
+                    {t('notice.step')} {n}
+                    {t('notice.step.sep')}
+                    {t(`notice.step${n}.title`)}
+                  </h3>
+                  {serperPhase ? (
+                    <p className="mx-auto max-w-md text-center text-sm text-slate-500 dark:text-slate-400">
                       {t('notice.pricing.serper')}
                     </p>
-                    {serper && (
-                      <div className="mt-4">
-                        <div className="mb-1.5 flex items-center justify-between text-sm">
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {t('notice.pricing.serperCredits')}
-                          </span>
-                          <span className="tabular-nums text-slate-600 dark:text-slate-400">
-                            {serper.used.toLocaleString()} / {serper.total.toLocaleString()}
-                          </span>
-                        </div>
-                        <Bar used={serper.used} total={serper.total} />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <ModelStatsTable
-                    costs={stats.costs}
-                    times={stats.times}
-                    calls={stats.calls}
-                    tokens={stats.tokens}
-                    pricing={pricing}
-                  />
-                )}
-              </section>
-            );
-          })}
+                  ) : (
+                    <ModelStatsTable
+                      costs={stats.costs}
+                      times={stats.times}
+                      calls={stats.calls}
+                      tokens={stats.tokens}
+                      pricing={pricing}
+                    />
+                  )}
+                </section>
+              );
+            })}
+          </div>
 
-          {/* Gemini free-tier daily usage (free key tried before the paid one). */}
-          <section>
-            <h2 className="mb-3 text-center text-lg font-semibold text-slate-800 dark:text-slate-200">
-              {t('notice.pricing.freeTier')}
-            </h2>
-            <div className="mx-auto flex max-w-md flex-col gap-4">
-              {NOTICE_MODELS.map((m) => {
-                const q = freeQuota[m.id] || { used: 0, limit: 0 };
-                return (
-                  <div key={m.id}>
-                    <div className="mb-1.5 flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: m.color }} aria-hidden />
-                        {m.label}
-                      </span>
-                      <span className="tabular-nums text-slate-600 dark:text-slate-400">
-                        {q.used.toLocaleString()} / {q.limit.toLocaleString()}
-                      </span>
+          {/* Quotas: Serper credits + Gemini free-tier usage today. */}
+          <div className="flex flex-col gap-8">
+            <h2 className={sectionHeaderCls}>{t('notice.pricing.quotas')}</h2>
+
+            {serper && (
+              <div className="mx-auto w-full max-w-md">
+                <div className="mb-1.5 flex items-center justify-between text-sm">
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {t('notice.pricing.serperCredits')}
+                  </span>
+                  <span className="tabular-nums text-slate-600 dark:text-slate-400">
+                    {serper.used.toLocaleString()} / {serper.total.toLocaleString()}
+                  </span>
+                </div>
+                <Bar used={serper.used} total={serper.total} />
+              </div>
+            )}
+
+            <div>
+              <h3 className="mb-3 text-center text-lg font-semibold text-slate-800 dark:text-slate-200">
+                {t('notice.pricing.freeTier')}
+              </h3>
+              <div className="mx-auto flex max-w-md flex-col gap-4">
+                {NOTICE_MODELS.map((m) => {
+                  const q = freeQuota[m.id] || { used: 0, limit: 0 };
+                  return (
+                    <div key={m.id}>
+                      <div className="mb-1.5 flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: m.color }} aria-hidden />
+                          {m.label}
+                        </span>
+                        <span className="tabular-nums text-slate-600 dark:text-slate-400">
+                          {q.used.toLocaleString()} / {q.limit.toLocaleString()}
+                        </span>
+                      </div>
+                      <Bar used={q.used} total={q.limit} />
                     </div>
-                    <Bar used={q.used} total={q.limit} />
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+              <p className="mx-auto mt-3 max-w-md text-center text-xs text-slate-400 dark:text-slate-500">
+                {t('notice.pricing.freeNote')}
+              </p>
             </div>
-            <p className="mx-auto mt-3 max-w-md text-center text-xs text-slate-400 dark:text-slate-500">
-              {t('notice.pricing.freeNote')}
-            </p>
-          </section>
+          </div>
         </div>
       )}
     </div>
