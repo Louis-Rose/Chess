@@ -3,41 +3,45 @@ import { CategoryViewer } from './CategoryViewer';
 import { PartsTable } from './PartsTable';
 import { useCategoryBands } from './categoryBands';
 import { extractParts, stopParts, usePartsRun } from './partsRun';
+import { runBtnClass, stopBtnClass } from './controls';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const CATEGORY = 'Matériel fourni';
 
 // Étape 2: the filtered "Matériel fourni" viewer, plus a button that runs Gemini
 // over those pages to extract the supplied-parts list (quantity, optional ref /
-// bag, and a cropped image of each piece), shown in a table underneath.
+// bag, and a cropped image of each piece), shown in a table underneath. The run
+// control mirrors Étape 1: a spinner + "done/total" page counter, plus a Stop
+// button while busy.
 export function MaterialStep({ file, docId }: { file: Blob; docId: string }) {
   const { t } = useLanguage();
   const bands = useCategoryBands(docId, CATEGORY);
-  const { busy, items, error } = usePartsRun(docId);
+  const { busy, progress, items, error } = usePartsRun(docId);
 
-  const btnClass =
-    'flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-emerald-500/10';
-  const stopBtnClass =
-    'flex items-center gap-2 rounded-lg border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition-colors hover:border-rose-500 hover:bg-rose-50 dark:border-rose-500/40 dark:bg-slate-800 dark:text-rose-300 dark:hover:bg-rose-500/10';
+  const progressSuffix = busy && progress ? ` · ${progress.done}/${progress.total}` : '';
 
   return (
     <div className="flex flex-col gap-6">
       <CategoryViewer file={file} docId={docId} category={CATEGORY} />
 
       {bands.pages.length > 0 && (
-        <div className="flex justify-center">
-          {busy ? (
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => void extractParts(docId, file, bands, t)}
+            disabled={busy}
+            className={runBtnClass}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageSearch className="h-4 w-4" />}
+            {t('notice.parts.run')}
+            {progressSuffix}
+          </button>
+          {busy && (
             <button type="button" onClick={() => stopParts(docId)} className={stopBtnClass}>
               <Square className="h-4 w-4" />
               {t('notice.cat.stop')}
             </button>
-          ) : (
-            <button type="button" onClick={() => void extractParts(docId, file, bands, t)} className={btnClass}>
-              <PackageSearch className="h-4 w-4" />
-              {t('notice.parts.run')}
-            </button>
           )}
-          {busy && <Loader2 className="ml-2 h-5 w-5 animate-spin self-center text-emerald-600 dark:text-emerald-400" />}
         </div>
       )}
 

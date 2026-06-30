@@ -20,7 +20,13 @@ export type PartItem = {
   bag: string | null;
 };
 
-type Snapshot = { busy: boolean; items: PartItem[]; error: string | null };
+type Snapshot = {
+  busy: boolean;
+  items: PartItem[];
+  error: string | null;
+  // Pages done / total while extracting (null when idle), shown like Étape 1.
+  progress: { done: number; total: number } | null;
+};
 type Entry = { snapshot: Snapshot; controller: AbortController | null; listeners: Set<() => void> };
 
 const entries = new Map<string, Entry>();
@@ -48,7 +54,7 @@ function getEntry(docId: string): Entry {
   let entry = entries.get(docId);
   if (!entry) {
     entry = {
-      snapshot: { busy: false, items: loadItems(docId), error: null },
+      snapshot: { busy: false, items: loadItems(docId), error: null, progress: null },
       controller: null,
       listeners: new Set(),
     };
@@ -78,7 +84,7 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
   const controller = new AbortController();
   entry.controller = controller;
   const { signal } = controller;
-  update(docId, { busy: true, error: null, items: [] });
+  update(docId, { busy: true, error: null, items: [], progress: { done: 0, total: bands.pages.length } });
   saveItems(docId, []);
 
   let loadingTask: PDFDocumentLoadingTask | null = null;
@@ -87,13 +93,18 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
     loadingTask = pdfjsLib.getDocument({ data: buf });
     const doc: PDFDocumentProxy = await loadingTask.promise;
     const items: PartItem[] = [];
+    let done = 0;
+    const total = bands.pages.length;
 
     for (const page of bands.pages) {
       if (signal.aborted) break;
       const band = bands.bands[page] ?? { top: 0, bottom: 1 };
       const image = await renderPdfPageBand(doc, page, band.top, band.bottom);
       if (signal.aborted) break;
-      if (!image) continue;
+      if (!image) {
+        update(docId, { progress: { done: ++done, total } });
+        continue;
+      }
 
       const { data } = await axios.post<{
         parts: { bbox: [number, number, number, number]; qty: number; ref: string | null; bag: string | null }[];
@@ -112,7 +123,7 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
         });
       }
       saveItems(docId, items.slice());
-      update(docId, { items: items.slice() });
+      update(docId, { items: items.slice(), progress: { done: ++done, total } });
     }
   } catch (e) {
     if (!axios.isCancel(e)) {
@@ -124,7 +135,7 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
     }
   } finally {
     entry.controller = null;
-    update(docId, { busy: false });
+    update(docId, { busy: false, progress: null });
     void loadingTask?.destroy();
   }
 }

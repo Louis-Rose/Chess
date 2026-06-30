@@ -5,6 +5,7 @@ import { ModelStatsTable } from './ModelStatsTable';
 import { PageCategoriesTable } from './PageCategoriesTable';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { requestPage, selectRun, startRange, stopRun, toggleModel, useRun } from './categoryRun';
+import { runBtnClass, stopBtnClass } from './controls';
 
 // Etape 1: page classification. Stacked top to bottom:
 //   1. the per-model run economics (cost / time / calls / tokens),
@@ -77,10 +78,6 @@ export function CategoryTable({
     if (!busy) void loadCosts();
   }, [busy, loadCosts]);
 
-  const btnClass =
-    'flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-emerald-500/10';
-  const stopBtnClass =
-    'flex items-center gap-2 rounded-lg border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm transition-colors hover:border-rose-500 hover:bg-rose-50 dark:border-rose-500/40 dark:bg-slate-800 dark:text-rose-300 dark:hover:bg-rose-500/10';
   const numInputClass =
     'w-14 rounded-md border border-slate-300 bg-white px-2 py-1 text-center text-sm text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
   const navBtnClass =
@@ -147,7 +144,7 @@ export function CategoryTable({
             type="button"
             onClick={() => void startRange(docId, file, Number(from) || 1, Number(to) || numPages, t)}
             disabled={!!busy || numPages < 1}
-            className={btnClass}
+            className={runBtnClass}
           >
             {busy === 'range' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {t('notice.cat.runRange')}
