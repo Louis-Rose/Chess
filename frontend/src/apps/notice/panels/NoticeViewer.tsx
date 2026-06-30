@@ -172,7 +172,7 @@ export function NoticeViewer() {
                 file={current.data}
               />
             </EtapeSection>
-            <EtapeSection title={`${t('notice.step')} 2`} info={notes?.[1]}>
+            <EtapeSection title={`${t('notice.step')} 2${t('notice.step.sep')}${t('notice.step2.title')}`} info={notes?.[1]}>
               {/* The "Matériel fourni" pages, off-category parts blacked out */}
               <CategoryViewer file={current.data} docId={current.id} category="Matériel fourni" />
             </EtapeSection>
