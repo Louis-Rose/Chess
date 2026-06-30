@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Brain } from 'lucide-react';
+import { ArrowUp, Brain } from 'lucide-react';
 import { NOTICE_MODELS } from './models';
 import type { Split } from './categoryRun';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -103,7 +103,9 @@ export function PageCategoriesTable({
         ) : (
           c.cat ?? '—'
         )}
-        {classified && <ReasoningBadge content={tooltipContent(c)} label={t('notice.cat.thinking')} />}
+        {classified && (
+          <ReasoningBadge content={tooltipContent(c)} label={t('notice.cat.thinking')} reasons={c.reasons} />
+        )}
       </span>
     );
   };
@@ -183,7 +185,15 @@ export function PageCategoriesTable({
 // open while the pointer is over the tooltip itself, so long text can be scrolled.
 const MARGIN = 12;
 
-function ReasoningBadge({ content, label }: { content: ReactNode; label: string }) {
+function ReasoningBadge({
+  content,
+  label,
+  reasons,
+}: {
+  content: ReactNode;
+  label: string;
+  reasons: boolean;
+}) {
   const iconRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -223,7 +233,7 @@ function ReasoningBadge({ content, label }: { content: ReactNode; label: string 
   return (
     <span ref={iconRef} onMouseEnter={openTip} onMouseLeave={scheduleClose} className="inline-flex">
       <span className="inline-flex items-center justify-center rounded-full border border-slate-300 p-0.5 text-slate-400 transition-colors hover:border-emerald-500 hover:text-emerald-600 dark:border-slate-600 dark:text-slate-500 dark:hover:border-emerald-400 dark:hover:text-emerald-400">
-        <Brain className="h-3 w-3" aria-label={label} />
+        {reasons ? <Brain className="h-3 w-3" aria-label={label} /> : <ArrowUp className="h-3 w-3" aria-label={label} />}
       </span>
       {open &&
         createPortal(
