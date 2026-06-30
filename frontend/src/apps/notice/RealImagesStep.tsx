@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Loader2, Search, ZoomIn } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { usePartsRun, type PartItem } from './partsRun';
 import { renderPartCrops } from './partCrop';
 import { searchPartImages, filterPartImages, loadResult, loadResults, saveResult, type ImageHit } from './realImages';
@@ -155,8 +155,14 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
     }
   };
 
-  const toggleKept = (i: number) => {
-    const next = kept.map((k, j) => (j === i ? !k : k));
+  // The candidate currently being dragged between the kept/discarded zones.
+  const dragIndexRef = useRef<number | null>(null);
+
+  // Set a candidate's kept/discarded status (on drop into a zone) and persist.
+  const setStatus = (i: number | null, keep: boolean) => {
+    dragIndexRef.current = null;
+    if (i == null || kept[i] === keep) return;
+    const next = kept.map((k, j) => (j === i ? keep : k));
     setKept(next);
     if (selected?.ref) saveResult(docId, selected.ref as string, { candidates, kept: next });
   };
@@ -181,31 +187,31 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
   const label = (p: PartItem) =>
     `${p.ref}${p.bag ? ` (${p.bag}, ${t('notice.pdf.page')} ${p.page})` : ` (${t('notice.pdf.page')} ${p.page})`}`;
 
-  // One candidate tile: click toggles kept/discarded (which moves it between the
-  // two rows), the corner button zooms, and the source site links below.
+  // One candidate tile: click anywhere zooms; drag it into the other zone to
+  // change its kept/discarded status. The source site links below.
   const tile = (c: ImageHit, i: number) => (
     <div key={i} className="flex w-44 flex-col items-center gap-1">
-      <div className="group relative h-44 w-44">
-        <button
-          type="button"
-          onClick={() => toggleKept(i)}
-          title={c.title}
-          className={`flex h-full w-full items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-1 transition-colors ${
-            kept[i] ? 'border-emerald-500' : 'border-rose-500 opacity-60'
-          }`}
-        >
-          <img src={c.thumbnail} alt={c.title} loading="lazy" className="max-h-full max-w-full object-contain" />
-        </button>
-        <button
-          type="button"
-          onClick={() => setZoom(c.url)}
-          aria-label={t('notice.pdf.zoom')}
-          title={t('notice.pdf.zoom')}
-          className="absolute right-1 top-1 rounded-md bg-black/45 p-1 text-white opacity-70 transition-opacity hover:bg-black/70 hover:opacity-100"
-        >
-          <ZoomIn className="h-3.5 w-3.5" />
-        </button>
-      </div>
+      <button
+        type="button"
+        draggable
+        onDragStart={(e) => {
+          dragIndexRef.current = i;
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+        onClick={() => setZoom(c.url)}
+        title={c.title}
+        className={`flex h-44 w-44 items-center justify-center overflow-hidden rounded-lg border-2 bg-white p-1 transition-colors ${
+          kept[i] ? 'border-emerald-500' : 'border-rose-500 opacity-60'
+        }`}
+      >
+        <img
+          src={c.thumbnail}
+          alt={c.title}
+          loading="lazy"
+          draggable={false}
+          className="max-h-full max-w-full cursor-zoom-in object-contain"
+        />
+      </button>
       {c.source && (
         <a
           href={c.url}
@@ -217,6 +223,32 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
           {c.source}
         </a>
       )}
+    </div>
+  );
+
+  // A drop zone (kept or discarded): dropping a dragged candidate here sets its
+  // status. Always shown so there's a target even when the zone is empty.
+  const zone = (
+    list: { c: ImageHit; i: number }[],
+    keep: boolean,
+    labelKey: string,
+    accent: string,
+  ) => (
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={() => setStatus(dragIndexRef.current, keep)}
+      className="w-full"
+    >
+      <div className={`mb-2 text-center text-xs font-semibold uppercase tracking-wide ${accent}`}>
+        {t(labelKey)}
+      </div>
+      <div className="flex min-h-[3.5rem] flex-wrap justify-center gap-3 rounded-lg border border-dashed border-slate-200 p-3 dark:border-slate-700">
+        {list.length > 0 ? (
+          list.map(({ c, i }) => tile(c, i))
+        ) : (
+          <span className="self-center text-xs text-slate-300 dark:text-slate-600">—</span>
+        )}
+      </div>
     </div>
   );
 
@@ -318,27 +350,17 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
       </div>
 
       {/* Candidates appear only once the kept/discarded verdicts are decided, so
-          nothing reflows: a kept row on top, a discarded row below. */}
+          nothing reflows: a kept zone over a discarded zone. Drag a tile into the
+          other zone to change its status. */}
       {busy ? (
         <p className="flex items-center justify-center gap-2 text-sm text-slate-400 dark:text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin" />
           {t('notice.step3.filtering')}
         </p>
       ) : candidates.length > 0 ? (
-        <div className="flex flex-col items-center gap-4">
-          {keptList.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-3">
-              {keptList.map(({ c, i }) => tile(c, i))}
-            </div>
-          )}
-          {keptList.length > 0 && discardedList.length > 0 && (
-            <hr className="w-full max-w-sm border-slate-200 dark:border-slate-700" />
-          )}
-          {discardedList.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-3">
-              {discardedList.map(({ c, i }) => tile(c, i))}
-            </div>
-          )}
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+          {zone(keptList, true, 'notice.step3.kept', 'text-emerald-600 dark:text-emerald-400')}
+          {zone(discardedList, false, 'notice.step3.discarded', 'text-rose-600 dark:text-rose-400')}
         </div>
       ) : (
         searched && (
