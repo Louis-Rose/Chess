@@ -1441,3 +1441,17 @@ def init_db():
                 "WHERE position = ? AND body <> ?",
                 (_fr, _en, _pos, _fr),
             )
+
+        # Migration: track Serper image-search credit spend. Serper has no balance
+        # API, so the Pricing tab's quota bar sums the credits each part-images
+        # call reports (one row per call). The plan size and any pre-tracking
+        # baseline are configured via env (SERPER_PLAN_CREDITS / SERPER_CREDITS_USED).
+        if not _table_exists(conn, 'serper_usage'):
+            conn.execute("""
+                CREATE TABLE serper_usage (
+                    id         SERIAL PRIMARY KEY,
+                    credits    INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            logger.info("Created serper_usage table")

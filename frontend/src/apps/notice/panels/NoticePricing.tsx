@@ -58,19 +58,24 @@ export function NoticePricing() {
   const { t } = useLanguage();
   const [phases, setPhases] = useState<Record<string, PhaseStats>>({});
   const [pricing, setPricing] = useState<Record<string, { input: number; output: number }>>({});
+  const [serper, setSerper] = useState<{ used: number; total: number } | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const { data } = await axios.get<{
-          phases: Record<string, PhaseStats>;
-          pricing: Record<string, { input: number; output: number }>;
-        }>('/api/notice/costs');
+        const [costs, quota] = await Promise.all([
+          axios.get<{
+            phases: Record<string, PhaseStats>;
+            pricing: Record<string, { input: number; output: number }>;
+          }>('/api/notice/costs'),
+          axios.get<{ used: number; total: number }>('/api/notice/serper-quota'),
+        ]);
         if (cancelled) return;
-        setPhases(data.phases || {});
-        setPricing(data.pricing || {});
+        setPhases(costs.data.phases || {});
+        setPricing(costs.data.pricing || {});
+        setSerper(quota.data);
       } catch {
         // non-fatal: leave the figures empty
       } finally {
@@ -95,7 +100,7 @@ export function NoticePricing() {
         </div>
       ) : (
         <div className="flex flex-col gap-10">
-          {ETAPES.map(({ n, phases: keys, serper }) => {
+          {ETAPES.map(({ n, phases: keys, serper: serperPhase }) => {
             const stats = mergePhases(keys.map((k) => phases[k] || EMPTY));
             return (
               <section key={n}>
@@ -104,10 +109,32 @@ export function NoticePricing() {
                   {t('notice.step.sep')}
                   {t(`notice.step${n}.title`)}
                 </h2>
-                {serper ? (
-                  <p className="mx-auto max-w-md text-center text-sm text-slate-500 dark:text-slate-400">
-                    {t('notice.pricing.serper')}
-                  </p>
+                {serperPhase ? (
+                  <div className="mx-auto max-w-md">
+                    <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                      {t('notice.pricing.serper')}
+                    </p>
+                    {serper && (
+                      <div className="mt-4">
+                        <div className="mb-1.5 flex items-center justify-between text-sm">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {t('notice.pricing.serperCredits')}
+                          </span>
+                          <span className="tabular-nums text-slate-600 dark:text-slate-400">
+                            {serper.used.toLocaleString()} / {serper.total.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                          <div
+                            className="h-full rounded-full bg-emerald-500 transition-[width]"
+                            style={{
+                              width: `${Math.min(100, serper.total > 0 ? (serper.used / serper.total) * 100 : 0)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <ModelStatsTable
                     costs={stats.costs}

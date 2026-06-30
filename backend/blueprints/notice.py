@@ -541,6 +541,16 @@ def part_images():
         logger.exception('[notice] part-images search failed')
         return jsonify({'error': 'Image search failed.'}), 502
 
+    # Record the credits this call spent, for the Pricing tab's quota bar (Serper
+    # has no balance API). Best-effort: a logging failure must not fail the search.
+    try:
+        spent = int(payload.get('credits') or 0)
+        if spent > 0:
+            with get_db() as conn:
+                conn.execute('INSERT INTO serper_usage (credits) VALUES (?)', (spent,))
+    except Exception:
+        logger.warning('[notice] failed to record serper credits', exc_info=True)
+
     images = []
     for it in payload.get('images') or []:
         images.append({
@@ -550,6 +560,25 @@ def part_images():
             'context': it.get('link'),
         })
     return jsonify({'images': images, 'query': query})
+
+
+@notice_bp.route('/api/notice/serper-quota', methods=['GET'])
+@login_required
+def serper_quota():
+    """Serper image-search credit usage for the Pricing tab's quota bar. Serper
+    exposes no balance API, so we sum the credits our own calls reported and
+    compare to the plan size. `used` adds a configurable baseline for credits
+    spent before tracking began (SERPER_CREDITS_USED); the plan size is
+    SERPER_PLAN_CREDITS (defaults to the 2,500 free tier)."""
+    try:
+        total = int(os.getenv('SERPER_PLAN_CREDITS') or 2500)
+        base = int(os.getenv('SERPER_CREDITS_USED') or 0)
+    except ValueError:
+        total, base = 2500, 0
+    with get_db() as conn:
+        row = conn.execute('SELECT COALESCE(SUM(credits), 0) AS s FROM serper_usage').fetchone()
+    used = base + int(row['s'] or 0)
+    return jsonify({'used': used, 'total': total})
 
 
 @notice_bp.route('/api/notice/notes', methods=['GET'])
