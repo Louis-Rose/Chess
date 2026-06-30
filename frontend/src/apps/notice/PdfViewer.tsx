@@ -242,6 +242,36 @@ export function PdfViewer({
     return out.map((o) => ({ ...o, offset: i * 3 }));
   });
 
+  // The overlay (dashed lines + labels) drawn over a page canvas. Labels sit
+  // OUTSIDE the image — first model to the left, second to the right — so they
+  // never hide page content. Shared by the inline viewer and the zoom modal.
+  const boundaryOverlay = boundaryLines.map((ln) => {
+    const sideCls = ln.side === 'left' ? 'right-full mr-2' : 'left-full ml-2';
+    const labelCls = `absolute z-10 ${sideCls} whitespace-nowrap rounded px-1 text-[10px] font-semibold text-white`;
+    return (
+      <div
+        key={ln.key}
+        className="pointer-events-none absolute inset-x-0"
+        style={{
+          top: `${Math.min(Math.max(ln.y, 0.04), 0.96) * 100}%`,
+          borderTop: `2px dashed ${ln.color}`,
+          transform: `translateY(${ln.offset}px)`,
+        }}
+      >
+        {ln.above && (
+          <span className={`${labelCls} bottom-0.5`} style={{ backgroundColor: ln.color }}>
+            {ln.above}
+          </span>
+        )}
+        {ln.below && (
+          <span className={`${labelCls} top-0.5`} style={{ backgroundColor: ln.color }}>
+            {ln.below}
+          </span>
+        )}
+      </div>
+    );
+  });
+
   return (
     <div className="flex h-full flex-col">
       {/* Page canvas */}
@@ -260,36 +290,8 @@ export function PdfViewer({
               title={t('notice.pdf.zoom')}
               className="block max-w-full cursor-zoom-in rounded-lg shadow-lg"
             />
-            {/* Dashed section-boundary lines for this page, color-coded per model
-                with "(fin)" above and "(début)" below. Lines near the page edges
-                are nudged inwards so both labels stay visible. */}
-            {!loading &&
-              boundaryLines.map((ln) => {
-                const xClass = ln.side === 'left' ? 'left-2' : 'right-2';
-                const labelCls = `absolute z-10 ${xClass} whitespace-nowrap rounded px-1 text-[10px] font-semibold text-white`;
-                return (
-                  <div
-                    key={ln.key}
-                    className="pointer-events-none absolute inset-x-0"
-                    style={{
-                      top: `${Math.min(Math.max(ln.y, 0.04), 0.96) * 100}%`,
-                      borderTop: `2px dashed ${ln.color}`,
-                      transform: `translateY(${ln.offset}px)`,
-                    }}
-                  >
-                    {ln.above && (
-                      <span className={`${labelCls} bottom-0.5`} style={{ backgroundColor: ln.color }}>
-                        {ln.above}
-                      </span>
-                    )}
-                    {ln.below && (
-                      <span className={`${labelCls} top-0.5`} style={{ backgroundColor: ln.color }}>
-                        {ln.below}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+            {/* Dashed section-boundary lines + labels (labels outside the image). */}
+            {!loading && boundaryOverlay}
           </div>
         )}
       </div>
@@ -314,11 +316,9 @@ export function PdfViewer({
           >
             <X className="h-5 w-5" />
           </button>
-          <div
-            className="max-h-full max-w-full cursor-default overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <canvas ref={zoomCanvasRef} className="rounded-lg shadow-2xl" />
+          <div className="relative max-h-full max-w-full cursor-default" onClick={(e) => e.stopPropagation()}>
+            <canvas ref={zoomCanvasRef} className="block max-h-full max-w-full rounded-lg shadow-2xl" />
+            {boundaryOverlay}
           </div>
           {/* Page count + navigation, floated at the bottom. The zoom overlay is
               always dark (forced via the `dark` class) regardless of app theme. */}
