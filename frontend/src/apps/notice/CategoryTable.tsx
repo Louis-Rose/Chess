@@ -164,7 +164,11 @@ export function CategoryTable({
               <th className="px-4 py-2 font-medium">{t('notice.cat.cost')}</th>
               <th className="px-4 py-2 font-medium">{t('notice.cat.time')}</th>
               <th className="px-4 py-2 font-medium">{t('notice.cat.calls')}</th>
-              <th className="px-4 py-2 font-medium">{t('notice.cat.tokens')}</th>
+              <th className="px-4 py-2 font-medium">
+                {t('notice.cat.tokens')}
+                <br />
+                {t('notice.cat.tokensUnits')}
+              </th>
             </tr>
           </thead>
           <tbody>
