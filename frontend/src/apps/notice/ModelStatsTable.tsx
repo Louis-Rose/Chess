@@ -13,6 +13,8 @@ export function ModelStatsTable({
   calls,
   tokens,
   pricing,
+  disabled,
+  onToggleModel,
   onFirstColWidth,
 }: {
   costs: Record<string, number>;
@@ -20,6 +22,9 @@ export function ModelStatsTable({
   calls: Record<string, number>;
   tokens: Record<string, { input: number; output: number; thinking: number }>;
   pricing: Record<string, { input: number; output: number }>;
+  // Models the user has muted (clicking a name); greyed out + struck through.
+  disabled: Set<string>;
+  onToggleModel: (modelId: string) => void;
   // Report the rendered width of the first column so the category table can
   // align its own first column to it.
   onFirstColWidth?: (width: number) => void;
@@ -55,10 +60,13 @@ export function ModelStatsTable({
         <tbody>
           {NOTICE_MODELS.map((m) => {
             const price = pricing[m.id];
+            const off = disabled.has(m.id);
             return (
               <tr
                 key={m.id}
-                className="border-b-2 border-slate-300 last:border-0 [&>td]:border-r-2 [&>td]:border-slate-300 [&>td:last-child]:border-r-0 dark:border-slate-700 dark:[&>td]:border-slate-700"
+                className={`border-b-2 border-slate-300 last:border-0 [&>td]:border-r-2 [&>td]:border-slate-300 [&>td:last-child]:border-r-0 dark:border-slate-700 dark:[&>td]:border-slate-700 ${
+                  off ? '[&>td:not(:first-child)]:opacity-40' : ''
+                }`}
               >
                 <td className="w-56 px-4 py-2.5 text-center font-semibold text-slate-900 dark:text-slate-100">
                   <span className="inline-flex items-center justify-center gap-1.5">
@@ -67,7 +75,15 @@ export function ModelStatsTable({
                       style={{ backgroundColor: m.color }}
                       aria-hidden
                     />
-                    {m.label}
+                    <button
+                      type="button"
+                      onClick={() => onToggleModel(m.id)}
+                      className={`cursor-pointer transition-colors hover:underline ${
+                        off ? 'text-slate-400 line-through dark:text-slate-600' : ''
+                      }`}
+                    >
+                      {m.label}
+                    </button>
                     {price && (
                       <span className="group relative inline-flex">
                         <Info className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-emerald-600 dark:text-slate-500 dark:group-hover:text-emerald-400" />

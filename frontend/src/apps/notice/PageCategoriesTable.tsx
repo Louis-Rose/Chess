@@ -18,6 +18,8 @@ export function PageCategoriesTable({
   splits,
   cellErrors,
   onSelectPage,
+  disabled,
+  onToggleModel,
   labelWidth,
 }: {
   numPages: number;
@@ -27,6 +29,8 @@ export function PageCategoriesTable({
   splits: Record<string, Record<number, Split>>;
   cellErrors: Record<string, Record<number, string>>;
   onSelectPage?: (page: number) => void;
+  disabled: Set<string>;
+  onToggleModel: (modelId: string) => void;
   labelWidth?: number | null;
 }) {
   const { t } = useLanguage();
@@ -150,29 +154,40 @@ export function PageCategoriesTable({
             ))}
           </tr>
           {/* One row per model */}
-          {NOTICE_MODELS.map((m, mi) => (
-            <tr key={m.id} className="border-b-2 border-slate-300 last:border-0 dark:border-slate-700">
-              <th style={labelStyle} className={`${labelCellCls} font-semibold text-slate-900 dark:text-slate-100`}>
-                <span className="inline-flex items-center gap-1.5">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: m.color }}
-                    aria-hidden
-                  />
-                  {m.label}
-                </span>
-              </th>
-              {cols.map((col) => (
-                <td
-                  key={col.n}
-                  onClick={() => onSelectPage?.(col.n)}
-                  className={`${dataCellCls} text-slate-700 dark:text-slate-300 ${col.bg}`}
-                >
-                  {renderCell(col.cells[mi])}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {NOTICE_MODELS.map((m, mi) => {
+            const off = disabled.has(m.id);
+            return (
+              <tr key={m.id} className="border-b-2 border-slate-300 last:border-0 dark:border-slate-700">
+                <th style={labelStyle} className={`${labelCellCls} font-semibold text-slate-900 dark:text-slate-100`}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: m.color }}
+                      aria-hidden
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onToggleModel(m.id)}
+                      className={`cursor-pointer transition-colors hover:underline ${
+                        off ? 'text-slate-400 line-through dark:text-slate-600' : ''
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  </span>
+                </th>
+                {cols.map((col) => (
+                  <td
+                    key={col.n}
+                    onClick={() => onSelectPage?.(col.n)}
+                    className={`${dataCellCls} text-slate-700 dark:text-slate-300 ${col.bg} ${off ? 'opacity-40' : ''}`}
+                  >
+                    {renderCell(col.cells[mi])}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

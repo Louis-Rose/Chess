@@ -51,6 +51,9 @@ export type RunSnapshot = {
   // A page the user asked the viewer to jump to (e.g. by clicking a table row).
   // The viewer applies it then clears it. Transient.
   requestedPage: number | null;
+  // Models the user has muted (by clicking a model name): greyed out in the
+  // tables and hidden on the PDF. Persisted.
+  disabledModels: string[];
   error: string | null;
 };
 
@@ -68,6 +71,7 @@ const mapKey = (docId: string) => `notice.categories.${docId}`;
 const reasoningKey = (docId: string) => `notice.reasoning.${docId}`;
 const rawsKey = (docId: string) => `notice.raws.${docId}`;
 const splitsKey = (docId: string) => `notice.splits.${docId}`;
+const disabledKey = (docId: string) => `notice.disabled.${docId}`;
 
 function loadStore<T>(key: string): T {
   try {
@@ -100,6 +104,10 @@ function getEntry(docId: string): Entry {
         splits: loadStore<SplitMap>(splitsKey(docId)),
         cellErrors: {},
         requestedPage: null,
+        disabledModels: (() => {
+          const v = loadStore<string[]>(disabledKey(docId));
+          return Array.isArray(v) ? v : [];
+        })(),
         error: null,
       },
       controller: null,
@@ -296,6 +304,17 @@ export function stopRun(docId: string) {
 // reads this from its snapshot, navigates, then clears it.
 export function requestPage(docId: string, page: number | null) {
   update(docId, { requestedPage: page });
+}
+
+// Mute / unmute a model (clicking its name): greys it out in the tables and
+// hides its boundary lines on the PDF. Persisted per document.
+export function toggleModel(docId: string, modelId: string) {
+  const current = getEntry(docId).snapshot.disabledModels;
+  const next = current.includes(modelId)
+    ? current.filter((id) => id !== modelId)
+    : [...current, modelId];
+  saveStore(disabledKey(docId), next);
+  update(docId, { disabledModels: next });
 }
 
 // Subscribe a component to a document's run state. getSnapshot returns a stable

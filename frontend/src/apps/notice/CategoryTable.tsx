@@ -4,7 +4,7 @@ import { Loader2, Sparkles, Square } from 'lucide-react';
 import { ModelStatsTable } from './ModelStatsTable';
 import { PageCategoriesTable } from './PageCategoriesTable';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { requestPage, startRange, stopRun, useRun } from './categoryRun';
+import { requestPage, startRange, stopRun, toggleModel, useRun } from './categoryRun';
 
 // Etape 1: page classification. Stacked top to bottom:
 //   1. the per-model run economics (cost / time / calls / tokens),
@@ -25,7 +25,10 @@ export function CategoryTable({
   file: Blob;
 }) {
   const { t } = useLanguage();
-  const { busy, progress, active, categories, reasoning, raws, splits, cellErrors, error } = useRun(docId);
+  const { busy, progress, active, categories, reasoning, raws, splits, cellErrors, disabledModels, error } =
+    useRun(docId);
+  const disabled = new Set(disabledModels);
+  const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
   const [costs, setCosts] = useState<Record<string, number>>({});
   const [times, setTimes] = useState<Record<string, number>>({});
   const [calls, setCalls] = useState<Record<string, number>>({});
@@ -108,6 +111,8 @@ export function CategoryTable({
         calls={calls}
         tokens={tokens}
         pricing={pricing}
+        disabled={disabled}
+        onToggleModel={onToggleModel}
         onFirstColWidth={setLabelWidth}
       />
 
@@ -171,6 +176,8 @@ export function CategoryTable({
         raws={raws}
         splits={splits}
         cellErrors={cellErrors}
+        disabled={disabled}
+        onToggleModel={onToggleModel}
         labelWidth={labelWidth}
         onSelectPage={(p) => {
           requestPage(docId, p);

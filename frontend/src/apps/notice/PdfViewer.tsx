@@ -30,7 +30,8 @@ export function PdfViewer({
   const zoomTaskRef = useRef<RenderTask | null>(null);
   const { t } = useLanguage();
   // Section boundaries detected by the categorize run, to overlay on the page.
-  const { categories, splits, requestedPage } = useRun(docId);
+  const { categories, splits, requestedPage, disabledModels } = useRun(docId);
+  const disabled = new Set(disabledModels);
 
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
@@ -222,6 +223,7 @@ export function PdfViewer({
   const debut = t('notice.cat.sectionStart');
   const enCours = t('notice.cat.sectionOngoing');
   const boundaryLines = NOTICE_MODELS.flatMap((m, i) => {
+    if (disabled.has(m.id)) return [];
     const side = i === 0 ? 'left' : 'right';
     const out: { key: string; y: number; color: string; side: string; above?: string; below?: string }[] = [];
     const top = segment(m.id, page).top;
