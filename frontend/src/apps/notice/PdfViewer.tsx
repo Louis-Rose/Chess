@@ -9,17 +9,28 @@ import { requestPage, useRun } from './categoryRun';
 // off-screen categorize run).
 import './pdfRender';
 
+// A filtered view: restrict navigation to `pages` and, for a page only partly in
+// the wanted category, black out the rest (keep only the `bands[page]` vertical
+// span, 0..1 from the top). Section-boundary lines are hidden in this mode.
+export type ViewerFilter = {
+  pages: number[];
+  bands: Record<number, { top: number; bottom: number }>;
+};
+
 // Renders a PDF one page at a time onto a canvas, filling the container width
 // (margins come from the narrow section the parent places this in). The header
-// holds the page navigation.
+// holds the page navigation. With `filter`, only the matching pages are shown
+// (the rest of a partial page blacked out) and no boundary lines are drawn.
 export function PdfViewer({
   file,
   docId,
   onNumPages,
+  filter,
 }: {
   file: Blob;
   docId: string;
   onNumPages?: (n: number) => void;
+  filter?: ViewerFilter;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -133,9 +144,20 @@ export function PdfViewer({
     };
   }, [page, numPages, size.w, size.h]);
 
+  // Navigation: through the whole document, or — in filter mode — only through
+  // the matching pages, stepping by index within that list.
   const go = useCallback(
-    (delta: number) => setPage((p) => Math.min(numPages, Math.max(1, p + delta))),
-    [numPages],
+    (delta: number) =>
+      setPage((p) => {
+        const nav = filter?.pages;
+        if (nav && nav.length) {
+          const i = nav.indexOf(p);
+          const ni = Math.min(nav.length - 1, Math.max(0, (i < 0 ? 0 : i) + delta));
+          return nav[ni];
+        }
+        return Math.min(numPages, Math.max(1, p + delta));
+      }),
+    [numPages, filter],
   );
 
   // Arrow keys page through the document; Escape closes the zoom modal.
@@ -150,12 +172,20 @@ export function PdfViewer({
   }, [go]);
 
   // Jump to a page requested from elsewhere (e.g. a category table row), then
-  // clear the request so the same row can be clicked again.
+  // clear the request so the same row can be clicked again. A filtered viewer
+  // ignores these (they target the main reader).
   useEffect(() => {
-    if (requestedPage == null || numPages === 0) return;
+    if (filter || requestedPage == null || numPages === 0) return;
     setPage(Math.min(numPages, Math.max(1, requestedPage)));
     requestPage(docId, null);
-  }, [requestedPage, numPages, docId]);
+  }, [requestedPage, numPages, docId, filter]);
+
+  // In filter mode, keep the page on a matching one (snap to the first match
+  // when the current page falls outside the set, e.g. on load or run change).
+  useEffect(() => {
+    const nav = filter?.pages;
+    if (nav && nav.length && numPages > 0 && !nav.includes(page)) setPage(nav[0]);
+  }, [filter, numPages, page]);
 
   // Report the page count.
   useEffect(() => {
@@ -302,6 +332,36 @@ export function PdfViewer({
     );
   });
 
+  // In filter mode, black out the part of the page outside the wanted band, so
+  // only the in-category section of a partial page shows. Same overlay used by
+  // the inline viewer and the zoom modal.
+  const band = filter?.bands[page];
+  const blackoutOverlay = filter && band && (
+    <>
+      {band.top > 0 && (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 rounded-t-lg bg-black"
+          style={{ height: `${band.top * 100}%` }}
+        />
+      )}
+      {band.bottom < 1 && (
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-lg bg-black"
+          style={{ height: `${(1 - band.bottom) * 100}%` }}
+        />
+      )}
+    </>
+  );
+
+  // Navigation bounds + label, accounting for filter mode (step through the
+  // matching pages, label as "Page N (i/total)").
+  const nav = filter?.pages;
+  const navIdx = nav ? nav.indexOf(page) : -1;
+  const atStart = nav ? navIdx <= 0 : page <= 1;
+  const atEnd = nav ? navIdx >= nav.length - 1 : page >= numPages;
+  const navLabel =
+    nav && navIdx >= 0 ? `${t('notice.pdf.page')} ${page} (${navIdx + 1}/${nav.length})` : undefined;
+
   return (
     <div className="flex h-full flex-col">
       {/* Page canvas */}
@@ -320,15 +380,17 @@ export function PdfViewer({
               title={t('notice.pdf.zoom')}
               className="block max-w-full cursor-zoom-in rounded-lg shadow-lg"
             />
-            {/* Dashed section-boundary lines + labels (labels outside the image). */}
-            {!loading && boundaryOverlay}
+            {/* Dashed section-boundary lines + labels (hidden in filter mode). */}
+            {!loading && !filter && boundaryOverlay}
+            {/* Black out the off-category part of a partial page (filter mode). */}
+            {!loading && blackoutOverlay}
           </div>
         )}
       </div>
 
       {/* Footer: page navigation, under the page */}
       <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-800">
-        <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} />
+        <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} label={navLabel} atStart={atStart} atEnd={atEnd} />
       </div>
 
       {/* Zoom modal: click the backdrop (or Escape) to close. The backdrop shows
@@ -348,7 +410,8 @@ export function PdfViewer({
           </button>
           <div className="relative max-h-full max-w-full cursor-default" onClick={(e) => e.stopPropagation()}>
             <canvas ref={zoomCanvasRef} className="block max-h-full max-w-full rounded-lg shadow-2xl" />
-            {boundaryOverlay}
+            {!filter && boundaryOverlay}
+            {blackoutOverlay}
           </div>
           {/* Page count + navigation, floated at the bottom. The zoom overlay is
               always dark (forced via the `dark` class) regardless of app theme. */}
@@ -356,7 +419,7 @@ export function PdfViewer({
             onClick={(e) => e.stopPropagation()}
             className="dark absolute bottom-4 left-1/2 -translate-x-1/2 cursor-default rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 backdrop-blur"
           >
-            <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} />
+            <PageNav page={page} numPages={numPages} onGo={go} disabled={loading} label={navLabel} atStart={atStart} atEnd={atEnd} />
           </div>
         </div>
       )}
@@ -371,11 +434,17 @@ function PageNav({
   numPages,
   onGo,
   disabled = false,
+  label,
+  atStart,
+  atEnd,
 }: {
   page: number;
   numPages: number;
   onGo: (delta: number) => void;
   disabled?: boolean;
+  label?: string;
+  atStart?: boolean;
+  atEnd?: boolean;
 }) {
   const { t } = useLanguage();
   return (
@@ -383,19 +452,19 @@ function PageNav({
       <button
         type="button"
         onClick={() => onGo(-1)}
-        disabled={disabled || page <= 1}
+        disabled={disabled || (atStart ?? page <= 1)}
         className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-emerald-500/10"
         aria-label={t('notice.pdf.prev')}
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
       <span className="min-w-[6rem] text-center text-sm text-slate-600 dark:text-slate-400">
-        {numPages > 0 ? `${t('notice.pdf.page')} ${page} ${t('notice.pdf.of')} ${numPages}` : '—'}
+        {label ?? (numPages > 0 ? `${t('notice.pdf.page')} ${page} ${t('notice.pdf.of')} ${numPages}` : '—')}
       </span>
       <button
         type="button"
         onClick={() => onGo(1)}
-        disabled={disabled || page >= numPages}
+        disabled={disabled || (atEnd ?? page >= numPages)}
         className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-emerald-500/10"
         aria-label={t('notice.pdf.next')}
       >

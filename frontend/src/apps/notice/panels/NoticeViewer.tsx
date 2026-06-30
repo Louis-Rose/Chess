@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FileText, Loader2, Upload } from 'lucide-react';
 import { PdfViewer } from '../PdfViewer';
 import { CategoryTable } from '../CategoryTable';
+import { CategoryViewer } from '../CategoryViewer';
 import { EtapeSection } from '../EtapeSection';
 import { SECTION_WIDTH } from '../sectionWidth';
 import { getFile, type NoticeFile } from '../noticeStore';
@@ -171,7 +172,10 @@ export function NoticeViewer() {
                 file={current.data}
               />
             </EtapeSection>
-            <EtapeSection title={`${t('notice.step')} 2`} info={notes?.[1]} />
+            <EtapeSection title={`${t('notice.step')} 2`} info={notes?.[1]}>
+              {/* The "Matériel fourni" pages, off-category parts blacked out */}
+              <CategoryViewer file={current.data} docId={current.id} category="Matériel fourni" />
+            </EtapeSection>
             <EtapeSection title={`${t('notice.step')} 3`} info={notes?.[2]} />
             <EtapeSection title={`${t('notice.step')} 4`} info={notes?.[3]} />
           </div>
