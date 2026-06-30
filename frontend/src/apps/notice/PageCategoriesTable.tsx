@@ -124,6 +124,7 @@ export function PageCategoriesTable({
   // One column per page; disagreement (the models differ) tints the column red.
   const cols = pages.map((n) => {
     const cells = NOTICE_MODELS.map((m) => ({
+      id: m.id,
       err: cellErrors[m.id]?.[n],
       split: splits[m.id]?.[n],
       cat: categories[m.id]?.[n],
@@ -131,7 +132,9 @@ export function PageCategoriesTable({
       rawText: raws[m.id]?.[n] || '',
       reasons: reasoningModels.has(m.id),
     }));
+    // Only compare ENABLED models; a muted model is excluded from disagreement.
     const keys = cells
+      .filter((c) => !disabled.has(c.id))
       .map((c) => (c.err ? '' : c.split ? `${c.split.above} / ${c.split.below}` : c.cat || ''))
       .filter(Boolean);
     return { n, cells, bg: new Set(keys).size > 1 ? 'bg-red-100 dark:bg-red-500/20' : '' };
