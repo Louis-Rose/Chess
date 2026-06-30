@@ -47,9 +47,10 @@ _FIXED_CATEGORIES = [
 ]
 _STEP_RE = re.compile(r'^Assemblage - Etape ([1-9]\d?|100)$')
 
-_CATEGORIZE_PROMPT = (
-    "You are classifying ONE page of a furniture assembly manual. Categories, use "
-    "EXACTLY these labels:\n"
+# Shared prompt pieces, composed into the single-page and batch prompts so the
+# label list and boundary rules are defined once.
+_CATEGORY_LABELS = (
+    "Categories, use EXACTLY these labels:\n"
     "- Sommaire\n"
     "- Outils nécessaires\n"
     "- Matériel fourni\n"
@@ -57,24 +58,52 @@ _CATEGORIZE_PROMPT = (
     "- Sécurité\n"
     "- Liens\n"
     "- Produit fini (monté)  (the finished, fully assembled product)\n"
+)
+_CATEGORY_GUIDANCE = (
     "Printed text (section titles, step numbers, French labels) is part of the "
     "original manual and authoritative; rely on it. The manual is NOT wordless and "
     "nothing was added afterwards. A page is usually one section, but a NEW section "
     "begins where its title appears, even if that title sits at the very bottom "
     "with no content beneath it (its content starts on the next page).\n"
-    "Reply with ONLY a JSON object, no prose, no code fence:\n"
-    '{"category": "<category of the page, or of its TOP part if a new section '
-    'begins partway down>", "boundary": <number strictly between 0 and 1 = the '
-    'vertical position, measured from the top of the page, where the new section '
-    'begins; or null>, "category_below": "<category of the part BELOW the '
-    'boundary, or null>"}\n'
+)
+_BOUNDARY_PLACEMENT = (
     "A section title/heading belongs to the section it introduces, so place the "
     "boundary IMMEDIATELY ABOVE that title (in the blank gap between the previous "
     "content and the new section's title), never on the title or below it. The "
     "new section's title must fall below the boundary line.\n"
-    'For an assembly step write it exactly like "Assemblage - Etape 3". If the '
-    "whole page is a single section, set boundary and category_below to null."
+    'For an assembly step write it exactly like "Assemblage - Etape 3".'
 )
+
+def _batch_prompt(page_numbers, prev_category):
+    """Prompt for classifying a block of consecutive pages in one call. The model
+    sees the pages in order and is told the category in effect just before the
+    block, so assembly step numbers stay consistent across block seams."""
+    n = len(page_numbers)
+    listing = ", ".join(str(p) for p in page_numbers)
+    ctx = (
+        f'The page just before this block was classified "{prev_category}", so '
+        "continue the assembly-step numbering from there.\n"
+        if prev_category else
+        "This block is the start of the document.\n"
+    )
+    return (
+        f"You are classifying {n} CONSECUTIVE pages of a furniture assembly manual, "
+        f"given IN ORDER. The images are, respectively, pages {listing} (the 1st "
+        "image is the 1st page listed, and so on).\n"
+        + _CATEGORY_LABELS + _CATEGORY_GUIDANCE +
+        "Assembly step numbers run in NON-DECREASING order through the manual and "
+        "are usually consecutive (Etape 4, then 5, then 6...). Use the page order to "
+        "stay consistent: never go backwards, and never skip or repeat a step number "
+        "unless the printed text clearly says so.\n"
+        + ctx +
+        f"Reply with ONLY a JSON array of EXACTLY {n} objects, in the same page "
+        "order, no prose, no code fence. The i-th object classifies the i-th page. "
+        'Each object: {"category": <page, or its TOP part if a new section begins '
+        'partway down>, "boundary": <number strictly between 0 and 1 from the top '
+        'where the new section begins, or null>, "category_below": <category below '
+        'the boundary, or null>}.\n'
+        + _BOUNDARY_PLACEMENT
+    )
 
 
 def _decode_image(image_b64):
@@ -113,18 +142,22 @@ def _split_thoughts(response):
     return ans, '\n'.join(thoughts).strip()
 
 
-def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None, want_thoughts=False):
-    """Run one Gemini vision call on a page image, log usage, return
-    (answer, thoughts). `phase` tags the usage row ('ask' / 'categorize') so
+def _gemini_on_images(model, images, text_prompt, user_id, phase=None, want_thoughts=False):
+    """Run one Gemini vision call on one or more page images, log usage, return
+    (answer, thoughts). Each image is labelled in order so the model can map its
+    output back to a page. `phase` tags the usage row ('ask' / 'categorize') so
     timing can be split; `want_thoughts` asks thinking models for their reasoning.
     May raise ValueError (not configured) or other exceptions (call failed)."""
     client_paid, client_free = _init_gemini_clients('notice')
     from google.genai import types
 
-    contents = [
-        types.Part.from_bytes(data=image_bytes, mime_type='image/png'),
-        text_prompt,
-    ]
+    contents = []
+    for i, image_bytes in enumerate(images):
+        if len(images) > 1:
+            contents.append(f"Page image {i + 1} of {len(images)}:")
+        contents.append(types.Part.from_bytes(data=image_bytes, mime_type='image/png'))
+    contents.append(text_prompt)
+
     config = None
     if want_thoughts:
         config = types.GenerateContentConfig(
@@ -146,8 +179,8 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None, want_
     retry_info = retry_info or {}
     # One line per call so the logs show which key (free/paid) actually served it.
     logger.info(
-        "[notice] %s | %s KEY | %s | %ds | tokens in=%d out=%d think=%d%s",
-        model, billing_tier.upper(), phase or '-', elapsed, in_tok, out_tok, think_tok,
+        "[notice] %s | %s KEY | %s | %d img | %ds | tokens in=%d out=%d think=%d%s",
+        model, billing_tier.upper(), phase or '-', len(images), elapsed, in_tok, out_tok, think_tok,
         ' | free key fell back' if retry_info.get('free_error') else '',
     )
     _log_api_usage(
@@ -159,45 +192,6 @@ def _gemini_on_image(model, image_bytes, text_prompt, user_id, phase=None, want_
     return answer, thoughts
 
 
-@notice_bp.route('/api/notice/categorize', methods=['POST'])
-@login_required
-def categorize():
-    data = request.get_json(silent=True) or {}
-    model = (data.get('model') or '').strip()
-    if model not in ALLOWED_MODELS:
-        return jsonify({'error': 'Unknown model.'}), 400
-
-    image_bytes, err = _decode_image(data.get('image') or '')
-    if err:
-        return err
-
-    user_id = getattr(request, 'user_id', None)
-    try:
-        answer, thoughts = _gemini_on_image(
-            model, image_bytes, _CATEGORIZE_PROMPT, user_id, phase='categorize',
-            want_thoughts=True,
-        )
-    except ValueError:
-        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
-    except Exception:
-        logger.exception('[notice] categorize failed')
-        return jsonify({'error': 'Classification failed.'}), 502
-
-    category, boundary, category_below = _parse_categorize(answer)
-    if not category:
-        return jsonify({'error': 'No category returned.'}), 502
-    # `reasoning` is the model's thought summary (empty for non-thinking models).
-    # `boundary` (0..1 from the top) + `categoryBelow` describe a mid-page section
-    # change, or are null when the whole page is one section.
-    return jsonify({
-        'category': category,
-        'reasoning': thoughts or '',
-        'raw': answer or '',
-        'boundary': boundary,
-        'categoryBelow': category_below,
-    })
-
-
 def _normalize_category(text):
     """Snap the model's reply to one of the known labels (best-effort)."""
     t = (text or '').strip().strip('."')
@@ -206,30 +200,97 @@ def _normalize_category(text):
     return t or None
 
 
-def _parse_categorize(answer):
-    """Parse the model's JSON reply into (category, boundary, category_below).
-    Falls back to treating the whole reply as a single label if it isn't valid
-    JSON. A boundary is only kept when it sits strictly inside the page and the
-    lower category is a different known label."""
+@notice_bp.route('/api/notice/categorize-batch', methods=['POST'])
+@login_required
+def categorize_batch():
+    """Classify a block of consecutive pages in one call. The client posts the
+    page images (in order), their page numbers, and the category in effect just
+    before the block, so the model keeps assembly step numbers consistent across
+    block seams. Returns one result per page, in order. No partial result: if the
+    reply can't be read as exactly one object per page, the whole block fails."""
+    data = request.get_json(silent=True) or {}
+    model = (data.get('model') or '').strip()
+    if model not in ALLOWED_MODELS:
+        return jsonify({'error': 'Unknown model.'}), 400
+
+    images_b64 = data.get('images')
+    page_numbers = data.get('pages')
+    if not isinstance(images_b64, list) or not images_b64:
+        return jsonify({'error': 'No page images were provided.'}), 400
+    if not isinstance(page_numbers, list) or len(page_numbers) != len(images_b64):
+        return jsonify({'error': 'Pages and images do not line up.'}), 400
+    if len(images_b64) > 25:
+        return jsonify({'error': 'Too many pages in one block.'}), 400
+
+    images = []
+    for b64 in images_b64:
+        img, err = _decode_image(b64)
+        if err:
+            return err
+        images.append(img)
+
+    prev_category = (data.get('prevCategory') or '').strip() or None
+    user_id = getattr(request, 'user_id', None)
+    prompt = _batch_prompt(page_numbers, prev_category)
+    try:
+        answer, thoughts = _gemini_on_images(
+            model, images, prompt, user_id, phase='categorize', want_thoughts=True,
+        )
+    except ValueError:
+        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
+    except Exception:
+        logger.exception('[notice] categorize-batch failed')
+        return jsonify({'error': 'Classification failed.'}), 502
+
+    parsed = _parse_categorize_batch(answer, len(images))
+    if parsed is None:
+        return jsonify({'error': 'The classification could not be read.'}), 502
+
+    # One thought stream covers the whole block, so it is shared across its pages.
+    results = [
+        {
+            'category': cat,
+            'reasoning': thoughts or '',
+            'raw': raw,
+            'boundary': boundary,
+            'categoryBelow': below,
+        }
+        for cat, boundary, below, raw in parsed
+    ]
+    return jsonify({'results': results})
+
+
+def _parse_categorize_batch(answer, expected):
+    """Parse the model's JSON array into a list of (category, boundary,
+    category_below, raw) tuples, one per page. Returns None (the whole block
+    fails) if the reply isn't a JSON array of exactly `expected` valid objects."""
     import json
 
     txt = (answer or '').strip()
     try:
-        obj = json.loads(txt[txt.index('{'):txt.rindex('}') + 1])
+        arr = json.loads(txt[txt.index('['):txt.rindex(']') + 1])
     except (ValueError, json.JSONDecodeError):
-        return _normalize_category(txt), None, None
+        return None
+    if not isinstance(arr, list) or len(arr) != expected:
+        return None
 
-    category = _normalize_category(str(obj.get('category') or ''))
-    below_raw = obj.get('category_below')
-    below = _normalize_category(str(below_raw)) if below_raw else None
-    try:
-        boundary = float(obj.get('boundary')) if obj.get('boundary') is not None else None
-    except (TypeError, ValueError):
-        boundary = None
-
-    if boundary is None or not (0 < boundary < 1) or not below or below == category:
-        return category, None, None
-    return category, boundary, below
+    out = []
+    for obj in arr:
+        if not isinstance(obj, dict):
+            return None
+        category = _normalize_category(str(obj.get('category') or ''))
+        if not category:
+            return None
+        below_raw = obj.get('category_below')
+        below = _normalize_category(str(below_raw)) if below_raw else None
+        try:
+            boundary = float(obj.get('boundary')) if obj.get('boundary') is not None else None
+        except (TypeError, ValueError):
+            boundary = None
+        if boundary is None or not (0 < boundary < 1) or not below or below == category:
+            boundary, below = None, None
+        out.append((category, boundary, below, json.dumps(obj, ensure_ascii=False)))
+    return out
 
 
 @notice_bp.route('/api/notice/notes', methods=['GET'])

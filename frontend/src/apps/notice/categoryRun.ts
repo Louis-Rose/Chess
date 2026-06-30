@@ -11,9 +11,11 @@ import { renderPdfPageToImage } from './pdfRender';
 // PDF.js document. Holding the run here — keyed by document id, with its own
 // PDF.js document — lets it keep going while the user is on another tab.
 
-// How many pages to classify at once during a range run. Each page already
-// fans out across the models, so this caps total in-flight Gemini requests.
-const PAGE_CONCURRENCY = 5;
+// During a range run, pages are classified in blocks of this size: one Gemini
+// call sees a whole block (in order) so it keeps assembly step numbers
+// consistent. Blocks run sequentially per model, carrying the previous block's
+// last category forward so the numbering stays consistent across block seams.
+const BATCH_SIZE = 5;
 
 // model id -> page number -> category label (or per-cell error message)
 type ByModelPage = Record<string, Record<number, string>>;
@@ -217,47 +219,61 @@ function recordCellError(docId: string, modelId: string, pageNum: number, messag
   });
 }
 
-// Classify one page image across the enabled models, storing results in the
-// active run. A muted model is skipped (no API call, no cost). A cancelled
-// request leaves the cell untouched; any other failure is surfaced in the cell.
-async function classify(
+type BatchResult = {
+  category: string;
+  reasoning?: string;
+  raw?: string;
+  boundary?: number | null;
+  categoryBelow?: string | null;
+};
+
+// Classify one block of pages for one model in a single call, storing results in
+// the active run. The model sees the pages in order plus `prevCategory` (the
+// category in effect just before the block), so step numbers stay consistent.
+// Returns the category in effect at the bottom of the block (to carry to the next
+// one), or null. A cancelled request leaves the cells untouched; any other
+// failure marks every page of the block as errored for this model (no fallback).
+async function classifyBlock(
   docId: string,
-  image: string,
-  pageNum: number,
+  modelId: string,
+  pages: number[],
+  images: string[],
+  prevCategory: string | null,
   signal: AbortSignal,
   t: (k: string) => string,
-) {
-  const disabled = new Set(getEntry(docId).snapshot.disabledModels);
-  await Promise.all(
-    NOTICE_MODELS.filter((m) => !disabled.has(m.id)).map(async (m) => {
-      try {
-        const { data } = await axios.post<{
-          category: string;
-          reasoning?: string;
-          raw?: string;
-          boundary?: number | null;
-          categoryBelow?: string | null;
-        }>('/api/notice/categorize', { image, model: m.id }, { signal });
-        setResult(
-          docId,
-          m.id,
-          pageNum,
-          data.category,
-          data.reasoning || '',
-          data.raw || '',
-          data.boundary ?? null,
-          data.categoryBelow ?? null,
-        );
-      } catch (e) {
-        if (axios.isCancel(e)) return;
-        const msg =
-          (axios.isAxiosError(e) && (e.response?.data as { error?: string })?.error) ||
-          (e instanceof Error && e.message) ||
-          t('notice.err.generic');
-        recordCellError(docId, m.id, pageNum, msg);
-      }
-    }),
-  );
+): Promise<string | null> {
+  try {
+    const { data } = await axios.post<{ results: BatchResult[] }>(
+      '/api/notice/categorize-batch',
+      { model: modelId, pages, images, prevCategory },
+      { signal },
+    );
+    const results = data.results || [];
+    pages.forEach((n, i) => {
+      const r = results[i];
+      if (!r) return;
+      setResult(
+        docId,
+        modelId,
+        n,
+        r.category,
+        r.reasoning || '',
+        r.raw || '',
+        r.boundary ?? null,
+        r.categoryBelow ?? null,
+      );
+    });
+    const last = results[results.length - 1];
+    return last ? last.categoryBelow || last.category : prevCategory;
+  } catch (e) {
+    if (axios.isCancel(e)) return prevCategory;
+    const msg =
+      (axios.isAxiosError(e) && (e.response?.data as { error?: string })?.error) ||
+      (e instanceof Error && e.message) ||
+      t('notice.err.generic');
+    pages.forEach((n) => recordCellError(docId, modelId, n, msg));
+    return prevCategory;
+  }
 }
 
 function bumpActive(docId: string, delta: number) {
@@ -272,6 +288,13 @@ function pageRange(from: number, to: number, numPages: number): number[] {
   const pages: number[] = [];
   for (let n = lo; n <= hi; n++) pages.push(n);
   return pages;
+}
+
+// Split a list of pages into consecutive blocks of at most `size`.
+function chunk<T>(items: T[], size: number): T[][] {
+  const blocks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) blocks.push(items.slice(i, i + size));
+  return blocks;
 }
 
 // Start a new run over a page range. It appends a fresh result set (for the
@@ -315,26 +338,59 @@ export async function startRange(
     const doc: PDFDocumentProxy = await loadingTask.promise;
     const pages = pageRange(from, to, doc.numPages);
     if (pages.length === 0) return;
-    update(docId, { progress: { done: 0, total: pages.length } });
+    const total = models.length * pages.length;
+    update(docId, { progress: { done: 0, total } });
 
-    let cursor = 0;
+    // Render each page once, shared across models: cache the promise so two
+    // models awaiting the same page don't both render it.
+    const renderCache = new Map<number, Promise<string | null>>();
+    const renderPage = (n: number) => {
+      let p = renderCache.get(n);
+      if (!p) {
+        p = renderPdfPageToImage(doc, n);
+        renderCache.set(n, p);
+      }
+      return p;
+    };
+
+    const blocks = chunk(pages, BATCH_SIZE);
     let done = 0;
-    const worker = async () => {
-      for (let i = cursor++; i < pages.length && !signal.aborted; i = cursor++) {
-        const n = pages[i];
+    const bump = (by: number) => update(docId, { progress: { done: (done += by), total } });
+
+    // Each model walks its blocks in order, carrying the previous block's last
+    // category forward so step numbers stay consistent across seams. The two
+    // models run in parallel with each other (independent sequences).
+    const runModel = async (modelId: string) => {
+      let prevCategory: string | null = null;
+      for (const block of blocks) {
+        if (signal.aborted) return;
+        // Render the block; a page that fails to render is surfaced as a cell
+        // error and dropped from the call (the rest still go, mapped by page).
+        const pageNums: number[] = [];
+        const images: string[] = [];
+        for (const n of block) {
+          const image = await renderPage(n);
+          if (signal.aborted) return;
+          if (image) {
+            pageNums.push(n);
+            images.push(image);
+          } else {
+            recordCellError(docId, modelId, n, t('notice.err.rendering'));
+            bump(1);
+          }
+        }
+        if (pageNums.length === 0) continue;
         bumpActive(docId, 1);
         try {
-          const image = await renderPdfPageToImage(doc, n);
-          if (signal.aborted) return;
-          if (image) await classify(docId, image, n, signal, t);
-          update(docId, { progress: { done: ++done, total: pages.length } });
+          prevCategory = await classifyBlock(docId, modelId, pageNums, images, prevCategory, signal, t);
         } finally {
           bumpActive(docId, -1);
         }
+        bump(pageNums.length);
       }
     };
 
-    await Promise.all(Array.from({ length: Math.min(PAGE_CONCURRENCY, pages.length) }, worker));
+    await Promise.all(models.map(runModel));
   } catch {
     if (!signal.aborted) update(docId, { error: t('notice.err.rendering') });
   } finally {
