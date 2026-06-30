@@ -36,17 +36,19 @@ export function CategoryTable({
   >({});
   const [pricing, setPricing] = useState<Record<string, { input: number; output: number }>>({});
 
-  // Page-range selection. `from` follows the page on screen and `to` defaults to
-  // the last page until the user edits either field (then it stays put).
-  const [from, setFrom] = useState(1);
-  const [to, setTo] = useState(0);
+  // Page-range selection. Held as strings so the field can be cleared while
+  // typing (a number input would snap an empty value back to 0). `from` follows
+  // the page on screen and `to` defaults to the last page until the user edits
+  // either field (then it stays put).
+  const [from, setFrom] = useState('1');
+  const [to, setTo] = useState('');
   const touchedFrom = useRef(false);
   const touchedTo = useRef(false);
   useEffect(() => {
-    if (!touchedFrom.current) setFrom(page);
+    if (!touchedFrom.current) setFrom(String(page));
   }, [page]);
   useEffect(() => {
-    if (!touchedTo.current && numPages > 0) setTo(numPages);
+    if (!touchedTo.current && numPages > 0) setTo(String(numPages));
   }, [numPages]);
 
   const loadCosts = useCallback(async () => {
@@ -89,11 +91,11 @@ export function CategoryTable({
         }`
       : '';
 
-  const onFrom = (v: number) => {
+  const onFrom = (v: string) => {
     touchedFrom.current = true;
     setFrom(v);
   };
-  const onTo = (v: number) => {
+  const onTo = (v: string) => {
     touchedTo.current = true;
     setTo(v);
   };
@@ -114,7 +116,7 @@ export function CategoryTable({
             min={1}
             max={Math.max(numPages, 1)}
             value={from}
-            onChange={(e) => onFrom(Number(e.target.value))}
+            onChange={(e) => onFrom(e.target.value)}
             disabled={!!busy || numPages < 1}
             className={numInputClass}
             aria-label={t('notice.cat.from')}
@@ -125,14 +127,14 @@ export function CategoryTable({
             min={1}
             max={Math.max(numPages, 1)}
             value={to}
-            onChange={(e) => onTo(Number(e.target.value))}
+            onChange={(e) => onTo(e.target.value)}
             disabled={!!busy || numPages < 1}
             className={numInputClass}
             aria-label={t('notice.cat.to')}
           />
           <button
             type="button"
-            onClick={() => void startRange(docId, file, from, to, t)}
+            onClick={() => void startRange(docId, file, Number(from) || 1, Number(to) || numPages, t)}
             disabled={!!busy || numPages < 1}
             className={btnClass}
           >
