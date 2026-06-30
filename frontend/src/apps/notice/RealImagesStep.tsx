@@ -183,13 +183,20 @@ export function RealImagesStep({ file, docId }: { file: Blob; docId: string }) {
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
           {t('notice.parts.piece')}
         </div>
-        <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700">
-          {crop ? (
-            <img src={crop} alt="" className="max-h-full max-w-full object-contain" />
-          ) : (
+        {crop ? (
+          <button
+            type="button"
+            onClick={() => setZoom(crop)}
+            title={t('notice.pdf.zoom')}
+            className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700"
+          >
+            <img src={crop} alt="" className="max-h-full max-w-full cursor-zoom-in object-contain" />
+          </button>
+        ) : (
+          <div className="flex h-40 w-40 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 dark:border-slate-700">
             <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Candidates appear only once the kept/discarded verdicts are decided, so
