@@ -79,7 +79,6 @@ export function CategoryTable({
           Lancer button (and the Stop button while busy) stacked below them. */}
       <div className="flex flex-col items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.cat.from')}</span>
           <input
             type="number"
             min={1}
