@@ -75,8 +75,9 @@ export function CategoryTable({
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* 1. Page-range controls (from / to + Lancer), on their own line. */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      {/* 1. Page-range controls: the from / to selectors on one line, with the
+          Lancer button (and the Stop button while busy) stacked below them. */}
+      <div className="flex flex-col items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.cat.from')}</span>
           <input
@@ -100,17 +101,18 @@ export function CategoryTable({
             className={numInputClass}
             aria-label={t('notice.cat.to')}
           />
-          <button
-            type="button"
-            onClick={onRun}
-            disabled={!!busy || numPages < 1}
-            className={runBtnClass}
-          >
-            {busy === 'range' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {t('notice.cat.runRange')}
-            {progressSuffix}
-          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={onRun}
+          disabled={!!busy || numPages < 1}
+          className={runBtnClass}
+        >
+          {busy === 'range' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {t('notice.cat.runRange')}
+          {progressSuffix}
+        </button>
 
         {busy && (
           <button type="button" onClick={() => stopRun(docId)} className={stopBtnClass}>
@@ -123,15 +125,15 @@ export function CategoryTable({
       {/* 2. Detected brand (read-only), reused by Étape 3's part image search.
           Shown as a single-column, two-row table (label over value). */}
       {(detecting || brand.trim()) && (
-        <table className="mx-auto overflow-hidden rounded-xl border-2 border-slate-300 bg-white text-center text-sm shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
+        <table className="mx-auto border-collapse overflow-hidden rounded-xl bg-white text-center text-sm shadow-sm dark:bg-slate-900 dark:shadow-lg">
           <tbody>
-            <tr className="border-b-2 border-slate-300 dark:border-slate-700">
-              <th className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">
+            <tr>
+              <th className="border-2 border-slate-300 px-4 py-2 font-semibold text-slate-900 dark:border-slate-600 dark:text-slate-100">
                 {t('notice.step3.brand')}
               </th>
             </tr>
             <tr>
-              <td className="px-4 py-2 text-slate-700 dark:text-slate-200">
+              <td className="border-2 border-slate-300 px-4 py-2 text-slate-700 dark:border-slate-600 dark:text-slate-200">
                 {detecting && !brand.trim() ? (
                   <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                 ) : (
