@@ -7,19 +7,32 @@ import { renderPdfPageToImage } from './pdfRender';
 
 export type ImageHit = { url: string; thumbnail: string; title: string; context: string; source: string };
 
-const brandKey = (docId: string) => `notice.brand.${docId}`;
+// General info read off the manual's cover page. `brand` qualifies the part
+// image search; `time` / `people` are shown when the page states them (often
+// absent, hence empty strings). Persisted as one object per document.
+export type NoticeInfo = { brand: string; time: string; people: string };
+const emptyInfo = (): NoticeInfo => ({ brand: '', time: '', people: '' });
 
-export function loadBrand(docId: string): string {
+const infoKey = (docId: string) => `notice.info.${docId}`;
+const legacyBrandKey = (docId: string) => `notice.brand.${docId}`;
+
+export function loadInfo(docId: string): NoticeInfo {
   try {
-    return localStorage.getItem(brandKey(docId)) || '';
+    const raw = localStorage.getItem(infoKey(docId));
+    if (raw) {
+      const o = JSON.parse(raw) as Partial<NoticeInfo>;
+      return { brand: o.brand || '', time: o.time || '', people: o.people || '' };
+    }
+    // Fall back to the older brand-only key so a previously detected brand survives.
+    return { ...emptyInfo(), brand: localStorage.getItem(legacyBrandKey(docId)) || '' };
   } catch {
-    return '';
+    return emptyInfo();
   }
 }
 
-export function saveBrand(docId: string, brand: string) {
+export function saveInfo(docId: string, info: NoticeInfo) {
   try {
-    localStorage.setItem(brandKey(docId), brand);
+    localStorage.setItem(infoKey(docId), JSON.stringify(info));
   } catch {
     // ignore
   }
@@ -54,16 +67,21 @@ export function saveResult(docId: string, ref: string, result: PartImagesResult)
   }
 }
 
-// Render the cover (page 1) and ask the model for the manual's brand.
-export async function detectBrand(file: Blob): Promise<string> {
+// Render the cover (page 1) and ask the model for the manual's general info
+// (brand, plus estimated time and number of people when the page states them).
+export async function detectInfo(file: Blob): Promise<NoticeInfo> {
   const buf = await file.arrayBuffer();
   const task = pdfjsLib.getDocument({ data: buf });
   const doc = await task.promise;
   try {
     const image = await renderPdfPageToImage(doc, 1, 1100);
-    if (!image) return '';
-    const { data } = await axios.post<{ brand: string }>('/api/notice/brand', { image });
-    return (data.brand || '').trim();
+    if (!image) return emptyInfo();
+    const { data } = await axios.post<Partial<NoticeInfo>>('/api/notice/brand', { image });
+    return {
+      brand: (data.brand || '').trim(),
+      time: (data.time || '').trim(),
+      people: (data.people || '').trim(),
+    };
   } finally {
     void task.destroy();
   }

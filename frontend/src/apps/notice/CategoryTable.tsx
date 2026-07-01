@@ -29,7 +29,15 @@ export function CategoryTable({
     useRun(docId);
   const disabled = new Set(disabledModels);
   const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
-  const { brand, detecting } = useBrand(docId);
+  const { brand, time, people, detecting } = useBrand(docId);
+
+  // The general-info columns to show: brand (always, once detected/detecting)
+  // plus the estimated time / number of people only when the cover stated them.
+  const infoCols = [
+    { key: 'brand', label: t('notice.step3.brand'), value: brand, show: detecting || !!brand.trim() },
+    { key: 'time', label: t('notice.info.time'), value: time, show: !!time.trim() },
+    { key: 'people', label: t('notice.info.people'), value: people, show: !!people.trim() },
+  ].filter((c) => c.show);
 
   // Page-range selection. Held as strings so the field can be cleared while
   // typing (a number input would snap an empty value back to 0). `from` starts at
@@ -121,25 +129,36 @@ export function CategoryTable({
         )}
       </div>
 
-      {/* 2. Detected brand (read-only), reused by Étape 3's part image search.
-          Shown as a single-column, two-row table (label over value). */}
-      {(detecting || brand.trim()) && (
+      {/* 2. General info read off the cover (read-only): brand — reused by the
+          part image search — plus estimated time / people when the page states
+          them. One column per present field: a header row over a value row. */}
+      {infoCols.length > 0 && (
         <div className="mx-auto overflow-hidden rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
           <table className="text-center text-sm">
             <tbody>
               <tr className="border-b-2 border-slate-300 dark:border-slate-700">
-                <th className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">
-                  {t('notice.step3.brand')}
-                </th>
+                {infoCols.map((c) => (
+                  <th
+                    key={c.key}
+                    className="border-r-2 border-slate-300 px-4 py-2 font-semibold text-slate-900 last:border-r-0 dark:border-slate-700 dark:text-slate-100"
+                  >
+                    {c.label}
+                  </th>
+                ))}
               </tr>
               <tr>
-                <td className="px-4 py-2 text-slate-700 dark:text-slate-200">
-                  {detecting && !brand.trim() ? (
-                    <Loader2 className="mx-auto h-4 w-4 animate-spin" />
-                  ) : (
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{brand}</span>
-                  )}
-                </td>
+                {infoCols.map((c) => (
+                  <td
+                    key={c.key}
+                    className="border-r-2 border-slate-300 px-4 py-2 text-slate-700 last:border-r-0 dark:border-slate-700 dark:text-slate-200"
+                  >
+                    {c.key === 'brand' && detecting && !c.value.trim() ? (
+                      <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                    ) : (
+                      <span className="font-semibold text-slate-900 dark:text-slate-100">{c.value}</span>
+                    )}
+                  </td>
+                ))}
               </tr>
             </tbody>
           </table>

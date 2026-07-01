@@ -1,11 +1,12 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import { detectBrand, loadBrand, saveBrand } from './realImages';
+import { detectInfo, loadInfo, saveInfo, type NoticeInfo } from './realImages';
 
-// The manual's brand, shared (and reactive) across Étape 1 (where it is detected,
-// read-only, as a parallel call when the classification run starts) and Étape 3
-// (where it qualifies the part image search). Module scope + localStorage so it
-// survives navigation, like the other notice stores.
-type Snapshot = { brand: string; detecting: boolean };
+// The manual's general info (brand + estimated time + number of people), read off
+// the cover page and shared (reactively) across Étape 1 — where it is detected as
+// a parallel call when the classification run starts, shown read-only — and the
+// real-image search, which uses the brand to qualify the query. Module scope +
+// localStorage so it survives navigation, like the other notice stores.
+type Snapshot = NoticeInfo & { detecting: boolean };
 type Entry = { snapshot: Snapshot; listeners: Set<() => void> };
 
 const entries = new Map<string, Entry>();
@@ -13,7 +14,7 @@ const entries = new Map<string, Entry>();
 function getEntry(docId: string): Entry {
   let entry = entries.get(docId);
   if (!entry) {
-    entry = { snapshot: { brand: loadBrand(docId), detecting: false }, listeners: new Set() };
+    entry = { snapshot: { ...loadInfo(docId), detecting: false }, listeners: new Set() };
     entries.set(docId, entry);
   }
   return entry;
@@ -25,20 +26,18 @@ function update(docId: string, patch: Partial<Snapshot>) {
   entry.listeners.forEach((l) => l());
 }
 
-function setBrand(docId: string, brand: string) {
-  saveBrand(docId, brand);
-  update(docId, { brand });
-}
-
 export async function runDetect(docId: string, file: Blob) {
   const entry = getEntry(docId);
   if (entry.snapshot.detecting) return;
   update(docId, { detecting: true });
   try {
-    const b = await detectBrand(file);
-    if (b) setBrand(docId, b);
+    const info = await detectInfo(file);
+    if (info.brand || info.time || info.people) {
+      saveInfo(docId, info);
+      update(docId, info);
+    }
   } catch {
-    // non-fatal: leave the field as is
+    // non-fatal: leave the fields as is
   } finally {
     update(docId, { detecting: false });
   }

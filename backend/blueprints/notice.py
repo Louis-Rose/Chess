@@ -513,16 +513,41 @@ def _parse_parts(answer):
 
 _BRAND_PROMPT = (
     "This is the cover / first page of a furniture assembly manual. Reply with ONLY "
-    'the brand or manufacturer name (e.g. "IKEA"), nothing else, no punctuation. If '
-    'you cannot tell, reply "Unknown".'
+    "a JSON object (no markdown fences, no prose) with these three string keys:\n"
+    '  "brand": the brand or manufacturer name (e.g. "IKEA"), or "" if you cannot tell.\n'
+    '  "time": the estimated assembly time ONLY if it is explicitly shown on the page '
+    '(as text or a clock icon with a value, e.g. "30 min", "1 h 30"), else "".\n'
+    '  "people": the recommended number of people ONLY if it is explicitly shown '
+    '(as text or a person icon with a number, e.g. "2"), else "".\n'
+    'Never guess "time" or "people"; leave them "" unless the page clearly states them. '
+    'Reply with the JSON object only.'
 )
+
+
+def _parse_info(answer):
+    """Parse the cover-page reply into {brand, time, people}. Missing or
+    unrecognized values become empty strings; never raises."""
+    txt = (answer or '').strip()
+    try:
+        obj = json.loads(txt[txt.index('{'):txt.rindex('}') + 1])
+    except (ValueError, json.JSONDecodeError):
+        return {'brand': '', 'time': '', 'people': ''}
+    if not isinstance(obj, dict):
+        return {'brand': '', 'time': '', 'people': ''}
+
+    def clean(v):
+        s = str(v).strip().strip('."') if v is not None else ''
+        return '' if s.lower() in ('unknown', 'n/a', 'none', 'null', '-') else s
+
+    return {'brand': clean(obj.get('brand')), 'time': clean(obj.get('time')), 'people': clean(obj.get('people'))}
 
 
 @notice_bp.route('/api/notice/brand', methods=['POST'])
 @login_required
 def brand():
-    """Detect the manufacturer/brand from the manual's cover page, so the parts
-    image search can be qualified (e.g. 'IKEA 147968' rather than a bare number)."""
+    """Extract the general info from the manual's cover page: the brand (used to
+    qualify the parts image search, e.g. 'IKEA 147968'), plus the estimated
+    assembly time and recommended number of people when the page states them."""
     data = request.get_json(silent=True) or {}
     model = (data.get('model') or 'gemini-3.5-flash').strip()
     if model not in ALLOWED_MODELS:
@@ -540,10 +565,7 @@ def brand():
         logger.exception('[notice] brand failed')
         return jsonify({'error': 'Brand detection failed.'}), 502
 
-    b = (answer or '').strip().strip('."').splitlines()[0].strip() if answer else ''
-    if b.lower() in ('unknown', ''):
-        b = ''
-    return jsonify({'brand': b})
+    return jsonify(_parse_info(answer))
 
 
 # Sites to exclude from the part-image search up front, via Google `-site:`
