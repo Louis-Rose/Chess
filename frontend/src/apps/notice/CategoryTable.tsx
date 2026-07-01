@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, Sparkles, Square } from 'lucide-react';
 import { PageCategoriesTable } from './PageCategoriesTable';
+import { ReasoningBadge } from './ReasoningBadge';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { requestPage, selectRun, startRange, stopRun, toggleModel, useRun } from './categoryRun';
 import { runBtnClass, stopBtnClass } from './controls';
@@ -29,7 +30,7 @@ export function CategoryTable({
     useRun(docId);
   const disabled = new Set(disabledModels);
   const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
-  const { brand, time, people, detecting } = useBrand(docId);
+  const { brand, time, people, detecting, reasoning: infoReasoning, raw: infoRaw } = useBrand(docId);
 
   // The general-info columns to show: brand (always, once detected/detecting)
   // plus the estimated time / number of people only when the cover stated them.
@@ -38,6 +39,27 @@ export function CategoryTable({
     { key: 'time', label: t('notice.info.time'), value: time, show: !!time.trim() },
     { key: 'people', label: t('notice.info.people'), value: people, show: !!people.trim() },
   ].filter((c) => c.show);
+
+  // The cover-page extraction is one model call, so a single badge covers the
+  // whole info table. Same two-section tooltip as the categories table: the
+  // model's reasoning over its raw output.
+  const infoReasons = !!infoReasoning.trim();
+  const infoTooltip: ReactNode = (
+    <div className="space-y-3">
+      <div>
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          {t('notice.cat.reasoningTitle')}
+        </div>
+        <div className="whitespace-pre-line">{infoReasoning.trim() || t('notice.cat.noReasoning')}</div>
+      </div>
+      <div>
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          {t('notice.cat.rawOutputTitle')}
+        </div>
+        <div className="whitespace-pre-line">{infoRaw.trim() || '—'}</div>
+      </div>
+    </div>
+  );
 
   // Page-range selection. Held as strings so the field can be cleared while
   // typing (a number input would snap an empty value back to 0). `from` starts at
@@ -147,16 +169,21 @@ export function CategoryTable({
                 ))}
               </tr>
               <tr>
-                {infoCols.map((c) => (
+                {infoCols.map((c, i) => (
                   <td
                     key={c.key}
                     className="border-r-2 border-slate-300 px-4 py-2 text-slate-700 last:border-r-0 dark:border-slate-700 dark:text-slate-200"
                   >
-                    {c.key === 'brand' && detecting && !c.value.trim() ? (
-                      <Loader2 className="mx-auto h-4 w-4 animate-spin" />
-                    ) : (
-                      <span className="font-semibold text-slate-900 dark:text-slate-100">{c.value}</span>
-                    )}
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      {c.key === 'brand' && detecting && !c.value.trim() ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">{c.value}</span>
+                      )}
+                      {i === 0 && !detecting && (infoReasoning.trim() || infoRaw.trim()) && (
+                        <ReasoningBadge content={infoTooltip} label={t('notice.cat.thinking')} reasons={infoReasons} />
+                      )}
+                    </span>
                   </td>
                 ))}
               </tr>

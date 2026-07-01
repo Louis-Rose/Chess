@@ -10,8 +10,10 @@ export type ImageHit = { url: string; thumbnail: string; title: string; context:
 // General info read off the manual's cover page. `brand` qualifies the part
 // image search; `time` / `people` are shown when the page states them (often
 // absent, hence empty strings). Persisted as one object per document.
-export type NoticeInfo = { brand: string; time: string; people: string };
-const emptyInfo = (): NoticeInfo => ({ brand: '', time: '', people: '' });
+// `reasoning` / `raw` are the model's thought summary and raw reply, surfaced in
+// a hover tooltip (same as the categories table) so the extraction is inspectable.
+export type NoticeInfo = { brand: string; time: string; people: string; reasoning: string; raw: string };
+const emptyInfo = (): NoticeInfo => ({ brand: '', time: '', people: '', reasoning: '', raw: '' });
 
 const infoKey = (docId: string) => `notice.info.${docId}`;
 const legacyBrandKey = (docId: string) => `notice.brand.${docId}`;
@@ -21,7 +23,13 @@ export function loadInfo(docId: string): NoticeInfo {
     const raw = localStorage.getItem(infoKey(docId));
     if (raw) {
       const o = JSON.parse(raw) as Partial<NoticeInfo>;
-      return { brand: o.brand || '', time: o.time || '', people: o.people || '' };
+      return {
+        brand: o.brand || '',
+        time: o.time || '',
+        people: o.people || '',
+        reasoning: o.reasoning || '',
+        raw: o.raw || '',
+      };
     }
     // Fall back to the older brand-only key so a previously detected brand survives.
     return { ...emptyInfo(), brand: localStorage.getItem(legacyBrandKey(docId)) || '' };
@@ -81,6 +89,8 @@ export async function detectInfo(file: Blob): Promise<NoticeInfo> {
       brand: (data.brand || '').trim(),
       time: (data.time || '').trim(),
       people: (data.people || '').trim(),
+      reasoning: data.reasoning || '',
+      raw: data.raw || '',
     };
   } finally {
     void task.destroy();

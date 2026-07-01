@@ -558,14 +558,19 @@ def brand():
 
     user_id = getattr(request, 'user_id', None)
     try:
-        answer, _ = _gemini_on_images(model, [image_bytes], _BRAND_PROMPT, user_id, phase='brand')
+        answer, thoughts = _gemini_on_images(
+            model, [image_bytes], _BRAND_PROMPT, user_id, phase='brand', want_thoughts=True,
+        )
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503
     except Exception:
         logger.exception('[notice] brand failed')
         return jsonify({'error': 'Brand detection failed.'}), 502
 
-    return jsonify(_parse_info(answer))
+    info = _parse_info(answer)
+    info['reasoning'] = thoughts or ''
+    info['raw'] = (answer or '').strip()
+    return jsonify(info)
 
 
 # Sites to exclude from the part-image search up front, via Google `-site:`
