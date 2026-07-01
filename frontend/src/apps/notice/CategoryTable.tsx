@@ -32,13 +32,16 @@ export function CategoryTable({
   const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
   const { brand, time, people, detecting, reasoning: infoReasoning, raw: infoRaw } = useBrand(docId);
 
-  // The general-info columns to show: brand (always, once detected/detecting)
-  // plus the estimated time / number of people only when the cover stated them.
-  const infoCols = [
-    { key: 'brand', label: t('notice.step3.brand'), value: brand, show: detecting || !!brand.trim() },
-    { key: 'time', label: t('notice.info.time'), value: time, show: !!time.trim() },
-    { key: 'people', label: t('notice.info.people'), value: people, show: !!people.trim() },
-  ].filter((c) => c.show);
+  // The general-info columns. While detecting, show a single brand column with a
+  // spinner (never the stale previous value). Once detected: brand plus the
+  // estimated time / number of people, each only when the cover stated it.
+  const infoCols = detecting
+    ? [{ key: 'brand', label: t('notice.step3.brand'), value: '' }]
+    : [
+        { key: 'brand', label: t('notice.step3.brand'), value: brand, show: !!brand.trim() },
+        { key: 'time', label: t('notice.info.time'), value: time, show: !!time.trim() },
+        { key: 'people', label: t('notice.info.people'), value: people, show: !!people.trim() },
+      ].filter((c) => c.show);
 
   // The cover-page extraction is one model call, so a single badge covers the
   // whole info table. Same two-section tooltip as the categories table: the
@@ -94,11 +97,12 @@ export function CategoryTable({
     setTo(v);
   };
 
-  // Lancer kicks off the page classification and, in parallel, the brand
-  // detection (only when the brand isn't already known, to spare a Gemini call).
+  // Lancer kicks off the page classification and, in parallel, re-extracts the
+  // cover's general info (brand + time + people). Re-run every time so a fresh run
+  // refreshes the info (one cheap page-1 call) rather than reusing a stale result.
   const onRun = () => {
     void startRange(docId, file, Number(from) || 1, Number(to) || numPages, t);
-    if (!brand.trim()) void runDetect(docId, file);
+    void runDetect(docId, file);
   };
 
   const failedCount = Object.values(cellErrors).reduce((sum, byPage) => sum + Object.keys(byPage).length, 0);
