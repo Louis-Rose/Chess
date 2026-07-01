@@ -33,17 +33,17 @@ export function CategoryTable({
   const { brand, time, people, maxWeight, detecting, reasoning: infoReasoning, raw: infoRaw } =
     useBrand(docId);
 
-  // The general-info columns. While detecting, show a single brand column with a
-  // spinner (never the stale previous value). Once detected: brand plus the
-  // estimated time / number of people, each only when the cover stated it.
-  const infoCols = detecting
-    ? [{ key: 'brand', label: t('notice.step3.brand'), value: '' }]
-    : [
-        { key: 'brand', label: t('notice.step3.brand'), value: brand, show: !!brand.trim() },
-        { key: 'time', label: t('notice.info.time'), value: time, show: !!time.trim() },
-        { key: 'people', label: t('notice.info.people'), value: people, show: !!people.trim() },
-        { key: 'maxWeight', label: t('notice.info.maxWeight'), value: maxWeight, show: !!maxWeight.trim() },
-      ].filter((c) => c.show);
+  // The general-info columns: always all of them, so the shape is stable. While
+  // detecting, every value cell shows a spinner; once done, each shows its value
+  // or "-" when the manual doesn't state it.
+  const infoCols = [
+    { key: 'brand', label: t('notice.step3.brand'), value: brand },
+    { key: 'time', label: t('notice.info.time'), value: time },
+    { key: 'people', label: t('notice.info.people'), value: people },
+    { key: 'maxWeight', label: t('notice.info.maxWeight'), value: maxWeight },
+  ];
+  // Show the table once a run has produced (or is producing) info.
+  const hasInfo = detecting || !!infoRaw.trim() || infoCols.some((c) => c.value.trim());
 
   // The cover-page extraction is one model call, so a single badge covers the
   // whole info table. Same two-section tooltip as the categories table: the
@@ -160,7 +160,7 @@ export function CategoryTable({
       {/* 2. General info read off the cover (read-only): brand — reused by the
           part image search — plus estimated time / people when the page states
           them. One column per present field: a header row over a value row. */}
-      {infoCols.length > 0 && (
+      {hasInfo && (
         <div className="mx-auto overflow-hidden rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
           <table className="text-center text-sm">
             <tbody>
@@ -181,10 +181,12 @@ export function CategoryTable({
                     className="border-r-2 border-slate-300 px-4 py-2 text-slate-700 last:border-r-0 dark:border-slate-700 dark:text-slate-200"
                   >
                     <span className="inline-flex items-center justify-center gap-1.5">
-                      {c.key === 'brand' && detecting && !c.value.trim() ? (
+                      {detecting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{c.value}</span>
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                          {c.value.trim() || '-'}
+                        </span>
                       )}
                       {i === 0 && !detecting && (infoReasoning.trim() || infoRaw.trim()) && (
                         <ReasoningBadge content={infoTooltip} label={t('notice.cat.thinking')} reasons={infoReasons} />
