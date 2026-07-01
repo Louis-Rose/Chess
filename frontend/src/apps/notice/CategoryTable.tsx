@@ -75,7 +75,7 @@ export function CategoryTable({
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* 1. Page-range controls */}
+      {/* 1. Page-range controls (from / to + Lancer), on their own line. */}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-600 dark:text-slate-300">{t('notice.cat.from')}</span>
@@ -112,52 +112,36 @@ export function CategoryTable({
           </button>
         </div>
 
-        {/* Detected brand (read-only), reused by Étape 3's part image search. */}
-        {(detecting || brand.trim()) && (
-          <span className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-            {t('notice.step3.brand')}
-            {detecting && !brand.trim() ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <span className="font-semibold text-slate-900 dark:text-slate-100">{brand}</span>
-            )}
-          </span>
-        )}
-
         {busy && (
           <button type="button" onClick={() => stopRun(docId)} className={stopBtnClass}>
             <Square className="h-4 w-4" />
             {t('notice.cat.stop')}
           </button>
         )}
-
-        {/* Browse the run history; the tables and PDF follow the selected run. */}
-        {runs.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => selectRun(docId, selected - 1)}
-              disabled={selected <= 0}
-              className={navBtnClass}
-              aria-label={t('notice.cat.prevRun')}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="min-w-[5rem] text-center text-sm tabular-nums text-slate-600 dark:text-slate-300">
-              {t('notice.cat.run')} {selected + 1}/{runs.length}
-            </span>
-            <button
-              type="button"
-              onClick={() => selectRun(docId, selected + 1)}
-              disabled={selected >= runs.length - 1}
-              className={navBtnClass}
-              aria-label={t('notice.cat.nextRun')}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* 2. Detected brand (read-only), reused by Étape 3's part image search.
+          Shown as a single-column, two-row table (label over value). */}
+      {(detecting || brand.trim()) && (
+        <table className="mx-auto overflow-hidden rounded-xl border-2 border-slate-300 bg-white text-center text-sm shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
+          <tbody>
+            <tr className="border-b-2 border-slate-300 dark:border-slate-700">
+              <th className="px-4 py-2 font-semibold text-slate-900 dark:text-slate-100">
+                {t('notice.step3.brand')}
+              </th>
+            </tr>
+            <tr>
+              <td className="px-4 py-2 text-slate-700 dark:text-slate-200">
+                {detecting && !brand.trim() ? (
+                  <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                ) : (
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">{brand}</span>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      )}
 
       {error && <p className="-mt-2 text-center text-sm text-rose-600 dark:text-rose-400">{error}</p>}
       {failedCount > 0 && (
@@ -166,7 +150,7 @@ export function CategoryTable({
         </p>
       )}
 
-      {/* 2. Category of every page */}
+      {/* 3. Category of every page */}
       <PageCategoriesTable
         numPages={numPages}
         categories={categories}
@@ -181,6 +165,33 @@ export function CategoryTable({
           document.getElementById('notice-pdf')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}
       />
+
+      {/* 4. Run history navigation, below the category table. */}
+      {runs.length > 0 && (
+        <div className="flex items-center justify-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => selectRun(docId, selected - 1)}
+            disabled={selected <= 0}
+            className={navBtnClass}
+            aria-label={t('notice.cat.prevRun')}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="min-w-[5rem] text-center text-sm tabular-nums text-slate-600 dark:text-slate-300">
+            {t('notice.cat.run')} {selected + 1}/{runs.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => selectRun(docId, selected + 1)}
+            disabled={selected >= runs.length - 1}
+            className={navBtnClass}
+            aria-label={t('notice.cat.nextRun')}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
