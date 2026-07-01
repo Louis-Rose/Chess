@@ -12,8 +12,15 @@ export type ImageHit = { url: string; thumbnail: string; title: string; context:
 // absent, hence empty strings). Persisted as one object per document.
 // `reasoning` / `raw` are the model's thought summary and raw reply, surfaced in
 // a hover tooltip (same as the categories table) so the extraction is inspectable.
-export type NoticeInfo = { brand: string; time: string; people: string; reasoning: string; raw: string };
-const emptyInfo = (): NoticeInfo => ({ brand: '', time: '', people: '', reasoning: '', raw: '' });
+export type NoticeInfo = {
+  brand: string;
+  time: string;
+  people: string;
+  maxWeight: string;
+  reasoning: string;
+  raw: string;
+};
+const emptyInfo = (): NoticeInfo => ({ brand: '', time: '', people: '', maxWeight: '', reasoning: '', raw: '' });
 
 const infoKey = (docId: string) => `notice.info.${docId}`;
 const legacyBrandKey = (docId: string) => `notice.brand.${docId}`;
@@ -27,6 +34,7 @@ export function loadInfo(docId: string): NoticeInfo {
         brand: o.brand || '',
         time: o.time || '',
         people: o.people || '',
+        maxWeight: o.maxWeight || '',
         reasoning: o.reasoning || '',
         raw: o.raw || '',
       };
@@ -75,20 +83,26 @@ export function saveResult(docId: string, ref: string, result: PartImagesResult)
   }
 }
 
-// Render the cover (page 1) and ask the model for the manual's general info
-// (brand, plus estimated time and number of people when the page states them).
+// Render every page and ask the model for the manual's general info (brand, plus
+// estimated time / number of people / max supported weight when a page states
+// them). The info can sit on any page, not just the cover, so all pages are sent.
 export async function detectInfo(file: Blob): Promise<NoticeInfo> {
   const buf = await file.arrayBuffer();
   const task = pdfjsLib.getDocument({ data: buf });
   const doc = await task.promise;
   try {
-    const image = await renderPdfPageToImage(doc, 1, 1100);
-    if (!image) return emptyInfo();
-    const { data } = await axios.post<Partial<NoticeInfo>>('/api/notice/brand', { image });
+    const images: string[] = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      const img = await renderPdfPageToImage(doc, p, 1100);
+      if (img) images.push(img);
+    }
+    if (!images.length) return emptyInfo();
+    const { data } = await axios.post<Partial<NoticeInfo>>('/api/notice/brand', { images });
     return {
       brand: (data.brand || '').trim(),
       time: (data.time || '').trim(),
       people: (data.people || '').trim(),
+      maxWeight: (data.maxWeight || '').trim(),
       reasoning: data.reasoning || '',
       raw: data.raw || '',
     };

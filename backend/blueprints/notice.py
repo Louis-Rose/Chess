@@ -56,7 +56,8 @@ MAX_IMAGE_BYTES = 10 * 1024 * 1024
 # printed step number ("Assemblage - Etape N", N from 1 to 100).
 _FIXED_CATEGORIES = [
     'Sommaire', 'Outils nécessaires', 'Matériel fourni', 'Sécurité', 'Liens',
-    'Produit fini (monté)',
+    'Produit fini (monté)', 'Contact service client', "Conseils d'entretien",
+    'Tri & environnement',
 ]
 _STEP_RE = re.compile(r'^Assemblage - Etape ([1-9]\d?|100)$')
 
@@ -72,6 +73,12 @@ _CATEGORY_LABELS = (
     "- Sécurité\n"
     "- Liens\n"
     "- Produit fini (monté)  (the finished, fully assembled product)\n"
+    "- Contact service client  (customer-service / after-sales contact: address, "
+    "phone, email, warranty or spare-parts request)\n"
+    "- Conseils d'entretien  (care / maintenance advice: cleaning instructions, "
+    "product upkeep)\n"
+    "- Tri & environnement  (waste sorting / recycling / environmental disposal "
+    "info, packaging recycling symbols)\n"
 )
 _CATEGORY_GUIDANCE = (
     "Printed text (section titles, step numbers, French labels) is part of the "
@@ -511,55 +518,75 @@ def _parse_parts(answer):
     return out
 
 
+_INFO_KEYS = ('brand', 'time', 'people', 'maxWeight')
+
 _BRAND_PROMPT = (
-    "This is the cover / first page of a furniture assembly manual. Reply with ONLY "
-    "a JSON object (no markdown fences, no prose) with these three string keys:\n"
+    "These are ALL the pages of a furniture assembly manual, given in order. Look "
+    "across EVERY page (the info may appear on the cover, a safety page, a technical "
+    "page, etc., not only the first). Reply with ONLY a JSON object (no markdown "
+    "fences, no prose) with these four string keys:\n"
     '  "brand": the brand or manufacturer name (e.g. "IKEA"), or "" if you cannot tell.\n'
-    '  "time": the estimated assembly time ONLY if it is explicitly shown on the page '
+    '  "time": the estimated assembly time ONLY if it is explicitly shown '
     '(as text or a clock icon with a value, e.g. "30 min", "1 h 30"), else "".\n'
     '  "people": the recommended number of people ONLY if it is explicitly shown '
     '(as text or a person icon with a number, e.g. "2"), else "".\n'
-    'Never guess "time" or "people"; leave them "" unless the page clearly states them. '
+    '  "maxWeight": the maximum supported weight / load capacity ONLY if it is '
+    'explicitly shown (as text or an icon with a value, e.g. "20 kg", "max 50kg"), '
+    'else "". Keep the unit.\n'
+    'Never guess a value; leave a key "" unless a page clearly states it. '
     'Reply with the JSON object only.'
 )
 
 
 def _parse_info(answer):
-    """Parse the cover-page reply into {brand, time, people}. Missing or
+    """Parse the model's reply into {brand, time, people, maxWeight}. Missing or
     unrecognized values become empty strings; never raises."""
+    empty = {k: '' for k in _INFO_KEYS}
     txt = (answer or '').strip()
     try:
         obj = json.loads(txt[txt.index('{'):txt.rindex('}') + 1])
     except (ValueError, json.JSONDecodeError):
-        return {'brand': '', 'time': '', 'people': ''}
+        return dict(empty)
     if not isinstance(obj, dict):
-        return {'brand': '', 'time': '', 'people': ''}
+        return dict(empty)
 
     def clean(v):
         s = str(v).strip().strip('."') if v is not None else ''
         return '' if s.lower() in ('unknown', 'n/a', 'none', 'null', '-') else s
 
-    return {'brand': clean(obj.get('brand')), 'time': clean(obj.get('time')), 'people': clean(obj.get('people'))}
+    return {k: clean(obj.get(k)) for k in _INFO_KEYS}
 
 
 @notice_bp.route('/api/notice/brand', methods=['POST'])
 @login_required
 def brand():
-    """Extract the general info from the manual's cover page: the brand (used to
+    """Extract the manual's general info from ALL its pages: the brand (used to
     qualify the parts image search, e.g. 'IKEA 147968'), plus the estimated
-    assembly time and recommended number of people when the page states them."""
+    assembly time, recommended number of people and maximum supported weight when
+    a page states them. The client posts all page images ('images', in order);
+    a single 'image' is still accepted for back-compatibility."""
     data = request.get_json(silent=True) or {}
     model = (data.get('model') or 'gemini-3.5-flash').strip()
     if model not in ALLOWED_MODELS:
         model = 'gemini-3.5-flash'
-    image_bytes, err = _decode_image(data.get('image') or '')
-    if err:
-        return err
+
+    images_b64 = data.get('images')
+    if not isinstance(images_b64, list):
+        images_b64 = [data.get('image') or '']
+    # Defensive cap against an abusive client.
+    if not images_b64 or len(images_b64) > 60:
+        return jsonify({'error': 'No page images were provided.'}), 400
+    images = []
+    for b64 in images_b64:
+        img, err = _decode_image(b64)
+        if err:
+            return err
+        images.append(img)
 
     user_id = getattr(request, 'user_id', None)
     try:
         answer, thoughts = _gemini_on_images(
-            model, [image_bytes], _BRAND_PROMPT, user_id, phase='brand', want_thoughts=True,
+            model, images, _BRAND_PROMPT, user_id, phase='brand', want_thoughts=True,
         )
     except ValueError:
         return jsonify({'error': 'The assistant is not configured on the server.'}), 503

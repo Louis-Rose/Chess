@@ -30,7 +30,8 @@ export function CategoryTable({
     useRun(docId);
   const disabled = new Set(disabledModels);
   const onToggleModel = (modelId: string) => toggleModel(docId, modelId);
-  const { brand, time, people, detecting, reasoning: infoReasoning, raw: infoRaw } = useBrand(docId);
+  const { brand, time, people, maxWeight, detecting, reasoning: infoReasoning, raw: infoRaw } =
+    useBrand(docId);
 
   // The general-info columns. While detecting, show a single brand column with a
   // spinner (never the stale previous value). Once detected: brand plus the
@@ -41,6 +42,7 @@ export function CategoryTable({
         { key: 'brand', label: t('notice.step3.brand'), value: brand, show: !!brand.trim() },
         { key: 'time', label: t('notice.info.time'), value: time, show: !!time.trim() },
         { key: 'people', label: t('notice.info.people'), value: people, show: !!people.trim() },
+        { key: 'maxWeight', label: t('notice.info.maxWeight'), value: maxWeight, show: !!maxWeight.trim() },
       ].filter((c) => c.show);
 
   // The cover-page extraction is one model call, so a single badge covers the

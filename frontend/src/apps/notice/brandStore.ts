@@ -32,7 +32,7 @@ export async function runDetect(docId: string, file: Blob) {
   update(docId, { detecting: true });
   try {
     const info = await detectInfo(file);
-    if (info.brand || info.time || info.people || info.reasoning || info.raw) {
+    if (info.brand || info.time || info.people || info.maxWeight || info.reasoning || info.raw) {
       saveInfo(docId, info);
       update(docId, info);
     }
