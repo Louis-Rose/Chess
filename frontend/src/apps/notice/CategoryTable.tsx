@@ -161,42 +161,44 @@ export function CategoryTable({
           part image search — plus estimated time / people when the page states
           them. One column per present field: a header row over a value row. */}
       {hasInfo && (
-        <div className="mx-auto overflow-hidden rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
-          <table className="text-center text-sm">
-            <tbody>
-              <tr className="border-b-2 border-slate-300 dark:border-slate-700">
-                {infoCols.map((c) => (
-                  <th
-                    key={c.key}
-                    className="border-r-2 border-slate-300 px-4 py-2 font-semibold text-slate-900 last:border-r-0 dark:border-slate-700 dark:text-slate-100"
-                  >
-                    {c.label}
-                  </th>
-                ))}
-              </tr>
-              <tr>
-                {infoCols.map((c, i) => (
-                  <td
-                    key={c.key}
-                    className="border-r-2 border-slate-300 px-4 py-2 text-slate-700 last:border-r-0 dark:border-slate-700 dark:text-slate-200"
-                  >
-                    <span className="inline-flex items-center justify-center gap-1.5">
+        <div className="mx-auto flex items-center gap-2">
+          <div className="overflow-hidden rounded-xl border-2 border-slate-300 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:shadow-lg">
+            <table className="text-center text-sm">
+              <tbody>
+                <tr className="border-b-2 border-slate-300 dark:border-slate-700">
+                  {infoCols.map((c) => (
+                    <th
+                      key={c.key}
+                      className="border-r-2 border-slate-300 px-4 py-2 font-semibold text-slate-900 last:border-r-0 dark:border-slate-700 dark:text-slate-100"
+                    >
+                      {c.label}
+                    </th>
+                  ))}
+                </tr>
+                <tr>
+                  {infoCols.map((c) => (
+                    <td
+                      key={c.key}
+                      className="border-r-2 border-slate-300 px-4 py-2 text-slate-700 last:border-r-0 dark:border-slate-700 dark:text-slate-200"
+                    >
                       {detecting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                       ) : (
                         <span className="font-semibold text-slate-900 dark:text-slate-100">
                           {c.value.trim() || '-'}
                         </span>
                       )}
-                      {i === 0 && !detecting && (infoReasoning.trim() || infoRaw.trim()) && (
-                        <ReasoningBadge content={infoTooltip} label={t('notice.cat.thinking')} reasons={infoReasons} />
-                      )}
-                    </span>
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {/* One badge for the whole info table (a single cover-page model call),
+              set to its right and vertically centered. */}
+          {!detecting && (infoReasoning.trim() || infoRaw.trim()) && (
+            <ReasoningBadge content={infoTooltip} label={t('notice.cat.thinking')} reasons={infoReasons} />
+          )}
         </div>
       )}
 

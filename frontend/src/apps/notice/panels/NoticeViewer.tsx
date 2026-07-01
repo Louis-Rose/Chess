@@ -5,6 +5,7 @@ import { PdfViewer } from '../PdfViewer';
 import { CategoryTable } from '../CategoryTable';
 import { MaterialStep } from '../MaterialStep';
 import { RealImagesStep } from '../RealImagesStep';
+import { InstructionsStep } from '../InstructionsStep';
 import { EtapeSection } from '../EtapeSection';
 import { SECTION_WIDTH } from '../sectionWidth';
 import { getFile, type NoticeFile } from '../noticeStore';
@@ -188,7 +189,14 @@ export function NoticeViewer() {
                 <RealImagesStep file={current.data} docId={current.id} />
               </div>
             </EtapeSection>
-            <EtapeSection title={`${t('notice.step')} 3`} info={notes?.[3]} />
+            {/* Étape 3: transcribe each assembly step's written instructions in
+                every language the manual prints, keyed back to the step. */}
+            <EtapeSection
+              title={`${t('notice.step')} 3${t('notice.step.sep')}${t('notice.instr.title')}`}
+              info={notes?.[3]}
+            >
+              <InstructionsStep file={current.data} docId={current.id} />
+            </EtapeSection>
           </div>
         </div>
       ) : (

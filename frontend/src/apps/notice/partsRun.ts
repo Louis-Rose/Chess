@@ -15,33 +15,42 @@ import type { Bands } from './categoryBands';
 export type PartItem = {
   page: number;
   bbox: [number, number, number, number];
+  // Which of these a manual prints varies part to part; absent ones are null.
+  letter: string | null; // assembly index (A, B, C…) reused in the steps
   // null when no count is printed (e.g. an overview thumbnail of all parts).
   qty: number | null;
-  ref: string | null;
+  ref: string | null; // reference / article number
+  name: string | null; // printed name/label, without the size
+  size: string | null; // printed dimensions (e.g. "M6 X 70MM")
   bag: string | null;
 };
 
+// A part's identity for deduplication: its reference, or failing that its
+// assembly letter (manuals use one or the other).
+const partId = (p: PartItem) => p.ref || p.letter;
+
 // Collapse the false duplicates that come from a part appearing on more than one
 // "Matériel fourni" section (an overview thumbnail without counts, plus the
-// detailed list with quantities and reference numbers):
-//   - drop overview entries: no quantity AND no reference,
-//   - dedup by reference, keeping the entry that carries a quantity.
+// detailed list with quantities and reference/letter labels):
+//   - drop overview entries: no quantity AND no identity,
+//   - dedup by identity, keeping the entry that carries a quantity.
 function dedupeParts(items: PartItem[]): PartItem[] {
-  const real = items.filter((p) => p.qty != null || p.ref);
-  const keptByRef = new Map<string, PartItem>();
+  const real = items.filter((p) => p.qty != null || partId(p));
+  const keptById = new Map<string, PartItem>();
   const out: PartItem[] = [];
   for (const p of real) {
-    if (!p.ref) {
+    const id = partId(p);
+    if (!id) {
       out.push(p);
       continue;
     }
-    const existing = keptByRef.get(p.ref);
+    const existing = keptById.get(id);
     if (!existing) {
-      keptByRef.set(p.ref, p);
+      keptById.set(id, p);
       out.push(p);
     } else if (existing.qty == null && p.qty != null) {
       out[out.indexOf(existing)] = p; // prefer the appearance that has a count
-      keptByRef.set(p.ref, p);
+      keptById.set(id, p);
     }
   }
   return out;
@@ -157,7 +166,15 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
       }
 
       const { data } = await axios.post<{
-        parts: { bbox: [number, number, number, number]; qty: number | null; ref: string | null; bag: string | null }[];
+        parts: {
+          bbox: [number, number, number, number];
+          letter: string | null;
+          qty: number | null;
+          ref: string | null;
+          name: string | null;
+          size: string | null;
+          bag: string | null;
+        }[];
         reasoning?: string;
       }>('/api/notice/parts', { model: bands.model, image, page }, { signal });
 
@@ -169,8 +186,11 @@ export async function extractParts(docId: string, file: Blob, bands: Bands, t: (
           page,
           // box is relative to the band image; map y back onto the full page.
           bbox: [bx0, band.top + by0 * span, bx1, band.top + by1 * span],
+          letter: p.letter ?? null,
           qty: p.qty ?? null,
           ref: p.ref ?? null,
+          name: p.name ?? null,
+          size: p.size ?? null,
           bag: p.bag ?? null,
         });
       }

@@ -10,8 +10,9 @@ import type { PartItem } from './partsRun';
 import './pdfRender';
 
 // The extracted supplied-parts list: one row per part, with its piece image
-// cropped from the PDF on the fly (so nothing big is persisted). The bag and
-// reference columns appear only when at least one part carries that field.
+// cropped from the PDF on the fly (so nothing big is persisted). Every field row
+// (letter, ref, name, size, qty, bag) shows always, with "-" where a manual
+// doesn't print it, so the table shape stays stable across manuals.
 export function PartsTable({
   file,
   items,
@@ -77,9 +78,6 @@ export function PartsTable({
     };
   }, [file, items]);
 
-  const hasBag = items.some((p) => p.bag);
-  const hasRef = items.some((p) => p.ref);
-
   // Transposed: one row per field (the labels are the sticky first column), one
   // column per part, scrolling horizontally. The sticky column's right edge is a
   // box-shadow (a border vanishes on a sticky cell while the row scrolls under).
@@ -93,6 +91,20 @@ export function PartsTable({
     `${dataCellCls} ${extra} ${p.ref ? 'cursor-pointer' : ''} ${
       p.ref && p.ref === selectedRef ? 'bg-emerald-50 dark:bg-emerald-500/10' : ''
     }`;
+
+  // A plain text field row: the label, then one cell per part showing the value
+  // or "-" when this manual doesn't print it. All field rows show always (even
+  // when empty for every part), so the table shape is stable across manuals.
+  const textRow = (label: string, get: (p: PartItem) => string | null, extra = '') => (
+    <tr className={rowCls}>
+      <th className={labelCellCls}>{label}</th>
+      {items.map((p, i) => (
+        <td key={i} onClick={() => onPick(p)} className={cellCls(p, extra)}>
+          {get(p) || '-'}
+        </td>
+      ))}
+    </tr>
+  );
 
   return (
     <>
@@ -121,22 +133,10 @@ export function PartsTable({
               </td>
             ))}
           </tr>
-          {hasBag && (
-            <tr className={rowCls}>
-              <th className={labelCellCls}>{t('notice.parts.bag')}</th>
-              {items.map((p, i) => (
-                <td key={i} onClick={() => onPick(p)} className={cellCls(p)}>{p.bag ?? '—'}</td>
-              ))}
-            </tr>
-          )}
-          {hasRef && (
-            <tr className={rowCls}>
-              <th className={labelCellCls}>{t('notice.parts.ref')}</th>
-              {items.map((p, i) => (
-                <td key={i} onClick={() => onPick(p)} className={cellCls(p, 'font-mono')}>{p.ref ?? '—'}</td>
-              ))}
-            </tr>
-          )}
+          {textRow(t('notice.parts.letter'), (p) => p.letter, 'font-semibold text-slate-900 dark:text-slate-100')}
+          {textRow(t('notice.parts.ref'), (p) => p.ref, 'font-mono')}
+          {textRow(t('notice.parts.name'), (p) => p.name)}
+          {textRow(t('notice.parts.size'), (p) => p.size, 'font-mono')}
           <tr className={rowCls}>
             <th className={labelCellCls}>{t('notice.parts.qty')}</th>
             {items.map((p, i) => (
@@ -145,10 +145,11 @@ export function PartsTable({
                 onClick={() => onPick(p)}
                 className={cellCls(p, 'font-semibold tabular-nums text-slate-900 dark:text-slate-100')}
               >
-                {p.qty != null ? `${p.qty}x` : '—'}
+                {p.qty != null ? `${p.qty}x` : '-'}
               </td>
             ))}
           </tr>
+          {textRow(t('notice.parts.bag'), (p) => p.bag)}
           <tr className={rowCls}>
             <th className={labelCellCls}>{t('notice.parts.piece')}</th>
             {items.map((p, i) => (

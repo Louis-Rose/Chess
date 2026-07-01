@@ -406,18 +406,30 @@ def _parse_categorize_batch(answer, expected):
 _PARTS_PROMPT = (
     "This image is the 'supplied parts / hardware' (Matériel fourni) section of a "
     "furniture assembly manual. List EVERY distinct part/fitting drawn (screws, "
-    "cams, dowels, plates, etc.). For each part return one JSON object:\n"
+    "cams, dowels, plates, etc.). Manuals differ: some label every part with a "
+    "LETTER reused in the steps, some print a reference/article number, some print "
+    "a name and/or a size, some none of these. Read whatever THIS manual prints for "
+    "each part and leave the rest null. For each part return one JSON object:\n"
     "- box_2d: the bounding box of that part's DRAWING ONLY (not its number/label), "
     "as [ymin, xmin, ymax, xmax] normalized to 0-1000.\n"
+    "- letter: the identifying letter/index printed by the part and reused in the "
+    "assembly steps (e.g. \"A\", \"B\", \"AA\"), else null. This is NOT the quantity "
+    "and NOT a reference number.\n"
     "- qty: the quantity printed next to it (the number in 'Nx', 'x N' or 'N x'), as "
     "an integer. If NO number is printed (e.g. an overview thumbnail of all parts), "
     "use null. Do NOT assume 1.\n"
     "- ref: the printed reference/article number if any (e.g. \"100345\", \"151706\"), "
     "else null.\n"
+    "- name: the part's printed name/label WITHOUT its size (e.g. \"SPRING WASHER\", "
+    "\"WOOD DOWEL\", \"ALLEN KEY\"), else null.\n"
+    "- size: the part's printed dimensions/size if any (e.g. \"M6 X 70MM\", \"M8\", "
+    "\"20MM\"), else null.\n"
     "- bag: the bag/sachet label if the parts are grouped in labelled bags, else null.\n"
-    "Reply with ONLY a JSON array, no prose, no code fence, one object per part: "
-    '{"box_2d": [ymin, xmin, ymax, xmax], "qty": <int>, "ref": <string|null>, '
-    '"bag": <string|null>}.'
+    "Only fill a field when the manual actually prints it for that part; never invent "
+    "values. Reply with ONLY a JSON array, no prose, no code fence, one object per "
+    'part: {"box_2d": [ymin, xmin, ymax, xmax], "letter": <string|null>, '
+    '"qty": <int|null>, "ref": <string|null>, "name": <string|null>, '
+    '"size": <string|null>, "bag": <string|null>}.'
 )
 
 
@@ -471,11 +483,20 @@ def _parts_qty(v):
     return max(1, int(m.group())) if m else None
 
 
+def _clean_str(v):
+    """A model string field: trimmed, or None when empty/missing."""
+    if v is None:
+        return None
+    v = str(v).strip()
+    return v or None
+
+
 def _parse_parts(answer):
     """Parse the model's JSON array into a list of
-    {bbox:[x0,y0,x1,y1], qty, ref, bag}. box_2d ([ymin,xmin,ymax,xmax], 0-1000) is
-    converted to a normalized x0/y0/x1/y1 (0..1). Returns None only if the reply
-    isn't a JSON array; individual malformed entries are skipped."""
+    {bbox:[x0,y0,x1,y1], letter, qty, ref, name, size, bag}. box_2d
+    ([ymin,xmin,ymax,xmax], 0-1000) is converted to a normalized x0/y0/x1/y1 (0..1).
+    Returns None only if the reply isn't a JSON array; individual malformed entries
+    are skipped."""
     import json
 
     txt = (answer or '').strip()
@@ -505,16 +526,95 @@ def _parse_parts(answer):
         x1, y1 = min(1.0, x1), min(1.0, y1)
         if x1 <= x0 or y1 <= y0:
             continue
-        ref = obj.get('ref')
-        ref = str(ref).strip() if ref else None
-        bag = obj.get('bag')
-        bag = str(bag).strip() if bag else None
         out.append({
             'bbox': [round(x0, 4), round(y0, 4), round(x1, 4), round(y1, 4)],
+            'letter': _clean_str(obj.get('letter')),
             'qty': _parts_qty(obj.get('qty')),
-            'ref': ref or None,
-            'bag': bag or None,
+            'ref': _clean_str(obj.get('ref')),
+            'name': _clean_str(obj.get('name')),
+            'size': _clean_str(obj.get('size')),
+            'bag': _clean_str(obj.get('bag')),
         })
+    return out
+
+
+_INSTRUCTIONS_PROMPT = (
+    "This image is ONE assembly step of a furniture manual (its diagram plus any "
+    "printed instruction text). Transcribe the step's WRITTEN instructions. Many "
+    "manuals repeat the same instructions in SEVERAL languages: return one object "
+    "per language actually printed for this step. For each language give:\n"
+    "- lang: its ISO 639-1 two-letter code (e.g. \"fr\", \"en\", \"es\", \"de\", "
+    "\"it\", \"nl\").\n"
+    "- text: that language's instruction text for this step, transcribed VERBATIM "
+    "(keep the wording, numbering and bullets; do NOT translate, summarize or "
+    "invent).\n"
+    "Only include languages whose text is actually printed on this step. If the step "
+    "has NO written instructions (diagram only), reply with an empty array []. Reply "
+    "with ONLY a JSON array, no prose, no code fence: "
+    '[{"lang": <code>, "text": <string>}].'
+)
+
+
+@notice_bp.route('/api/notice/instructions', methods=['POST'])
+@login_required
+def instructions():
+    """Extract one assembly step's written instructions, per language printed.
+    Returns [{lang, text}] plus the model's reasoning, so the client can associate
+    the text with the step it ran (the caller sends one step band at a time)."""
+    data = request.get_json(silent=True) or {}
+    model = (data.get('model') or '').strip()
+    if model not in ALLOWED_MODELS:
+        return jsonify({'error': 'Unknown model.'}), 400
+
+    image_bytes, err = _decode_image(data.get('image') or '')
+    if err:
+        return err
+    try:
+        page = int(data.get('page')) if data.get('page') is not None else None
+    except (TypeError, ValueError):
+        page = None
+
+    user_id = getattr(request, 'user_id', None)
+    try:
+        answer, thoughts = _gemini_on_images(
+            model, [image_bytes], _INSTRUCTIONS_PROMPT, user_id, phase='instructions',
+            pages=[page] if page else None, want_thoughts=True,
+        )
+    except ValueError:
+        return jsonify({'error': 'The assistant is not configured on the server.'}), 503
+    except Exception:
+        logger.exception('[notice] instructions failed')
+        return jsonify({'error': 'Instruction extraction failed.'}), 502
+
+    items = _parse_instructions(answer)
+    if items is None:
+        return jsonify({'error': 'The instructions could not be read.'}), 502
+    return jsonify({'instructions': items, 'reasoning': thoughts or ''})
+
+
+def _parse_instructions(answer):
+    """Parse the model's JSON array into a list of {lang, text}. `lang` is lowercased
+    (a short language code); entries with empty text are skipped. Returns None only
+    if the reply isn't a JSON array."""
+    import json
+
+    txt = (answer or '').strip()
+    try:
+        arr = json.loads(txt[txt.index('['):txt.rindex(']') + 1])
+    except (ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(arr, list):
+        return None
+
+    out = []
+    for obj in arr:
+        if not isinstance(obj, dict):
+            continue
+        text = _clean_str(obj.get('text'))
+        if not text:
+            continue
+        lang = (_clean_str(obj.get('lang')) or '').lower()
+        out.append({'lang': lang or None, 'text': text})
     return out
 
 
